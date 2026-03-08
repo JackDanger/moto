@@ -513,8 +513,9 @@ class KmsBackend(BaseBackend):
     def update_alias(self, target_key_id: str, alias_name: str) -> Alias:
         for key in self.keys.values():
             if alias_name in key.aliases and target_key_id != key.id:
-                # Updating the Key that this is an alias of
+                # Move alias from old key to new key
                 alias = key.aliases.pop(alias_name)
+                alias.target_key_id = target_key_id
                 self.keys[target_key_id].aliases[alias_name] = alias
                 return alias
         # TargetKeyId hasn't changed - nothing to update
