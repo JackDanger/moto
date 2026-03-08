@@ -439,9 +439,10 @@ class ResourceGroupsBackend(BaseBackend):
     def update_group(
         self, group_name: str, description: Optional[str] = None
     ) -> FakeResourceGroup:
+        group = self.get_group(group_name)
         if description:
-            self.groups.by_name[group_name].description = description
-        return self.groups.by_name[group_name]
+            group.description = description
+        return group
 
     def update_group_query(
         self, group_name: str, resource_query: dict[str, str]
@@ -453,14 +454,15 @@ class ResourceGroupsBackend(BaseBackend):
     def get_group_configuration(
         self, group_name: str
     ) -> Optional[list[dict[str, Any]]]:
-        group = self.groups.by_name[group_name]
+        group = self.get_group(group_name)
         return group.configuration
 
     def put_group_configuration(
         self, group_name: str, configuration: list[dict[str, Any]]
     ) -> FakeResourceGroup:
-        self.groups.by_name[group_name].configuration = configuration
-        return self.groups.by_name[group_name]
+        group = self.get_group(group_name)
+        group.configuration = configuration
+        return group
 
     def list_tag_sync_tasks(
         self,

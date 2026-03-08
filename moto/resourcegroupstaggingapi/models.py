@@ -1490,12 +1490,17 @@ class ResourceGroupsTaggingAPIBackend(BaseBackend):
         tag_filters: Optional[list[dict[str, Any]]] = None,
         resource_type_filters: Optional[list[str]] = None,
     ) -> tuple[Optional[str], list[dict[str, Any]]]:
+        # Normalize None to empty lists
+        if tag_filters is None:
+            tag_filters = []
+        if resource_type_filters is None:
+            resource_type_filters = []
         # Simple range checking
-        if 100 >= tags_per_page >= 500:
+        if tags_per_page < 100 or tags_per_page > 500:
             raise RESTError(
                 "InvalidParameterException", "TagsPerPage must be between 100 and 500"
             )
-        if 1 >= resources_per_page >= 50:
+        if resources_per_page < 1 or resources_per_page > 50:
             raise RESTError(
                 "InvalidParameterException", "ResourcesPerPage must be between 1 and 50"
             )

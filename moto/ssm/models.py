@@ -2342,6 +2342,10 @@ class SimpleSystemManagerBackend(BaseBackend):
     def _validate_resource_type_and_id(
         self, resource_type: str, resource_id: str
     ) -> str:
+        if not resource_type:
+            raise InvalidResourceType()
+        if not resource_id:
+            raise InvalidResourceId()
         if resource_type == "Parameter":
             if not (parameter := self.get_parameter(resource_id)):
                 raise InvalidResourceId()

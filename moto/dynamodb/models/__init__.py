@@ -1038,10 +1038,10 @@ class DynamoDBBackend(BaseBackend):
     def describe_export(self, export_arn: str) -> TableExport:
         return self.table_exports[export_arn]
 
-    def list_exports(self, table_arn: str) -> list[TableExport]:
+    def list_exports(self, table_arn: Optional[str] = None) -> list[TableExport]:
         exports = []
         for export_arn in self.table_exports:
-            if self.table_exports[export_arn].table.table_arn == table_arn:
+            if table_arn is None or self.table_exports[export_arn].table.table_arn == table_arn:
                 exports.append(self.table_exports[export_arn])
         return exports
 

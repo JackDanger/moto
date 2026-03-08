@@ -1850,6 +1850,8 @@ class ConfigBackend(BaseBackend):
         self, names: list[str]
     ) -> dict[str, Any]:
         packs = []
+        if not names:
+            names = list(self.organization_conformance_packs.keys())
 
         for name in names:
             pack = self.organization_conformance_packs.get(name)

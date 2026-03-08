@@ -1579,7 +1579,7 @@ class DynamoHandler(BaseResponse):
         return json.dumps({"ExportDescription": export_table.response()})
 
     def list_exports(self) -> str:
-        table_arn = self.body["TableArn"]
+        table_arn = self.body.get("TableArn")
         exports = self.dynamodb_backend.list_exports(table_arn)
         response = []
         for export_table in exports:

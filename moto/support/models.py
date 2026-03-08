@@ -131,11 +131,15 @@ class SupportBackend(BaseBackend):
         elif self.cases[case_id].severity_code == "critical":
             self.cases[case_id].severity_code = "low"
 
-    def resolve_case(self, case_id: str) -> dict[str, Optional[str]]:
-        self.advance_case_status(case_id)
+    def resolve_case(self, case_id: Optional[str] = None) -> dict[str, Optional[str]]:
+        if case_id and case_id in self.cases:
+            initial_status = self.cases[case_id].status
+            self.advance_case_status(case_id)
+        else:
+            initial_status = "unassigned"
 
         return {
-            "initialCaseStatus": self.cases[case_id].status,
+            "initialCaseStatus": initial_status,
             "finalCaseStatus": "resolved",
         }
 
