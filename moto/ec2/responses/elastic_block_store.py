@@ -162,9 +162,8 @@ class ElasticBlockStore(EC2BaseResponse):
         )
 
     def describe_volume_status(self) -> str:
-        raise NotImplementedError(
-            "ElasticBlockStore.describe_volume_status is not yet implemented"
-        )
+        template = self.response_template(DESCRIBE_VOLUME_STATUS_RESPONSE)
+        return template.render()
 
     def detach_volume(self) -> str:
         volume_id = self._get_param("VolumeId")
@@ -566,6 +565,11 @@ DESCRIBE_VOLUMES_MODIFICATIONS_RESPONSE = """
     </volumeModificationSet>
 </DescribeVolumesModificationsResponse>"""
 
+
+DESCRIBE_VOLUME_STATUS_RESPONSE = """<DescribeVolumeStatusResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <volumeStatusSet/>
+</DescribeVolumeStatusResponse>"""
 
 MODIFY_EBS_DEFAULT_KMS_KEY_ID_RESPONSE = """
 <ModifyEbsDefaultKmsKeyIdResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">

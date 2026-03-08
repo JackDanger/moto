@@ -20,15 +20,13 @@ class ReservedInstances(EC2BaseResponse):
             "ReservedInstances.create_reserved_instances_listing is not yet implemented"
         )
 
-    def describe_reserved_instances(self) -> None:
-        raise NotImplementedError(
-            "ReservedInstances.describe_reserved_instances is not yet implemented"
-        )
+    def describe_reserved_instances(self) -> str:
+        template = self.response_template(DESCRIBE_RESERVED_INSTANCES_TEMPLATE)
+        return template.render()
 
-    def describe_reserved_instances_listings(self) -> None:
-        raise NotImplementedError(
-            "ReservedInstances.describe_reserved_instances_listings is not yet implemented"
-        )
+    def describe_reserved_instances_listings(self) -> str:
+        template = self.response_template(DESCRIBE_RESERVED_INSTANCES_LISTINGS_TEMPLATE)
+        return template.render()
 
     def describe_reserved_instances_offerings(self) -> ActionResult:
         self.error_on_dryrun()
@@ -52,3 +50,14 @@ class ReservedInstances(EC2BaseResponse):
         raise NotImplementedError(
             "ReservedInstances.purchase_reserved_instances_offering is not yet implemented"
         )
+
+
+DESCRIBE_RESERVED_INSTANCES_TEMPLATE = """<DescribeReservedInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <reservedInstancesSet/>
+</DescribeReservedInstancesResponse>"""
+
+DESCRIBE_RESERVED_INSTANCES_LISTINGS_TEMPLATE = """<DescribeReservedInstancesListingsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <reservedInstancesListingsSet/>
+</DescribeReservedInstancesListingsResponse>"""

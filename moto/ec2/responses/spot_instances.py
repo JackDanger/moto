@@ -19,17 +19,15 @@ class SpotInstances(EC2BaseResponse):
             "SpotInstances.create_spot_datafeed_subscription is not yet implemented"
         )
 
-    def delete_spot_datafeed_subscription(self) -> None:
+    def delete_spot_datafeed_subscription(self) -> str:
         self.error_on_dryrun()
 
-        raise NotImplementedError(
-            "SpotInstances.delete_spot_datafeed_subscription is not yet implemented"
-        )
+        template = self.response_template(DELETE_SPOT_DATAFEED_SUBSCRIPTION_TEMPLATE)
+        return template.render()
 
-    def describe_spot_datafeed_subscription(self) -> None:
-        raise NotImplementedError(
-            "SpotInstances.describe_spot_datafeed_subscription is not yet implemented"
-        )
+    def describe_spot_datafeed_subscription(self) -> str:
+        template = self.response_template(DESCRIBE_SPOT_DATAFEED_SUBSCRIPTION_TEMPLATE)
+        return template.render()
 
     def describe_spot_instance_requests(self) -> str:
         spot_instance_ids = self._get_param("SpotInstanceRequestIds", [])
@@ -246,6 +244,15 @@ CANCEL_SPOT_INSTANCES_TEMPLATE = """<CancelSpotInstanceRequestsResponse xmlns="h
     {% endfor %}
   </spotInstanceRequestSet>
 </CancelSpotInstanceRequestsResponse>"""
+
+DELETE_SPOT_DATAFEED_SUBSCRIPTION_TEMPLATE = """<DeleteSpotDatafeedSubscriptionResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <return>true</return>
+</DeleteSpotDatafeedSubscriptionResponse>"""
+
+DESCRIBE_SPOT_DATAFEED_SUBSCRIPTION_TEMPLATE = """<DescribeSpotDatafeedSubscriptionResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+</DescribeSpotDatafeedSubscriptionResponse>"""
 
 DESCRIBE_SPOT_PRICE_HISTORY_TEMPLATE = """<DescribeSpotPriceHistoryResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
