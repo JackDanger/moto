@@ -36,12 +36,14 @@ from moto.config.exceptions import (
     NoSuchConfigRuleException,
     NoSuchConfigurationAggregatorException,
     NoSuchConfigurationRecorderException,
+    NoSuchConformancePackException,
     NoSuchDeliveryChannelException,
     NoSuchOrganizationConformancePackException,
     NoSuchRetentionConfigurationException,
     ResourceInUseException,
     ResourceNotDiscoveredException,
     ResourceNotFoundException,
+    ResourceNotFoundException2,
     TagKeyTooBig,
     TagValueTooBig,
     TooManyAccountSources,
@@ -921,6 +923,8 @@ class ConfigBackend(BaseBackend):
         self._custom_resources: dict[str, dict[str, Any]] = {}
         self._expression_results: dict[str, list[dict[str, Any]]] = {}
         self.config_rules: dict[str, ConfigRule] = {}
+        self.stored_queries: dict[str, dict[str, Any]] = {}
+        self.conformance_packs: dict[str, dict[str, Any]] = {}
 
     def _validate_resource_types(self, resource_list: list[str]) -> None:
         shape = self.config_schema.shape_for("ResourceType")
@@ -2264,13 +2268,63 @@ class ConfigBackend(BaseBackend):
 
         return channels
 
+    def put_conformance_pack(
+        self,
+        name: str,
+        template_body: Optional[str],
+        template_s3_uri: Optional[str],
+        delivery_s3_bucket: Optional[str],
+        delivery_s3_key_prefix: Optional[str],
+        input_parameters: Optional[list[dict[str, str]]],
+    ) -> dict[str, Any]:
+        if not template_body and not template_s3_uri:
+            raise ValidationException("Template body is invalid")
+
+        now = datetime2int(utcnow())
+        pack_arn = (
+            f"arn:{get_partition(self.region_name)}:config:{self.region_name}:"
+            f"{self.account_id}:conformance-pack/{name}/{random_string()}"
+        )
+
+        existing = self.conformance_packs.get(name)
+        if existing:
+            pack_arn = existing["ConformancePackArn"]
+
+        self.conformance_packs[name] = {
+            "ConformancePackName": name,
+            "ConformancePackArn": pack_arn,
+            "ConformancePackId": random_string(),
+            "DeliveryS3Bucket": delivery_s3_bucket or "",
+            "DeliveryS3KeyPrefix": delivery_s3_key_prefix or "",
+            "ConformancePackInputParameters": input_parameters or [],
+            "LastUpdateRequestedTime": now,
+        }
+        if template_s3_uri:
+            self.conformance_packs[name]["TemplateS3Uri"] = template_s3_uri
+
+        return {"ConformancePackArn": pack_arn}
+
     def describe_conformance_pack_status(
         self,
         names: Optional[list[str]],
         limit: Optional[int],
         next_token: Optional[str],
     ) -> dict[str, Any]:
-        return {"ConformancePackStatusDetails": []}
+        statuses = []
+        target_names = names if names else list(self.conformance_packs.keys())
+        for name in target_names:
+            pack = self.conformance_packs.get(name)
+            if pack:
+                statuses.append(
+                    {
+                        "ConformancePackName": name,
+                        "ConformancePackId": pack["ConformancePackId"],
+                        "ConformancePackArn": pack["ConformancePackArn"],
+                        "ConformancePackState": "CREATE_COMPLETE",
+                        "LastUpdateRequestedTime": pack["LastUpdateRequestedTime"],
+                    }
+                )
+        return {"ConformancePackStatusDetails": statuses}
 
     def describe_conformance_packs(
         self,
@@ -2278,7 +2332,19 @@ class ConfigBackend(BaseBackend):
         limit: Optional[int],
         next_token: Optional[str],
     ) -> dict[str, Any]:
-        return {"ConformancePackDetails": []}
+        packs = []
+        target_names = names if names else list(self.conformance_packs.keys())
+        for name in target_names:
+            pack = self.conformance_packs.get(name)
+            if not pack:
+                raise NoSuchConformancePackException(name)
+            packs.append(pack)
+        return {"ConformancePackDetails": packs}
+
+    def delete_conformance_pack(self, name: str) -> None:
+        if name not in self.conformance_packs:
+            raise NoSuchConformancePackException(name)
+        del self.conformance_packs[name]
 
     def describe_organization_config_rule_statuses(
         self,
@@ -2361,12 +2427,75 @@ class ConfigBackend(BaseBackend):
     ) -> dict[str, Any]:
         return {"ResourceEvaluations": []}
 
+    def put_stored_query(
+        self,
+        stored_query: dict[str, Any],
+    ) -> dict[str, str]:
+        query_name = stored_query.get("QueryName", "")
+        query_expression = stored_query.get("Expression", "")
+        description = stored_query.get("Description", "")
+        tags = stored_query.get("Tags", [])
+
+        if not query_name:
+            raise ValidationException("QueryName must be specified.")
+
+        query_id = random_string()
+        query_arn = (
+            f"arn:{get_partition(self.region_name)}:config:{self.region_name}:"
+            f"{self.account_id}:stored-query/{query_name}/{query_id}"
+        )
+
+        existing = self.stored_queries.get(query_name)
+        if existing:
+            query_arn = existing["QueryArn"]
+            query_id = existing["QueryId"]
+
+        self.stored_queries[query_name] = {
+            "QueryId": query_id,
+            "QueryArn": query_arn,
+            "QueryName": query_name,
+            "Expression": query_expression,
+            "Description": description,
+            "Tags": tags,
+        }
+
+        return {"QueryArn": query_arn}
+
+    def get_stored_query(self, query_name: str) -> dict[str, Any]:
+        query = self.stored_queries.get(query_name)
+        if not query:
+            raise ResourceNotFoundException2(query_name)
+        return {
+            "StoredQuery": {
+                "QueryId": query["QueryId"],
+                "QueryArn": query["QueryArn"],
+                "QueryName": query["QueryName"],
+                "Description": query.get("Description", ""),
+                "Expression": query["Expression"],
+            }
+        }
+
     def list_stored_queries(
         self,
         next_token: Optional[str],
         max_results: Optional[int],
     ) -> dict[str, Any]:
-        return {"StoredQueryMetadata": []}
+        metadata = []
+        for query in self.stored_queries.values():
+            metadata.append(
+                {
+                    "QueryId": query["QueryId"],
+                    "QueryArn": query["QueryArn"],
+                    "QueryName": query["QueryName"],
+                    "Description": query.get("Description", ""),
+                }
+            )
+        return {"StoredQueryMetadata": metadata}
+
+    def delete_stored_query(self, query_name: str) -> None:
+        if query_name not in self.stored_queries:
+            raise ResourceNotFoundException2(query_name)
+        del self.stored_queries[query_name]
 
     def start_config_rules_evaluation(
         self, config_rule_names: Optional[list[str]]

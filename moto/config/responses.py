@@ -410,12 +410,47 @@ class ConfigResponse(BaseResponse):
         )
         return json.dumps(result)
 
+    def put_stored_query(self) -> str:
+        result = self.config_backend.put_stored_query(
+            self._get_param("StoredQuery"),
+        )
+        return json.dumps(result)
+
+    def get_stored_query(self) -> str:
+        result = self.config_backend.get_stored_query(
+            self._get_param("QueryName"),
+        )
+        return json.dumps(result)
+
     def list_stored_queries(self) -> str:
         result = self.config_backend.list_stored_queries(
             self._get_param("NextToken"),
             self._get_param("MaxResults"),
         )
         return json.dumps(result)
+
+    def delete_stored_query(self) -> str:
+        self.config_backend.delete_stored_query(
+            self._get_param("QueryName"),
+        )
+        return json.dumps({})
+
+    def put_conformance_pack(self) -> str:
+        result = self.config_backend.put_conformance_pack(
+            name=self._get_param("ConformancePackName"),
+            template_body=self._get_param("TemplateBody"),
+            template_s3_uri=self._get_param("TemplateS3Uri"),
+            delivery_s3_bucket=self._get_param("DeliveryS3Bucket"),
+            delivery_s3_key_prefix=self._get_param("DeliveryS3KeyPrefix"),
+            input_parameters=self._get_param("ConformancePackInputParameters"),
+        )
+        return json.dumps(result)
+
+    def delete_conformance_pack(self) -> str:
+        self.config_backend.delete_conformance_pack(
+            self._get_param("ConformancePackName"),
+        )
+        return json.dumps({})
 
     def start_config_rules_evaluation(self) -> str:
         self.config_backend.start_config_rules_evaluation(

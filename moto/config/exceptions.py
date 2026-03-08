@@ -399,3 +399,26 @@ class InvalidResourceType(JsonRESTError):
 
     def __init__(self, resource_type: str, message: str):
         super().__init__("InvalidResourceType", message)
+
+
+class NoSuchConformancePackException(JsonRESTError):
+    code = 400
+
+    def __init__(self, name: str):
+        message = (
+            f"One or more conformance packs with specified names are not present. "
+            f"Ensure your names are correct and try your request again later."
+        )
+        super().__init__("NoSuchConformancePackException", message)
+
+
+class ResourceNotFoundException2(JsonRESTError):
+    """For StoredQuery not found — uses same error type but different message pattern."""
+
+    code = 400
+
+    def __init__(self, query_name: str):
+        super().__init__(
+            "ResourceNotFoundException",
+            f"The stored query '{query_name}' does not exist.",
+        )
