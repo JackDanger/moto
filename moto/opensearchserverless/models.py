@@ -86,7 +86,7 @@ class Collection(BaseModel):
         self.id = mock_random.get_random_string(length=20, lower_case=True)
         self.arn = f"arn:aws:aoss:{region}:{account_id}:collection/{self.id}"
         self.created_date = int(unix_time() * 1000)
-        self.kms_key_arn = policy["KmsARN"]
+        self.kms_key_arn = policy.get("KmsARN", "")
         self.last_modified_date = int(unix_time() * 1000)
         self.status = "ACTIVE"
         self.collection_endpoint = f"https://{self.id}.{region}.aoss.amazonaws.com"
@@ -267,9 +267,15 @@ class OpenSearchServiceServerlessBackend(BaseBackend):
         if not client_token:
             client_token = mock_random.get_random_string(10)
 
+        import fnmatch
+
         for sp in list(self.security_policies.values()):
-            if f"collection/{name}" in sp.resources:
-                policy = sp.policy
+            if sp.type != "encryption":
+                continue
+            for res in sp.resources:
+                if fnmatch.fnmatch(f"collection/{name}", res):
+                    policy = sp.policy
+                    break
         if not policy:
             raise ValidationException(
                 msg=f"No matching security policy of encryption type found for collection name: {name}. Please create security policy of encryption type for this collection."

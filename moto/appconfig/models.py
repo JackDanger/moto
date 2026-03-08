@@ -34,14 +34,17 @@ class HostedConfigurationVersion(BaseModel):
         self.version_label = version_label
 
     def get_headers(self) -> dict[str, Any]:
-        return {
+        headers: dict[str, Any] = {
             "application-id": self.app_id,
             "configuration-profile-id": self.config_id,
-            "version-number": self.version,
-            "description": self.description,
+            "version-number": str(self.version),
             "content-type": self.content_type,
-            "VersionLabel": self.version_label,
         }
+        if self.description is not None:
+            headers["description"] = self.description
+        if self.version_label is not None:
+            headers["VersionLabel"] = self.version_label
+        return headers
 
 
 class ConfigurationProfile(BaseModel):
