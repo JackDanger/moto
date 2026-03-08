@@ -10,6 +10,35 @@ from moto.core.responses import BaseResponse
 from .models import S3TablesBackend, s3tables_backends
 
 
+def _parse_path(raw_path: str, n_tail: int) -> tuple:
+    """Parse an s3tables URL path, handling ARNs that may contain '/'.
+
+    The path format is /{prefix}/{arn}[/{tail_1}/.../{tail_n}].
+    The ARN (e.g. arn:aws:s3tables:us-east-1:123456789012:bucket/name)
+    contains a '/' that may or may not be percent-encoded depending on
+    the HTTP framework.  We parse from the right to safely extract the
+    tail segments, leaving the ARN intact.
+
+    Args:
+        raw_path: The request path (may have encoded or decoded ARN slashes).
+        n_tail: Number of path segments *after* the ARN (0, 1, 2, or 3).
+
+    Returns:
+        A tuple of (table_bucket_arn, *tail_segments) where
+        table_bucket_arn has been URL-decoded.
+    """
+    # Strip leading '/' and the first segment (prefix like "namespaces" or "tables")
+    path = raw_path.lstrip("/")
+    _, _, rest = path.partition("/")
+
+    if n_tail == 0:
+        return (unquote(rest),)
+
+    parts = rest.rsplit("/", n_tail)
+    # parts[0] is the (possibly encoded) ARN, parts[1:] are the tail segments
+    return (unquote(parts[0]),) + tuple(parts[1:])
+
+
 class S3TablesResponse(BaseResponse):
     """Handler for S3Tables requests and responses."""
 
@@ -57,8 +86,7 @@ class S3TablesResponse(BaseResponse):
         return 200, self.default_response_headers, json.dumps(body)
 
     def get_table_bucket(self) -> TYPE_RESPONSE:
-        _, table_bucket_arn = self.raw_path.lstrip("/").split("/")
-        table_bucket_arn = unquote(table_bucket_arn)
+        (table_bucket_arn,) = _parse_path(self.raw_path, 0)
         bucket = self.s3tables_backend.get_table_bucket(
             table_bucket_arn=table_bucket_arn,
         )
@@ -77,8 +105,7 @@ class S3TablesResponse(BaseResponse):
         )
 
     def delete_table_bucket(self) -> TYPE_RESPONSE:
-        _, table_bucket_arn = self.raw_path.lstrip("/").split("/")
-        table_bucket_arn = unquote(table_bucket_arn)
+        (table_bucket_arn,) = _parse_path(self.raw_path, 0)
         self.s3tables_backend.delete_table_bucket(
             table_bucket_arn=table_bucket_arn,
         )
@@ -86,8 +113,7 @@ class S3TablesResponse(BaseResponse):
         return 204, {}, ""
 
     def create_namespace(self) -> TYPE_RESPONSE:
-        _, table_bucket_arn = self.raw_path.lstrip("/").split("/")
-        table_bucket_arn = unquote(table_bucket_arn)
+        (table_bucket_arn,) = _parse_path(self.raw_path, 0)
         name = json.loads(self.body)["namespace"][0]
         namespace = self.s3tables_backend.create_namespace(
             table_bucket_arn=table_bucket_arn,
@@ -102,8 +128,7 @@ class S3TablesResponse(BaseResponse):
         )
 
     def list_namespaces(self) -> TYPE_RESPONSE:
-        _, table_bucket_arn = self.raw_path.lstrip("/").split("/")
-        table_bucket_arn = unquote(table_bucket_arn)
+        (table_bucket_arn,) = _parse_path(self.raw_path, 0)
 
         params = self._get_params()
         continuation_token = params.get("continuationToken")
@@ -134,8 +159,7 @@ class S3TablesResponse(BaseResponse):
         return 200, self.default_response_headers, json.dumps(body)
 
     def get_namespace(self) -> TYPE_RESPONSE:
-        _, table_bucket_arn, name = self.raw_path.lstrip("/").split("/")
-        table_bucket_arn = unquote(table_bucket_arn)
+        table_bucket_arn, name = _parse_path(self.raw_path, 1)
         namespace = self.s3tables_backend.get_namespace(
             table_bucket_arn=table_bucket_arn,
             namespace=name,
@@ -154,8 +178,7 @@ class S3TablesResponse(BaseResponse):
         )
 
     def delete_namespace(self) -> TYPE_RESPONSE:
-        _, table_bucket_arn, namespace = self.raw_path.lstrip("/").split("/")
-        table_bucket_arn = unquote(table_bucket_arn)
+        table_bucket_arn, namespace = _parse_path(self.raw_path, 1)
         self.s3tables_backend.delete_namespace(
             table_bucket_arn=table_bucket_arn,
             namespace=namespace,
@@ -163,8 +186,7 @@ class S3TablesResponse(BaseResponse):
         return 204, self.default_response_headers, ""
 
     def create_table(self) -> TYPE_RESPONSE:
-        _, table_bucket_arn, namespace = self.raw_path.lstrip("/").split("/")
-        table_bucket_arn = unquote(table_bucket_arn)
+        table_bucket_arn, namespace = _parse_path(self.raw_path, 1)
         body = json.loads(self.body)
         name = body["name"]
         format = body["format"]
@@ -213,8 +235,7 @@ class S3TablesResponse(BaseResponse):
         )
 
     def list_tables(self) -> TYPE_RESPONSE:
-        _, table_bucket_arn = self.raw_path.lstrip("/").split("/")
-        table_bucket_arn = unquote(table_bucket_arn)
+        (table_bucket_arn,) = _parse_path(self.raw_path, 0)
         params = self._get_params()
         namespace = params.get("namespace")
         prefix = params.get("prefix")
@@ -245,8 +266,7 @@ class S3TablesResponse(BaseResponse):
         return 200, self.default_response_headers, json.dumps(body)
 
     def delete_table(self) -> TYPE_RESPONSE:
-        _, table_bucket_arn, namespace, name = self.raw_path.lstrip("/").split("/")
-        table_bucket_arn = unquote(table_bucket_arn)
+        table_bucket_arn, namespace, name = _parse_path(self.raw_path, 2)
         params = self._get_params()
         version_token = params.get("versionToken")
         self.s3tables_backend.delete_table(
@@ -258,8 +278,7 @@ class S3TablesResponse(BaseResponse):
         return 204, {}, ""
 
     def get_table_metadata_location(self) -> TYPE_RESPONSE:
-        _, table_bucket_arn, namespace, name, _ = self.raw_path.lstrip("/").split("/")
-        table_bucket_arn = unquote(table_bucket_arn)
+        table_bucket_arn, namespace, name, _ = _parse_path(self.raw_path, 3)
         table = self.s3tables_backend.get_table(
             table_bucket_arn=table_bucket_arn,
             namespace=namespace,
@@ -278,8 +297,7 @@ class S3TablesResponse(BaseResponse):
         )
 
     def update_table_metadata_location(self) -> TYPE_RESPONSE:
-        _, table_bucket_arn, namespace, name, _ = self.raw_path.lstrip("/").split("/")
-        table_bucket_arn = unquote(table_bucket_arn)
+        table_bucket_arn, namespace, name, _ = _parse_path(self.raw_path, 3)
         body = json.loads(self.body)
         metadata_location = body["metadataLocation"]
         version_token = body["versionToken"]
@@ -305,8 +323,7 @@ class S3TablesResponse(BaseResponse):
         )
 
     def rename_table(self) -> TYPE_RESPONSE:
-        _, table_bucket_arn, namespace, name, _ = self.raw_path.lstrip("/").split("/")
-        table_bucket_arn = unquote(table_bucket_arn)
+        table_bucket_arn, namespace, name, _ = _parse_path(self.raw_path, 3)
         body = json.loads(self.body)
         version_token = body.get("versionToken")
         new_namespace_name = body.get("newNamespaceName")
