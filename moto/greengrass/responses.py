@@ -332,6 +332,132 @@ class GreengrassResponse(BaseResponse):
         )
         return json.dumps(res.to_dict())
 
+    def create_connector_definition(self) -> TYPE_RESPONSE:
+        name = self._get_param("Name")
+        initial_version = self._get_param("InitialVersion")
+        res = self.greengrass_backend.create_connector_definition(
+            name=name, initial_version=initial_version
+        )
+        return 201, {"status": 201}, json.dumps(res.to_dict())
+
+    def list_connector_definitions(self) -> str:
+        res = self.greengrass_backend.list_connector_definitions()
+        return json.dumps(
+            {"Definitions": [connector_definition.to_dict() for connector_definition in res]}
+        )
+
+    def get_connector_definition(self) -> str:
+        connector_definition_id = self.path.split("/")[-1]
+        res = self.greengrass_backend.get_connector_definition(
+            connector_definition_id=connector_definition_id
+        )
+        return json.dumps(res.to_dict())
+
+    def delete_connector_definition(self) -> str:
+        connector_definition_id = self.path.split("/")[-1]
+        self.greengrass_backend.delete_connector_definition(
+            connector_definition_id=connector_definition_id
+        )
+        return json.dumps({})
+
+    def update_connector_definition(self) -> str:
+        connector_definition_id = self.path.split("/")[-1]
+        name = self._get_param("Name")
+        self.greengrass_backend.update_connector_definition(
+            connector_definition_id=connector_definition_id, name=name
+        )
+        return "{}"
+
+    def create_connector_definition_version(self) -> TYPE_RESPONSE:
+        connector_definition_id = self.path.split("/")[-2]
+        connectors = self._get_param("Connectors")
+
+        res = self.greengrass_backend.create_connector_definition_version(
+            connector_definition_id=connector_definition_id, connectors=connectors
+        )
+        return 201, {"status": 201}, json.dumps(res.to_dict())
+
+    def list_connector_definition_versions(self) -> str:
+        connector_definition_id = self.path.split("/")[-2]
+        res = self.greengrass_backend.list_connector_definition_versions(
+            connector_definition_id
+        )
+        return json.dumps(
+            {"Versions": [connector_def_ver.to_dict() for connector_def_ver in res]}
+        )
+
+    def get_connector_definition_version(self) -> str:
+        connector_definition_id = self.path.split("/")[-3]
+        connector_definition_version_id = self.path.split("/")[-1]
+        res = self.greengrass_backend.get_connector_definition_version(
+            connector_definition_id=connector_definition_id,
+            connector_definition_version_id=connector_definition_version_id,
+        )
+        return json.dumps(res.to_dict(include_detail=True))
+
+    def create_logger_definition(self) -> TYPE_RESPONSE:
+        name = self._get_param("Name")
+        initial_version = self._get_param("InitialVersion")
+        res = self.greengrass_backend.create_logger_definition(
+            name=name, initial_version=initial_version
+        )
+        return 201, {"status": 201}, json.dumps(res.to_dict())
+
+    def list_logger_definitions(self) -> str:
+        res = self.greengrass_backend.list_logger_definitions()
+        return json.dumps(
+            {"Definitions": [logger_definition.to_dict() for logger_definition in res]}
+        )
+
+    def get_logger_definition(self) -> str:
+        logger_definition_id = self.path.split("/")[-1]
+        res = self.greengrass_backend.get_logger_definition(
+            logger_definition_id=logger_definition_id
+        )
+        return json.dumps(res.to_dict())
+
+    def delete_logger_definition(self) -> str:
+        logger_definition_id = self.path.split("/")[-1]
+        self.greengrass_backend.delete_logger_definition(
+            logger_definition_id=logger_definition_id
+        )
+        return json.dumps({})
+
+    def update_logger_definition(self) -> str:
+        logger_definition_id = self.path.split("/")[-1]
+        name = self._get_param("Name")
+        self.greengrass_backend.update_logger_definition(
+            logger_definition_id=logger_definition_id, name=name
+        )
+        return "{}"
+
+    def create_logger_definition_version(self) -> TYPE_RESPONSE:
+        logger_definition_id = self.path.split("/")[-2]
+        loggers = self._get_param("Loggers")
+
+        res = self.greengrass_backend.create_logger_definition_version(
+            logger_definition_id=logger_definition_id, loggers=loggers
+        )
+        return 201, {"status": 201}, json.dumps(res.to_dict())
+
+    def list_logger_definition_versions(self) -> str:
+        logger_definition_id = self.path.split("/")[-2]
+        res = self.greengrass_backend.list_logger_definition_versions(
+            logger_definition_id
+        )
+        return json.dumps(
+            {"Versions": [logger_def_ver.to_dict() for logger_def_ver in res]}
+        )
+
+    def get_logger_definition_version(self) -> str:
+        logger_definition_id = self.path.split("/")[-3]
+        logger_definition_version_id = self.path.split("/")[-1]
+        res = self.greengrass_backend.get_logger_definition_version(
+            logger_definition_id=logger_definition_id,
+            logger_definition_version_id=logger_definition_version_id,
+        )
+        return json.dumps(res.to_dict(include_detail=True))
+
     def create_group(self) -> TYPE_RESPONSE:
         initial_version = self._get_param("InitialVersion")
         name = self._get_param("Name")
