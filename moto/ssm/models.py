@@ -2711,4 +2711,102 @@ class SimpleSystemManagerBackend(BaseBackend):
         return baseline_id, patch_group
 
 
+    def delete_association(self, name: Optional[str] = None, association_id: Optional[str] = None) -> None:
+        pass
+
+    def describe_activations(self) -> list[Any]:
+        return []
+
+    def describe_association(
+        self,
+        name: Optional[str] = None,
+        instance_id: Optional[str] = None,
+        association_id: Optional[str] = None,
+        association_version: Optional[str] = None,
+    ) -> dict[str, Any]:
+        return {}
+
+    def describe_automation_executions(self) -> list[Any]:
+        return []
+
+    def describe_available_patches(self) -> list[Any]:
+        return []
+
+    def describe_instance_information(self) -> list[Any]:
+        return []
+
+    def describe_instance_properties(self) -> list[Any]:
+        return []
+
+    def describe_inventory_deletions(self) -> list[Any]:
+        return []
+
+    def describe_maintenance_window_schedule(self) -> list[Any]:
+        return []
+
+    def describe_ops_items(self) -> list[Any]:
+        return []
+
+    def describe_patch_groups(self) -> list[Any]:
+        return []
+
+    def get_default_patch_baseline(self, operating_system: Optional[str] = None) -> dict[str, str]:
+        os_name = operating_system or "WINDOWS"
+        return {
+            "BaselineId": f"pb-{os_name.lower()[:8]}0000000000000",
+            "OperatingSystem": os_name,
+        }
+
+    def get_inventory(self) -> list[Any]:
+        return []
+
+    def get_inventory_schema(self) -> list[Any]:
+        return []
+
+    def get_ops_summary(self) -> list[Any]:
+        return []
+
+    def get_service_setting(self, setting_id: str) -> dict[str, Any]:
+        return {
+            "ServiceSetting": {
+                "SettingId": setting_id,
+                "SettingValue": "",
+                "LastModifiedDate": 0,
+                "LastModifiedUser": "",
+                "ARN": f"arn:{self.partition}:ssm:{self.region_name}:{self.account_id}:servicesetting/{setting_id}",
+                "Status": "Default",
+            }
+        }
+
+    def list_associations(self) -> list[Any]:
+        return []
+
+    def list_command_invocations(self) -> list[Any]:
+        return []
+
+    def list_compliance_items(self) -> list[Any]:
+        return []
+
+    def list_compliance_summaries(self) -> list[Any]:
+        return []
+
+    def list_nodes(self) -> list[Any]:
+        return []
+
+    def list_ops_item_events(self) -> list[Any]:
+        return []
+
+    def list_ops_item_related_items(self) -> list[Any]:
+        return []
+
+    def list_ops_metadata(self) -> list[Any]:
+        return []
+
+    def list_resource_compliance_summaries(self) -> list[Any]:
+        return []
+
+    def list_resource_data_sync(self) -> list[Any]:
+        return []
+
+
 ssm_backends = BackendDict(SimpleSystemManagerBackend, "ssm")

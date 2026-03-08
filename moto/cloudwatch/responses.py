@@ -252,11 +252,15 @@ class CloudWatchResponse(BaseResponse):
         result = {"MetricAlarms": filtered_alarms}
         return ActionResult(result)
 
-    def disable_alarm_actions(self) -> str:
-        raise NotImplementedError()
+    def disable_alarm_actions(self) -> ActionResult:
+        alarm_names = self._get_param("AlarmNames", [])
+        self.cloudwatch_backend.disable_alarm_actions(alarm_names)
+        return EmptyResult()
 
-    def enable_alarm_actions(self) -> str:
-        raise NotImplementedError()
+    def enable_alarm_actions(self) -> ActionResult:
+        alarm_names = self._get_param("AlarmNames", [])
+        self.cloudwatch_backend.enable_alarm_actions(alarm_names)
+        return EmptyResult()
 
     def get_dashboard(self) -> ActionResult:
         dashboard_name = self._get_param("DashboardName")
@@ -344,4 +348,67 @@ class CloudWatchResponse(BaseResponse):
         names = self._get_param("RuleNames", [])
         failures = self.cloudwatch_backend.enable_insight_rules(rule_names=names)
         result = {"Failures": failures}
+        return ActionResult(result)
+
+    def put_anomaly_detector(self) -> ActionResult:
+        namespace = self._get_param("Namespace")
+        metric_name = self._get_param("MetricName")
+        dimensions = self._get_param("Dimensions", [])
+        stat = self._get_param("Stat")
+        configuration = self._get_param("Configuration")
+        metric_math_anomaly_detector = self._get_param("MetricMathAnomalyDetector")
+        single_metric_anomaly_detector = self._get_param("SingleMetricAnomalyDetector")
+        self.cloudwatch_backend.put_anomaly_detector(
+            namespace=namespace,
+            metric_name=metric_name,
+            dimensions=dimensions,
+            stat=stat,
+            configuration=configuration,
+            metric_math_anomaly_detector=metric_math_anomaly_detector,
+            single_metric_anomaly_detector=single_metric_anomaly_detector,
+        )
+        return EmptyResult()
+
+    def describe_anomaly_detectors(self) -> ActionResult:
+        namespace = self._get_param("Namespace")
+        metric_name = self._get_param("MetricName")
+        detectors = self.cloudwatch_backend.describe_anomaly_detectors(
+            namespace=namespace,
+            metric_name=metric_name,
+        )
+        result = {"AnomalyDetectors": detectors}
+        return ActionResult(result)
+
+    def delete_anomaly_detector(self) -> ActionResult:
+        namespace = self._get_param("Namespace")
+        metric_name = self._get_param("MetricName")
+        stat = self._get_param("Stat")
+        single_metric_anomaly_detector = self._get_param("SingleMetricAnomalyDetector")
+        self.cloudwatch_backend.delete_anomaly_detector(
+            namespace=namespace,
+            metric_name=metric_name,
+            stat=stat,
+            single_metric_anomaly_detector=single_metric_anomaly_detector,
+        )
+        return EmptyResult()
+
+    def list_metric_streams(self) -> ActionResult:
+        metric_streams = self.cloudwatch_backend.list_metric_streams()
+        result = {"Entries": metric_streams}
+        return ActionResult(result)
+
+    def list_managed_insight_rules(self) -> ActionResult:
+        resource_arn = self._get_param("ResourceARN")
+        rules = self.cloudwatch_backend.list_managed_insight_rules(
+            resource_arn=resource_arn,
+        )
+        result = {"ManagedRules": rules}
+        return ActionResult(result)
+
+    def list_alarm_mute_rules(self) -> ActionResult:
+        alarm_name = self._get_param("AlarmName")
+        mute_rules = self.cloudwatch_backend.list_alarm_mute_rules(
+            alarm_name=alarm_name,
+        )
+        result = {"MuteRules": mute_rules}
         return ActionResult(result)

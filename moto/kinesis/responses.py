@@ -349,3 +349,13 @@ class KinesisResponse(BaseResponse):
     def describe_limits(self) -> ActionResult:
         limits = self.kinesis_backend.describe_limits()
         return ActionResult(limits)
+
+    def describe_account_settings(self) -> ActionResult:
+        return ActionResult(
+            {
+                "AccountSettings": {
+                    "OpenShardCount": 0,
+                    "StreamCount": len(self.kinesis_backend.streams),
+                }
+            }
+        )

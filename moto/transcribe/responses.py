@@ -182,3 +182,18 @@ class TranscribeResponse(BaseResponse):
             vocabulary_name=vocabulary_name
         )
         return EmptyResult()
+
+    def list_call_analytics_categories(self) -> ActionResult:
+        return ActionResult({"Categories": [], "NextToken": None})
+
+    def list_call_analytics_jobs(self) -> ActionResult:
+        return ActionResult({"CallAnalyticsJobSummaries": [], "NextToken": None})
+
+    def list_language_models(self) -> ActionResult:
+        return ActionResult({"Models": [], "NextToken": None})
+
+    def list_medical_scribe_jobs(self) -> ActionResult:
+        return ActionResult({"MedicalScribeJobSummaries": [], "NextToken": None})
+
+    def list_vocabulary_filters(self) -> ActionResult:
+        return ActionResult({"VocabularyFilters": [], "NextToken": None})

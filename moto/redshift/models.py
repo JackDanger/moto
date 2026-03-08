@@ -566,6 +566,7 @@ class RedshiftBackend(BaseBackend):
             "subnetgroup": self.subnet_groups,  # type: ignore
         }
         self.snapshot_copy_grants: dict[str, SnapshotCopyGrant] = {}
+        self.snapshot_schedules: dict[str, dict[str, Any]] = {}
         self.default_params = {
             "auto_analyze": "true",
             "datestyle": "ISO, MDY",
@@ -1122,6 +1123,137 @@ class RedshiftBackend(BaseBackend):
             raise ClusterNotFoundError(cluster_identifier)
         cluster = self.clusters[cluster_identifier]
         return cluster.logging_details
+
+    def create_snapshot_schedule(
+        self,
+        schedule_identifier: str,
+        schedule_definitions: list[str],
+        tags: list[dict[str, str]],
+    ) -> dict[str, Any]:
+        schedule: dict[str, Any] = {
+            "ScheduleIdentifier": schedule_identifier,
+            "ScheduleDefinitions": schedule_definitions,
+            "Tags": tags,
+            "AssociatedClusterCount": 0,
+        }
+        self.snapshot_schedules[schedule_identifier] = schedule
+        return schedule
+
+    def describe_snapshot_schedules(
+        self, schedule_identifier: Optional[str] = None
+    ) -> list[dict[str, Any]]:
+        if schedule_identifier:
+            schedule = self.snapshot_schedules.get(schedule_identifier)
+            return [schedule] if schedule else []
+        return list(self.snapshot_schedules.values())
+
+    def describe_account_attributes(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_authentication_profiles(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_cluster_db_revisions(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_cluster_tracks(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_cluster_versions(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_custom_domain_associations(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_data_shares(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_data_shares_for_consumer(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_data_shares_for_producer(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_endpoint_access(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_endpoint_authorization(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_event_categories(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_event_subscriptions(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_events(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_hsm_client_certificates(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_hsm_configurations(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_inbound_integrations(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_integrations(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_orderable_cluster_options(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_redshift_idc_applications(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_reserved_node_exchange_status(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_reserved_node_offerings(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_reserved_nodes(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_scheduled_actions(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_storage(self) -> dict[str, Any]:
+        return {
+            "TotalBackupSizeInMegaBytes": 0.0,
+            "TotalProvisionedStorageInMegaBytes": 0.0,
+        }
+
+    def describe_table_restore_status(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_usage_limits(self) -> list[dict[str, Any]]:
+        return []
+
+    def get_cluster_credentials_with_iam(
+        self,
+        cluster_identifier: str,
+        db_name: Optional[str],
+        duration_seconds: int,
+    ) -> dict[str, Any]:
+        if duration_seconds < 900 or duration_seconds > 3600:
+            raise InvalidParameterValueError(
+                "Token duration must be between 900 and 3600 seconds"
+            )
+        expiration = datetime.now(timezone.utc) + timedelta(seconds=duration_seconds)
+        return {
+            "DbUser": "IAM:user",
+            "DbPassword": mock_random.get_random_string(32),
+            "Expiration": expiration,
+            "NextRefreshTime": expiration,
+        }
+
+    def list_recommendations(self) -> list[dict[str, Any]]:
+        return []
+
+    def revoke_endpoint_access(self) -> dict[str, Any]:
+        return {}
 
 
 redshift_backends = BackendDict(RedshiftBackend, "redshift")

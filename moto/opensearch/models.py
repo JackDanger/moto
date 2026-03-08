@@ -498,5 +498,37 @@ class OpenSearchServiceBackend(BaseBackend):
                 queried_domains.append(self.domains[domain_name])
         return queried_domains
 
+    def describe_inbound_connections(self) -> list[dict[str, Any]]:
+        # Inbound connections are not yet modeled; return empty list
+        return []
+
+    def describe_outbound_connections(self) -> list[dict[str, Any]]:
+        # Outbound connections are not yet modeled; return empty list
+        return []
+
+    def describe_packages(self) -> list[dict[str, Any]]:
+        # Packages are not yet modeled; return empty list
+        return []
+
+    def describe_reserved_instance_offerings(self) -> list[dict[str, Any]]:
+        # Reserved instance offerings are not yet modeled; return empty list
+        return []
+
+    def describe_reserved_instances(self) -> list[dict[str, Any]]:
+        # Reserved instances are not yet modeled; return empty list
+        return []
+
+    def list_applications(self) -> list[dict[str, Any]]:
+        # Applications are not yet modeled; return empty list
+        return []
+
+    def list_direct_query_data_sources(self) -> list[dict[str, Any]]:
+        # Direct query data sources are not yet modeled; return empty list
+        return []
+
+    def list_vpc_endpoints(self) -> list[dict[str, Any]]:
+        # VPC endpoints are not yet modeled; return empty list
+        return []
+
 
 opensearch_backends = BackendDict(OpenSearchServiceBackend, "opensearch")

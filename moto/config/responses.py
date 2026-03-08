@@ -91,7 +91,10 @@ class ConfigResponse(BaseResponse):
         return json.dumps(schema)
 
     def describe_delivery_channel_status(self) -> str:
-        raise NotImplementedError()
+        statuses = self.config_backend.describe_delivery_channel_status(
+            self._get_param("DeliveryChannelNames")
+        )
+        return json.dumps({"DeliveryChannelsStatus": statuses})
 
     def delete_delivery_channel(self) -> str:
         self.config_backend.delete_delivery_channel(
@@ -308,4 +311,114 @@ class ConfigResponse(BaseResponse):
             resource_id=resource_id,
         )
 
+        return json.dumps({})
+
+    def describe_conformance_pack_status(self) -> str:
+        result = self.config_backend.describe_conformance_pack_status(
+            self._get_param("ConformancePackNames"),
+            self._get_param("Limit"),
+            self._get_param("NextToken"),
+        )
+        return json.dumps(result)
+
+    def describe_conformance_packs(self) -> str:
+        result = self.config_backend.describe_conformance_packs(
+            self._get_param("ConformancePackNames"),
+            self._get_param("Limit"),
+            self._get_param("NextToken"),
+        )
+        return json.dumps(result)
+
+    def describe_organization_config_rule_statuses(self) -> str:
+        result = self.config_backend.describe_organization_config_rule_statuses(
+            self._get_param("OrganizationConfigRuleNames"),
+            self._get_param("Limit"),
+            self._get_param("NextToken"),
+        )
+        return json.dumps(result)
+
+    def describe_organization_config_rules(self) -> str:
+        result = self.config_backend.describe_organization_config_rules(
+            self._get_param("OrganizationConfigRuleNames"),
+            self._get_param("Limit"),
+            self._get_param("NextToken"),
+        )
+        return json.dumps(result)
+
+    def describe_pending_aggregation_requests(self) -> str:
+        result = self.config_backend.describe_pending_aggregation_requests(
+            self._get_param("Limit"),
+            self._get_param("NextToken"),
+        )
+        return json.dumps(result)
+
+    def get_compliance_details_by_resource(self) -> str:
+        result = self.config_backend.get_compliance_details_by_resource(
+            self._get_param("ResourceType"),
+            self._get_param("ResourceId"),
+            self._get_param("ComplianceTypes"),
+            self._get_param("NextToken"),
+            self._get_param("ResourceEvaluationId"),
+        )
+        return json.dumps(result)
+
+    def get_compliance_summary_by_config_rule(self) -> str:
+        result = self.config_backend.get_compliance_summary_by_config_rule()
+        return json.dumps(result)
+
+    def get_compliance_summary_by_resource_type(self) -> str:
+        result = self.config_backend.get_compliance_summary_by_resource_type(
+            self._get_param("ResourceTypes"),
+        )
+        return json.dumps(result)
+
+    def get_custom_rule_policy(self) -> str:
+        result = self.config_backend.get_custom_rule_policy(
+            self._get_param("ConfigRuleName"),
+        )
+        return json.dumps(result)
+
+    def get_discovered_resource_counts(self) -> str:
+        result = self.config_backend.get_discovered_resource_counts(
+            self._get_param("resourceTypes"),
+            self._get_param("limit"),
+            self._get_param("nextToken"),
+        )
+        return json.dumps(result)
+
+    def list_configuration_recorders(self) -> str:
+        result = self.config_backend.list_configuration_recorders(
+            self._get_param("Filters"),
+        )
+        return json.dumps(result)
+
+    def list_conformance_pack_compliance_scores(self) -> str:
+        result = self.config_backend.list_conformance_pack_compliance_scores(
+            self._get_param("Filters"),
+            self._get_param("SortOrder"),
+            self._get_param("SortBy"),
+            self._get_param("Limit"),
+            self._get_param("NextToken"),
+        )
+        return json.dumps(result)
+
+    def list_resource_evaluations(self) -> str:
+        result = self.config_backend.list_resource_evaluations(
+            self._get_param("Filters"),
+            self._get_param("Limit"),
+            self._get_param("NextToken"),
+        )
+        return json.dumps(result)
+
+    def list_stored_queries(self) -> str:
+        result = self.config_backend.list_stored_queries(
+            self._get_param("NextToken"),
+            self._get_param("MaxResults"),
+        )
+        return json.dumps(result)
+
+    def start_config_rules_evaluation(self) -> str:
+        self.config_backend.start_config_rules_evaluation(
+            self._get_param("ConfigRuleNames"),
+        )
         return json.dumps({})

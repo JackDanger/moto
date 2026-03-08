@@ -940,6 +940,7 @@ class LogsBackend(BaseBackend):
         self.delivery_destinations: dict[str, DeliveryDestination] = {}
         self.delivery_sources: dict[str, DeliverySource] = {}
         self.deliveries: dict[str, Delivery] = {}
+        self.query_definitions: dict[str, dict[str, Any]] = {}
 
     def create_log_group(
         self, log_group_name: str, tags: dict[str, str], **kwargs: Any
@@ -1775,6 +1776,104 @@ class LogsBackend(BaseBackend):
             )
         self.delivery_sources.pop(name)
         return
+
+    def put_query_definition(
+        self,
+        name: str,
+        query_string: str,
+        log_group_names: list[str],
+        query_definition_id: Optional[str] = None,
+    ) -> str:
+        if query_definition_id is None:
+            query_definition_id = str(mock_random.uuid4())
+        self.query_definitions[query_definition_id] = {
+            "queryDefinitionId": query_definition_id,
+            "name": name,
+            "queryString": query_string,
+            "logGroupNames": log_group_names,
+            "lastModified": int(unix_time_millis()),
+        }
+        return query_definition_id
+
+    def describe_query_definitions(
+        self,
+        query_definition_name_prefix: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        definitions = list(self.query_definitions.values())
+        if query_definition_name_prefix:
+            definitions = [
+                d
+                for d in definitions
+                if d["name"].startswith(query_definition_name_prefix)
+            ]
+        return definitions
+
+    def get_log_group_fields(
+        self,
+        log_group_name: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        # Return common default fields that CloudWatch Logs always includes
+        return [
+            {"name": "@timestamp", "percent": 100},
+            {"name": "@message", "percent": 100},
+            {"name": "@logStream", "percent": 100},
+        ]
+
+    def list_log_groups(
+        self,
+        log_group_name_prefix: Optional[str] = None,
+        log_group_name_pattern: Optional[str] = None,
+        limit: int = 50,
+        next_token: Optional[str] = None,
+    ) -> tuple[list[dict[str, Any]], Optional[str]]:
+        # Re-use existing describe_log_groups logic
+        groups, new_next_token = self.describe_log_groups(
+            limit=limit,
+            log_group_name_prefix=log_group_name_prefix,
+            next_token=next_token,
+        )
+        result = [g.to_describe_dict() for g in groups]
+        if log_group_name_pattern:
+            import re as _re
+
+            result = [
+                g for g in result if _re.search(log_group_name_pattern, g["logGroupName"])
+            ]
+        return result, new_next_token
+
+    def describe_configuration_templates(self) -> list[dict[str, Any]]:
+        # Configuration templates are not yet modeled; return empty list
+        return []
+
+    def describe_import_tasks(self) -> list[dict[str, Any]]:
+        # Import tasks are not yet modeled; return empty list
+        return []
+
+    def list_anomalies(
+        self,
+        anomaly_detector_arn: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        # Log anomalies are not yet modeled; return empty list
+        return []
+
+    def list_log_anomaly_detectors(
+        self,
+        filter_log_group_arn: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        # Log anomaly detectors are not yet modeled; return empty list
+        return []
+
+    def list_integrations(
+        self,
+        integration_name_prefix: Optional[str] = None,
+        integration_type: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        # Integrations are not yet modeled; return empty list
+        return []
+
+    def list_scheduled_queries(self) -> list[dict[str, Any]]:
+        # Scheduled queries are not yet modeled; return empty list
+        return []
 
 
 logs_backends = BackendDict(LogsBackend, "logs")

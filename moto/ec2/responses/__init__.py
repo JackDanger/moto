@@ -37,9 +37,11 @@ from .vpc_service_configuration import VPCEndpointServiceConfiguration
 from .vpcs import VPCs
 from .vpn_connections import VPNConnections
 from .windows import Windows
+from .gap_stubs import GapStubs
 
 
 class EC2Response(
+    GapStubs,
     AccountAttributes,
     AmisResponse,
     AvailabilityZonesAndRegions,

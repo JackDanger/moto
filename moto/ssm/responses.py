@@ -580,6 +580,125 @@ class SimpleSystemManagerResponse(BaseResponse):
         )
         return ActionResult({"BaselineId": baseline_id, "PatchGroup": patch_group})
 
+    def delete_association(self) -> ActionResult:
+        name = self._get_param("Name")
+        association_id = self._get_param("AssociationId")
+        self.ssm_backend.delete_association(name=name, association_id=association_id)
+        return EmptyResult()
+
+    def describe_activations(self) -> ActionResult:
+        activations = self.ssm_backend.describe_activations()
+        return ActionResult({"ActivationList": activations})
+
+    def describe_association(self) -> ActionResult:
+        name = self._get_param("Name")
+        instance_id = self._get_param("InstanceId")
+        association_id = self._get_param("AssociationId")
+        association_version = self._get_param("AssociationVersion")
+        result = self.ssm_backend.describe_association(
+            name=name,
+            instance_id=instance_id,
+            association_id=association_id,
+            association_version=association_version,
+        )
+        return ActionResult({"AssociationDescription": result})
+
+    def describe_automation_executions(self) -> ActionResult:
+        executions = self.ssm_backend.describe_automation_executions()
+        return ActionResult({"AutomationExecutionMetadataList": executions})
+
+    def describe_available_patches(self) -> ActionResult:
+        patches = self.ssm_backend.describe_available_patches()
+        return ActionResult({"Patches": patches})
+
+    def describe_instance_information(self) -> ActionResult:
+        instances = self.ssm_backend.describe_instance_information()
+        return ActionResult({"InstanceInformationList": instances})
+
+    def describe_instance_properties(self) -> ActionResult:
+        properties = self.ssm_backend.describe_instance_properties()
+        return ActionResult({"InstanceProperties": properties})
+
+    def describe_inventory_deletions(self) -> ActionResult:
+        deletions = self.ssm_backend.describe_inventory_deletions()
+        return ActionResult({"InventoryDeletions": deletions})
+
+    def describe_maintenance_window_schedule(self) -> ActionResult:
+        entries = self.ssm_backend.describe_maintenance_window_schedule()
+        return ActionResult({"ScheduledWindowExecutions": entries})
+
+    def describe_ops_items(self) -> ActionResult:
+        items = self.ssm_backend.describe_ops_items()
+        return ActionResult({"OpsItemSummaries": items})
+
+    def describe_patch_groups(self) -> ActionResult:
+        groups = self.ssm_backend.describe_patch_groups()
+        return ActionResult({"Mappings": groups})
+
+    def get_default_patch_baseline(self) -> ActionResult:
+        operating_system = self._get_param("OperatingSystem")
+        result = self.ssm_backend.get_default_patch_baseline(
+            operating_system=operating_system
+        )
+        return ActionResult(result)
+
+    def get_inventory(self) -> ActionResult:
+        entities = self.ssm_backend.get_inventory()
+        return ActionResult({"Entities": entities})
+
+    def get_inventory_schema(self) -> ActionResult:
+        schemas = self.ssm_backend.get_inventory_schema()
+        return ActionResult({"Schemas": schemas})
+
+    def get_ops_summary(self) -> ActionResult:
+        entities = self.ssm_backend.get_ops_summary()
+        return ActionResult({"Entities": entities})
+
+    def get_service_setting(self) -> ActionResult:
+        setting_id = self._get_param("SettingId")
+        result = self.ssm_backend.get_service_setting(setting_id=setting_id)
+        return ActionResult(result)
+
+    def list_associations(self) -> ActionResult:
+        associations = self.ssm_backend.list_associations()
+        return ActionResult({"Associations": associations})
+
+    def list_command_invocations(self) -> ActionResult:
+        invocations = self.ssm_backend.list_command_invocations()
+        return ActionResult({"CommandInvocations": invocations})
+
+    def list_compliance_items(self) -> ActionResult:
+        items = self.ssm_backend.list_compliance_items()
+        return ActionResult({"ComplianceItems": items})
+
+    def list_compliance_summaries(self) -> ActionResult:
+        summaries = self.ssm_backend.list_compliance_summaries()
+        return ActionResult({"ComplianceSummaryItems": summaries})
+
+    def list_nodes(self) -> ActionResult:
+        nodes = self.ssm_backend.list_nodes()
+        return ActionResult({"Nodes": nodes})
+
+    def list_ops_item_events(self) -> ActionResult:
+        events = self.ssm_backend.list_ops_item_events()
+        return ActionResult({"Summaries": events})
+
+    def list_ops_item_related_items(self) -> ActionResult:
+        items = self.ssm_backend.list_ops_item_related_items()
+        return ActionResult({"Summaries": items})
+
+    def list_ops_metadata(self) -> ActionResult:
+        metadata = self.ssm_backend.list_ops_metadata()
+        return ActionResult({"OpsMetadataList": metadata})
+
+    def list_resource_compliance_summaries(self) -> ActionResult:
+        summaries = self.ssm_backend.list_resource_compliance_summaries()
+        return ActionResult({"ResourceComplianceSummaryItems": summaries})
+
+    def list_resource_data_sync(self) -> ActionResult:
+        syncs = self.ssm_backend.list_resource_data_sync()
+        return ActionResult({"ResourceDataSyncItems": syncs})
+
     def register_patch_baseline_for_patch_group(self) -> ActionResult:
         baseline_id = self._get_param("BaselineId")
         patch_group = self._get_param("PatchGroup")

@@ -333,3 +333,14 @@ class EmailResponse(BaseResponse):
         dkim_attributes = self.backend.get_identity_dkim_attributes(identities)
         result = {"DkimAttributes": dkim_attributes}
         return ActionResult(result)
+
+    def list_custom_verification_email_templates(self) -> ActionResult:
+        result = {"CustomVerificationEmailTemplates": []}
+        return ActionResult(result)
+
+    def list_receipt_filters(self) -> ActionResult:
+        result = {"Filters": []}
+        return ActionResult(result)
+
+    def update_account_sending_enabled(self) -> ActionResult:
+        return EmptyResult()

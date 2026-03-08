@@ -690,6 +690,14 @@ class KmsBackend(BaseBackend):
             "The request was rejected because the specified entity or resource could not be found.",
         )
 
+    def describe_custom_key_stores(
+        self,
+        custom_key_store_id: Optional[str] = None,
+        custom_key_store_name: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        # Custom key stores are not yet modeled; return empty list
+        return []
+
     def create_grant(
         self,
         key_id: str,

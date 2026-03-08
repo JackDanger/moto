@@ -569,3 +569,37 @@ class EventsHandler(BaseResponse):
         entries = self._get_param("Entries")
         self.events_backend.put_partner_events(entries)
         return json.dumps({"Entries": [], "FailedEntryCount": 0})
+
+    def list_endpoints(self) -> tuple[str, dict[str, Any]]:
+        return json.dumps({"Endpoints": []}), self.response_headers
+
+    def list_event_sources(self) -> tuple[str, dict[str, Any]]:
+        return json.dumps({"EventSources": []}), self.response_headers
+
+    def update_event_bus(self) -> tuple[str, dict[str, Any]]:
+        name = self._get_param("Name")
+        description = self._get_param("Description")
+        kms_key_identifier = self._get_param("KmsKeyIdentifier")
+        dead_letter_config = self._get_param("DeadLetterConfig")
+
+        event_bus = self.events_backend.describe_event_bus(name)
+
+        if description is not None:
+            event_bus.description = description
+        if kms_key_identifier is not None:
+            event_bus.kms_key_identifier = kms_key_identifier
+        if dead_letter_config is not None:
+            event_bus.dead_letter_config = dead_letter_config
+
+        response = {
+            "Arn": event_bus.arn,
+            "Name": event_bus.name,
+        }
+        if event_bus.description:
+            response["Description"] = event_bus.description
+        if event_bus.kms_key_identifier:
+            response["KmsKeyIdentifier"] = event_bus.kms_key_identifier
+        if event_bus.dead_letter_config:
+            response["DeadLetterConfig"] = event_bus.dead_letter_config
+
+        return json.dumps(response), self.response_headers

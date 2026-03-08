@@ -1592,6 +1592,14 @@ class DynamoHandler(BaseResponse):
             )
         return json.dumps({"ExportSummaries": response})
 
+    def list_contributor_insights(self) -> str:
+        table_name = self.body.get("TableName")
+        return json.dumps({"ContributorInsightsSummaries": []})
+
+    def list_imports(self) -> str:
+        table_arn = self.body.get("TableArn")
+        return json.dumps({"ImportSummaryList": []})
+
     def put_resource_policy(self) -> str:
         policy = self.dynamodb_backend.put_resource_policy(
             resource_arn=self.body.get("ResourceArn"),

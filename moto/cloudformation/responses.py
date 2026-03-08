@@ -8,6 +8,7 @@ from yaml.scanner import ScannerError
 
 from moto.core.common_models import CloudFormationModel
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
+from moto.moto_api._internal import mock_random
 from moto.s3.exceptions import S3ClientError
 
 from .exceptions import MissingParameterError, ValidationError
@@ -714,3 +715,131 @@ class CloudFormationResponse(BaseResponse):
             stack_name, policy_body=policy_body
         )
         return EmptyResult()
+
+    def activate_organizations_access(self) -> ActionResult:
+        return EmptyResult()
+
+    def deactivate_organizations_access(self) -> ActionResult:
+        return EmptyResult()
+
+    def describe_organizations_access(self) -> ActionResult:
+        result = {"Status": "DISABLED"}
+        return ActionResult(result)
+
+    def activate_type(self) -> ActionResult:
+        result = {
+            "Arn": f"arn:{self.partition}:cloudformation:{self.region}:{self.current_account}:type/resource/AWS-Example-Resource/00000001",
+        }
+        return ActionResult(result)
+
+    def deactivate_type(self) -> ActionResult:
+        return EmptyResult()
+
+    def deregister_type(self) -> ActionResult:
+        return EmptyResult()
+
+    def describe_account_limits(self) -> ActionResult:
+        result = {
+            "AccountLimits": [
+                {"Name": "StackLimit", "Value": 200},
+                {"Name": "StackOutputsLimit", "Value": 60},
+                {"Name": "ConcurrentResourcesLimit", "Value": 2500},
+            ]
+        }
+        return ActionResult(result)
+
+    def describe_events(self) -> ActionResult:
+        result = {"StackEvents": []}
+        return ActionResult(result)
+
+    def describe_publisher(self) -> ActionResult:
+        result = {
+            "PublisherId": "000000000000",
+            "PublisherStatus": "VERIFIED",
+            "IdentityProvider": "AWS_Marketplace",
+        }
+        return ActionResult(result)
+
+    def describe_type(self) -> ActionResult:
+        type_name = self._get_param("TypeName", "AWS::CloudFormation::Stack")
+        type_arn = self._get_param("Arn", "")
+        result = {
+            "Arn": type_arn or f"arn:{self.partition}:cloudformation:{self.region}:{self.current_account}:type/resource/{type_name.replace('::', '-')}/00000001",
+            "Type": "RESOURCE",
+            "TypeName": type_name,
+            "Description": f"Schema for {type_name}",
+            "Schema": "{}",
+            "ProvisioningType": "FULLY_MUTABLE",
+            "DeprecatedStatus": "LIVE",
+            "Visibility": "PUBLIC",
+        }
+        return ActionResult(result)
+
+    def estimate_template_cost(self) -> ActionResult:
+        result = {
+            "Url": "http://calculator.s3.amazonaws.com/calc5.html",
+        }
+        return ActionResult(result)
+
+    def get_hook_result(self) -> ActionResult:
+        result = {"HookStatus": "HOOK_COMPLETE_SUCCEEDED"}
+        return ActionResult(result)
+
+    def list_generated_templates(self) -> ActionResult:
+        result = {"Summaries": []}
+        return ActionResult(result)
+
+    def list_hook_results(self) -> ActionResult:
+        result = {"HookResults": []}
+        return ActionResult(result)
+
+    def list_imports(self) -> ActionResult:
+        result = {"Imports": []}
+        return ActionResult(result)
+
+    def list_resource_scans(self) -> ActionResult:
+        result = {"ResourceScanSummaries": []}
+        return ActionResult(result)
+
+    def list_stack_refactors(self) -> ActionResult:
+        result = {"StackRefactorSummaries": []}
+        return ActionResult(result)
+
+    def list_type_registrations(self) -> ActionResult:
+        result = {"RegistrationTokenList": []}
+        return ActionResult(result)
+
+    def list_type_versions(self) -> ActionResult:
+        result = {"TypeVersionSummaries": []}
+        return ActionResult(result)
+
+    def list_types(self) -> ActionResult:
+        result = {"TypeSummaries": []}
+        return ActionResult(result)
+
+    def publish_type(self) -> ActionResult:
+        result = {
+            "PublicTypeArn": f"arn:{self.partition}:cloudformation:{self.region}::type/resource/AWS-Example-Resource/00000001",
+        }
+        return ActionResult(result)
+
+    def register_publisher(self) -> ActionResult:
+        result = {
+            "PublisherId": self.current_account,
+        }
+        return ActionResult(result)
+
+    def set_type_default_version(self) -> ActionResult:
+        return EmptyResult()
+
+    def start_resource_scan(self) -> ActionResult:
+        result = {
+            "ResourceScanId": f"arn:{self.partition}:cloudformation:{self.region}:{self.current_account}:resourceScan/{mock_random.uuid4()}",
+        }
+        return ActionResult(result)
+
+    def test_type(self) -> ActionResult:
+        result = {
+            "TypeVersionArn": f"arn:{self.partition}:cloudformation:{self.region}:{self.current_account}:type/resource/AWS-Example-Resource/00000001",
+        }
+        return ActionResult(result)

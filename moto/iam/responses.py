@@ -1223,3 +1223,63 @@ class IamResponse(BaseResponse):
             tagKeys=tags,
         )
         return EmptyResult()
+
+    def disable_organizations_root_credentials_management(self) -> ActionResult:
+        result = {
+            "OrganizationId": "o-stub00000000",
+            "EnabledFeatures": [],
+        }
+        return ActionResult(result)
+
+    def disable_organizations_root_sessions(self) -> ActionResult:
+        result = {
+            "OrganizationId": "o-stub00000000",
+            "EnabledFeatures": [],
+        }
+        return ActionResult(result)
+
+    def disable_outbound_web_identity_federation(self) -> ActionResult:
+        return EmptyResult()
+
+    def enable_organizations_root_credentials_management(self) -> ActionResult:
+        result = {
+            "OrganizationId": "o-stub00000000",
+            "EnabledFeatures": ["RootCredentialsManagement"],
+        }
+        return ActionResult(result)
+
+    def enable_organizations_root_sessions(self) -> ActionResult:
+        result = {
+            "OrganizationId": "o-stub00000000",
+            "EnabledFeatures": ["RootSessions"],
+        }
+        return ActionResult(result)
+
+    def enable_outbound_web_identity_federation(self) -> ActionResult:
+        return EmptyResult()
+
+    def get_outbound_web_identity_federation_info(self) -> ActionResult:
+        result = {
+            "Enabled": False,
+        }
+        return ActionResult(result)
+
+    def list_delegation_requests(self) -> ActionResult:
+        result = {
+            "DelegationRequests": [],
+            "IsTruncated": False,
+        }
+        return ActionResult(result)
+
+    def list_organizations_features(self) -> ActionResult:
+        result = {
+            "OrganizationId": "o-stub00000000",
+            "EnabledFeatures": [],
+        }
+        return ActionResult(result)
+
+    def list_service_specific_credentials(self) -> ActionResult:
+        result = {
+            "ServiceSpecificCredentials": [],
+        }
+        return ActionResult(result)

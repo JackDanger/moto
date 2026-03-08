@@ -484,6 +484,18 @@ class SNSResponse(BaseResponse):
         self.backend.untag_resource(arn, tag_keys)
         return EmptyResult()
 
+    def get_sms_sandbox_account_status(self) -> ActionResult:
+        result = {"IsInSandbox": True}
+        return ActionResult(result)
+
+    def list_origination_numbers(self) -> ActionResult:
+        result = {"PhoneNumbers": []}
+        return ActionResult(result)
+
+    def list_sms_sandbox_phone_numbers(self) -> ActionResult:
+        result = {"PhoneNumbers": []}
+        return ActionResult(result)
+
     @staticmethod
     def serve_pem(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
         sns = SNSResponse()

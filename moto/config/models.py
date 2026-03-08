@@ -2245,5 +2245,135 @@ class ConfigBackend(BaseBackend):
 
         return
 
+    def describe_delivery_channel_status(
+        self, channel_names: Optional[list[str]]
+    ) -> list[dict[str, Any]]:
+        """Return delivery channel status for the given channel names or all channels."""
+        channels: list[dict[str, Any]] = []
+
+        if channel_names:
+            for cname in channel_names:
+                if not self.delivery_channels.get(cname):
+                    raise NoSuchDeliveryChannelException(cname)
+                channels.append({"name": cname})
+        else:
+            for cname in self.delivery_channels:
+                channels.append({"name": cname})
+
+        return channels
+
+    def describe_conformance_pack_status(
+        self,
+        names: Optional[list[str]],
+        limit: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        return {"ConformancePackStatusDetails": []}
+
+    def describe_conformance_packs(
+        self,
+        names: Optional[list[str]],
+        limit: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        return {"ConformancePackDetails": []}
+
+    def describe_organization_config_rule_statuses(
+        self,
+        names: Optional[list[str]],
+        limit: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        return {"OrganizationConfigRuleStatuses": []}
+
+    def describe_organization_config_rules(
+        self,
+        names: Optional[list[str]],
+        limit: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        return {"OrganizationConfigRules": []}
+
+    def describe_pending_aggregation_requests(
+        self,
+        limit: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        return {"PendingAggregationRequests": []}
+
+    def get_compliance_details_by_resource(
+        self,
+        resource_type: Optional[str],
+        resource_id: Optional[str],
+        compliance_types: Optional[list[str]],
+        next_token: Optional[str],
+        resource_evaluation_id: Optional[str],
+    ) -> dict[str, Any]:
+        return {"EvaluationResults": []}
+
+    def get_compliance_summary_by_config_rule(self) -> dict[str, Any]:
+        return {"ComplianceSummary": {}}
+
+    def get_compliance_summary_by_resource_type(
+        self, resource_types: Optional[list[str]]
+    ) -> dict[str, Any]:
+        return {"ComplianceSummariesByResourceType": []}
+
+    def get_custom_rule_policy(
+        self, config_rule_name: Optional[str]
+    ) -> dict[str, Any]:
+        return {}
+
+    def get_discovered_resource_counts(
+        self,
+        resource_types: Optional[list[str]],
+        limit: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        return {"totalDiscoveredResources": 0, "resourceCounts": []}
+
+    def list_configuration_recorders(
+        self, filters: Optional[dict[str, Any]]
+    ) -> dict[str, Any]:
+        """Return configuration recorders (newer list API)."""
+        recorders = []
+        for recorder in self.recorders.values():
+            recorders.append(recorder.to_dict())
+        return {"ConfigurationRecorders": recorders}
+
+    def list_conformance_pack_compliance_scores(
+        self,
+        filters: Optional[dict[str, Any]],
+        sort_order: Optional[str],
+        sort_by: Optional[str],
+        limit: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        return {"ConformancePackComplianceScores": []}
+
+    def list_resource_evaluations(
+        self,
+        filters: Optional[dict[str, Any]],
+        limit: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        return {"ResourceEvaluations": []}
+
+    def list_stored_queries(
+        self,
+        next_token: Optional[str],
+        max_results: Optional[int],
+    ) -> dict[str, Any]:
+        return {"StoredQueryMetadata": []}
+
+    def start_config_rules_evaluation(
+        self, config_rule_names: Optional[list[str]]
+    ) -> None:
+        """Start evaluation for the given config rules. Stub - no actual evaluation."""
+        if config_rule_names:
+            for name in config_rule_names:
+                if not self.config_rules.get(name):
+                    raise NoSuchConfigRuleException(name)
+
 
 config_backends = BackendDict(ConfigBackend, "config")

@@ -512,6 +512,7 @@ class CloudWatchBackend(BaseBackend):
         self.metric_data: list[MetricDatumBase] = []
         self.paged_metric_data: dict[str, list[MetricDatumBase]] = {}
         self.insight_rules: dict[str, InsightRule] = {}
+        self.anomaly_detectors: list[dict[str, Any]] = []
         self.tagger = TaggingService()
 
     @property
@@ -1175,6 +1176,87 @@ class CloudWatchBackend(BaseBackend):
                     self.insight_rules[rule_name].state = "ENABLED"
 
         return failures
+
+    def disable_alarm_actions(self, alarm_names: list[str]) -> None:
+        for alarm_name in alarm_names:
+            if alarm_name in self.alarms:
+                self.alarms[alarm_name].actions_enabled = False
+
+    def enable_alarm_actions(self, alarm_names: list[str]) -> None:
+        for alarm_name in alarm_names:
+            if alarm_name in self.alarms:
+                self.alarms[alarm_name].actions_enabled = True
+
+    def put_anomaly_detector(
+        self,
+        namespace: Optional[str],
+        metric_name: Optional[str],
+        dimensions: list[dict[str, str]],
+        stat: Optional[str],
+        configuration: Optional[dict[str, Any]],
+        metric_math_anomaly_detector: Optional[dict[str, Any]] = None,
+        single_metric_anomaly_detector: Optional[dict[str, Any]] = None,
+    ) -> None:
+        detector = {
+            "Namespace": namespace,
+            "MetricName": metric_name,
+            "Dimensions": dimensions,
+            "Stat": stat,
+            "Configuration": configuration or {},
+            "StateValue": "PENDING_TRAINING",
+            "MetricMathAnomalyDetector": metric_math_anomaly_detector,
+            "SingleMetricAnomalyDetector": single_metric_anomaly_detector,
+        }
+        self.anomaly_detectors.append(detector)
+
+    def describe_anomaly_detectors(
+        self,
+        namespace: Optional[str] = None,
+        metric_name: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        detectors = self.anomaly_detectors
+        if namespace:
+            detectors = [d for d in detectors if d.get("Namespace") == namespace]
+        if metric_name:
+            detectors = [d for d in detectors if d.get("MetricName") == metric_name]
+        return detectors
+
+    def delete_anomaly_detector(
+        self,
+        namespace: Optional[str] = None,
+        metric_name: Optional[str] = None,
+        stat: Optional[str] = None,
+        single_metric_anomaly_detector: Optional[dict[str, Any]] = None,
+    ) -> None:
+        if single_metric_anomaly_detector:
+            namespace = single_metric_anomaly_detector.get("Namespace", namespace)
+            metric_name = single_metric_anomaly_detector.get("MetricName", metric_name)
+            stat = single_metric_anomaly_detector.get("Stat", stat)
+        self.anomaly_detectors = [
+            d
+            for d in self.anomaly_detectors
+            if not (
+                d.get("Namespace") == namespace
+                and d.get("MetricName") == metric_name
+                and d.get("Stat") == stat
+            )
+        ]
+
+    def list_metric_streams(self) -> list[dict[str, Any]]:
+        # Metric streams are not yet modeled; return empty list
+        return []
+
+    def list_managed_insight_rules(
+        self, resource_arn: Optional[str] = None
+    ) -> list[dict[str, Any]]:
+        # Managed insight rules are not yet modeled; return empty list
+        return []
+
+    def list_alarm_mute_rules(
+        self, alarm_name: Optional[str] = None
+    ) -> list[dict[str, Any]]:
+        # Alarm mute rules are not yet modeled; return empty list
+        return []
 
 
 cloudwatch_backends = BackendDict(CloudWatchBackend, "cloudwatch")

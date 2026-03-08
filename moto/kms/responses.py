@@ -303,6 +303,17 @@ class KmsResponse(BaseResponse):
 
         return json.dumps({"Truncated": False, "Aliases": response_aliases})
 
+    def describe_custom_key_stores(self) -> str:
+        custom_key_store_id = self._get_param("CustomKeyStoreId")
+        custom_key_store_name = self._get_param("CustomKeyStoreName")
+        custom_key_stores = self.kms_backend.describe_custom_key_stores(
+            custom_key_store_id=custom_key_store_id,
+            custom_key_store_name=custom_key_store_name,
+        )
+        return json.dumps(
+            {"CustomKeyStores": custom_key_stores, "Truncated": False}
+        )
+
     def create_grant(self) -> str:
         key_id = self._get_param("KeyId")
         grantee_principal = self._get_param("GranteePrincipal")

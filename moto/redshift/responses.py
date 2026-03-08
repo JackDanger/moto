@@ -435,3 +435,148 @@ class RedshiftResponse(BaseResponse):
             cluster_identifier=cluster_identifier,
         )
         return ActionResult(config)
+
+    def create_snapshot_schedule(self) -> ActionResult:
+        schedule_identifier = self._get_param("ScheduleIdentifier")
+        schedule_definitions = self._get_param("ScheduleDefinitions", [])
+        tags = self._get_param("Tags", [])
+        schedule = self.redshift_backend.create_snapshot_schedule(
+            schedule_identifier=schedule_identifier,
+            schedule_definitions=schedule_definitions,
+            tags=tags,
+        )
+        return ActionResult(schedule)
+
+    def describe_snapshot_schedules(self) -> ActionResult:
+        schedule_identifier = self._get_param("ScheduleIdentifier")
+        schedules = self.redshift_backend.describe_snapshot_schedules(
+            schedule_identifier=schedule_identifier,
+        )
+        return ActionResult({"SnapshotSchedules": schedules})
+
+    def describe_account_attributes(self) -> ActionResult:
+        attributes = self.redshift_backend.describe_account_attributes()
+        return ActionResult({"AccountAttributes": attributes})
+
+    def describe_authentication_profiles(self) -> ActionResult:
+        profiles = self.redshift_backend.describe_authentication_profiles()
+        return ActionResult({"AuthenticationProfiles": profiles})
+
+    def describe_cluster_db_revisions(self) -> ActionResult:
+        revisions = self.redshift_backend.describe_cluster_db_revisions()
+        return ActionResult({"ClusterDbRevisions": revisions})
+
+    def describe_cluster_tracks(self) -> ActionResult:
+        tracks = self.redshift_backend.describe_cluster_tracks()
+        return ActionResult({"MaintenanceTracks": tracks})
+
+    def describe_cluster_versions(self) -> ActionResult:
+        versions = self.redshift_backend.describe_cluster_versions()
+        return ActionResult({"ClusterVersions": versions})
+
+    def describe_custom_domain_associations(self) -> ActionResult:
+        associations = self.redshift_backend.describe_custom_domain_associations()
+        return ActionResult({"Associations": associations})
+
+    def describe_data_shares(self) -> ActionResult:
+        data_shares = self.redshift_backend.describe_data_shares()
+        return ActionResult({"DataShares": data_shares})
+
+    def describe_data_shares_for_consumer(self) -> ActionResult:
+        data_shares = self.redshift_backend.describe_data_shares_for_consumer()
+        return ActionResult({"DataShares": data_shares})
+
+    def describe_data_shares_for_producer(self) -> ActionResult:
+        data_shares = self.redshift_backend.describe_data_shares_for_producer()
+        return ActionResult({"DataShares": data_shares})
+
+    def describe_endpoint_access(self) -> ActionResult:
+        endpoints = self.redshift_backend.describe_endpoint_access()
+        return ActionResult({"EndpointAccessList": endpoints})
+
+    def describe_endpoint_authorization(self) -> ActionResult:
+        authorizations = self.redshift_backend.describe_endpoint_authorization()
+        return ActionResult({"EndpointAuthorizationList": authorizations})
+
+    def describe_event_categories(self) -> ActionResult:
+        categories = self.redshift_backend.describe_event_categories()
+        return ActionResult({"EventCategoriesMapList": categories})
+
+    def describe_event_subscriptions(self) -> ActionResult:
+        subscriptions = self.redshift_backend.describe_event_subscriptions()
+        return ActionResult({"EventSubscriptionsList": subscriptions})
+
+    def describe_events(self) -> ActionResult:
+        events = self.redshift_backend.describe_events()
+        return ActionResult({"Events": events})
+
+    def describe_hsm_client_certificates(self) -> ActionResult:
+        certificates = self.redshift_backend.describe_hsm_client_certificates()
+        return ActionResult({"HsmClientCertificates": certificates})
+
+    def describe_hsm_configurations(self) -> ActionResult:
+        configurations = self.redshift_backend.describe_hsm_configurations()
+        return ActionResult({"HsmConfigurations": configurations})
+
+    def describe_inbound_integrations(self) -> ActionResult:
+        integrations = self.redshift_backend.describe_inbound_integrations()
+        return ActionResult({"InboundIntegrations": integrations})
+
+    def describe_integrations(self) -> ActionResult:
+        integrations = self.redshift_backend.describe_integrations()
+        return ActionResult({"Integrations": integrations})
+
+    def describe_orderable_cluster_options(self) -> ActionResult:
+        options = self.redshift_backend.describe_orderable_cluster_options()
+        return ActionResult({"OrderableClusterOptions": options})
+
+    def describe_redshift_idc_applications(self) -> ActionResult:
+        applications = self.redshift_backend.describe_redshift_idc_applications()
+        return ActionResult({"RedshiftIdcApplications": applications})
+
+    def describe_reserved_node_exchange_status(self) -> ActionResult:
+        details = self.redshift_backend.describe_reserved_node_exchange_status()
+        return ActionResult({"ReservedNodeExchangeStatusDetails": details})
+
+    def describe_reserved_node_offerings(self) -> ActionResult:
+        offerings = self.redshift_backend.describe_reserved_node_offerings()
+        return ActionResult({"ReservedNodeOfferings": offerings})
+
+    def describe_reserved_nodes(self) -> ActionResult:
+        nodes = self.redshift_backend.describe_reserved_nodes()
+        return ActionResult({"ReservedNodes": nodes})
+
+    def describe_scheduled_actions(self) -> ActionResult:
+        actions = self.redshift_backend.describe_scheduled_actions()
+        return ActionResult({"ScheduledActions": actions})
+
+    def describe_storage(self) -> ActionResult:
+        storage = self.redshift_backend.describe_storage()
+        return ActionResult(storage)
+
+    def describe_table_restore_status(self) -> ActionResult:
+        statuses = self.redshift_backend.describe_table_restore_status()
+        return ActionResult({"TableRestoreStatusDetails": statuses})
+
+    def describe_usage_limits(self) -> ActionResult:
+        limits = self.redshift_backend.describe_usage_limits()
+        return ActionResult({"UsageLimits": limits})
+
+    def get_cluster_credentials_with_iam(self) -> ActionResult:
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        db_name = self._get_param("DbName")
+        duration_seconds = self._get_int_param("DurationSeconds", 900)
+        credentials = self.redshift_backend.get_cluster_credentials_with_iam(
+            cluster_identifier=cluster_identifier,
+            db_name=db_name,
+            duration_seconds=duration_seconds,
+        )
+        return ActionResult(credentials)
+
+    def list_recommendations(self) -> ActionResult:
+        recommendations = self.redshift_backend.list_recommendations()
+        return ActionResult({"Recommendations": recommendations})
+
+    def revoke_endpoint_access(self) -> ActionResult:
+        result = self.redshift_backend.revoke_endpoint_access()
+        return ActionResult(result)

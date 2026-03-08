@@ -428,3 +428,27 @@ class Route53ResolverResponse(BaseResponse):
             response["NextToken"] = next_token
 
         return json.dumps(response)
+
+    def list_firewall_configs(self) -> str:
+        """List all firewall configs."""
+        return json.dumps({"FirewallConfigs": []})
+
+    def list_firewall_domain_lists(self) -> str:
+        """List all firewall domain lists."""
+        return json.dumps({"FirewallDomainLists": []})
+
+    def list_firewall_rule_group_associations(self) -> str:
+        """List all firewall rule group associations."""
+        return json.dumps({"FirewallRuleGroupAssociations": []})
+
+    def list_firewall_rule_groups(self) -> str:
+        """List all firewall rule groups."""
+        return json.dumps({"FirewallRuleGroups": []})
+
+    def list_outpost_resolvers(self) -> str:
+        """List all outpost resolvers."""
+        return json.dumps({"OutpostResolvers": []})
+
+    def list_resolver_configs(self) -> str:
+        """List all resolver configs."""
+        return json.dumps({"ResolverConfigs": []})

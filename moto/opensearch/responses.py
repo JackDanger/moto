@@ -214,3 +214,39 @@ class OpenSearchServiceResponse(BaseResponse):
         )
         domain_list = [domain.to_dict() for domain in domains]
         return json.dumps({"DomainStatusList": domain_list})
+
+    def describe_inbound_connections(self) -> str:
+        connections = self.opensearch_backend.describe_inbound_connections()
+        return json.dumps({"Connections": connections})
+
+    def describe_outbound_connections(self) -> str:
+        connections = self.opensearch_backend.describe_outbound_connections()
+        return json.dumps({"Connections": connections})
+
+    def describe_packages(self) -> str:
+        packages = self.opensearch_backend.describe_packages()
+        return json.dumps({"PackageDetailsList": packages})
+
+    def describe_reserved_instance_offerings(self) -> str:
+        offerings = self.opensearch_backend.describe_reserved_instance_offerings()
+        return json.dumps({"ReservedInstanceOfferings": offerings})
+
+    def describe_reserved_instances(self) -> str:
+        instances = self.opensearch_backend.describe_reserved_instances()
+        return json.dumps({"ReservedInstances": instances})
+
+    def get_default_application_setting(self) -> str:
+        # Not yet modeled; return empty defaults
+        return json.dumps({})
+
+    def list_applications(self) -> str:
+        applications = self.opensearch_backend.list_applications()
+        return json.dumps({"ApplicationSummaries": applications})
+
+    def list_direct_query_data_sources(self) -> str:
+        data_sources = self.opensearch_backend.list_direct_query_data_sources()
+        return json.dumps({"DataSources": data_sources})
+
+    def list_vpc_endpoints(self) -> str:
+        endpoints = self.opensearch_backend.list_vpc_endpoints()
+        return json.dumps({"VpcEndpointsSummaryList": endpoints})

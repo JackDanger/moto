@@ -602,3 +602,82 @@ class LogsResponse(BaseResponse):
             name=name,
         )
         return ""
+
+    def put_query_definition(self) -> str:
+        name = self._get_param("name")
+        query_string = self._get_param("queryString")
+        log_group_names = self._get_param("logGroupNames", [])
+        query_definition_id = self._get_param("queryDefinitionId")
+        result = self.logs_backend.put_query_definition(
+            name=name,
+            query_string=query_string,
+            log_group_names=log_group_names,
+            query_definition_id=query_definition_id,
+        )
+        return json.dumps({"queryDefinitionId": result})
+
+    def describe_query_definitions(self) -> str:
+        query_definition_name_prefix = self._get_param("queryDefinitionNamePrefix")
+        query_definitions = self.logs_backend.describe_query_definitions(
+            query_definition_name_prefix=query_definition_name_prefix,
+        )
+        return json.dumps({"queryDefinitions": query_definitions})
+
+    def get_log_group_fields(self) -> str:
+        log_group_name = self._get_param("logGroupName")
+        log_group_identifier = self._get_param("logGroupIdentifier")
+        fields = self.logs_backend.get_log_group_fields(
+            log_group_name=log_group_name or log_group_identifier,
+        )
+        return json.dumps({"logGroupFields": fields})
+
+    def list_log_groups(self) -> str:
+        log_group_name_prefix = self._get_param("logGroupNamePrefix")
+        log_group_name_pattern = self._get_param("logGroupNamePattern")
+        next_token = self._get_param("nextToken")
+        limit = self._get_param("limit", 50)
+        log_groups, next_token = self.logs_backend.list_log_groups(
+            log_group_name_prefix=log_group_name_prefix,
+            log_group_name_pattern=log_group_name_pattern,
+            limit=limit,
+            next_token=next_token,
+        )
+        result: dict[str, Any] = {"logGroups": log_groups}
+        if next_token:
+            result["nextToken"] = next_token
+        return json.dumps(result)
+
+    def describe_configuration_templates(self) -> str:
+        templates = self.logs_backend.describe_configuration_templates()
+        return json.dumps({"configurationTemplates": templates})
+
+    def describe_import_tasks(self) -> str:
+        import_tasks = self.logs_backend.describe_import_tasks()
+        return json.dumps({"importTasks": import_tasks})
+
+    def list_anomalies(self) -> str:
+        anomaly_detector_arn = self._get_param("anomalyDetectorArn")
+        anomalies = self.logs_backend.list_anomalies(
+            anomaly_detector_arn=anomaly_detector_arn,
+        )
+        return json.dumps({"anomalies": anomalies})
+
+    def list_log_anomaly_detectors(self) -> str:
+        filter_log_group_arn = self._get_param("filterLogGroupArn")
+        detectors = self.logs_backend.list_log_anomaly_detectors(
+            filter_log_group_arn=filter_log_group_arn,
+        )
+        return json.dumps({"anomalyDetectors": detectors})
+
+    def list_integrations(self) -> str:
+        integration_name_prefix = self._get_param("integrationNamePrefix")
+        integration_type = self._get_param("integrationType")
+        integrations = self.logs_backend.list_integrations(
+            integration_name_prefix=integration_name_prefix,
+            integration_type=integration_type,
+        )
+        return json.dumps({"integrationSummaries": integrations})
+
+    def list_scheduled_queries(self) -> str:
+        scheduled_queries = self.logs_backend.list_scheduled_queries()
+        return json.dumps({"scheduledQueries": scheduled_queries})
