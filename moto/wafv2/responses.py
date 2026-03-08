@@ -568,6 +568,40 @@ class WAFV2Response(BaseResponse):
         response_headers = {"Content-Type": "application/json"}
         return 200, response_headers, json.dumps(response)
 
+    def put_permission_policy(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        resource_arn = body["ResourceArn"]
+        policy = body["Policy"]
+        self.wafv2_backend.put_permission_policy(resource_arn, policy)
+        return 200, {}, "{}"
+
+    def get_permission_policy(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        resource_arn = body["ResourceArn"]
+        policy = self.wafv2_backend.get_permission_policy(resource_arn)
+        return 200, {}, json.dumps({"Policy": policy})
+
+    def delete_permission_policy(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        resource_arn = body["ResourceArn"]
+        self.wafv2_backend.delete_permission_policy(resource_arn)
+        return 200, {}, "{}"
+
+    def check_capacity(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        scope = body.get("Scope", "REGIONAL")
+        rules = body.get("Rules", [])
+        capacity = self.wafv2_backend.check_capacity(scope, rules)
+        return 200, {}, json.dumps({"Capacity": capacity})
+
+    def describe_managed_rule_group(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        vendor_name = body["VendorName"]
+        name = body["Name"]
+        scope = body.get("Scope", "REGIONAL")
+        result = self.wafv2_backend.describe_managed_rule_group(vendor_name, name, scope)
+        return 200, {}, json.dumps(result)
+
 
 # notes about region and scope
 # --scope = CLOUDFRONT is ALWAYS us-east-1 (but we use "global" instead to differentiate between REGIONAL us-east-1)

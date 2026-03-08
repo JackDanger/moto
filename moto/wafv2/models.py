@@ -14,6 +14,7 @@ from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import ARN_PARTITION_REGEX, PARTITION_NAMES
 
 from .exceptions import (
+    WAFInvalidParameterException,
     WAFNonexistentItemException,
     WAFOptimisticLockException,
     WAFV2DuplicateItemException,
@@ -467,6 +468,7 @@ class WAFV2Backend(BaseBackend):
         self.rule_groups: dict[str, FakeRuleGroup] = OrderedDict()
         self.regex_pattern_sets: dict[str, FakeRegexPatternSet] = OrderedDict()
         self.tagging_service = TaggingService()
+        self.permission_policies: dict[str, str] = {}
         # TODO: self.load_balancers = OrderedDict()
 
     def associate_web_acl(self, web_acl_arn: str, resource_arn: str) -> None:
@@ -992,6 +994,50 @@ class WAFV2Backend(BaseBackend):
             for pattern_set in self.regex_pattern_sets.values()
             if pattern_set.scope == scope
         ]
+
+    def put_permission_policy(self, resource_arn: str, policy: str) -> None:
+        # Validate the ARN refers to a rule group
+        if "/rulegroup/" not in resource_arn:
+            raise WAFInvalidParameterException(
+                "The ARN isn't valid. A valid ARN starts with arn: "
+                "and includes other information separated by colons or slashes."
+            )
+        if resource_arn not in self.rule_groups:
+            raise WAFNonexistentItemException()
+        self.permission_policies[resource_arn] = policy
+
+    def get_permission_policy(self, resource_arn: str) -> str:
+        if resource_arn not in self.permission_policies:
+            raise WAFNonexistentItemException()
+        return self.permission_policies[resource_arn]
+
+    def delete_permission_policy(self, resource_arn: str) -> None:
+        if resource_arn not in self.permission_policies:
+            raise WAFNonexistentItemException()
+        del self.permission_policies[resource_arn]
+
+    def check_capacity(self, scope: str, rules: list[dict[str, Any]]) -> int:
+        return len(rules)
+
+    def describe_managed_rule_group(
+        self, vendor_name: str, name: str, scope: str
+    ) -> dict[str, Any]:
+        return {
+            "Capacity": 700,
+            "Rules": [
+                {
+                    "Name": "NoUserAgent_HEADER",
+                    "Action": {"Block": {}},
+                },
+            ],
+            "AvailableLabels": [
+                {"Name": f"awswaf:managed:{vendor_name.lower()}:{name.lower()}:NoUserAgent_HEADER"},
+            ],
+            "ConsumedLabels": [],
+            "LabelNamespace": f"awswaf:managed:{vendor_name.lower()}:{name.lower()}:",
+            "VersionName": "Version_1.0",
+            "SnsTopicArn": f"arn:aws:sns:us-east-1:123456789012:managed-rule-group-{name}",
+        }
 
 
 wafv2_backends = BackendDict(WAFV2Backend, "wafv2", additional_regions=PARTITION_NAMES)
