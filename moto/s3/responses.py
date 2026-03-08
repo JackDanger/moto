@@ -1241,6 +1241,12 @@ class S3Response(BaseResponse):
         self.data["Action"] = "PutObject"
         self._authenticate_and_authorize_s3_action(bucket_name=bucket_name)
 
+        # S3 Metadata Tables (Nov 2024) — stub handlers
+        if "metadataConfiguration" in self.querystring:
+            return 200, {}, "<MetadataConfiguration/>"
+        if "metadataTable" in self.querystring:
+            return 200, {}, "<MetadataTableConfiguration/>"
+
         key = self.querystring["key"][0]
         f = self.body
 
@@ -1556,6 +1562,8 @@ class S3Response(BaseResponse):
             return self.get_object_tagging()
         if "legal-hold" in query:
             return self.get_object_legal_hold()
+        if "retention" in query:
+            return self.get_object_retention()
         if "attributes" in query:
             return self.get_object_attributes()
 
@@ -1629,6 +1637,19 @@ class S3Response(BaseResponse):
         legal_hold = self.backend.get_object_legal_hold(key)
         template = self.response_template(S3_OBJECT_LEGAL_HOLD)
         return 200, response_headers, template.render(legal_hold=legal_hold)
+
+    def get_object_retention(self) -> TYPE_RESPONSE:
+        key_name = self.parse_key_name()
+        version_id = self._get_param("versionId")
+        mode, until = self.backend.get_object_retention(
+            self.bucket_name, key_name, version_id
+        )
+        response_headers = self._get_cors_headers_other()
+        if mode is None and until is None:
+            template = self.response_template(S3_NO_OBJECT_RETENTION)
+            return 404, response_headers, template.render()
+        template = self.response_template(S3_OBJECT_RETENTION)
+        return 200, response_headers, template.render(mode=mode, until=until)
 
     def get_object_tagging(self) -> TYPE_RESPONSE:
         key, not_modified = self._get_key()
@@ -3092,6 +3113,20 @@ S3_OBJECT_LEGAL_HOLD = """<?xml version="1.0" encoding="UTF-8"?>
 <LegalHold>
    <Status>{{ legal_hold }}</Status>
 </LegalHold>
+"""
+
+S3_OBJECT_RETENTION = """<?xml version="1.0" encoding="UTF-8"?>
+<Retention>
+   <Mode>{{ mode }}</Mode>
+   <RetainUntilDate>{{ until }}</RetainUntilDate>
+</Retention>
+"""
+
+S3_NO_OBJECT_RETENTION = """<?xml version="1.0" encoding="UTF-8"?>
+<Error>
+  <Code>NoSuchObjectLockConfiguration</Code>
+  <Message>The specified object does not have a ObjectLock configuration</Message>
+</Error>
 """
 
 S3_OBJECT_TAGGING_RESPONSE = """\

@@ -2341,6 +2341,15 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         key.lock_mode = retention[0]  # type: ignore
         key.lock_until = retention[1]  # type: ignore
 
+    def get_object_retention(
+        self,
+        bucket_name: str,
+        key_name: str,
+        version_id: Optional[str] = None,
+    ) -> tuple[Optional[str], Optional[str]]:
+        key = self.get_object(bucket_name, key_name, version_id=version_id)
+        return (key.lock_mode, key.lock_until)
+
     def get_object_attributes(
         self,
         key: FakeKey,
