@@ -76,11 +76,19 @@ class MediaStoreBackend(BaseBackend):
         """
         return [c.to_dict() for c in self._containers.values()]
 
+    def _resolve_resource(self, resource: str) -> Container:
+        """Resolve a container by name or ARN."""
+        if resource in self._containers:
+            return self._containers[resource]
+        # Look up by ARN
+        for container in self._containers.values():
+            if container.arn == resource:
+                return container
+        raise ContainerNotFoundException()
+
     def list_tags_for_resource(self, name: str) -> Optional[dict[str, str]]:
-        if name not in self._containers:
-            raise ContainerNotFoundException()
-        tags = self._containers[name].tags
-        return tags
+        container = self._resolve_resource(name)
+        return container.tags
 
     def put_lifecycle_policy(self, container_name: str, lifecycle_policy: str) -> None:
         if container_name not in self._containers:
