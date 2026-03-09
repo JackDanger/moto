@@ -29,3 +29,29 @@ class PublicKeyNotFound(TransferError):
             "PublicKeyNotFound",
             f"{ssh_public_key_id} does not match any keys associated with user {user_name} for server {server_id}.",
         )
+
+
+class ResourceNotFound(TransferError):
+    code = 404
+
+    def __init__(self, resource_type: str, resource_id: str) -> None:
+        super().__init__(
+            "ResourceNotFoundException",
+            f"{resource_type} not found: {resource_id}",
+        )
+
+
+class AccessNotFound(TransferError):
+    def __init__(self, server_id: str, external_id: str) -> None:
+        super().__init__(
+            "ResourceNotFoundException",
+            f"Access for ExternalId {external_id} and ServerId {server_id} does not exist.",
+        )
+
+
+class InvalidRequestError(TransferError):
+    def __init__(self, message: str) -> None:
+        super().__init__(
+            "InvalidRequestException",
+            message,
+        )
