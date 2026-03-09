@@ -146,6 +146,10 @@ class TransitGatewayBackend:
         return result
 
     def delete_transit_gateway(self, transit_gateway_id: str) -> TransitGateway:
+        if transit_gateway_id not in self.transit_gateways:
+            from ..exceptions import InvalidTransitGatewayID
+
+            raise InvalidTransitGatewayID(transit_gateway_id)
         return self.transit_gateways.pop(transit_gateway_id)
 
     def modify_transit_gateway(
@@ -154,7 +158,11 @@ class TransitGatewayBackend:
         description: Optional[str] = None,
         options: Optional[dict[str, str]] = None,
     ) -> TransitGateway:
-        transit_gateway = self.transit_gateways[transit_gateway_id]
+        transit_gateway = self.transit_gateways.get(transit_gateway_id)
+        if not transit_gateway:
+            from ..exceptions import InvalidTransitGatewayID
+
+            raise InvalidTransitGatewayID(transit_gateway_id)
         if description:
             transit_gateway.description = description
         if options:

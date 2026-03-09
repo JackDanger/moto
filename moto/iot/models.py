@@ -3460,6 +3460,11 @@ class IoTBackend(BaseBackend):
         billing_group = self.describe_billing_group(billing_group_name)
         return [self.things[arn] for arn in billing_group.things]
 
+    def describe_thing_registration_task(self, task_id: str) -> None:
+        raise ResourceNotFoundException(
+            f"Task {task_id} cannot be found."
+        )
+
 
     # --- Security Profiles ---
 

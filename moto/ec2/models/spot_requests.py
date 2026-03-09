@@ -553,7 +553,11 @@ class SpotRequestBackend:
     ) -> None:
         if target_capacity < 0:
             raise ValueError("Cannot reduce spot fleet capacity below 0")
-        spot_fleet_request = self.spot_fleet_requests[spot_fleet_request_id]
+        spot_fleet_request = self.spot_fleet_requests.get(spot_fleet_request_id)
+        if not spot_fleet_request:
+            from ..exceptions import InvalidSpotFleetRequestIdError
+
+            raise InvalidSpotFleetRequestIdError(spot_fleet_request_id)
         delta = target_capacity - spot_fleet_request.fulfilled_capacity
         spot_fleet_request.target_capacity = target_capacity
         if delta > 0:
