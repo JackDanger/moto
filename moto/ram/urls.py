@@ -30,6 +30,7 @@ url_paths = {
     "{0}/listresourcesharepermissions$": ResourceAccessManagerResponse.dispatch,
     "{0}/listresourcetypes$": ResourceAccessManagerResponse.dispatch,
     "{0}/listsourceassociations$": ResourceAccessManagerResponse.dispatch,
+    "{0}/rejectresourceshareinvitation$": ResourceAccessManagerResponse.dispatch,
     "{0}/promotepermissioncreatedfrompolicy$": ResourceAccessManagerResponse.dispatch,
     "{0}/promoteresourcesharecreatedfrompolicy$": ResourceAccessManagerResponse.dispatch,
     "{0}/replacepermissionassociations$": ResourceAccessManagerResponse.dispatch,
