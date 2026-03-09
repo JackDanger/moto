@@ -2266,6 +2266,84 @@ class DBProxy(RDSBaseModel):
         return self.unique_id
 
 
+class DBClusterEndpoint(RDSBaseModel):
+    resource_type = "cluster-endpoint"
+
+    def __init__(
+        self,
+        backend: RDSBackend,
+        db_cluster_identifier: str,
+        db_cluster_endpoint_identifier: str,
+        endpoint_type: str = "CUSTOM",
+        static_members: Optional[list[str]] = None,
+        excluded_members: Optional[list[str]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+    ):
+        super().__init__(backend)
+        self.db_cluster_identifier = db_cluster_identifier
+        self.db_cluster_endpoint_identifier = db_cluster_endpoint_identifier
+        self.endpoint_type = endpoint_type
+        self.custom_endpoint_type = endpoint_type
+        self.static_members = static_members or []
+        self.excluded_members = excluded_members or []
+        self.tags = tags or []
+        self.status = "available"
+        self.db_cluster_endpoint_resource_identifier = (
+            f"cluster-endpoint-{random.get_random_string(26, lower_case=True)}"
+        )
+        url_id = "".join(
+            random.choice(string.ascii_lowercase + string.digits) for _ in range(12)
+        )
+        self.endpoint = (
+            f"{db_cluster_endpoint_identifier}.cluster-custom-{url_id}"
+            f".{self.region}.rds.amazonaws.com"
+        )
+
+    @property
+    def resource_id(self) -> str:
+        return self.db_cluster_endpoint_identifier
+
+
+class DBProxyEndpoint(RDSBaseModel):
+    resource_type = "db-proxy-endpoint"
+
+    def __init__(
+        self,
+        backend: RDSBackend,
+        db_proxy_name: str,
+        db_proxy_endpoint_name: str,
+        vpc_subnet_ids: list[str],
+        vpc_security_group_ids: Optional[list[str]] = None,
+        target_role: str = "READ_WRITE",
+        tags: Optional[list[dict[str, str]]] = None,
+    ):
+        super().__init__(backend)
+        self.db_proxy_name = db_proxy_name
+        self.db_proxy_endpoint_name = db_proxy_endpoint_name
+        self.vpc_subnet_ids = vpc_subnet_ids
+        self.vpc_security_group_ids = vpc_security_group_ids or []
+        self.target_role = target_role
+        self.tags = tags or []
+        self.status = "available"
+        self.is_default = False
+        self.created_date = utcnow()
+        url_id = "".join(
+            random.choice(string.ascii_lowercase + string.digits) for _ in range(12)
+        )
+        self.endpoint = (
+            f"{db_proxy_endpoint_name}.endpoint-{url_id}"
+            f".{self.region}.rds.amazonaws.com"
+        )
+        # Derive VPC ID from subnets
+        ec2_backend = ec2_backends[self.account_id][self.region]
+        subnets = ec2_backend.describe_subnets(subnet_ids=self.vpc_subnet_ids)
+        self.vpc_id = subnets[0].vpc_id if subnets else ""
+
+    @property
+    def resource_id(self) -> str:
+        return self.db_proxy_endpoint_name
+
+
 class DBInstanceAutomatedBackup:
     def __init__(
         self,
@@ -2358,6 +2436,8 @@ class RDSBackend(BaseBackend):
         self.subnet_groups: MutableMapping[str, DBSubnetGroup] = CaseInsensitiveDict()
         self._db_cluster_options: Optional[list[dict[str, Any]]] = None
         self.db_proxies: dict[str, DBProxy] = OrderedDict()
+        self.db_cluster_endpoints: dict[str, DBClusterEndpoint] = OrderedDict()
+        self.db_proxy_endpoints: dict[str, DBProxyEndpoint] = OrderedDict()
         self.events: list[Event] = []
         self.resource_map = {
             DBCluster: self.clusters,
@@ -4220,6 +4300,348 @@ class RDSBackend(BaseBackend):
         return [
             DBInstanceAutomatedBackup(self, k, v) for k, v in snapshots_grouped.items()
         ]
+
+    def delete_db_instance_automated_backup(
+        self,
+        dbi_resource_id: Optional[str] = None,
+        db_instance_automated_backups_arn: Optional[str] = None,
+        **_: Any,
+    ) -> DBInstanceAutomatedBackup:
+        """Delete a DB instance automated backup by resource ID or ARN."""
+        automated_backups = self.describe_db_instance_automated_backups()
+        for backup in automated_backups:
+            if dbi_resource_id and backup.db_instance_identifier == dbi_resource_id:
+                # Remove all automated snapshots for this instance
+                to_remove = [
+                    k
+                    for k, v in self.database_snapshots.items()
+                    if v.db_instance_identifier == dbi_resource_id
+                    and v.snapshot_type == "automated"
+                ]
+                for k in to_remove:
+                    self.database_snapshots.pop(k)
+                return backup
+        # If not found, return an empty placeholder
+        return DBInstanceAutomatedBackup(self, dbi_resource_id or "unknown", [])
+
+    def describe_db_cluster_automated_backups(
+        self,
+        db_cluster_identifier: Optional[str] = None,
+        **_: Any,
+    ) -> list[dict[str, Any]]:
+        """Return automated backups for DB clusters (stub - returns empty list)."""
+        # Real AWS returns automated backups for Aurora clusters
+        # We return an empty list since Moto doesn't track cluster automated backups
+        return []
+
+    def describe_account_attributes(self) -> list[dict[str, Any]]:
+        """Return mock RDS account quotas."""
+        num_instances = len(self.databases)
+        num_clusters = len(self.clusters)
+        num_snapshots = len(
+            [s for s in self.database_snapshots.values() if s.snapshot_type != "automated"]
+        )
+        num_cluster_snapshots = len(self.cluster_snapshots)
+        num_param_groups = len(self.db_parameter_groups)
+        num_cluster_param_groups = len(self.db_cluster_parameter_groups)
+        num_option_groups = len(self.option_groups)
+        num_subnet_groups = len(self.subnet_groups)
+        num_event_subs = len(self.event_subscriptions)
+        num_security_groups = len(self.security_groups)
+
+        quotas = [
+            {"AccountQuotaName": "DBInstances", "Used": num_instances, "Max": 40},
+            {"AccountQuotaName": "ReservedDBInstances", "Used": 0, "Max": 40},
+            {"AccountQuotaName": "AllocatedStorage", "Used": 0, "Max": 100000},
+            {
+                "AccountQuotaName": "DBSecurityGroups",
+                "Used": num_security_groups,
+                "Max": 25,
+            },
+            {
+                "AccountQuotaName": "AuthorizationsPerDBSecurityGroup",
+                "Used": 0,
+                "Max": 20,
+            },
+            {
+                "AccountQuotaName": "DBParameterGroups",
+                "Used": num_param_groups,
+                "Max": 50,
+            },
+            {"AccountQuotaName": "ManualSnapshots", "Used": num_snapshots, "Max": 100},
+            {
+                "AccountQuotaName": "EventSubscriptions",
+                "Used": num_event_subs,
+                "Max": 20,
+            },
+            {
+                "AccountQuotaName": "DBSubnetGroups",
+                "Used": num_subnet_groups,
+                "Max": 50,
+            },
+            {"AccountQuotaName": "OptionGroups", "Used": num_option_groups, "Max": 20},
+            {
+                "AccountQuotaName": "SubnetsPerDBSubnetGroup",
+                "Used": 0,
+                "Max": 20,
+            },
+            {
+                "AccountQuotaName": "ReadReplicasPerMaster",
+                "Used": 0,
+                "Max": 15,
+            },
+            {"AccountQuotaName": "DBClusters", "Used": num_clusters, "Max": 40},
+            {
+                "AccountQuotaName": "DBClusterParameterGroups",
+                "Used": num_cluster_param_groups,
+                "Max": 50,
+            },
+            {
+                "AccountQuotaName": "DBClusterRoles",
+                "Used": 0,
+                "Max": 5,
+            },
+            {
+                "AccountQuotaName": "ManualClusterSnapshots",
+                "Used": num_cluster_snapshots,
+                "Max": 100,
+            },
+            {
+                "AccountQuotaName": "CustomEndpointsPerDBCluster",
+                "Used": 0,
+                "Max": 5,
+            },
+            {
+                "AccountQuotaName": "DBInstanceRoles",
+                "Used": 0,
+                "Max": 5,
+            },
+        ]
+        return quotas
+
+    def describe_certificates(
+        self,
+        certificate_identifier: Optional[str] = None,
+        **_: Any,
+    ) -> list[dict[str, Any]]:
+        """Return mock RDS certificates."""
+        certs = [
+            {
+                "CertificateIdentifier": "rds-ca-2019",
+                "CertificateType": "CA",
+                "Thumbprint": "d4ec8b4f0c0aeb7894f47694b4e3b2c0f8b8c9a0",
+                "ValidFrom": "2019-09-19T18:16:53Z",
+                "ValidTill": "2024-08-22T17:08:50Z",
+                "CertificateArn": (
+                    f"arn:{self.partition}:rds:{self.region_name}:{self.account_id}"
+                    ":cert:rds-ca-2019"
+                ),
+                "CustomerOverride": False,
+            },
+            {
+                "CertificateIdentifier": "rds-ca-rsa2048-g1",
+                "CertificateType": "CA",
+                "Thumbprint": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2",
+                "ValidFrom": "2021-05-25T00:00:00Z",
+                "ValidTill": "2061-05-25T00:00:00Z",
+                "CertificateArn": (
+                    f"arn:{self.partition}:rds:{self.region_name}:{self.account_id}"
+                    ":cert:rds-ca-rsa2048-g1"
+                ),
+                "CustomerOverride": False,
+            },
+            {
+                "CertificateIdentifier": "rds-ca-ecc384-g1",
+                "CertificateType": "CA",
+                "Thumbprint": "b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3",
+                "ValidFrom": "2021-05-25T00:00:00Z",
+                "ValidTill": "2121-05-25T00:00:00Z",
+                "CertificateArn": (
+                    f"arn:{self.partition}:rds:{self.region_name}:{self.account_id}"
+                    ":cert:rds-ca-ecc384-g1"
+                ),
+                "CustomerOverride": False,
+            },
+        ]
+        if certificate_identifier:
+            certs = [c for c in certs if c["CertificateIdentifier"] == certificate_identifier]
+        return certs
+
+    def create_db_cluster_endpoint(
+        self,
+        db_cluster_identifier: str,
+        db_cluster_endpoint_identifier: str,
+        endpoint_type: str,
+        static_members: Optional[list[str]] = None,
+        excluded_members: Optional[list[str]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> DBClusterEndpoint:
+        if db_cluster_identifier not in self.clusters:
+            raise DBClusterNotFoundError(db_cluster_identifier)
+        if db_cluster_endpoint_identifier in self.db_cluster_endpoints:
+            raise RDSClientError(
+                "DBClusterEndpointAlreadyExistsFault",
+                f"The specified custom endpoint {db_cluster_endpoint_identifier} already exists.",
+            )
+        endpoint = DBClusterEndpoint(
+            self,
+            db_cluster_identifier=db_cluster_identifier,
+            db_cluster_endpoint_identifier=db_cluster_endpoint_identifier,
+            endpoint_type=endpoint_type,
+            static_members=static_members,
+            excluded_members=excluded_members,
+            tags=tags,
+        )
+        self.db_cluster_endpoints[db_cluster_endpoint_identifier] = endpoint
+        return endpoint
+
+    def describe_db_cluster_endpoints(
+        self,
+        db_cluster_identifier: Optional[str] = None,
+        db_cluster_endpoint_identifier: Optional[str] = None,
+        filters: Optional[dict[str, list[str]]] = None,
+    ) -> list[DBClusterEndpoint]:
+        endpoints = list(self.db_cluster_endpoints.values())
+        if db_cluster_identifier:
+            endpoints = [
+                e for e in endpoints if e.db_cluster_identifier == db_cluster_identifier
+            ]
+        if db_cluster_endpoint_identifier:
+            endpoints = [
+                e
+                for e in endpoints
+                if e.db_cluster_endpoint_identifier == db_cluster_endpoint_identifier
+            ]
+        return endpoints
+
+    def modify_db_cluster_endpoint(
+        self,
+        db_cluster_endpoint_identifier: str,
+        endpoint_type: Optional[str] = None,
+        static_members: Optional[list[str]] = None,
+        excluded_members: Optional[list[str]] = None,
+    ) -> DBClusterEndpoint:
+        if db_cluster_endpoint_identifier not in self.db_cluster_endpoints:
+            raise RDSClientError(
+                "DBClusterEndpointNotFoundFault",
+                f"The specified custom endpoint {db_cluster_endpoint_identifier} was not found.",
+            )
+        endpoint = self.db_cluster_endpoints[db_cluster_endpoint_identifier]
+        if endpoint_type is not None:
+            endpoint.endpoint_type = endpoint_type
+            endpoint.custom_endpoint_type = endpoint_type
+        if static_members is not None:
+            endpoint.static_members = static_members
+        if excluded_members is not None:
+            endpoint.excluded_members = excluded_members
+        return endpoint
+
+    def delete_db_cluster_endpoint(
+        self, db_cluster_endpoint_identifier: str
+    ) -> DBClusterEndpoint:
+        if db_cluster_endpoint_identifier not in self.db_cluster_endpoints:
+            raise RDSClientError(
+                "DBClusterEndpointNotFoundFault",
+                f"The specified custom endpoint {db_cluster_endpoint_identifier} was not found.",
+            )
+        endpoint = self.db_cluster_endpoints.pop(db_cluster_endpoint_identifier)
+        endpoint.status = "deleting"
+        return endpoint
+
+    def create_db_proxy_endpoint(
+        self,
+        db_proxy_name: str,
+        db_proxy_endpoint_name: str,
+        vpc_subnet_ids: list[str],
+        vpc_security_group_ids: Optional[list[str]] = None,
+        target_role: str = "READ_WRITE",
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> DBProxyEndpoint:
+        if db_proxy_name not in self.db_proxies:
+            raise DBProxyNotFoundFault(db_proxy_name)
+        if db_proxy_endpoint_name in self.db_proxy_endpoints:
+            raise RDSClientError(
+                "DBProxyEndpointAlreadyExistsFault",
+                (
+                    f"The specified DB proxy endpoint {db_proxy_endpoint_name} already exists."
+                ),
+            )
+        endpoint = DBProxyEndpoint(
+            self,
+            db_proxy_name=db_proxy_name,
+            db_proxy_endpoint_name=db_proxy_endpoint_name,
+            vpc_subnet_ids=vpc_subnet_ids,
+            vpc_security_group_ids=vpc_security_group_ids,
+            target_role=target_role,
+            tags=tags,
+        )
+        self.db_proxy_endpoints[db_proxy_endpoint_name] = endpoint
+        return endpoint
+
+    def describe_db_proxy_endpoints(
+        self,
+        db_proxy_name: Optional[str] = None,
+        db_proxy_endpoint_name: Optional[str] = None,
+    ) -> list[DBProxyEndpoint]:
+        endpoints = list(self.db_proxy_endpoints.values())
+        if db_proxy_name:
+            if db_proxy_name not in self.db_proxies:
+                raise DBProxyNotFoundFault(db_proxy_name)
+            endpoints = [e for e in endpoints if e.db_proxy_name == db_proxy_name]
+        if db_proxy_endpoint_name:
+            endpoints = [
+                e for e in endpoints if e.db_proxy_endpoint_name == db_proxy_endpoint_name
+            ]
+            if not endpoints:
+                raise RDSClientError(
+                    "DBProxyEndpointNotFoundFault",
+                    (
+                        f"The specified DB proxy endpoint"
+                        f" {db_proxy_endpoint_name} was not found."
+                    ),
+                )
+        return endpoints
+
+    def delete_db_proxy_endpoint(self, db_proxy_endpoint_name: str) -> DBProxyEndpoint:
+        if db_proxy_endpoint_name not in self.db_proxy_endpoints:
+            raise RDSClientError(
+                "DBProxyEndpointNotFoundFault",
+                (
+                    f"The specified DB proxy endpoint"
+                    f" {db_proxy_endpoint_name} was not found."
+                ),
+            )
+        endpoint = self.db_proxy_endpoints.pop(db_proxy_endpoint_name)
+        endpoint.status = "deleting"
+        return endpoint
+
+    def copy_option_group(
+        self,
+        source_option_group_identifier: str,
+        target_option_group_identifier: str,
+        target_option_group_description: str,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> OptionGroup:
+        source = self.option_groups.get(source_option_group_identifier)
+        if source is None:
+            raise OptionGroupNotFoundFaultError(source_option_group_identifier)
+        if target_option_group_identifier in self.option_groups:
+            raise RDSClientError(
+                "OptionGroupAlreadyExistsFault",
+                f"An option group named {target_option_group_identifier} already exists.",
+            )
+        new_group = OptionGroup(
+            self,
+            option_group_name=target_option_group_identifier,
+            engine_name=source.engine_name,
+            major_engine_version=source.major_engine_version,
+            option_group_description=target_option_group_description,
+            tags=tags,
+        )
+        # Copy options from source
+        new_group._options = copy.deepcopy(source._options)
+        self.option_groups[target_option_group_identifier] = new_group
+        return new_group
 
     def add_event(self, event_type: str, resource: ResourceWithEvents) -> None:
         event = Event(event_type, resource)

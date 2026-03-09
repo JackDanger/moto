@@ -805,6 +805,119 @@ class RDSResponse(BaseResponse):
         result = {"BlueGreenDeployment": bg_deployment}
         return ActionResult(result)
 
+    def describe_account_attributes(self) -> ActionResult:
+        quotas = self.backend.describe_account_attributes()
+        result = {"AccountQuotas": quotas}
+        return ActionResult(result)
+
+    def describe_certificates(self) -> ActionResult:
+        certificate_identifier = self.params.get("CertificateIdentifier")
+        certs = self.backend.describe_certificates(
+            certificate_identifier=certificate_identifier,
+        )
+        result = {
+            "Certificates": certs,
+            "DefaultCertificateForNewLaunches": "rds-ca-rsa2048-g1",
+        }
+        return ActionResult(result)
+
+    def create_db_cluster_endpoint(self) -> ActionResult:
+        params = self.params
+        endpoint = self.backend.create_db_cluster_endpoint(
+            db_cluster_identifier=params["DBClusterIdentifier"],
+            db_cluster_endpoint_identifier=params["DBClusterEndpointIdentifier"],
+            endpoint_type=params.get("EndpointType", "CUSTOM"),
+            static_members=params.get("StaticMembers"),
+            excluded_members=params.get("ExcludedMembers"),
+            tags=params.get("Tags", []),
+        )
+        return ActionResult(endpoint)
+
+    def describe_db_cluster_endpoints(self) -> ActionResult:
+        params = self.params
+        filters = params.get("Filters", [])
+        filter_dict = {f["Name"]: f["Values"] for f in filters}
+        endpoints = self.backend.describe_db_cluster_endpoints(
+            db_cluster_identifier=params.get("DBClusterIdentifier"),
+            db_cluster_endpoint_identifier=params.get("DBClusterEndpointIdentifier"),
+            filters=filter_dict,
+        )
+        result = {"DBClusterEndpoints": endpoints}
+        return ActionResult(result)
+
+    def modify_db_cluster_endpoint(self) -> ActionResult:
+        params = self.params
+        endpoint = self.backend.modify_db_cluster_endpoint(
+            db_cluster_endpoint_identifier=params["DBClusterEndpointIdentifier"],
+            endpoint_type=params.get("EndpointType"),
+            static_members=params.get("StaticMembers"),
+            excluded_members=params.get("ExcludedMembers"),
+        )
+        return ActionResult(endpoint)
+
+    def delete_db_cluster_endpoint(self) -> ActionResult:
+        endpoint = self.backend.delete_db_cluster_endpoint(
+            db_cluster_endpoint_identifier=self.params["DBClusterEndpointIdentifier"],
+        )
+        return ActionResult(endpoint)
+
+    def create_db_proxy_endpoint(self) -> ActionResult:
+        params = self.params
+        endpoint = self.backend.create_db_proxy_endpoint(
+            db_proxy_name=params["DBProxyName"],
+            db_proxy_endpoint_name=params["DBProxyEndpointName"],
+            vpc_subnet_ids=params["VpcSubnetIds"],
+            vpc_security_group_ids=params.get("VpcSecurityGroupIds"),
+            target_role=params.get("TargetRole", "READ_WRITE"),
+            tags=params.get("Tags", []),
+        )
+        result = {"DBProxyEndpoint": endpoint}
+        return ActionResult(result)
+
+    def describe_db_proxy_endpoints(self) -> ActionResult:
+        params = self.params
+        endpoints = self.backend.describe_db_proxy_endpoints(
+            db_proxy_name=params.get("DBProxyName"),
+            db_proxy_endpoint_name=params.get("DBProxyEndpointName"),
+        )
+        result = {"DBProxyEndpoints": endpoints}
+        return ActionResult(result)
+
+    def delete_db_proxy_endpoint(self) -> ActionResult:
+        endpoint = self.backend.delete_db_proxy_endpoint(
+            db_proxy_endpoint_name=self.params["DBProxyEndpointName"],
+        )
+        result = {"DBProxyEndpoint": endpoint}
+        return ActionResult(result)
+
+    def delete_db_instance_automated_backup(self) -> ActionResult:
+        backup = self.backend.delete_db_instance_automated_backup(
+            dbi_resource_id=self.params.get("DbiResourceId"),
+            db_instance_automated_backups_arn=self.params.get(
+                "DBInstanceAutomatedBackupsArn"
+            ),
+        )
+        result = {"DBInstanceAutomatedBackup": backup}
+        return ActionResult(result)
+
+    def describe_db_cluster_automated_backups(self) -> ActionResult:
+        backups = self.backend.describe_db_cluster_automated_backups(
+            db_cluster_identifier=self.params.get("DBClusterIdentifier"),
+        )
+        result = {"DBClusterAutomatedBackups": backups}
+        return ActionResult(result)
+
+    def copy_option_group(self) -> ActionResult:
+        params = self.params
+        option_group = self.backend.copy_option_group(
+            source_option_group_identifier=params["SourceOptionGroupIdentifier"],
+            target_option_group_identifier=params["TargetOptionGroupIdentifier"],
+            target_option_group_description=params["TargetOptionGroupDescription"],
+            tags=params.get("Tags", []),
+        )
+        result = {"OptionGroup": option_group}
+        return ActionResult(result)
+
     def add_role_to_db_instance(self) -> ActionResult:
         db_instance_identifier = self.params.get("DBInstanceIdentifier")
         role_arn = self.params.get("RoleArn")
