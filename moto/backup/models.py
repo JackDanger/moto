@@ -331,6 +331,267 @@ class Framework(BaseModel):
         }
 
 
+class CopyJob(BaseModel):
+    def __init__(
+        self,
+        source_backup_vault_name: str,
+        destination_backup_vault_arn: str,
+        recovery_point_arn: str,
+        iam_role_arn: str,
+        backend: "BackupBackend",
+        idempotency_token: Optional[str] = None,
+        lifecycle: Optional[dict[str, Any]] = None,
+    ):
+        self.copy_job_id = str(mock_random.uuid4())
+        partition = get_partition(backend.region_name)
+        self.source_backup_vault_arn = (
+            f"arn:{partition}:backup:{backend.region_name}"
+            f":{backend.account_id}:backup-vault:{source_backup_vault_name}"
+        )
+        self.source_recovery_point_arn = recovery_point_arn
+        self.destination_backup_vault_arn = destination_backup_vault_arn
+        self.destination_recovery_point_arn = (
+            f"arn:{partition}:backup:{backend.region_name}"
+            f":{backend.account_id}:recovery-point:{str(mock_random.uuid4())}"
+        )
+        self.iam_role_arn = iam_role_arn
+        self.idempotency_token = idempotency_token
+        self.lifecycle = lifecycle if lifecycle is not None else {}
+        self.creation_date = unix_time()
+        self.completion_date: Optional[float] = unix_time()
+        self.state = "COMPLETED"
+        self.status_message = ""
+        self.backup_size_in_bytes = 0
+        self.account_id = backend.account_id
+        self.resource_type = "EBS"
+        self.resource_arn = recovery_point_arn
+
+    def to_dict(self) -> dict[str, Any]:
+        dct: dict[str, Any] = {
+            "CopyJobId": self.copy_job_id,
+            "SourceBackupVaultArn": self.source_backup_vault_arn,
+            "SourceRecoveryPointArn": self.source_recovery_point_arn,
+            "DestinationBackupVaultArn": self.destination_backup_vault_arn,
+            "DestinationRecoveryPointArn": self.destination_recovery_point_arn,
+            "IamRoleArn": self.iam_role_arn,
+            "CreationDate": self.creation_date,
+            "State": self.state,
+            "StatusMessage": self.status_message,
+            "BackupSizeInBytes": self.backup_size_in_bytes,
+            "AccountId": self.account_id,
+            "ResourceType": self.resource_type,
+        }
+        if self.completion_date:
+            dct["CompletionDate"] = self.completion_date
+        if self.lifecycle:
+            dct["Lifecycle"] = self.lifecycle
+        return dct
+
+
+class RecoveryPoint(BaseModel):
+    def __init__(
+        self,
+        backup_vault_name: str,
+        backup_vault_arn: str,
+        resource_arn: str,
+        resource_type: str,
+        backend: "BackupBackend",
+    ):
+        partition = get_partition(backend.region_name)
+        self.recovery_point_arn = (
+            f"arn:{partition}:backup:{backend.region_name}"
+            f":{backend.account_id}:recovery-point:{str(mock_random.uuid4())}"
+        )
+        self.backup_vault_name = backup_vault_name
+        self.backup_vault_arn = backup_vault_arn
+        self.resource_arn = resource_arn
+        self.resource_type = resource_type
+        self.creation_date = unix_time()
+        self.completion_date: Optional[float] = unix_time()
+        self.status = "COMPLETED"
+        self.status_message = ""
+        self.backup_size_in_bytes = 0
+        self.encryption_key_arn = ""
+        self.is_encrypted = False
+        self.last_restore_time: Optional[float] = None
+        self.lifecycle: dict[str, Any] = {}
+
+    def to_dict(self) -> dict[str, Any]:
+        dct: dict[str, Any] = {
+            "RecoveryPointArn": self.recovery_point_arn,
+            "BackupVaultName": self.backup_vault_name,
+            "BackupVaultArn": self.backup_vault_arn,
+            "ResourceArn": self.resource_arn,
+            "ResourceType": self.resource_type,
+            "CreationDate": self.creation_date,
+            "Status": self.status,
+            "StatusMessage": self.status_message,
+            "BackupSizeInBytes": self.backup_size_in_bytes,
+            "EncryptionKeyArn": self.encryption_key_arn,
+            "IsEncrypted": self.is_encrypted,
+        }
+        if self.completion_date:
+            dct["CompletionDate"] = self.completion_date
+        if self.last_restore_time:
+            dct["LastRestoreTime"] = self.last_restore_time
+        if self.lifecycle:
+            dct["Lifecycle"] = self.lifecycle
+        return dct
+
+
+class RestoreTestingPlan(BaseModel):
+    def __init__(
+        self,
+        restore_testing_plan_name: str,
+        schedule_expression: str,
+        recovery_point_selection: dict[str, Any],
+        backend: "BackupBackend",
+        schedule_expression_timezone: Optional[str] = None,
+        start_window_hours: Optional[int] = None,
+    ):
+        self.restore_testing_plan_name = restore_testing_plan_name
+        partition = get_partition(backend.region_name)
+        self.restore_testing_plan_arn = (
+            f"arn:{partition}:backup:{backend.region_name}"
+            f":{backend.account_id}:restore-testing-plan:{restore_testing_plan_name}"
+        )
+        self.schedule_expression = schedule_expression
+        self.schedule_expression_timezone = schedule_expression_timezone or "Etc/UTC"
+        self.start_window_hours = start_window_hours or 24
+        self.recovery_point_selection = recovery_point_selection
+        self.creation_time = unix_time()
+        self.last_updated_time = unix_time()
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "CreationTime": self.creation_time,
+            "LastUpdatedTime": self.last_updated_time,
+            "RecoveryPointSelection": self.recovery_point_selection,
+            "RestoreTestingPlanArn": self.restore_testing_plan_arn,
+            "RestoreTestingPlanName": self.restore_testing_plan_name,
+            "ScheduleExpression": self.schedule_expression,
+            "ScheduleExpressionTimezone": self.schedule_expression_timezone,
+            "StartWindowHours": self.start_window_hours,
+        }
+
+    def to_list_dict(self) -> dict[str, Any]:
+        return {
+            "CreationTime": self.creation_time,
+            "LastUpdatedTime": self.last_updated_time,
+            "RestoreTestingPlanArn": self.restore_testing_plan_arn,
+            "RestoreTestingPlanName": self.restore_testing_plan_name,
+            "ScheduleExpression": self.schedule_expression,
+            "ScheduleExpressionTimezone": self.schedule_expression_timezone,
+            "StartWindowHours": self.start_window_hours,
+        }
+
+
+class RestoreTestingSelection(BaseModel):
+    def __init__(
+        self,
+        restore_testing_plan_name: str,
+        restore_testing_selection_name: str,
+        protected_resource_type: str,
+        iam_role_arn: str,
+        backend: "BackupBackend",
+        protected_resource_arns: Optional[list[str]] = None,
+        protected_resource_conditions: Optional[dict[str, Any]] = None,
+        restore_metadata_overrides: Optional[dict[str, str]] = None,
+        validation_window_hours: Optional[int] = None,
+    ):
+        self.restore_testing_plan_name = restore_testing_plan_name
+        self.restore_testing_selection_name = restore_testing_selection_name
+        self.protected_resource_type = protected_resource_type
+        self.iam_role_arn = iam_role_arn
+        self.protected_resource_arns = protected_resource_arns or []
+        self.protected_resource_conditions = protected_resource_conditions or {}
+        self.restore_metadata_overrides = restore_metadata_overrides or {}
+        self.validation_window_hours = validation_window_hours or 168
+        self.creation_time = unix_time()
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "CreationTime": self.creation_time,
+            "IamRoleArn": self.iam_role_arn,
+            "ProtectedResourceArns": self.protected_resource_arns,
+            "ProtectedResourceConditions": self.protected_resource_conditions,
+            "ProtectedResourceType": self.protected_resource_type,
+            "RestoreMetadataOverrides": self.restore_metadata_overrides,
+            "RestoreTestingPlanName": self.restore_testing_plan_name,
+            "RestoreTestingSelectionName": self.restore_testing_selection_name,
+            "ValidationWindowHours": self.validation_window_hours,
+        }
+
+
+# Hardcoded backup plan templates (AWS provides these)
+BACKUP_PLAN_TEMPLATES = [
+    {
+        "BackupPlanTemplateId": "87c0c1ef-254d-4a46-945e-a37e8a17891c",
+        "BackupPlanTemplateName": "Daily-35day-Retention",
+    },
+    {
+        "BackupPlanTemplateId": "d3e5f678-7ab2-4c56-8a1b-234567890abc",
+        "BackupPlanTemplateName": "Daily-Monthly-1yr-Retention",
+    },
+]
+
+BACKUP_PLAN_TEMPLATE_DETAILS = {
+    "87c0c1ef-254d-4a46-945e-a37e8a17891c": {
+        "BackupPlanName": "Daily-35day-Retention",
+        "Rules": [
+            {
+                "RuleName": "DailyBackups",
+                "ScheduleExpression": "cron(0 5 ? * * *)",
+                "StartWindowMinutes": 480,
+                "CompletionWindowMinutes": 10080,
+                "Lifecycle": {"DeleteAfterDays": 35},
+                "TargetBackupVaultName": "Default",
+            }
+        ],
+    },
+    "d3e5f678-7ab2-4c56-8a1b-234567890abc": {
+        "BackupPlanName": "Daily-Monthly-1yr-Retention",
+        "Rules": [
+            {
+                "RuleName": "DailyBackups",
+                "ScheduleExpression": "cron(0 5 ? * * *)",
+                "StartWindowMinutes": 480,
+                "CompletionWindowMinutes": 10080,
+                "Lifecycle": {"DeleteAfterDays": 35},
+                "TargetBackupVaultName": "Default",
+            },
+            {
+                "RuleName": "MonthlyBackups",
+                "ScheduleExpression": "cron(0 5 1 * ? *)",
+                "StartWindowMinutes": 480,
+                "CompletionWindowMinutes": 10080,
+                "Lifecycle": {"DeleteAfterDays": 365},
+                "TargetBackupVaultName": "Default",
+            },
+        ],
+    },
+}
+
+SUPPORTED_RESOURCE_TYPES = [
+    "Aurora",
+    "CloudFormation",
+    "DocumentDB",
+    "DynamoDB",
+    "EBS",
+    "EC2",
+    "EFS",
+    "FSx",
+    "Neptune",
+    "RDS",
+    "Redshift",
+    "S3",
+    "SAP HANA on Amazon EC2",
+    "Storage Gateway",
+    "Timestream",
+    "VirtualMachine",
+]
+
+
 class BackupBackend(BaseBackend):
     """Implementation of Backup APIs."""
 
@@ -343,6 +604,34 @@ class BackupBackend(BaseBackend):
         self.selections: dict[str, dict[str, Selection]] = {}
         self.backup_jobs: dict[str, BackupJob] = {}
         self.frameworks: dict[str, Framework] = {}
+        self.copy_jobs: dict[str, CopyJob] = {}
+        self.recovery_points: dict[str, dict[str, RecoveryPoint]] = {}
+        self.protected_resources: dict[str, RecoveryPoint] = {}
+        self.restore_testing_plans: dict[str, RestoreTestingPlan] = {}
+        self.restore_testing_selections: dict[str, dict[str, RestoreTestingSelection]] = {}
+        self.vault_access_policies: dict[str, dict[str, Any]] = {}
+        self.vault_notifications: dict[str, dict[str, Any]] = {}
+        self.global_settings: dict[str, str] = {
+            "isCrossAccountBackupEnabled": "false",
+        }
+        self.region_settings: dict[str, bool] = {
+            "EBS": True,
+            "EC2": True,
+            "EFS": True,
+            "DynamoDB": True,
+            "RDS": True,
+            "Aurora": True,
+            "Storage Gateway": True,
+            "DocumentDB": True,
+            "Neptune": True,
+            "S3": True,
+            "CloudFormation": True,
+            "FSx": True,
+            "VirtualMachine": True,
+            "Redshift": True,
+            "SAP HANA on Amazon EC2": True,
+            "Timestream": True,
+        }
         self.tagger = TaggingService()
 
     def create_backup_plan(
@@ -821,6 +1110,373 @@ class BackupBackend(BaseBackend):
         Pagination is not yet implemented
         """
         return list(self.report_plans.values())
+
+    # --- Global/Region Settings ---
+
+    def describe_global_settings(self) -> dict[str, str]:
+        return self.global_settings
+
+    def update_global_settings(self, global_settings: dict[str, str]) -> None:
+        self.global_settings.update(global_settings)
+
+    def describe_region_settings(self) -> dict[str, bool]:
+        return self.region_settings
+
+    def update_region_settings(
+        self, resource_type_opt_in_preference: Optional[dict[str, bool]]
+    ) -> None:
+        if resource_type_opt_in_preference:
+            self.region_settings.update(resource_type_opt_in_preference)
+
+    # --- Supported Resource Types ---
+
+    def get_supported_resource_types(self) -> list[str]:
+        return SUPPORTED_RESOURCE_TYPES
+
+    # --- Backup Plan Templates ---
+
+    def list_backup_plan_templates(self) -> list[dict[str, str]]:
+        return BACKUP_PLAN_TEMPLATES
+
+    def get_backup_plan_from_json(
+        self, backup_plan_template_json: str,
+    ) -> dict[str, Any]:
+        import json as json_mod
+
+        plan_doc = json_mod.loads(backup_plan_template_json)
+        # Return the plan document as-is, AWS just parses and returns it
+        return plan_doc
+
+    def get_backup_plan_from_template(
+        self, backup_plan_template_id: str,
+    ) -> dict[str, Any]:
+        if backup_plan_template_id not in BACKUP_PLAN_TEMPLATE_DETAILS:
+            raise ResourceNotFoundException(
+                msg=f"Backup plan template {backup_plan_template_id} not found"
+            )
+        return BACKUP_PLAN_TEMPLATE_DETAILS[backup_plan_template_id]
+
+    # --- Backup Plan Versions ---
+
+    def list_backup_plan_versions(
+        self, backup_plan_id: str,
+    ) -> list[Plan]:
+        """
+        Pagination is not yet implemented. Currently only returns the
+        current version since version history is not tracked.
+        """
+        if backup_plan_id not in self.plans:
+            raise ResourceNotFoundException(
+                msg="Failed reading Backup plan with provided version"
+            )
+        return [self.plans[backup_plan_id]]
+
+    # --- Copy Jobs ---
+
+    def start_copy_job(
+        self,
+        source_backup_vault_name: str,
+        destination_backup_vault_arn: str,
+        recovery_point_arn: str,
+        iam_role_arn: str,
+        idempotency_token: Optional[str] = None,
+        lifecycle: Optional[dict[str, Any]] = None,
+    ) -> CopyJob:
+        job = CopyJob(
+            source_backup_vault_name=source_backup_vault_name,
+            destination_backup_vault_arn=destination_backup_vault_arn,
+            recovery_point_arn=recovery_point_arn,
+            iam_role_arn=iam_role_arn,
+            backend=self,
+            idempotency_token=idempotency_token,
+            lifecycle=lifecycle,
+        )
+        self.copy_jobs[job.copy_job_id] = job
+        return job
+
+    def describe_copy_job(self, copy_job_id: str) -> CopyJob:
+        if copy_job_id not in self.copy_jobs:
+            raise ResourceNotFoundException(
+                msg=f"Copy job {copy_job_id} not found"
+            )
+        return self.copy_jobs[copy_job_id]
+
+    def list_copy_jobs(
+        self,
+        by_state: Optional[str] = None,
+        by_resource_arn: Optional[str] = None,
+        by_resource_type: Optional[str] = None,
+        by_account_id: Optional[str] = None,
+        by_destination_vault_arn: Optional[str] = None,
+    ) -> list[CopyJob]:
+        """
+        Pagination is not yet implemented
+        """
+        jobs = list(self.copy_jobs.values())
+        if by_state:
+            jobs = [j for j in jobs if j.state == by_state]
+        if by_resource_arn:
+            jobs = [j for j in jobs if j.resource_arn == by_resource_arn]
+        if by_resource_type:
+            jobs = [j for j in jobs if j.resource_type == by_resource_type]
+        if by_account_id:
+            jobs = [j for j in jobs if j.account_id == by_account_id]
+        if by_destination_vault_arn:
+            jobs = [
+                j for j in jobs
+                if j.destination_backup_vault_arn == by_destination_vault_arn
+            ]
+        return jobs
+
+    # --- Recovery Points ---
+
+    def describe_recovery_point(
+        self, backup_vault_name: str, recovery_point_arn: str,
+    ) -> RecoveryPoint:
+        if backup_vault_name not in self.vaults:
+            raise ResourceNotFoundException(
+                msg=f"Backup vault {backup_vault_name} not found"
+            )
+        vault_rps = self.recovery_points.get(backup_vault_name, {})
+        if recovery_point_arn not in vault_rps:
+            raise ResourceNotFoundException(
+                msg=f"Recovery point {recovery_point_arn} not found"
+            )
+        return vault_rps[recovery_point_arn]
+
+    # --- Protected Resources ---
+
+    def describe_protected_resource(
+        self, resource_arn: str,
+    ) -> dict[str, Any]:
+        if resource_arn in self.protected_resources:
+            rp = self.protected_resources[resource_arn]
+            return {
+                "ResourceArn": resource_arn,
+                "ResourceType": rp.resource_type,
+                "LastBackupTime": rp.creation_date,
+            }
+        raise ResourceNotFoundException(
+            msg=f"Resource {resource_arn} is not protected"
+        )
+
+    def list_protected_resources(self) -> list[dict[str, Any]]:
+        """
+        Pagination is not yet implemented
+        """
+        results = []
+        for resource_arn, rp in self.protected_resources.items():
+            results.append({
+                "ResourceArn": resource_arn,
+                "ResourceType": rp.resource_type,
+                "LastBackupTime": rp.creation_date,
+            })
+        return results
+
+    # --- Vault Access Policy ---
+
+    def put_backup_vault_access_policy(
+        self, backup_vault_name: str, policy: str,
+    ) -> None:
+        if backup_vault_name not in self.vaults:
+            raise ResourceNotFoundException(
+                msg=f"Backup vault {backup_vault_name} not found"
+            )
+        self.vault_access_policies[backup_vault_name] = {
+            "BackupVaultName": backup_vault_name,
+            "BackupVaultArn": self.vaults[backup_vault_name].backup_vault_arn,
+            "Policy": policy,
+        }
+
+    def get_backup_vault_access_policy(
+        self, backup_vault_name: str,
+    ) -> dict[str, Any]:
+        if backup_vault_name not in self.vaults:
+            raise ResourceNotFoundException(
+                msg=f"Backup vault {backup_vault_name} not found"
+            )
+        if backup_vault_name not in self.vault_access_policies:
+            raise ResourceNotFoundException(
+                msg=f"Access policy for vault {backup_vault_name} not found"
+            )
+        return self.vault_access_policies[backup_vault_name]
+
+    def delete_backup_vault_access_policy(
+        self, backup_vault_name: str,
+    ) -> None:
+        if backup_vault_name not in self.vaults:
+            raise ResourceNotFoundException(
+                msg=f"Backup vault {backup_vault_name} not found"
+            )
+        self.vault_access_policies.pop(backup_vault_name, None)
+
+    # --- Vault Notifications ---
+
+    def put_backup_vault_notifications(
+        self,
+        backup_vault_name: str,
+        sns_topic_arn: str,
+        backup_vault_events: list[str],
+    ) -> None:
+        if backup_vault_name not in self.vaults:
+            raise ResourceNotFoundException(
+                msg=f"Backup vault {backup_vault_name} not found"
+            )
+        self.vault_notifications[backup_vault_name] = {
+            "BackupVaultName": backup_vault_name,
+            "BackupVaultArn": self.vaults[backup_vault_name].backup_vault_arn,
+            "SNSTopicArn": sns_topic_arn,
+            "BackupVaultEvents": backup_vault_events,
+        }
+
+    def get_backup_vault_notifications(
+        self, backup_vault_name: str,
+    ) -> dict[str, Any]:
+        if backup_vault_name not in self.vaults:
+            raise ResourceNotFoundException(
+                msg=f"Backup vault {backup_vault_name} not found"
+            )
+        if backup_vault_name not in self.vault_notifications:
+            raise ResourceNotFoundException(
+                msg=f"Failed reading notifications for Backup vault {backup_vault_name}"
+            )
+        return self.vault_notifications[backup_vault_name]
+
+    def delete_backup_vault_notifications(
+        self, backup_vault_name: str,
+    ) -> None:
+        if backup_vault_name not in self.vaults:
+            raise ResourceNotFoundException(
+                msg=f"Backup vault {backup_vault_name} not found"
+            )
+        self.vault_notifications.pop(backup_vault_name, None)
+
+    # --- Restore Testing Plans ---
+
+    def create_restore_testing_plan(
+        self,
+        restore_testing_plan_name: str,
+        schedule_expression: str,
+        recovery_point_selection: dict[str, Any],
+        schedule_expression_timezone: Optional[str] = None,
+        start_window_hours: Optional[int] = None,
+        tags: Optional[dict[str, str]] = None,
+    ) -> RestoreTestingPlan:
+        if restore_testing_plan_name in self.restore_testing_plans:
+            raise AlreadyExistsException(
+                msg=f"Restore testing plan {restore_testing_plan_name} already exists"
+            )
+        plan = RestoreTestingPlan(
+            restore_testing_plan_name=restore_testing_plan_name,
+            schedule_expression=schedule_expression,
+            recovery_point_selection=recovery_point_selection,
+            backend=self,
+            schedule_expression_timezone=schedule_expression_timezone,
+            start_window_hours=start_window_hours,
+        )
+        if tags:
+            self.tag_resource(plan.restore_testing_plan_arn, tags)
+        self.restore_testing_plans[restore_testing_plan_name] = plan
+        return plan
+
+    def get_restore_testing_plan(
+        self, restore_testing_plan_name: str,
+    ) -> RestoreTestingPlan:
+        if restore_testing_plan_name not in self.restore_testing_plans:
+            raise ResourceNotFoundException(
+                msg=f"Restore testing plan {restore_testing_plan_name} not found"
+            )
+        return self.restore_testing_plans[restore_testing_plan_name]
+
+    def delete_restore_testing_plan(
+        self, restore_testing_plan_name: str,
+    ) -> None:
+        self.restore_testing_plans.pop(restore_testing_plan_name, None)
+        self.restore_testing_selections.pop(restore_testing_plan_name, None)
+
+    def list_restore_testing_plans(self) -> list[RestoreTestingPlan]:
+        """
+        Pagination is not yet implemented
+        """
+        return list(self.restore_testing_plans.values())
+
+    # --- Restore Testing Selections ---
+
+    def create_restore_testing_selection(
+        self,
+        restore_testing_plan_name: str,
+        restore_testing_selection_name: str,
+        protected_resource_type: str,
+        iam_role_arn: str,
+        protected_resource_arns: Optional[list[str]] = None,
+        protected_resource_conditions: Optional[dict[str, Any]] = None,
+        restore_metadata_overrides: Optional[dict[str, str]] = None,
+        validation_window_hours: Optional[int] = None,
+    ) -> RestoreTestingSelection:
+        if restore_testing_plan_name not in self.restore_testing_plans:
+            raise ResourceNotFoundException(
+                msg=f"Restore testing plan {restore_testing_plan_name} not found"
+            )
+        selection = RestoreTestingSelection(
+            restore_testing_plan_name=restore_testing_plan_name,
+            restore_testing_selection_name=restore_testing_selection_name,
+            protected_resource_type=protected_resource_type,
+            iam_role_arn=iam_role_arn,
+            backend=self,
+            protected_resource_arns=protected_resource_arns,
+            protected_resource_conditions=protected_resource_conditions,
+            restore_metadata_overrides=restore_metadata_overrides,
+            validation_window_hours=validation_window_hours,
+        )
+        if restore_testing_plan_name not in self.restore_testing_selections:
+            self.restore_testing_selections[restore_testing_plan_name] = {}
+        self.restore_testing_selections[restore_testing_plan_name][
+            restore_testing_selection_name
+        ] = selection
+        return selection
+
+    def get_restore_testing_selection(
+        self,
+        restore_testing_plan_name: str,
+        restore_testing_selection_name: str,
+    ) -> RestoreTestingSelection:
+        if restore_testing_plan_name not in self.restore_testing_plans:
+            raise ResourceNotFoundException(
+                msg=f"Restore testing plan {restore_testing_plan_name} not found"
+            )
+        plan_sels = self.restore_testing_selections.get(
+            restore_testing_plan_name, {}
+        )
+        if restore_testing_selection_name not in plan_sels:
+            raise ResourceNotFoundException(
+                msg=f"Restore testing selection {restore_testing_selection_name} not found"
+            )
+        return plan_sels[restore_testing_selection_name]
+
+    def delete_restore_testing_selection(
+        self,
+        restore_testing_plan_name: str,
+        restore_testing_selection_name: str,
+    ) -> None:
+        plan_sels = self.restore_testing_selections.get(
+            restore_testing_plan_name, {}
+        )
+        plan_sels.pop(restore_testing_selection_name, None)
+
+    def list_restore_testing_selections(
+        self, restore_testing_plan_name: str,
+    ) -> list[RestoreTestingSelection]:
+        """
+        Pagination is not yet implemented
+        """
+        if restore_testing_plan_name not in self.restore_testing_plans:
+            raise ResourceNotFoundException(
+                msg=f"Restore testing plan {restore_testing_plan_name} not found"
+            )
+        plan_sels = self.restore_testing_selections.get(
+            restore_testing_plan_name, {}
+        )
+        return list(plan_sels.values())
 
 
 backup_backends = BackendDict(BackupBackend, "backup")

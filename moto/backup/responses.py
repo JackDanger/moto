@@ -352,3 +352,302 @@ class BackupResponse(BaseResponse):
             report_plan_name=plan_name
         )
         return EmptyResult()
+
+    # --- Global/Region Settings ---
+
+    def describe_global_settings(self) -> str:
+        settings = self.backup_backend.describe_global_settings()
+        return json.dumps({"GlobalSettings": settings})
+
+    def update_global_settings(self) -> str:
+        params = json.loads(self.body)
+        global_settings = params.get("GlobalSettings", {})
+        self.backup_backend.update_global_settings(global_settings)
+        return "{}"
+
+    def describe_region_settings(self) -> str:
+        settings = self.backup_backend.describe_region_settings()
+        return json.dumps({"ResourceTypeOptInPreference": settings})
+
+    def update_region_settings(self) -> str:
+        params = json.loads(self.body)
+        pref = params.get("ResourceTypeOptInPreference")
+        self.backup_backend.update_region_settings(pref)
+        return "{}"
+
+    # --- Supported Resource Types ---
+
+    def get_supported_resource_types(self) -> str:
+        types = self.backup_backend.get_supported_resource_types()
+        return json.dumps({"ResourceTypes": types})
+
+    # --- Backup Plan Templates ---
+
+    def list_backup_plan_templates(self) -> str:
+        templates = self.backup_backend.list_backup_plan_templates()
+        return json.dumps({"BackupPlanTemplatesList": templates})
+
+    def get_backup_plan_from_json(self) -> str:
+        params = json.loads(self.body)
+        template_json = params.get("BackupPlanTemplateJson", "{}")
+        plan = self.backup_backend.get_backup_plan_from_json(
+            backup_plan_template_json=template_json,
+        )
+        return json.dumps({"BackupPlan": plan})
+
+    # --- Backup Plan Versions ---
+
+    def list_backup_plan_versions(self) -> str:
+        backup_plan_id = self.path.split("/plans/")[1].split("/")[0]
+        versions = self.backup_backend.list_backup_plan_versions(
+            backup_plan_id=backup_plan_id,
+        )
+        return json.dumps(
+            {
+                "BackupPlanVersionsList": [
+                    v.to_list_dict() for v in versions
+                ]
+            }
+        )
+
+    # --- Copy Jobs ---
+
+    def start_copy_job(self) -> str:
+        params = json.loads(self.body)
+        job = self.backup_backend.start_copy_job(
+            source_backup_vault_name=params.get("SourceBackupVaultName"),
+            destination_backup_vault_arn=params.get(
+                "DestinationBackupVaultArn"
+            ),
+            recovery_point_arn=params.get("RecoveryPointArn"),
+            iam_role_arn=params.get("IamRoleArn"),
+            idempotency_token=params.get("IdempotencyToken"),
+            lifecycle=params.get("Lifecycle"),
+        )
+        return json.dumps(
+            {
+                "CopyJobId": job.copy_job_id,
+                "CreationDate": job.creation_date,
+            }
+        )
+
+    def describe_copy_job(self) -> str:
+        copy_job_id = self.path.split("/")[-1].rstrip("/")
+        job = self.backup_backend.describe_copy_job(
+            copy_job_id=copy_job_id
+        )
+        return json.dumps({"CopyJob": job.to_dict()})
+
+    def list_copy_jobs(self) -> str:
+        params = self._get_params()
+        jobs = self.backup_backend.list_copy_jobs(
+            by_state=params.get("state"),
+            by_resource_arn=params.get("resourceArn"),
+            by_resource_type=params.get("resourceType"),
+            by_account_id=params.get("accountId"),
+            by_destination_vault_arn=params.get("destinationVaultArn"),
+        )
+        return json.dumps(
+            {"CopyJobs": [j.to_dict() for j in jobs]}
+        )
+
+    # --- Recovery Points ---
+
+    def describe_recovery_point(self) -> str:
+        # Path: /backup-vaults/{name}/recovery-points/{arn}
+        parts = self.path.split("/")
+        vault_idx = parts.index("backup-vaults")
+        backup_vault_name = parts[vault_idx + 1]
+        rp_idx = parts.index("recovery-points")
+        recovery_point_arn = unquote("/".join(parts[rp_idx + 1:]).rstrip("/"))
+        rp = self.backup_backend.describe_recovery_point(
+            backup_vault_name=backup_vault_name,
+            recovery_point_arn=recovery_point_arn,
+        )
+        return json.dumps(rp.to_dict())
+
+    # --- Protected Resources ---
+
+    def describe_protected_resource(self) -> str:
+        # Path: /resources/{arn}
+        resource_arn = unquote(self.path.split("/resources/")[1].rstrip("/"))
+        result = self.backup_backend.describe_protected_resource(
+            resource_arn=resource_arn,
+        )
+        return json.dumps(result)
+
+    def list_protected_resources(self) -> str:
+        resources = self.backup_backend.list_protected_resources()
+        return json.dumps({"Results": resources})
+
+    # --- Vault Access Policy ---
+
+    def put_backup_vault_access_policy(self) -> str:
+        backup_vault_name = self.path.split("/backup-vaults/")[1].split("/")[0]
+        params = json.loads(self.body) if self.body else {}
+        policy = params.get("Policy", "")
+        self.backup_backend.put_backup_vault_access_policy(
+            backup_vault_name=backup_vault_name,
+            policy=policy,
+        )
+        return "{}"
+
+    def get_backup_vault_access_policy(self) -> str:
+        backup_vault_name = self.path.split("/backup-vaults/")[1].split("/")[0]
+        result = self.backup_backend.get_backup_vault_access_policy(
+            backup_vault_name=backup_vault_name,
+        )
+        return json.dumps(result)
+
+    def delete_backup_vault_access_policy(self) -> str:
+        backup_vault_name = self.path.split("/backup-vaults/")[1].split("/")[0]
+        self.backup_backend.delete_backup_vault_access_policy(
+            backup_vault_name=backup_vault_name,
+        )
+        return "{}"
+
+    # --- Vault Notifications ---
+
+    def put_backup_vault_notifications(self) -> str:
+        backup_vault_name = self.path.split("/backup-vaults/")[1].split("/")[0]
+        params = json.loads(self.body) if self.body else {}
+        sns_topic_arn = params.get("SNSTopicArn", "")
+        events = params.get("BackupVaultEvents", [])
+        self.backup_backend.put_backup_vault_notifications(
+            backup_vault_name=backup_vault_name,
+            sns_topic_arn=sns_topic_arn,
+            backup_vault_events=events,
+        )
+        return "{}"
+
+    def get_backup_vault_notifications(self) -> str:
+        backup_vault_name = self.path.split("/backup-vaults/")[1].split("/")[0]
+        result = self.backup_backend.get_backup_vault_notifications(
+            backup_vault_name=backup_vault_name,
+        )
+        return json.dumps(result)
+
+    def delete_backup_vault_notifications(self) -> str:
+        backup_vault_name = self.path.split("/backup-vaults/")[1].split("/")[0]
+        self.backup_backend.delete_backup_vault_notifications(
+            backup_vault_name=backup_vault_name,
+        )
+        return "{}"
+
+    # --- Restore Testing Plans ---
+
+    def create_restore_testing_plan(self) -> str:
+        params = json.loads(self.body)
+        rtp = params.get("RestoreTestingPlan", {})
+        tags = params.get("Tags")
+        plan = self.backup_backend.create_restore_testing_plan(
+            restore_testing_plan_name=rtp.get("RestoreTestingPlanName"),
+            schedule_expression=rtp.get("ScheduleExpression"),
+            recovery_point_selection=rtp.get("RecoveryPointSelection", {}),
+            schedule_expression_timezone=rtp.get("ScheduleExpressionTimezone"),
+            start_window_hours=rtp.get("StartWindowHours"),
+            tags=tags,
+        )
+        return json.dumps(
+            {
+                "CreationTime": plan.creation_time,
+                "RestoreTestingPlanArn": plan.restore_testing_plan_arn,
+                "RestoreTestingPlanName": plan.restore_testing_plan_name,
+            }
+        )
+
+    def get_restore_testing_plan(self) -> str:
+        plan_name = self.path.split("/restore-testing/plans/")[1].rstrip("/")
+        plan = self.backup_backend.get_restore_testing_plan(
+            restore_testing_plan_name=plan_name,
+        )
+        return json.dumps({"RestoreTestingPlan": plan.to_dict()})
+
+    def delete_restore_testing_plan(self) -> EmptyResult:
+        plan_name = self.path.split("/restore-testing/plans/")[1].rstrip("/")
+        self.backup_backend.delete_restore_testing_plan(
+            restore_testing_plan_name=plan_name,
+        )
+        return EmptyResult()
+
+    def list_restore_testing_plans(self) -> str:
+        plans = self.backup_backend.list_restore_testing_plans()
+        return json.dumps(
+            {
+                "RestoreTestingPlans": [
+                    p.to_list_dict() for p in plans
+                ]
+            }
+        )
+
+    # --- Restore Testing Selections ---
+
+    def create_restore_testing_selection(self) -> str:
+        parts = self.path.split("/")
+        plan_idx = parts.index("plans")
+        plan_name = parts[plan_idx + 1]
+        params = json.loads(self.body)
+        rts = params.get("RestoreTestingSelection", {})
+        selection = self.backup_backend.create_restore_testing_selection(
+            restore_testing_plan_name=plan_name,
+            restore_testing_selection_name=rts.get(
+                "RestoreTestingSelectionName"
+            ),
+            protected_resource_type=rts.get("ProtectedResourceType"),
+            iam_role_arn=rts.get("IamRoleArn"),
+            protected_resource_arns=rts.get("ProtectedResourceArns"),
+            protected_resource_conditions=rts.get(
+                "ProtectedResourceConditions"
+            ),
+            restore_metadata_overrides=rts.get("RestoreMetadataOverrides"),
+            validation_window_hours=rts.get("ValidationWindowHours"),
+        )
+        return json.dumps(
+            {
+                "CreationTime": selection.creation_time,
+                "RestoreTestingPlanArn": self.backup_backend.restore_testing_plans[
+                    plan_name
+                ].restore_testing_plan_arn,
+                "RestoreTestingPlanName": plan_name,
+                "RestoreTestingSelectionName": selection.restore_testing_selection_name,
+            }
+        )
+
+    def get_restore_testing_selection(self) -> str:
+        parts = self.path.split("/")
+        plan_idx = parts.index("plans")
+        plan_name = parts[plan_idx + 1]
+        sel_idx = parts.index("selections")
+        sel_name = parts[sel_idx + 1].rstrip("/")
+        selection = self.backup_backend.get_restore_testing_selection(
+            restore_testing_plan_name=plan_name,
+            restore_testing_selection_name=sel_name,
+        )
+        return json.dumps({"RestoreTestingSelection": selection.to_dict()})
+
+    def delete_restore_testing_selection(self) -> EmptyResult:
+        parts = self.path.split("/")
+        plan_idx = parts.index("plans")
+        plan_name = parts[plan_idx + 1]
+        sel_idx = parts.index("selections")
+        sel_name = parts[sel_idx + 1].rstrip("/")
+        self.backup_backend.delete_restore_testing_selection(
+            restore_testing_plan_name=plan_name,
+            restore_testing_selection_name=sel_name,
+        )
+        return EmptyResult()
+
+    def list_restore_testing_selections(self) -> str:
+        parts = self.path.split("/")
+        plan_idx = parts.index("plans")
+        plan_name = parts[plan_idx + 1]
+        selections = self.backup_backend.list_restore_testing_selections(
+            restore_testing_plan_name=plan_name,
+        )
+        return json.dumps(
+            {
+                "RestoreTestingSelections": [
+                    s.to_dict() for s in selections
+                ]
+            }
+        )
