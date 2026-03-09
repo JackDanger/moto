@@ -134,6 +134,7 @@ url_paths = {
     # User hierarchy
     "{0}/user-hierarchy-groups/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
     "{0}/user-hierarchy-groups/(?P<InstanceId>[^/]+)/(?P<HierarchyGroupId>[^/]+)$": ConnectResponse.dispatch,
+    "{0}/user-hierarchy-groups/(?P<InstanceId>[^/]+)/(?P<HierarchyGroupId>[^/]+)/name$": ConnectResponse.dispatch,
     "{0}/user-hierarchy-groups-summary/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
     "{0}/user-hierarchy-structure/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
     # Use case
