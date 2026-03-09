@@ -1064,6 +1064,23 @@ class IoTResponse(BaseResponse):
         )
         return EmptyResult()
 
+    def list_targets_for_security_profile(self) -> ActionResult:
+        security_profile_name = self._get_param("securityProfileName")
+        targets = self.iot_backend.list_targets_for_security_profile(
+            security_profile_name=security_profile_name
+        )
+        return ActionResult({"securityProfileTargets": targets})
+
+    def list_security_profiles_for_target(self) -> ActionResult:
+        security_profile_target_arn = self._get_param("securityProfileTargetArn")
+        profiles = self.iot_backend.list_security_profiles_for_target(
+            security_profile_target_arn=security_profile_target_arn
+        )
+        return ActionResult({"securityProfileTargetMappings": [
+            {"securityProfileIdentifier": p, "target": {"arn": security_profile_target_arn}}
+            for p in profiles
+        ]})
+
     # --- Authorizers ---
 
     def create_authorizer(self) -> ActionResult:
@@ -1118,6 +1135,22 @@ class IoTResponse(BaseResponse):
         return ActionResult(
             {"authorizers": [a.to_description_dict() for a in authorizers]}
         )
+
+    def set_default_authorizer(self) -> ActionResult:
+        authorizer_name = self._get_param("authorizerName")
+        authorizer = self.iot_backend.set_default_authorizer(
+            authorizer_name=authorizer_name
+        )
+        return ActionResult(
+            {
+                "authorizerName": authorizer.authorizer_name,
+                "authorizerArn": authorizer.arn,
+            }
+        )
+
+    def describe_default_authorizer(self) -> ActionResult:
+        authorizer = self.iot_backend.describe_default_authorizer()
+        return ActionResult({"authorizerDescription": authorizer.to_description_dict()})
 
     # --- Provisioning Templates ---
 
@@ -1415,6 +1448,26 @@ class IoTResponse(BaseResponse):
         self.iot_backend.delete_stream(stream_id=stream_id)
         return EmptyResult()
 
+    def update_stream(self) -> ActionResult:
+        stream_id = self._get_param("streamId")
+        description = self._get_param("description")
+        files = self._get_param("files")
+        role_arn = self._get_param("roleArn")
+        stream = self.iot_backend.update_stream(
+            stream_id=stream_id,
+            description=description,
+            files=files,
+            role_arn=role_arn,
+        )
+        return ActionResult(
+            {
+                "streamId": stream.stream_id,
+                "streamArn": stream.arn,
+                "streamVersion": stream.stream_version,
+                "description": stream.description,
+            }
+        )
+
     # --- Mitigation Actions ---
 
     def create_mitigation_action(self) -> ActionResult:
@@ -1448,6 +1501,19 @@ class IoTResponse(BaseResponse):
         action_name = self._get_param("actionName")
         self.iot_backend.delete_mitigation_action(action_name=action_name)
         return EmptyResult()
+
+    def update_mitigation_action(self) -> ActionResult:
+        action_name = self._get_param("actionName")
+        role_arn = self._get_param("roleArn")
+        action_params = self._get_param("actionParams")
+        action = self.iot_backend.update_mitigation_action(
+            action_name=action_name,
+            role_arn=role_arn,
+            action_params=action_params,
+        )
+        return ActionResult(
+            {"actionArn": action.arn, "actionId": action.action_id}
+        )
 
     # --- Scheduled Audits ---
 
@@ -1485,6 +1551,17 @@ class IoTResponse(BaseResponse):
             scheduled_audit_name=scheduled_audit_name
         )
         return EmptyResult()
+
+    def update_scheduled_audit(self) -> ActionResult:
+        scheduled_audit_name = self._get_param("scheduledAuditName")
+        audit = self.iot_backend.update_scheduled_audit(
+            scheduled_audit_name=scheduled_audit_name,
+            frequency=self._get_param("frequency"),
+            day_of_month=self._get_param("dayOfMonth"),
+            day_of_week=self._get_param("dayOfWeek"),
+            target_check_names=self._get_param("targetCheckNames"),
+        )
+        return ActionResult({"scheduledAuditArn": audit.arn})
 
     # --- OTA Updates ---
 
@@ -1524,6 +1601,11 @@ class IoTResponse(BaseResponse):
         self.iot_backend.delete_ota_update(ota_update_id=ota_update_id)
         return EmptyResult()
 
+    def get_ota_update(self) -> ActionResult:
+        ota_update_id = self._get_param("otaUpdateId")
+        ota = self.iot_backend.describe_ota_update(ota_update_id=ota_update_id)
+        return ActionResult({"otaUpdateInfo": ota.to_description_dict()})
+
     # --- CA Certificates listing ---
 
     def list_ca_certificates(self) -> ActionResult:
@@ -1559,6 +1641,14 @@ class IoTResponse(BaseResponse):
             template_name=template_name, version_id=version_id
         )
         return ActionResult(result)
+
+    def delete_provisioning_template_version(self) -> ActionResult:
+        template_name = self._get_param("templateName")
+        version_id = self._get_int_param("versionId") or 1
+        self.iot_backend.delete_provisioning_template_version(
+            template_name=template_name, version_id=version_id
+        )
+        return EmptyResult()
 
     # --- Account Audit Configuration ---
 
@@ -1669,3 +1759,22 @@ class IoTResponse(BaseResponse):
             template_name=template_name, template_version=template_version
         )
         return ActionResult(result)
+
+    # --- Tags ---
+
+    def tag_resource(self) -> ActionResult:
+        resource_arn = self._get_param("resourceArn")
+        tags = self._get_param("tags")
+        self.iot_backend.tag_resource(resource_arn=resource_arn, tags=tags)
+        return EmptyResult()
+
+    def untag_resource(self) -> ActionResult:
+        resource_arn = self._get_param("resourceArn")
+        tag_keys = self._get_param("tagKeys")
+        self.iot_backend.untag_resource(resource_arn=resource_arn, tag_keys=tag_keys)
+        return EmptyResult()
+
+    def list_tags_for_resource(self) -> ActionResult:
+        resource_arn = self._get_param("resourceArn")
+        tags = self.iot_backend.list_tags_for_resource(resource_arn=resource_arn)
+        return ActionResult({"tags": tags})
