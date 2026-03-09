@@ -478,7 +478,11 @@ class User(BaseModel):
         self.arn = f"{instance_arn}/agent/{self.user_id}"
         self.username = username
         self.identity_info = identity_info or {}
-        self.phone_config = phone_config or {"PhoneType": "SOFT_PHONE", "AutoAccept": False, "AfterContactWorkTimeLimit": 0}
+        self.phone_config = phone_config or {
+            "PhoneType": "SOFT_PHONE",
+            "AutoAccept": False,
+            "AfterContactWorkTimeLimit": 0,
+        }
         self.directory_user_id = directory_user_id
         self.security_profile_ids = security_profile_ids
         self.routing_profile_id = routing_profile_id
@@ -600,6 +604,210 @@ class View(BaseModel):
             "Version": self.version,
             "Content": self.content,
             "Tags": self.tags,
+        }
+
+
+class PredefinedAttribute(BaseModel):
+    def __init__(
+        self,
+        instance_arn: str,
+        name: str,
+        values: dict[str, Any],
+        tags: Optional[dict[str, str]] = None,
+    ) -> None:
+        self.name = name
+        self.arn = f"{instance_arn}/predefined-attribute/{name}"
+        self.values = values
+        self.tags = tags or {}
+        self.last_modified_time = _now_iso()
+        self.last_modified_region = instance_arn.split(":")[3]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "Name": self.name,
+            "Values": self.values,
+            "LastModifiedTime": self.last_modified_time,
+            "LastModifiedRegion": self.last_modified_region,
+        }
+
+
+class TaskTemplate(BaseModel):
+    def __init__(
+        self,
+        instance_arn: str,
+        name: str,
+        description: str = "",
+        fields: Optional[list[dict[str, Any]]] = None,
+        defaults: Optional[dict[str, Any]] = None,
+        constraints: Optional[dict[str, Any]] = None,
+        contact_flow_id: str = "",
+        status: str = "ACTIVE",
+        tags: Optional[dict[str, str]] = None,
+    ) -> None:
+        self.task_template_id = str(uuid.uuid4())
+        self.arn = f"{instance_arn}/task-template/{self.task_template_id}"
+        self.name = name
+        self.description = description
+        self.fields = fields or []
+        self.defaults = defaults or {}
+        self.constraints = constraints or {}
+        self.contact_flow_id = contact_flow_id
+        self.status = status
+        self.tags = tags or {}
+        self.created_time = _now_iso()
+        self.last_modified_time = _now_iso()
+        self.instance_id = instance_arn.split("/")[-1]
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "Id": self.task_template_id,
+            "Arn": self.arn,
+            "Name": self.name,
+            "Description": self.description,
+            "Fields": self.fields,
+            "Defaults": self.defaults,
+            "Constraints": self.constraints,
+            "Status": self.status,
+            "Tags": self.tags,
+            "CreatedTime": self.created_time,
+            "LastModifiedTime": self.last_modified_time,
+            "InstanceId": self.instance_id,
+        }
+        if self.contact_flow_id:
+            result["ContactFlowId"] = self.contact_flow_id
+        return result
+
+
+class IntegrationAssociation(BaseModel):
+    def __init__(
+        self,
+        instance_arn: str,
+        integration_type: str,
+        integration_arn: str,
+        source_application_url: str = "",
+        source_application_name: str = "",
+        source_type: str = "",
+        tags: Optional[dict[str, str]] = None,
+    ) -> None:
+        self.integration_association_id = str(uuid.uuid4())
+        self.arn = (
+            f"{instance_arn}/integration-association/{self.integration_association_id}"
+        )
+        self.integration_type = integration_type
+        self.integration_arn = integration_arn
+        self.source_application_url = source_application_url
+        self.source_application_name = source_application_name
+        self.source_type = source_type
+        self.tags = tags or {}
+        self.instance_id = instance_arn.split("/")[-1]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "IntegrationAssociationId": self.integration_association_id,
+            "IntegrationAssociationArn": self.arn,
+            "InstanceId": self.instance_id,
+            "IntegrationType": self.integration_type,
+            "IntegrationArn": self.integration_arn,
+            "SourceApplicationUrl": self.source_application_url,
+            "SourceApplicationName": self.source_application_name,
+            "SourceType": self.source_type,
+        }
+
+
+class UseCase(BaseModel):
+    def __init__(
+        self,
+        instance_arn: str,
+        integration_association_id: str,
+        use_case_type: str,
+        tags: Optional[dict[str, str]] = None,
+    ) -> None:
+        self.use_case_id = str(uuid.uuid4())
+        self.arn = f"{instance_arn}/use-case/{self.use_case_id}"
+        self.integration_association_id = integration_association_id
+        self.use_case_type = use_case_type
+        self.tags = tags or {}
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "UseCaseId": self.use_case_id,
+            "UseCaseArn": self.arn,
+            "UseCaseType": self.use_case_type,
+        }
+
+
+class Contact(BaseModel):
+    def __init__(
+        self,
+        instance_arn: str,
+        channel: str,
+        initiation_method: str,
+        description: str = "",
+        name: str = "",
+        related_contact_id: str = "",
+        segment_attributes: Optional[dict[str, Any]] = None,
+        user_info: Optional[dict[str, Any]] = None,
+    ) -> None:
+        self.contact_id = str(uuid.uuid4())
+        self.arn = f"{instance_arn}/contact/{self.contact_id}"
+        self.channel = channel
+        self.initiation_method = initiation_method
+        self.description = description
+        self.name = name
+        self.related_contact_id = related_contact_id
+        self.segment_attributes = segment_attributes or {}
+        self.user_info = user_info
+        self.initiation_timestamp = _now_iso()
+        self.last_update_timestamp = _now_iso()
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "Id": self.contact_id,
+            "Arn": self.arn,
+            "Channel": self.channel,
+            "InitiationMethod": self.initiation_method,
+            "Name": self.name,
+            "Description": self.description,
+            "InitiationTimestamp": self.initiation_timestamp,
+            "LastUpdateTimestamp": self.last_update_timestamp,
+        }
+        if self.related_contact_id:
+            result["RelatedContactId"] = self.related_contact_id
+        if self.segment_attributes:
+            result["SegmentAttributes"] = self.segment_attributes
+        if self.user_info:
+            result["UserInfo"] = self.user_info
+        return result
+
+
+class HoursOfOperationOverride(BaseModel):
+    def __init__(
+        self,
+        instance_arn: str,
+        hours_of_operation_id: str,
+        name: str,
+        description: str = "",
+        config: Optional[list[dict[str, Any]]] = None,
+        effective_from: str = "",
+        effective_till: str = "",
+    ) -> None:
+        self.hours_of_operation_override_id = str(uuid.uuid4())
+        self.arn = f"{instance_arn}/operating-hours/{hours_of_operation_id}/override/{self.hours_of_operation_override_id}"
+        self.hours_of_operation_id = hours_of_operation_id
+        self.name = name
+        self.description = description
+        self.config = config or []
+        self.effective_from = effective_from
+        self.effective_till = effective_till
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "HoursOfOperationOverrideId": self.hours_of_operation_override_id,
+            "Name": self.name,
+            "Description": self.description,
+            "Config": self.config,
+            "EffectiveFrom": self.effective_from,
+            "EffectiveTill": self.effective_till,
         }
 
 
@@ -773,6 +981,26 @@ class ConnectBackend(BaseBackend):
         self.views: dict[str, dict[str, View]] = {}
         self.evaluation_forms: dict[str, dict[str, EvaluationForm]] = {}
         self.rules: dict[str, dict[str, Rule]] = {}
+        self.predefined_attributes: dict[str, dict[str, PredefinedAttribute]] = {}
+        self.task_templates: dict[str, dict[str, TaskTemplate]] = {}
+        self.integration_associations: dict[str, dict[str, IntegrationAssociation]] = {}
+        self.use_cases: dict[str, dict[str, UseCase]] = {}
+        self.contacts: dict[str, dict[str, Contact]] = {}
+        self.hours_of_operation_overrides: dict[
+            str, dict[str, HoursOfOperationOverride]
+        ] = {}
+        # Per-instance association stores
+        self.approved_origins: dict[str, list[str]] = {}
+        self.lambda_functions: dict[str, list[str]] = {}
+        self.bots: dict[str, list[dict[str, Any]]] = {}
+        self.security_keys: dict[str, list[dict[str, Any]]] = {}
+        self.instance_storage_configs: dict[str, list[dict[str, Any]]] = {}
+        # Per-queue quick connect associations: instance_id -> queue_id -> set of qc ids
+        self.queue_quick_connect_associations: dict[str, dict[str, set[str]]] = {}
+        # Per-routing-profile queue associations
+        self.routing_profile_queue_associations: dict[
+            str, dict[str, list[dict[str, Any]]]
+        ] = {}
         # Global (not per-instance) stores
         self.phone_numbers: dict[str, PhoneNumber] = {}
         self.traffic_distribution_groups: dict[str, TrafficDistributionGroup] = {}
@@ -849,13 +1077,23 @@ class ConnectBackend(BaseBackend):
         self._get_instance_or_raise(instance_id)
         del self.instances[instance_id]
         for store in [
-            self.analytics_data_associations, self.agent_statuses,
-            self.contact_flows, self.contact_flow_modules,
-            self.hours_of_operations, self.prompts, self.queues,
-            self.quick_connects, self.routing_profiles,
-            self.security_profiles, self.users,
-            self.user_hierarchy_groups, self.vocabularies, self.views,
-            self.evaluation_forms, self.rules, self.contact_attributes,
+            self.analytics_data_associations,
+            self.agent_statuses,
+            self.contact_flows,
+            self.contact_flow_modules,
+            self.hours_of_operations,
+            self.prompts,
+            self.queues,
+            self.quick_connects,
+            self.routing_profiles,
+            self.security_profiles,
+            self.users,
+            self.user_hierarchy_groups,
+            self.vocabularies,
+            self.views,
+            self.evaluation_forms,
+            self.rules,
+            self.contact_attributes,
         ]:
             store.pop(instance_id, None)
 
@@ -953,11 +1191,11 @@ class ConnectBackend(BaseBackend):
 
     def list_approved_origins(self, instance_id: str) -> list[str]:
         self._get_instance_or_raise(instance_id)
-        return []
+        return self.approved_origins.get(instance_id, [])
 
     def list_bots(self, instance_id: str) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
-        return []
+        return self.bots.get(instance_id, [])
 
     def list_contact_evaluations(self, instance_id: str) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
@@ -1057,12 +1295,6 @@ class ConnectBackend(BaseBackend):
         self._get_instance_or_raise(instance_id)
         return []
 
-    def list_hours_of_operation_overrides(
-        self, instance_id: str, hours_of_operation_id: str
-    ) -> list[dict[str, Any]]:
-        self._get_instance_or_raise(instance_id)
-        return []
-
     def list_hours_of_operations(self, instance_id: str) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
         hours = self.hours_of_operations.get(instance_id, {})
@@ -1086,19 +1318,20 @@ class ConnectBackend(BaseBackend):
 
     def list_instance_storage_configs(self, instance_id: str) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
-        return []
+        return self.instance_storage_configs.get(instance_id, [])
 
     def list_integration_associations(self, instance_id: str) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
-        return []
+        assocs = self.integration_associations.get(instance_id, {})
+        return [a.to_dict() for a in assocs.values()]
 
     def list_lambda_functions(self, instance_id: str) -> list[str]:
         self._get_instance_or_raise(instance_id)
-        return []
+        return self.lambda_functions.get(instance_id, [])
 
     def list_phone_numbers(self, instance_id: str) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
-        instance = self.instances[instance_id]
+        self.instances[instance_id]
         return [
             {
                 "PhoneNumber": pn.phone_number,
@@ -1124,6 +1357,18 @@ class ConnectBackend(BaseBackend):
             for pn in self.phone_numbers.values()
         ]
 
+    def list_predefined_attributes(self, instance_id: str) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        attrs = self.predefined_attributes.get(instance_id, {})
+        return [
+            {
+                "Name": a.name,
+                "LastModifiedTime": a.last_modified_time,
+                "LastModifiedRegion": a.last_modified_region,
+            }
+            for a in attrs.values()
+        ]
+
     def list_prompts(self, instance_id: str) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
         prompts = self.prompts.get(instance_id, {})
@@ -1142,16 +1387,24 @@ class ConnectBackend(BaseBackend):
         self, instance_id: str, queue_id: str
     ) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
-        # Quick connects are not associated per-queue in this implementation
-        # Return all quick connects for the instance
+        assoc_ids = self.queue_quick_connect_associations.get(instance_id, {}).get(
+            queue_id, set()
+        )
         qcs = self.quick_connects.get(instance_id, {})
+        if not assoc_ids:
+            # If no explicit associations, return all (backwards compat)
+            target_qcs = qcs.values()
+        else:
+            target_qcs = [qcs[qc_id] for qc_id in assoc_ids if qc_id in qcs]
         return [
             {
                 "QuickConnectId": qc.quick_connect_id,
                 "Name": qc.name,
-                "QuickConnectType": qc.quick_connect_config.get("QuickConnectType", "PHONE_NUMBER"),
+                "QuickConnectType": qc.quick_connect_config.get(
+                    "QuickConnectType", "PHONE_NUMBER"
+                ),
             }
-            for qc in qcs.values()
+            for qc in target_qcs
         ]
 
     def list_queues(self, instance_id: str) -> list[dict[str, Any]]:
@@ -1177,7 +1430,9 @@ class ConnectBackend(BaseBackend):
                 "QuickConnectId": qc.quick_connect_id,
                 "QuickConnectARN": qc.arn,
                 "Name": qc.name,
-                "QuickConnectType": qc.quick_connect_config.get("QuickConnectType", "PHONE_NUMBER"),
+                "QuickConnectType": qc.quick_connect_config.get(
+                    "QuickConnectType", "PHONE_NUMBER"
+                ),
                 "LastModifiedTime": qc.last_modified_time,
                 "LastModifiedRegion": qc.last_modified_region,
             }
@@ -1202,8 +1457,9 @@ class ConnectBackend(BaseBackend):
         self, instance_id: str, routing_profile_id: str
     ) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
-        # Routing profile queue associations are not tracked; return empty
-        return []
+        return self.routing_profile_queue_associations.get(instance_id, {}).get(
+            routing_profile_id, []
+        )
 
     def list_rules(self, instance_id: str) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
@@ -1225,7 +1481,7 @@ class ConnectBackend(BaseBackend):
 
     def list_security_keys(self, instance_id: str) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
-        return []
+        return self.security_keys.get(instance_id, [])
 
     def list_security_profile_applications(
         self, instance_id: str, security_profile_id: str
@@ -1258,13 +1514,30 @@ class ConnectBackend(BaseBackend):
 
     def list_task_templates(self, instance_id: str) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
-        return []
+        templates = self.task_templates.get(instance_id, {})
+        return [
+            {
+                "Id": t.task_template_id,
+                "Arn": t.arn,
+                "Name": t.name,
+                "Description": t.description,
+                "Status": t.status,
+                "CreatedTime": t.created_time,
+                "LastModifiedTime": t.last_modified_time,
+            }
+            for t in templates.values()
+        ]
 
     def list_use_cases(
         self, instance_id: str, integration_association_id: str
     ) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
-        return []
+        ucs = self.use_cases.get(instance_id, {})
+        return [
+            uc.to_dict()
+            for uc in ucs.values()
+            if uc.integration_association_id == integration_association_id
+        ]
 
     def list_users(self, instance_id: str) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
@@ -1759,17 +2032,35 @@ class ConnectBackend(BaseBackend):
 
     # ---- User Hierarchy Structure ----
 
-    def describe_user_hierarchy_structure(
-        self, instance_id: str
-    ) -> dict[str, Any]:
+    def describe_user_hierarchy_structure(self, instance_id: str) -> dict[str, Any]:
         self._get_instance_or_raise(instance_id)
         # Return a default 5-level hierarchy structure
         return {
-            "LevelOne": {"Id": "1", "Arn": f"arn:aws:connect:{self.region_name}:{self.account_id}:instance/{instance_id}/agent-group-type/level-1", "Name": "Organization"},
-            "LevelTwo": {"Id": "2", "Arn": f"arn:aws:connect:{self.region_name}:{self.account_id}:instance/{instance_id}/agent-group-type/level-2", "Name": "Division"},
-            "LevelThree": {"Id": "3", "Arn": f"arn:aws:connect:{self.region_name}:{self.account_id}:instance/{instance_id}/agent-group-type/level-3", "Name": "Department"},
-            "LevelFour": {"Id": "4", "Arn": f"arn:aws:connect:{self.region_name}:{self.account_id}:instance/{instance_id}/agent-group-type/level-4", "Name": "Team"},
-            "LevelFive": {"Id": "5", "Arn": f"arn:aws:connect:{self.region_name}:{self.account_id}:instance/{instance_id}/agent-group-type/level-5", "Name": "Agent"},
+            "LevelOne": {
+                "Id": "1",
+                "Arn": f"arn:aws:connect:{self.region_name}:{self.account_id}:instance/{instance_id}/agent-group-type/level-1",
+                "Name": "Organization",
+            },
+            "LevelTwo": {
+                "Id": "2",
+                "Arn": f"arn:aws:connect:{self.region_name}:{self.account_id}:instance/{instance_id}/agent-group-type/level-2",
+                "Name": "Division",
+            },
+            "LevelThree": {
+                "Id": "3",
+                "Arn": f"arn:aws:connect:{self.region_name}:{self.account_id}:instance/{instance_id}/agent-group-type/level-3",
+                "Name": "Department",
+            },
+            "LevelFour": {
+                "Id": "4",
+                "Arn": f"arn:aws:connect:{self.region_name}:{self.account_id}:instance/{instance_id}/agent-group-type/level-4",
+                "Name": "Team",
+            },
+            "LevelFive": {
+                "Id": "5",
+                "Arn": f"arn:aws:connect:{self.region_name}:{self.account_id}:instance/{instance_id}/agent-group-type/level-5",
+                "Name": "Agent",
+            },
         }
 
     # ---- Vocabulary ----
@@ -1850,37 +2141,9 @@ class ConnectBackend(BaseBackend):
 
     # ---- Phone Number ----
 
-    def claim_phone_number(
-        self,
-        instance_id: str,
-        phone_number: str,
-        phone_number_country_code: str,
-        phone_number_type: str,
-        description: str = "",
-        tags: Optional[dict[str, str]] = None,
-    ) -> dict[str, str]:
-        instance = self._get_instance_or_raise(instance_id)
-        pn = PhoneNumber(
-            instance_arn=instance.arn,
-            phone_number=phone_number,
-            phone_number_country_code=phone_number_country_code,
-            phone_number_type=phone_number_type,
-            description=description,
-            tags=tags,
-        )
-        self.phone_numbers[pn.phone_number_id] = pn
-        if tags:
-            self.tag_resource(pn.arn, tags)
-        return {
-            "PhoneNumberId": pn.phone_number_id,
-            "PhoneNumberArn": pn.arn,
-        }
-
     def describe_phone_number(self, phone_number_id: str) -> dict[str, Any]:
         if phone_number_id not in self.phone_numbers:
-            raise ResourceNotFoundException(
-                f"Phone number {phone_number_id} not found"
-            )
+            raise ResourceNotFoundException(f"Phone number {phone_number_id} not found")
         return self.phone_numbers[phone_number_id].to_dict()
 
     # ---- Traffic Distribution Group ----
@@ -1915,9 +2178,7 @@ class ConnectBackend(BaseBackend):
             raise ResourceNotFoundException(
                 f"Traffic distribution group {traffic_distribution_group_id} not found"
             )
-        return self.traffic_distribution_groups[
-            traffic_distribution_group_id
-        ].to_dict()
+        return self.traffic_distribution_groups[traffic_distribution_group_id].to_dict()
 
     # ---- Evaluation Form ----
 
@@ -1996,9 +2257,7 @@ class ConnectBackend(BaseBackend):
         self, instance_id: str, initial_contact_id: str
     ) -> dict[str, str]:
         self._get_instance_or_raise(instance_id)
-        attrs = self.contact_attributes.get(instance_id, {}).get(
-            initial_contact_id, {}
-        )
+        attrs = self.contact_attributes.get(instance_id, {}).get(initial_contact_id, {})
         return attrs
 
     def update_contact_attributes(
@@ -2014,13 +2273,16 @@ class ConnectBackend(BaseBackend):
             self.contact_attributes[instance_id][initial_contact_id] = {}
         self.contact_attributes[instance_id][initial_contact_id].update(attributes)
 
-
     # ---- Update/Delete: Agent Status ----
 
     def update_agent_status(
-        self, instance_id: str, agent_status_id: str,
-        name: str | None = None, description: str | None = None,
-        state: str | None = None, display_order: int | None = None,
+        self,
+        instance_id: str,
+        agent_status_id: str,
+        name: str | None = None,
+        description: str | None = None,
+        state: str | None = None,
+        display_order: int | None = None,
         reset_order_number: bool = False,
     ) -> None:
         self._get_instance_or_raise(instance_id)
@@ -2028,11 +2290,16 @@ class ConnectBackend(BaseBackend):
         if agent_status_id not in statuses:
             raise ResourceNotFoundException(f"Agent status {agent_status_id} not found")
         s = statuses[agent_status_id]
-        if name is not None: s.name = name
-        if description is not None: s.description = description
-        if state is not None: s.state = state
-        if display_order is not None: s.display_order = display_order
-        if reset_order_number: s.display_order = None
+        if name is not None:
+            s.name = name
+        if description is not None:
+            s.description = description
+        if state is not None:
+            s.state = state
+        if display_order is not None:
+            s.display_order = display_order
+        if reset_order_number:
+            s.display_order = None
         s.last_modified_time = _now_iso()
 
     # ---- Update/Delete: Contact Flow ----
@@ -2049,16 +2316,21 @@ class ConnectBackend(BaseBackend):
         flow.flow_content_sha256 = hashlib.sha256(content.encode()).hexdigest()
 
     def update_contact_flow_name(
-        self, instance_id: str, contact_flow_id: str,
-        name: str | None = None, description: str | None = None,
+        self,
+        instance_id: str,
+        contact_flow_id: str,
+        name: str | None = None,
+        description: str | None = None,
     ) -> None:
         self._get_instance_or_raise(instance_id)
         flows = self.contact_flows.get(instance_id, {})
         if contact_flow_id not in flows:
             raise ResourceNotFoundException(f"Contact flow {contact_flow_id} not found")
         flow = flows[contact_flow_id]
-        if name is not None: flow.name = name
-        if description is not None: flow.description = description
+        if name is not None:
+            flow.name = name
+        if description is not None:
+            flow.description = description
 
     def delete_contact_flow(self, instance_id: str, contact_flow_id: str) -> None:
         self._get_instance_or_raise(instance_id)
@@ -2073,39 +2345,58 @@ class ConnectBackend(BaseBackend):
         self._get_instance_or_raise(instance_id)
         modules = self.contact_flow_modules.get(instance_id, {})
         if contact_flow_module_id not in modules:
-            raise ResourceNotFoundException(f"Contact flow module {contact_flow_module_id} not found")
+            raise ResourceNotFoundException(
+                f"Contact flow module {contact_flow_module_id} not found"
+            )
         del modules[contact_flow_module_id]
 
     # ---- Update/Delete: Hours of Operation ----
 
     def update_hours_of_operation(
-        self, instance_id: str, hours_of_operation_id: str,
-        name: str | None = None, description: str | None = None,
-        time_zone: str | None = None, config: list[dict[str, Any]] | None = None,
+        self,
+        instance_id: str,
+        hours_of_operation_id: str,
+        name: str | None = None,
+        description: str | None = None,
+        time_zone: str | None = None,
+        config: list[dict[str, Any]] | None = None,
     ) -> None:
         self._get_instance_or_raise(instance_id)
         hours = self.hours_of_operations.get(instance_id, {})
         if hours_of_operation_id not in hours:
-            raise ResourceNotFoundException(f"Hours of operation {hours_of_operation_id} not found")
+            raise ResourceNotFoundException(
+                f"Hours of operation {hours_of_operation_id} not found"
+            )
         h = hours[hours_of_operation_id]
-        if name is not None: h.name = name
-        if description is not None: h.description = description
-        if time_zone is not None: h.time_zone = time_zone
-        if config is not None: h.config = config
+        if name is not None:
+            h.name = name
+        if description is not None:
+            h.description = description
+        if time_zone is not None:
+            h.time_zone = time_zone
+        if config is not None:
+            h.config = config
         h.last_modified_time = _now_iso()
 
-    def delete_hours_of_operation(self, instance_id: str, hours_of_operation_id: str) -> None:
+    def delete_hours_of_operation(
+        self, instance_id: str, hours_of_operation_id: str
+    ) -> None:
         self._get_instance_or_raise(instance_id)
         hours = self.hours_of_operations.get(instance_id, {})
         if hours_of_operation_id not in hours:
-            raise ResourceNotFoundException(f"Hours of operation {hours_of_operation_id} not found")
+            raise ResourceNotFoundException(
+                f"Hours of operation {hours_of_operation_id} not found"
+            )
         del hours[hours_of_operation_id]
 
     # ---- Update/Delete: Prompt ----
 
     def update_prompt(
-        self, instance_id: str, prompt_id: str,
-        name: str | None = None, description: str | None = None,
+        self,
+        instance_id: str,
+        prompt_id: str,
+        name: str | None = None,
+        description: str | None = None,
         s3_uri: str | None = None,
     ) -> dict[str, Any]:
         self._get_instance_or_raise(instance_id)
@@ -2113,9 +2404,12 @@ class ConnectBackend(BaseBackend):
         if prompt_id not in prompts:
             raise ResourceNotFoundException(f"Prompt {prompt_id} not found")
         p = prompts[prompt_id]
-        if name is not None: p.name = name
-        if description is not None: p.description = description
-        if s3_uri is not None: p.s3_uri = s3_uri
+        if name is not None:
+            p.name = name
+        if description is not None:
+            p.description = description
+        if s3_uri is not None:
+            p.s3_uri = s3_uri
         p.last_modified_time = _now_iso()
         return {"PromptARN": p.arn, "PromptId": p.prompt_id}
 
@@ -2129,19 +2423,26 @@ class ConnectBackend(BaseBackend):
     # ---- Update/Delete: Queue ----
 
     def update_queue_name(
-        self, instance_id: str, queue_id: str,
-        name: str | None = None, description: str | None = None,
+        self,
+        instance_id: str,
+        queue_id: str,
+        name: str | None = None,
+        description: str | None = None,
     ) -> None:
         self._get_instance_or_raise(instance_id)
         queues = self.queues.get(instance_id, {})
         if queue_id not in queues:
             raise ResourceNotFoundException(f"Queue {queue_id} not found")
         q = queues[queue_id]
-        if name is not None: q.name = name
-        if description is not None: q.description = description
+        if name is not None:
+            q.name = name
+        if description is not None:
+            q.description = description
         q.last_modified_time = _now_iso()
 
-    def update_queue_max_contacts(self, instance_id: str, queue_id: str, max_contacts: int) -> None:
+    def update_queue_max_contacts(
+        self, instance_id: str, queue_id: str, max_contacts: int
+    ) -> None:
         self._get_instance_or_raise(instance_id)
         queues = self.queues.get(instance_id, {})
         if queue_id not in queues:
@@ -2187,26 +2488,37 @@ class ConnectBackend(BaseBackend):
     # ---- Update/Delete: Quick Connect ----
 
     def update_quick_connect_name(
-        self, instance_id: str, quick_connect_id: str,
-        name: str | None = None, description: str | None = None,
+        self,
+        instance_id: str,
+        quick_connect_id: str,
+        name: str | None = None,
+        description: str | None = None,
     ) -> None:
         self._get_instance_or_raise(instance_id)
         qcs = self.quick_connects.get(instance_id, {})
         if quick_connect_id not in qcs:
-            raise ResourceNotFoundException(f"Quick connect {quick_connect_id} not found")
+            raise ResourceNotFoundException(
+                f"Quick connect {quick_connect_id} not found"
+            )
         qc = qcs[quick_connect_id]
-        if name is not None: qc.name = name
-        if description is not None: qc.description = description
+        if name is not None:
+            qc.name = name
+        if description is not None:
+            qc.description = description
         qc.last_modified_time = _now_iso()
 
     def update_quick_connect_config(
-        self, instance_id: str, quick_connect_id: str,
+        self,
+        instance_id: str,
+        quick_connect_id: str,
         quick_connect_config: dict[str, Any],
     ) -> None:
         self._get_instance_or_raise(instance_id)
         qcs = self.quick_connects.get(instance_id, {})
         if quick_connect_id not in qcs:
-            raise ResourceNotFoundException(f"Quick connect {quick_connect_id} not found")
+            raise ResourceNotFoundException(
+                f"Quick connect {quick_connect_id} not found"
+            )
         qcs[quick_connect_id].quick_connect_config = quick_connect_config
         qcs[quick_connect_id].last_modified_time = _now_iso()
 
@@ -2214,57 +2526,78 @@ class ConnectBackend(BaseBackend):
         self._get_instance_or_raise(instance_id)
         qcs = self.quick_connects.get(instance_id, {})
         if quick_connect_id not in qcs:
-            raise ResourceNotFoundException(f"Quick connect {quick_connect_id} not found")
+            raise ResourceNotFoundException(
+                f"Quick connect {quick_connect_id} not found"
+            )
         del qcs[quick_connect_id]
 
     # ---- Update/Delete: Routing Profile ----
 
     def update_routing_profile_concurrency(
-        self, instance_id: str, routing_profile_id: str,
+        self,
+        instance_id: str,
+        routing_profile_id: str,
         media_concurrencies: list[dict[str, Any]],
     ) -> None:
         self._get_instance_or_raise(instance_id)
         rps = self.routing_profiles.get(instance_id, {})
         if routing_profile_id not in rps:
-            raise ResourceNotFoundException(f"Routing profile {routing_profile_id} not found")
+            raise ResourceNotFoundException(
+                f"Routing profile {routing_profile_id} not found"
+            )
         rps[routing_profile_id].media_concurrencies = media_concurrencies
         rps[routing_profile_id].last_modified_time = _now_iso()
 
     def update_routing_profile_default_outbound_queue(
-        self, instance_id: str, routing_profile_id: str,
+        self,
+        instance_id: str,
+        routing_profile_id: str,
         default_outbound_queue_id: str,
     ) -> None:
         self._get_instance_or_raise(instance_id)
         rps = self.routing_profiles.get(instance_id, {})
         if routing_profile_id not in rps:
-            raise ResourceNotFoundException(f"Routing profile {routing_profile_id} not found")
+            raise ResourceNotFoundException(
+                f"Routing profile {routing_profile_id} not found"
+            )
         rps[routing_profile_id].default_outbound_queue_id = default_outbound_queue_id
         rps[routing_profile_id].last_modified_time = _now_iso()
 
     def update_routing_profile_name(
-        self, instance_id: str, routing_profile_id: str,
-        name: str | None = None, description: str | None = None,
+        self,
+        instance_id: str,
+        routing_profile_id: str,
+        name: str | None = None,
+        description: str | None = None,
     ) -> None:
         self._get_instance_or_raise(instance_id)
         rps = self.routing_profiles.get(instance_id, {})
         if routing_profile_id not in rps:
-            raise ResourceNotFoundException(f"Routing profile {routing_profile_id} not found")
+            raise ResourceNotFoundException(
+                f"Routing profile {routing_profile_id} not found"
+            )
         rp = rps[routing_profile_id]
-        if name is not None: rp.name = name
-        if description is not None: rp.description = description
+        if name is not None:
+            rp.name = name
+        if description is not None:
+            rp.description = description
         rp.last_modified_time = _now_iso()
 
     def delete_routing_profile(self, instance_id: str, routing_profile_id: str) -> None:
         self._get_instance_or_raise(instance_id)
         rps = self.routing_profiles.get(instance_id, {})
         if routing_profile_id not in rps:
-            raise ResourceNotFoundException(f"Routing profile {routing_profile_id} not found")
+            raise ResourceNotFoundException(
+                f"Routing profile {routing_profile_id} not found"
+            )
         del rps[routing_profile_id]
 
     # ---- Update/Delete: Security Profile ----
 
     def update_security_profile(
-        self, instance_id: str, security_profile_id: str,
+        self,
+        instance_id: str,
+        security_profile_id: str,
         security_profile_name: str | None = None,
         description: str | None = None,
         permissions: list[str] | None = None,
@@ -2274,20 +2607,31 @@ class ConnectBackend(BaseBackend):
         self._get_instance_or_raise(instance_id)
         sps = self.security_profiles.get(instance_id, {})
         if security_profile_id not in sps:
-            raise ResourceNotFoundException(f"Security profile {security_profile_id} not found")
+            raise ResourceNotFoundException(
+                f"Security profile {security_profile_id} not found"
+            )
         sp = sps[security_profile_id]
-        if security_profile_name is not None: sp.security_profile_name = security_profile_name
-        if description is not None: sp.description = description
-        if permissions is not None: sp.permissions = permissions
-        if allowed_access_control_tags is not None: sp.allowed_access_control_tags = allowed_access_control_tags
-        if tag_restricted_resources is not None: sp.tag_restricted_resources = tag_restricted_resources
+        if security_profile_name is not None:
+            sp.security_profile_name = security_profile_name
+        if description is not None:
+            sp.description = description
+        if permissions is not None:
+            sp.permissions = permissions
+        if allowed_access_control_tags is not None:
+            sp.allowed_access_control_tags = allowed_access_control_tags
+        if tag_restricted_resources is not None:
+            sp.tag_restricted_resources = tag_restricted_resources
         sp.last_modified_time = _now_iso()
 
-    def delete_security_profile(self, instance_id: str, security_profile_id: str) -> None:
+    def delete_security_profile(
+        self, instance_id: str, security_profile_id: str
+    ) -> None:
         self._get_instance_or_raise(instance_id)
         sps = self.security_profiles.get(instance_id, {})
         if security_profile_id not in sps:
-            raise ResourceNotFoundException(f"Security profile {security_profile_id} not found")
+            raise ResourceNotFoundException(
+                f"Security profile {security_profile_id} not found"
+            )
         del sps[security_profile_id]
 
     # ---- Update/Delete: User ----
@@ -2350,7 +2694,9 @@ class ConnectBackend(BaseBackend):
         users[user_id].last_modified_time = _now_iso()
 
     def search_users(
-        self, instance_id: str, search_criteria: dict[str, Any] | None = None,
+        self,
+        instance_id: str,
+        search_criteria: dict[str, Any] | None = None,
     ) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
         users = self.users.get(instance_id, {})
@@ -2364,11 +2710,17 @@ class ConnectBackend(BaseBackend):
         if vocabulary_id not in vocabs:
             raise ResourceNotFoundException(f"Vocabulary {vocabulary_id} not found")
         v = vocabs.pop(vocabulary_id)
-        return {"VocabularyArn": v.arn, "VocabularyId": v.vocabulary_id, "State": "DELETE_IN_PROGRESS"}
+        return {
+            "VocabularyArn": v.arn,
+            "VocabularyId": v.vocabulary_id,
+            "State": "DELETE_IN_PROGRESS",
+        }
 
     def search_vocabularies(
-        self, instance_id: str,
-        state: str | None = None, name_starts_with: str | None = None,
+        self,
+        instance_id: str,
+        state: str | None = None,
+        name_starts_with: str | None = None,
         language_code: str | None = None,
     ) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
@@ -2387,8 +2739,12 @@ class ConnectBackend(BaseBackend):
     # ---- Update/Delete: Rule ----
 
     def update_rule(
-        self, instance_id: str, rule_id: str,
-        name: str, function: str, actions: list[dict[str, Any]],
+        self,
+        instance_id: str,
+        rule_id: str,
+        name: str,
+        function: str,
+        actions: list[dict[str, Any]],
         publish_status: str,
     ) -> None:
         self._get_instance_or_raise(instance_id)
@@ -2412,7 +2768,9 @@ class ConnectBackend(BaseBackend):
     # ---- Phone Number: Claim, Release, Update, Search ----
 
     @staticmethod
-    def _generate_phone_number(country_code: str, phone_type: str, prefix: str = "") -> str:
+    def _generate_phone_number(
+        country_code: str, phone_type: str, prefix: str = ""
+    ) -> str:
         area = "".join(random.choices(string.digits, k=3))
         line = "".join(random.choices(string.digits, k=4))
         if country_code == "US":
@@ -2424,14 +2782,20 @@ class ConnectBackend(BaseBackend):
             return f"+{prefix or '1'}{digits}"
 
     def claim_phone_number(
-        self, instance_id: str, phone_number: str,
-        phone_number_country_code: str, phone_number_type: str,
-        description: str = "", tags: dict[str, str] | None = None,
+        self,
+        instance_id: str,
+        phone_number: str,
+        phone_number_country_code: str,
+        phone_number_type: str,
+        description: str = "",
+        tags: dict[str, str] | None = None,
     ) -> dict[str, Any]:
         instance = self._get_instance_or_raise(instance_id)
         for pn in self.phone_numbers.values():
             if pn.phone_number == phone_number:
-                raise DuplicateResourceException(f"Phone number {phone_number} is already claimed")
+                raise DuplicateResourceException(
+                    f"Phone number {phone_number} is already claimed"
+                )
         pn = PhoneNumber(
             instance_arn=instance.arn,
             phone_number=phone_number,
@@ -2451,15 +2815,17 @@ class ConnectBackend(BaseBackend):
         del self.phone_numbers[phone_number_id]
 
     def update_phone_number(
-        self, phone_number_id: str,
-        target_arn: str | None = None, instance_id: str | None = None,
+        self,
+        phone_number_id: str,
+        target_arn: str | None = None,
+        instance_id: str | None = None,
     ) -> dict[str, Any]:
         if phone_number_id not in self.phone_numbers:
             raise ResourceNotFoundException(f"Phone number {phone_number_id} not found")
         pn = self.phone_numbers[phone_number_id]
         if target_arn:
             pn.target_arn = target_arn
-            pn.instance_id = target_arn.split('/')[-1]
+            pn.instance_id = target_arn.split("/")[-1]
         elif instance_id:
             inst = self._get_instance_or_raise(instance_id)
             pn.target_arn = inst.arn
@@ -2470,8 +2836,11 @@ class ConnectBackend(BaseBackend):
         }
 
     def search_available_phone_numbers(
-        self, target_arn: str, phone_number_country_code: str,
-        phone_number_type: str, phone_number_prefix: str | None = None,
+        self,
+        target_arn: str,
+        phone_number_country_code: str,
+        phone_number_type: str,
+        phone_number_prefix: str | None = None,
         max_results: int = 10,
     ) -> list[dict[str, str]]:
         results = []
@@ -2479,11 +2848,928 @@ class ConnectBackend(BaseBackend):
             number = self._generate_phone_number(
                 phone_number_country_code, phone_number_type, phone_number_prefix or ""
             )
-            results.append({
-                "PhoneNumber": number,
-                "PhoneNumberCountryCode": phone_number_country_code,
-                "PhoneNumberType": phone_number_type,
-            })
+            results.append(
+                {
+                    "PhoneNumber": number,
+                    "PhoneNumberCountryCode": phone_number_country_code,
+                    "PhoneNumberType": phone_number_type,
+                }
+            )
         return results
+
+    # ---- Update/Delete: Contact Flow Metadata & Module Content/Metadata ----
+
+    def update_contact_flow_metadata(
+        self,
+        instance_id: str,
+        contact_flow_id: str,
+        name: str | None = None,
+        description: str | None = None,
+        contact_flow_state: str | None = None,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        flows = self.contact_flows.get(instance_id, {})
+        if contact_flow_id not in flows:
+            raise ResourceNotFoundException(f"Contact flow {contact_flow_id} not found")
+        flow = flows[contact_flow_id]
+        if name is not None:
+            flow.name = name
+        if description is not None:
+            flow.description = description
+        if contact_flow_state is not None:
+            flow.state = contact_flow_state
+
+    def update_contact_flow_module_content(
+        self, instance_id: str, contact_flow_module_id: str, content: str
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        modules = self.contact_flow_modules.get(instance_id, {})
+        if contact_flow_module_id not in modules:
+            raise ResourceNotFoundException(
+                f"Contact flow module {contact_flow_module_id} not found"
+            )
+        m = modules[contact_flow_module_id]
+        m.content = content
+        m.flow_module_content_sha256 = hashlib.sha256(content.encode()).hexdigest()
+
+    def update_contact_flow_module_metadata(
+        self,
+        instance_id: str,
+        contact_flow_module_id: str,
+        name: str | None = None,
+        description: str | None = None,
+        state: str | None = None,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        modules = self.contact_flow_modules.get(instance_id, {})
+        if contact_flow_module_id not in modules:
+            raise ResourceNotFoundException(
+                f"Contact flow module {contact_flow_module_id} not found"
+            )
+        m = modules[contact_flow_module_id]
+        if name is not None:
+            m.name = name
+        if description is not None:
+            m.description = description
+        if state is not None:
+            m.state = state
+
+    # ---- Update/Delete: View ----
+
+    def delete_view(self, instance_id: str, view_id: str) -> None:
+        self._get_instance_or_raise(instance_id)
+        views = self.views.get(instance_id, {})
+        if view_id not in views:
+            raise ResourceNotFoundException(f"View {view_id} not found")
+        del views[view_id]
+
+    def update_view_content(
+        self,
+        instance_id: str,
+        view_id: str,
+        content: dict[str, Any],
+        status: str | None = None,
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        views = self.views.get(instance_id, {})
+        if view_id not in views:
+            raise ResourceNotFoundException(f"View {view_id} not found")
+        v = views[view_id]
+        v.content = content
+        v.version += 1
+        if status is not None:
+            v.status = status
+        return v.to_dict()
+
+    def update_view_metadata(
+        self,
+        instance_id: str,
+        view_id: str,
+        name: str | None = None,
+        description: str | None = None,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        views = self.views.get(instance_id, {})
+        if view_id not in views:
+            raise ResourceNotFoundException(f"View {view_id} not found")
+        v = views[view_id]
+        if name is not None:
+            v.name = name
+        if description is not None:
+            v.description = description
+
+    # ---- Evaluation Form: Activate/Deactivate/Delete/Update ----
+
+    def activate_evaluation_form(
+        self, instance_id: str, evaluation_form_id: str, evaluation_form_version: int
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        forms = self.evaluation_forms.get(instance_id, {})
+        if evaluation_form_id not in forms:
+            raise ResourceNotFoundException(
+                f"Evaluation form {evaluation_form_id} not found"
+            )
+        f = forms[evaluation_form_id]
+        f.status = "ACTIVE"
+        f.last_modified_time = _now_iso()
+        return {
+            "EvaluationFormId": f.evaluation_form_id,
+            "EvaluationFormArn": f.arn,
+            "EvaluationFormVersion": f.version,
+        }
+
+    def deactivate_evaluation_form(
+        self, instance_id: str, evaluation_form_id: str, evaluation_form_version: int
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        forms = self.evaluation_forms.get(instance_id, {})
+        if evaluation_form_id not in forms:
+            raise ResourceNotFoundException(
+                f"Evaluation form {evaluation_form_id} not found"
+            )
+        f = forms[evaluation_form_id]
+        f.status = "DRAFT"
+        f.last_modified_time = _now_iso()
+        return {
+            "EvaluationFormId": f.evaluation_form_id,
+            "EvaluationFormArn": f.arn,
+            "EvaluationFormVersion": f.version,
+        }
+
+    def delete_evaluation_form(self, instance_id: str, evaluation_form_id: str) -> None:
+        self._get_instance_or_raise(instance_id)
+        forms = self.evaluation_forms.get(instance_id, {})
+        if evaluation_form_id not in forms:
+            raise ResourceNotFoundException(
+                f"Evaluation form {evaluation_form_id} not found"
+            )
+        del forms[evaluation_form_id]
+
+    def update_evaluation_form(
+        self,
+        instance_id: str,
+        evaluation_form_id: str,
+        title: str,
+        description: str = "",
+        items: list[dict[str, Any]] | None = None,
+        scoring_strategy: dict[str, str] | None = None,
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        forms = self.evaluation_forms.get(instance_id, {})
+        if evaluation_form_id not in forms:
+            raise ResourceNotFoundException(
+                f"Evaluation form {evaluation_form_id} not found"
+            )
+        f = forms[evaluation_form_id]
+        f.title = title
+        f.description = description
+        if items is not None:
+            f.items = items
+        if scoring_strategy is not None:
+            f.scoring_strategy = scoring_strategy
+        f.version += 1
+        f.last_modified_time = _now_iso()
+        return {
+            "EvaluationFormId": f.evaluation_form_id,
+            "EvaluationFormArn": f.arn,
+            "EvaluationFormVersion": f.version,
+        }
+
+    # ---- PredefinedAttribute CRUD ----
+
+    def create_predefined_attribute(
+        self,
+        instance_id: str,
+        name: str,
+        values: dict[str, Any],
+    ) -> None:
+        instance = self._get_instance_or_raise(instance_id)
+        attr = PredefinedAttribute(
+            instance_arn=instance.arn,
+            name=name,
+            values=values,
+        )
+        if instance_id not in self.predefined_attributes:
+            self.predefined_attributes[instance_id] = {}
+        self.predefined_attributes[instance_id][name] = attr
+
+    def describe_predefined_attribute(
+        self, instance_id: str, name: str
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        attrs = self.predefined_attributes.get(instance_id, {})
+        if name not in attrs:
+            raise ResourceNotFoundException(f"Predefined attribute {name} not found")
+        return attrs[name].to_dict()
+
+    def update_predefined_attribute(
+        self,
+        instance_id: str,
+        name: str,
+        values: dict[str, Any],
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        attrs = self.predefined_attributes.get(instance_id, {})
+        if name not in attrs:
+            raise ResourceNotFoundException(f"Predefined attribute {name} not found")
+        attrs[name].values = values
+        attrs[name].last_modified_time = _now_iso()
+
+    def delete_predefined_attribute(self, instance_id: str, name: str) -> None:
+        self._get_instance_or_raise(instance_id)
+        attrs = self.predefined_attributes.get(instance_id, {})
+        if name not in attrs:
+            raise ResourceNotFoundException(f"Predefined attribute {name} not found")
+        del attrs[name]
+
+    # ---- TaskTemplate CRUD ----
+
+    def create_task_template(
+        self,
+        instance_id: str,
+        name: str,
+        description: str = "",
+        fields: list[dict[str, Any]] | None = None,
+        defaults: dict[str, Any] | None = None,
+        constraints: dict[str, Any] | None = None,
+        contact_flow_id: str = "",
+        status: str = "ACTIVE",
+        tags: dict[str, str] | None = None,
+    ) -> dict[str, Any]:
+        instance = self._get_instance_or_raise(instance_id)
+        tt = TaskTemplate(
+            instance_arn=instance.arn,
+            name=name,
+            description=description,
+            fields=fields,
+            defaults=defaults,
+            constraints=constraints,
+            contact_flow_id=contact_flow_id,
+            status=status,
+            tags=tags,
+        )
+        if instance_id not in self.task_templates:
+            self.task_templates[instance_id] = {}
+        self.task_templates[instance_id][tt.task_template_id] = tt
+        if tags:
+            self.tag_resource(tt.arn, tags)
+        return {"Id": tt.task_template_id, "Arn": tt.arn}
+
+    def get_task_template(
+        self, instance_id: str, task_template_id: str
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        templates = self.task_templates.get(instance_id, {})
+        if task_template_id not in templates:
+            raise ResourceNotFoundException(
+                f"Task template {task_template_id} not found"
+            )
+        return templates[task_template_id].to_dict()
+
+    def update_task_template(
+        self,
+        instance_id: str,
+        task_template_id: str,
+        name: str | None = None,
+        description: str | None = None,
+        fields: list[dict[str, Any]] | None = None,
+        defaults: dict[str, Any] | None = None,
+        constraints: dict[str, Any] | None = None,
+        contact_flow_id: str | None = None,
+        status: str | None = None,
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        templates = self.task_templates.get(instance_id, {})
+        if task_template_id not in templates:
+            raise ResourceNotFoundException(
+                f"Task template {task_template_id} not found"
+            )
+        tt = templates[task_template_id]
+        if name is not None:
+            tt.name = name
+        if description is not None:
+            tt.description = description
+        if fields is not None:
+            tt.fields = fields
+        if defaults is not None:
+            tt.defaults = defaults
+        if constraints is not None:
+            tt.constraints = constraints
+        if contact_flow_id is not None:
+            tt.contact_flow_id = contact_flow_id
+        if status is not None:
+            tt.status = status
+        tt.last_modified_time = _now_iso()
+        return tt.to_dict()
+
+    def delete_task_template(self, instance_id: str, task_template_id: str) -> None:
+        self._get_instance_or_raise(instance_id)
+        templates = self.task_templates.get(instance_id, {})
+        if task_template_id not in templates:
+            raise ResourceNotFoundException(
+                f"Task template {task_template_id} not found"
+            )
+        del templates[task_template_id]
+
+    # ---- IntegrationAssociation CRUD ----
+
+    def create_integration_association(
+        self,
+        instance_id: str,
+        integration_type: str,
+        integration_arn: str,
+        source_application_url: str = "",
+        source_application_name: str = "",
+        source_type: str = "",
+        tags: dict[str, str] | None = None,
+    ) -> dict[str, str]:
+        instance = self._get_instance_or_raise(instance_id)
+        ia = IntegrationAssociation(
+            instance_arn=instance.arn,
+            integration_type=integration_type,
+            integration_arn=integration_arn,
+            source_application_url=source_application_url,
+            source_application_name=source_application_name,
+            source_type=source_type,
+            tags=tags,
+        )
+        if instance_id not in self.integration_associations:
+            self.integration_associations[instance_id] = {}
+        self.integration_associations[instance_id][ia.integration_association_id] = ia
+        if tags:
+            self.tag_resource(ia.arn, tags)
+        return {
+            "IntegrationAssociationId": ia.integration_association_id,
+            "IntegrationAssociationArn": ia.arn,
+        }
+
+    def delete_integration_association(
+        self, instance_id: str, integration_association_id: str
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        assocs = self.integration_associations.get(instance_id, {})
+        if integration_association_id not in assocs:
+            raise ResourceNotFoundException(
+                f"Integration association {integration_association_id} not found"
+            )
+        del assocs[integration_association_id]
+
+    # ---- UseCase CRUD ----
+
+    def create_use_case(
+        self,
+        instance_id: str,
+        integration_association_id: str,
+        use_case_type: str,
+        tags: dict[str, str] | None = None,
+    ) -> dict[str, str]:
+        instance = self._get_instance_or_raise(instance_id)
+        uc = UseCase(
+            instance_arn=instance.arn,
+            integration_association_id=integration_association_id,
+            use_case_type=use_case_type,
+            tags=tags,
+        )
+        if instance_id not in self.use_cases:
+            self.use_cases[instance_id] = {}
+        self.use_cases[instance_id][uc.use_case_id] = uc
+        if tags:
+            self.tag_resource(uc.arn, tags)
+        return {"UseCaseId": uc.use_case_id, "UseCaseArn": uc.arn}
+
+    def delete_use_case(
+        self, instance_id: str, integration_association_id: str, use_case_id: str
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        ucs = self.use_cases.get(instance_id, {})
+        if use_case_id not in ucs:
+            raise ResourceNotFoundException(f"Use case {use_case_id} not found")
+        del ucs[use_case_id]
+
+    # ---- Contact CRUD ----
+
+    def create_contact(
+        self,
+        instance_id: str,
+        channel: str,
+        initiation_method: str,
+        description: str = "",
+        name: str = "",
+        related_contact_id: str = "",
+        segment_attributes: dict[str, Any] | None = None,
+        user_info: dict[str, Any] | None = None,
+    ) -> dict[str, str]:
+        instance = self._get_instance_or_raise(instance_id)
+        contact = Contact(
+            instance_arn=instance.arn,
+            channel=channel,
+            initiation_method=initiation_method,
+            description=description,
+            name=name,
+            related_contact_id=related_contact_id,
+            segment_attributes=segment_attributes,
+            user_info=user_info,
+        )
+        if instance_id not in self.contacts:
+            self.contacts[instance_id] = {}
+        self.contacts[instance_id][contact.contact_id] = contact
+        return {"ContactId": contact.contact_id, "ContactArn": contact.arn}
+
+    def describe_contact(self, instance_id: str, contact_id: str) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        contacts = self.contacts.get(instance_id, {})
+        if contact_id not in contacts:
+            raise ResourceNotFoundException(f"Contact {contact_id} not found")
+        return contacts[contact_id].to_dict()
+
+    def update_contact(
+        self,
+        instance_id: str,
+        contact_id: str,
+        name: str | None = None,
+        description: str | None = None,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        contacts = self.contacts.get(instance_id, {})
+        if contact_id not in contacts:
+            raise ResourceNotFoundException(f"Contact {contact_id} not found")
+        c = contacts[contact_id]
+        if name is not None:
+            c.name = name
+        if description is not None:
+            c.description = description
+        c.last_update_timestamp = _now_iso()
+
+    def stop_contact(self, instance_id: str, contact_id: str) -> None:
+        self._get_instance_or_raise(instance_id)
+        contacts = self.contacts.get(instance_id, {})
+        if contact_id not in contacts:
+            raise ResourceNotFoundException(f"Contact {contact_id} not found")
+        # Just mark as stopped by removing (or could set disconnect timestamp)
+        del contacts[contact_id]
+
+    # ---- HoursOfOperationOverride CRUD ----
+
+    def create_hours_of_operation_override(
+        self,
+        instance_id: str,
+        hours_of_operation_id: str,
+        name: str,
+        description: str = "",
+        config: list[dict[str, Any]] | None = None,
+        effective_from: str = "",
+        effective_till: str = "",
+    ) -> dict[str, str]:
+        instance = self._get_instance_or_raise(instance_id)
+        override = HoursOfOperationOverride(
+            instance_arn=instance.arn,
+            hours_of_operation_id=hours_of_operation_id,
+            name=name,
+            description=description,
+            config=config,
+            effective_from=effective_from,
+            effective_till=effective_till,
+        )
+        key = f"{instance_id}:{hours_of_operation_id}"
+        if key not in self.hours_of_operation_overrides:
+            self.hours_of_operation_overrides[key] = {}
+        self.hours_of_operation_overrides[key][
+            override.hours_of_operation_override_id
+        ] = override
+        return {
+            "HoursOfOperationOverrideId": override.hours_of_operation_override_id,
+        }
+
+    def describe_hours_of_operation_override(
+        self,
+        instance_id: str,
+        hours_of_operation_id: str,
+        hours_of_operation_override_id: str,
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        key = f"{instance_id}:{hours_of_operation_id}"
+        overrides = self.hours_of_operation_overrides.get(key, {})
+        if hours_of_operation_override_id not in overrides:
+            raise ResourceNotFoundException(
+                f"Hours of operation override {hours_of_operation_override_id} not found"
+            )
+        return overrides[hours_of_operation_override_id].to_dict()
+
+    def update_hours_of_operation_override(
+        self,
+        instance_id: str,
+        hours_of_operation_id: str,
+        hours_of_operation_override_id: str,
+        name: str | None = None,
+        description: str | None = None,
+        config: list[dict[str, Any]] | None = None,
+        effective_from: str | None = None,
+        effective_till: str | None = None,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        key = f"{instance_id}:{hours_of_operation_id}"
+        overrides = self.hours_of_operation_overrides.get(key, {})
+        if hours_of_operation_override_id not in overrides:
+            raise ResourceNotFoundException(
+                f"Hours of operation override {hours_of_operation_override_id} not found"
+            )
+        o = overrides[hours_of_operation_override_id]
+        if name is not None:
+            o.name = name
+        if description is not None:
+            o.description = description
+        if config is not None:
+            o.config = config
+        if effective_from is not None:
+            o.effective_from = effective_from
+        if effective_till is not None:
+            o.effective_till = effective_till
+
+    def delete_hours_of_operation_override(
+        self,
+        instance_id: str,
+        hours_of_operation_id: str,
+        hours_of_operation_override_id: str,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        key = f"{instance_id}:{hours_of_operation_id}"
+        overrides = self.hours_of_operation_overrides.get(key, {})
+        if hours_of_operation_override_id not in overrides:
+            raise ResourceNotFoundException(
+                f"Hours of operation override {hours_of_operation_override_id} not found"
+            )
+        del overrides[hours_of_operation_override_id]
+
+    def list_hours_of_operation_overrides(
+        self, instance_id: str, hours_of_operation_id: str
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        key = f"{instance_id}:{hours_of_operation_id}"
+        overrides = self.hours_of_operation_overrides.get(key, {})
+        return [o.to_dict() for o in overrides.values()]
+
+    # ---- Association operations ----
+
+    def associate_approved_origin(self, instance_id: str, origin: str) -> None:
+        self._get_instance_or_raise(instance_id)
+        if instance_id not in self.approved_origins:
+            self.approved_origins[instance_id] = []
+        if origin not in self.approved_origins[instance_id]:
+            self.approved_origins[instance_id].append(origin)
+
+    def disassociate_approved_origin(self, instance_id: str, origin: str) -> None:
+        self._get_instance_or_raise(instance_id)
+        origins = self.approved_origins.get(instance_id, [])
+        if origin in origins:
+            origins.remove(origin)
+
+    def associate_lambda_function(self, instance_id: str, function_arn: str) -> None:
+        self._get_instance_or_raise(instance_id)
+        if instance_id not in self.lambda_functions:
+            self.lambda_functions[instance_id] = []
+        if function_arn not in self.lambda_functions[instance_id]:
+            self.lambda_functions[instance_id].append(function_arn)
+
+    def disassociate_lambda_function(self, instance_id: str, function_arn: str) -> None:
+        self._get_instance_or_raise(instance_id)
+        funcs = self.lambda_functions.get(instance_id, [])
+        if function_arn in funcs:
+            funcs.remove(function_arn)
+
+    def associate_bot(
+        self,
+        instance_id: str,
+        lex_bot: dict[str, Any] | None = None,
+        lex_v2_bot: dict[str, Any] | None = None,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        if instance_id not in self.bots:
+            self.bots[instance_id] = []
+        entry: dict[str, Any] = {}
+        if lex_bot:
+            entry["LexBot"] = lex_bot
+        if lex_v2_bot:
+            entry["LexV2Bot"] = lex_v2_bot
+        self.bots[instance_id].append(entry)
+
+    def disassociate_bot(
+        self,
+        instance_id: str,
+        lex_bot: dict[str, Any] | None = None,
+        lex_v2_bot: dict[str, Any] | None = None,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        bots = self.bots.get(instance_id, [])
+        if lex_bot:
+            self.bots[instance_id] = [b for b in bots if b.get("LexBot") != lex_bot]
+        if lex_v2_bot:
+            self.bots[instance_id] = [
+                b for b in bots if b.get("LexV2Bot") != lex_v2_bot
+            ]
+
+    def associate_security_key(self, instance_id: str, key: str) -> dict[str, str]:
+        self._get_instance_or_raise(instance_id)
+        if instance_id not in self.security_keys:
+            self.security_keys[instance_id] = []
+        assoc_id = str(uuid.uuid4())
+        self.security_keys[instance_id].append(
+            {
+                "AssociationId": assoc_id,
+                "Key": key,
+                "CreationTime": _now_iso(),
+            }
+        )
+        return {"AssociationId": assoc_id}
+
+    def disassociate_security_key(self, instance_id: str, association_id: str) -> None:
+        self._get_instance_or_raise(instance_id)
+        keys = self.security_keys.get(instance_id, [])
+        self.security_keys[instance_id] = [
+            k for k in keys if k.get("AssociationId") != association_id
+        ]
+
+    def associate_instance_storage_config(
+        self,
+        instance_id: str,
+        resource_type: str,
+        storage_config: dict[str, Any],
+    ) -> dict[str, str]:
+        self._get_instance_or_raise(instance_id)
+        if instance_id not in self.instance_storage_configs:
+            self.instance_storage_configs[instance_id] = []
+        assoc_id = str(uuid.uuid4())
+        entry = {
+            "AssociationId": assoc_id,
+            "ResourceType": resource_type,
+            "StorageConfig": storage_config,
+        }
+        self.instance_storage_configs[instance_id].append(entry)
+        return {"AssociationId": assoc_id}
+
+    def disassociate_instance_storage_config(
+        self, instance_id: str, association_id: str, resource_type: str
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        configs = self.instance_storage_configs.get(instance_id, [])
+        self.instance_storage_configs[instance_id] = [
+            c for c in configs if c.get("AssociationId") != association_id
+        ]
+
+    def associate_queue_quick_connects(
+        self, instance_id: str, queue_id: str, quick_connect_ids: list[str]
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        if instance_id not in self.queue_quick_connect_associations:
+            self.queue_quick_connect_associations[instance_id] = {}
+        if queue_id not in self.queue_quick_connect_associations[instance_id]:
+            self.queue_quick_connect_associations[instance_id][queue_id] = set()
+        self.queue_quick_connect_associations[instance_id][queue_id].update(
+            quick_connect_ids
+        )
+
+    def disassociate_queue_quick_connects(
+        self, instance_id: str, queue_id: str, quick_connect_ids: list[str]
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        assocs = self.queue_quick_connect_associations.get(instance_id, {}).get(
+            queue_id, set()
+        )
+        for qc_id in quick_connect_ids:
+            assocs.discard(qc_id)
+
+    def associate_routing_profile_queues(
+        self,
+        instance_id: str,
+        routing_profile_id: str,
+        queue_configs: list[dict[str, Any]],
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        rps = self.routing_profiles.get(instance_id, {})
+        if routing_profile_id not in rps:
+            raise ResourceNotFoundException(
+                f"Routing profile {routing_profile_id} not found"
+            )
+        if instance_id not in self.routing_profile_queue_associations:
+            self.routing_profile_queue_associations[instance_id] = {}
+        if (
+            routing_profile_id
+            not in self.routing_profile_queue_associations[instance_id]
+        ):
+            self.routing_profile_queue_associations[instance_id][
+                routing_profile_id
+            ] = []
+        self.routing_profile_queue_associations[instance_id][routing_profile_id].extend(
+            queue_configs
+        )
+        rps[routing_profile_id].number_of_associated_queues = len(
+            self.routing_profile_queue_associations[instance_id][routing_profile_id]
+        )
+
+    def disassociate_routing_profile_queues(
+        self,
+        instance_id: str,
+        routing_profile_id: str,
+        queue_references: list[dict[str, str]],
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        rps = self.routing_profiles.get(instance_id, {})
+        if routing_profile_id not in rps:
+            raise ResourceNotFoundException(
+                f"Routing profile {routing_profile_id} not found"
+            )
+        existing = self.routing_profile_queue_associations.get(instance_id, {}).get(
+            routing_profile_id, []
+        )
+        remove_ids = {r.get("QueueId") for r in queue_references}
+        filtered = [
+            q
+            for q in existing
+            if q.get("QueueReference", {}).get("QueueId") not in remove_ids
+        ]
+        if instance_id in self.routing_profile_queue_associations:
+            self.routing_profile_queue_associations[instance_id][routing_profile_id] = (
+                filtered
+            )
+        rps[routing_profile_id].number_of_associated_queues = len(filtered)
+
+    def update_routing_profile_queues(
+        self,
+        instance_id: str,
+        routing_profile_id: str,
+        queue_configs: list[dict[str, Any]],
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        rps = self.routing_profiles.get(instance_id, {})
+        if routing_profile_id not in rps:
+            raise ResourceNotFoundException(
+                f"Routing profile {routing_profile_id} not found"
+            )
+        if instance_id not in self.routing_profile_queue_associations:
+            self.routing_profile_queue_associations[instance_id] = {}
+        self.routing_profile_queue_associations[instance_id][routing_profile_id] = (
+            queue_configs
+        )
+        rps[routing_profile_id].number_of_associated_queues = len(queue_configs)
+
+    # ---- User Hierarchy Group: Delete/Update/Search ----
+
+    def delete_user_hierarchy_group(
+        self, instance_id: str, hierarchy_group_id: str
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        groups = self.user_hierarchy_groups.get(instance_id, {})
+        if hierarchy_group_id not in groups:
+            raise ResourceNotFoundException(
+                f"Hierarchy group {hierarchy_group_id} not found"
+            )
+        del groups[hierarchy_group_id]
+
+    def update_user_hierarchy_group_name(
+        self, instance_id: str, hierarchy_group_id: str, name: str
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        groups = self.user_hierarchy_groups.get(instance_id, {})
+        if hierarchy_group_id not in groups:
+            raise ResourceNotFoundException(
+                f"Hierarchy group {hierarchy_group_id} not found"
+            )
+        groups[hierarchy_group_id].name = name
+        groups[hierarchy_group_id].last_modified_time = _now_iso()
+
+    def update_user_hierarchy_structure(
+        self, instance_id: str, hierarchy_structure: dict[str, Any]
+    ) -> None:
+        # This operation updates the hierarchy level names but we store a default
+        # structure. Just accept and silently succeed.
+        self._get_instance_or_raise(instance_id)
+
+    # ---- TrafficDistributionGroup: Delete/List ----
+
+    def delete_traffic_distribution_group(
+        self, traffic_distribution_group_id: str
+    ) -> None:
+        if traffic_distribution_group_id not in self.traffic_distribution_groups:
+            raise ResourceNotFoundException(
+                f"Traffic distribution group {traffic_distribution_group_id} not found"
+            )
+        del self.traffic_distribution_groups[traffic_distribution_group_id]
+
+    def list_traffic_distribution_groups(
+        self,
+        instance_id: str | None = None,
+    ) -> list[dict[str, Any]]:
+        results = []
+        for tdg in self.traffic_distribution_groups.values():
+            if instance_id and tdg.instance_arn.split("/")[-1] != instance_id:
+                continue
+            results.append(tdg.to_dict())
+        return results
+
+    # ---- Search operations ----
+
+    def search_queues(
+        self,
+        instance_id: str,
+        search_criteria: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        queues = self.queues.get(instance_id, {})
+        results = []
+        for q in queues.values():
+            d = q.to_dict()
+            d["QueueType"] = "STANDARD"
+            results.append(d)
+        return results
+
+    def search_quick_connects(
+        self,
+        instance_id: str,
+        search_criteria: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        qcs = self.quick_connects.get(instance_id, {})
+        return [qc.to_dict() for qc in qcs.values()]
+
+    def search_prompts(
+        self,
+        instance_id: str,
+        search_criteria: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        prompts = self.prompts.get(instance_id, {})
+        return [p.to_dict() for p in prompts.values()]
+
+    def search_routing_profiles(
+        self,
+        instance_id: str,
+        search_criteria: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        rps = self.routing_profiles.get(instance_id, {})
+        return [rp.to_dict() for rp in rps.values()]
+
+    def search_security_profiles(
+        self,
+        instance_id: str,
+        search_criteria: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        sps = self.security_profiles.get(instance_id, {})
+        return [sp.to_dict() for sp in sps.values()]
+
+    def search_hours_of_operations(
+        self,
+        instance_id: str,
+        search_criteria: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        hours = self.hours_of_operations.get(instance_id, {})
+        return [h.to_dict() for h in hours.values()]
+
+    def search_agent_statuses(
+        self,
+        instance_id: str,
+        search_criteria: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        statuses = self.agent_statuses.get(instance_id, {})
+        return [s.to_dict() for s in statuses.values()]
+
+    def search_contact_flows(
+        self,
+        instance_id: str,
+        search_criteria: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        flows = self.contact_flows.get(instance_id, {})
+        return [f.to_dict() for f in flows.values()]
+
+    def search_contact_flow_modules(
+        self,
+        instance_id: str,
+        search_criteria: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        modules = self.contact_flow_modules.get(instance_id, {})
+        return [m.to_dict() for m in modules.values()]
+
+    def search_predefined_attributes(
+        self,
+        instance_id: str,
+        search_criteria: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        attrs = self.predefined_attributes.get(instance_id, {})
+        return [a.to_dict() for a in attrs.values()]
+
+    def search_user_hierarchy_groups(
+        self,
+        instance_id: str,
+        search_criteria: dict[str, Any] | None = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        groups = self.user_hierarchy_groups.get(instance_id, {})
+        return [g.to_dict() for g in groups.values()]
+
 
 connect_backends = BackendDict(ConnectBackend, "connect")

@@ -13,12 +13,17 @@ url_paths = {
     "{0}/instance/(?P<InstanceId>[^/]+)/storage-config/(?P<AssociationId>[^/]+)$": ConnectResponse.dispatch,
     "{0}/instance/(?P<InstanceId>[^/]+)/storage-configs$": ConnectResponse.dispatch,
     "{0}/instance/(?P<InstanceId>[^/]+)/approved-origins$": ConnectResponse.dispatch,
+    "{0}/instance/(?P<InstanceId>[^/]+)/approved-origin$": ConnectResponse.dispatch,
     "{0}/instance/(?P<InstanceId>[^/]+)/bots$": ConnectResponse.dispatch,
+    "{0}/instance/(?P<InstanceId>[^/]+)/bot$": ConnectResponse.dispatch,
     "{0}/instance/(?P<InstanceId>[^/]+)/lambda-functions$": ConnectResponse.dispatch,
+    "{0}/instance/(?P<InstanceId>[^/]+)/lambda-function$": ConnectResponse.dispatch,
     "{0}/instance/(?P<InstanceId>[^/]+)/security-keys$": ConnectResponse.dispatch,
+    "{0}/instance/(?P<InstanceId>[^/]+)/security-key$": ConnectResponse.dispatch,
+    "{0}/instance/(?P<InstanceId>[^/]+)/security-key/(?P<AssociationId>[^/]+)$": ConnectResponse.dispatch,
+    "{0}/instance/(?P<InstanceId>[^/]+)/storage-config$": ConnectResponse.dispatch,
     "{0}/instance/(?P<InstanceId>[^/]+)/integration-associations$": ConnectResponse.dispatch,
     "{0}/instance/(?P<InstanceId>[^/]+)/integration-associations/(?P<IntegrationAssociationId>[^/]+)/use-cases$": ConnectResponse.dispatch,
-    "{0}/instance/(?P<InstanceId>[^/]+)/task/template$": ConnectResponse.dispatch,
     "{0}/analytics-data/instance/(?P<InstanceId>[^/]+)/association$": ConnectResponse.dispatch,
     # Agent status
     "{0}/agent-status/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
@@ -30,9 +35,13 @@ url_paths = {
     "{0}/contact-flows/(?P<InstanceId>[^/]+)/(?P<ContactFlowId>[^/]+)/content$": ConnectResponse.dispatch,
     "{0}/contact-flows/(?P<InstanceId>[^/]+)/(?P<ContactFlowId>[^/]+)/name$": ConnectResponse.dispatch,
     "{0}/contact-flows-summary/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
+    # Contact flow metadata
+    "{0}/contact-flows/(?P<InstanceId>[^/]+)/(?P<ContactFlowId>[^/]+)/metadata$": ConnectResponse.dispatch,
     # Contact flow modules
     "{0}/contact-flow-modules/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
     "{0}/contact-flow-modules/(?P<InstanceId>[^/]+)/(?P<ContactFlowModuleId>[^/]+)$": ConnectResponse.dispatch,
+    "{0}/contact-flow-modules/(?P<InstanceId>[^/]+)/(?P<ContactFlowModuleId>[^/]+)/content$": ConnectResponse.dispatch,
+    "{0}/contact-flow-modules/(?P<InstanceId>[^/]+)/(?P<ContactFlowModuleId>[^/]+)/metadata$": ConnectResponse.dispatch,
     "{0}/contact-flow-modules-summary/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
     # Contact evaluations and references
     "{0}/contact-evaluations/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
@@ -49,7 +58,19 @@ url_paths = {
     "{0}/hours-of-operations/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
     "{0}/hours-of-operations/(?P<InstanceId>[^/]+)/(?P<HoursOfOperationId>[^/]+)$": ConnectResponse.dispatch,
     "{0}/hours-of-operations/(?P<InstanceId>[^/]+)/(?P<HoursOfOperationId>[^/]+)/overrides$": ConnectResponse.dispatch,
+    "{0}/hours-of-operations/(?P<InstanceId>[^/]+)/(?P<HoursOfOperationId>[^/]+)/overrides/(?P<HoursOfOperationOverrideId>[^/]+)$": ConnectResponse.dispatch,
     "{0}/hours-of-operations-summary/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
+    # Predefined attributes
+    "{0}/predefined-attributes/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
+    "{0}/predefined-attributes/(?P<InstanceId>[^/]+)/(?P<Name>[^/]+)$": ConnectResponse.dispatch,
+    "{0}/predefined-attributes-summary/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
+    # Task templates
+    "{0}/instance/(?P<InstanceId>[^/]+)/task/template$": ConnectResponse.dispatch,
+    "{0}/instance/(?P<InstanceId>[^/]+)/task/template/(?P<TaskTemplateId>[^/]+)$": ConnectResponse.dispatch,
+    # Contacts
+    "{0}/contact/create-contact$": ConnectResponse.dispatch,
+    "{0}/contacts/(?P<InstanceId>[^/]+)/(?P<ContactId>[^/]+)$": ConnectResponse.dispatch,
+    "{0}/contact/stop$": ConnectResponse.dispatch,
     # Phone number
     "{0}/phone-number/claim$": ConnectResponse.dispatch,
     "{0}/phone-number/search-available$": ConnectResponse.dispatch,
@@ -69,6 +90,8 @@ url_paths = {
     "{0}/queues/(?P<InstanceId>[^/]+)/(?P<QueueId>[^/]+)/hours-of-operation$": ConnectResponse.dispatch,
     "{0}/queues/(?P<InstanceId>[^/]+)/(?P<QueueId>[^/]+)/outbound-caller-config$": ConnectResponse.dispatch,
     "{0}/queues/(?P<InstanceId>[^/]+)/(?P<QueueId>[^/]+)/quick-connects$": ConnectResponse.dispatch,
+    "{0}/queues/(?P<InstanceId>[^/]+)/(?P<QueueId>[^/]+)/associate-quick-connects$": ConnectResponse.dispatch,
+    "{0}/queues/(?P<InstanceId>[^/]+)/(?P<QueueId>[^/]+)/disassociate-quick-connects$": ConnectResponse.dispatch,
     "{0}/queues-summary/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
     # Quick connects
     "{0}/quick-connects/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
@@ -82,6 +105,8 @@ url_paths = {
     "{0}/routing-profiles/(?P<InstanceId>[^/]+)/(?P<RoutingProfileId>[^/]+)/default-outbound-queue$": ConnectResponse.dispatch,
     "{0}/routing-profiles/(?P<InstanceId>[^/]+)/(?P<RoutingProfileId>[^/]+)/name$": ConnectResponse.dispatch,
     "{0}/routing-profiles/(?P<InstanceId>[^/]+)/(?P<RoutingProfileId>[^/]+)/queues$": ConnectResponse.dispatch,
+    "{0}/routing-profiles/(?P<InstanceId>[^/]+)/(?P<RoutingProfileId>[^/]+)/associate-queues$": ConnectResponse.dispatch,
+    "{0}/routing-profiles/(?P<InstanceId>[^/]+)/(?P<RoutingProfileId>[^/]+)/disassociate-queues$": ConnectResponse.dispatch,
     "{0}/routing-profiles-summary/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
     # Rules
     "{0}/rules/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
@@ -111,9 +136,13 @@ url_paths = {
     "{0}/user-hierarchy-groups/(?P<InstanceId>[^/]+)/(?P<HierarchyGroupId>[^/]+)$": ConnectResponse.dispatch,
     "{0}/user-hierarchy-groups-summary/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
     "{0}/user-hierarchy-structure/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
+    # Use case
+    "{0}/instance/(?P<InstanceId>[^/]+)/integration-associations/(?P<IntegrationAssociationId>[^/]+)/use-cases/(?P<UseCaseId>[^/]+)$": ConnectResponse.dispatch,
     # Views
     "{0}/views/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
     "{0}/views/(?P<InstanceId>[^/]+)/(?P<ViewId>[^/]+)$": ConnectResponse.dispatch,
+    "{0}/views/(?P<InstanceId>[^/]+)/(?P<ViewId>[^/]+)/content$": ConnectResponse.dispatch,
+    "{0}/views/(?P<InstanceId>[^/]+)/(?P<ViewId>[^/]+)/metadata$": ConnectResponse.dispatch,
     # Vocabulary
     "{0}/vocabulary/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
     "{0}/vocabulary/(?P<InstanceId>[^/]+)/(?P<VocabularyId>[^/]+)$": ConnectResponse.dispatch,
@@ -123,6 +152,21 @@ url_paths = {
     # Contact attributes
     "{0}/contact/attributes/(?P<InstanceId>[^/]+)/(?P<InitialContactId>[^/]+)$": ConnectResponse.dispatch,
     "{0}/contact/attributes$": ConnectResponse.dispatch,
+    # Evaluation form activate/deactivate
+    "{0}/evaluation-forms/(?P<InstanceId>[^/]+)/(?P<EvaluationFormId>[^/]+)/activate$": ConnectResponse.dispatch,
+    "{0}/evaluation-forms/(?P<InstanceId>[^/]+)/(?P<EvaluationFormId>[^/]+)/deactivate$": ConnectResponse.dispatch,
+    # Search endpoints
+    "{0}/search-queues$": ConnectResponse.dispatch,
+    "{0}/search-quick-connects$": ConnectResponse.dispatch,
+    "{0}/search-prompts$": ConnectResponse.dispatch,
+    "{0}/search-routing-profiles$": ConnectResponse.dispatch,
+    "{0}/search-security-profiles$": ConnectResponse.dispatch,
+    "{0}/search-hours-of-operations$": ConnectResponse.dispatch,
+    "{0}/search-agent-statuses$": ConnectResponse.dispatch,
+    "{0}/search-contact-flows$": ConnectResponse.dispatch,
+    "{0}/search-contact-flow-modules$": ConnectResponse.dispatch,
+    "{0}/search-user-hierarchy-groups$": ConnectResponse.dispatch,
+    "{0}/search-predefined-attributes$": ConnectResponse.dispatch,
     # Tags
     "{0}/tags/(?P<resourceArn>.+)$": ConnectResponse.dispatch,
 }

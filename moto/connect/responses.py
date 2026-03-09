@@ -108,7 +108,9 @@ class ConnectResponse(BaseResponse):
 
     def list_contact_flow_modules(self) -> str:
         instance_id = self._get_instance_id()
-        results = self.connect_backend.list_contact_flow_modules(instance_id=instance_id)
+        results = self.connect_backend.list_contact_flow_modules(
+            instance_id=instance_id
+        )
         return json.dumps({"ContactFlowModulesSummaryList": results})
 
     def list_contact_flow_versions(self) -> str:
@@ -131,7 +133,9 @@ class ConnectResponse(BaseResponse):
 
     def list_default_vocabularies(self) -> str:
         instance_id = self._get_instance_id()
-        results = self.connect_backend.list_default_vocabularies(instance_id=instance_id)
+        results = self.connect_backend.list_default_vocabularies(
+            instance_id=instance_id
+        )
         return json.dumps({"DefaultVocabularyList": results})
 
     def list_evaluation_form_versions(self) -> str:
@@ -151,14 +155,6 @@ class ConnectResponse(BaseResponse):
         instance_id = self._get_instance_id()
         results = self.connect_backend.list_flow_associations(instance_id=instance_id)
         return json.dumps({"FlowAssociationSummaryList": results})
-
-    def list_hours_of_operation_overrides(self) -> str:
-        instance_id = self._get_instance_id()
-        hours_of_operation_id = self._get_param("HoursOfOperationId")
-        results = self.connect_backend.list_hours_of_operation_overrides(
-            instance_id=instance_id, hours_of_operation_id=hours_of_operation_id
-        )
-        return json.dumps({"HoursOfOperationOverrideList": results})
 
     def list_hours_of_operations(self) -> str:
         instance_id = self._get_instance_id()
@@ -425,6 +421,19 @@ class ConnectResponse(BaseResponse):
         )
         return "{}"
 
+    def update_contact_flow_metadata(self) -> str:
+        instance_id = self._get_instance_id()
+        contact_flow_id = self._get_param_from_path("ContactFlowId")
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.update_contact_flow_metadata(
+            instance_id=instance_id,
+            contact_flow_id=contact_flow_id,
+            name=params.get("Name"),
+            description=params.get("Description"),
+            contact_flow_state=params.get("ContactFlowState"),
+        )
+        return "{}"
+
     # ---- Contact Flow Module ----
 
     def create_contact_flow_module(self) -> str:
@@ -452,6 +461,30 @@ class ConnectResponse(BaseResponse):
         module_id = self._get_param_from_path("ContactFlowModuleId")
         self.connect_backend.delete_contact_flow_module(
             instance_id=instance_id, contact_flow_module_id=module_id
+        )
+        return "{}"
+
+    def update_contact_flow_module_content(self) -> str:
+        instance_id = self._get_instance_id()
+        module_id = self._get_param_from_path("ContactFlowModuleId")
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.update_contact_flow_module_content(
+            instance_id=instance_id,
+            contact_flow_module_id=module_id,
+            content=str(params["Content"]),
+        )
+        return "{}"
+
+    def update_contact_flow_module_metadata(self) -> str:
+        instance_id = self._get_instance_id()
+        module_id = self._get_param_from_path("ContactFlowModuleId")
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.update_contact_flow_module_metadata(
+            instance_id=instance_id,
+            contact_flow_module_id=module_id,
+            name=params.get("Name"),
+            description=params.get("Description"),
+            state=params.get("State"),
         )
         return "{}"
 
@@ -500,6 +533,70 @@ class ConnectResponse(BaseResponse):
         )
         return "{}"
 
+    # ---- Hours of Operation Override ----
+
+    def create_hours_of_operation_override(self) -> str:
+        instance_id = self._get_instance_id()
+        hours_id = self._get_param_from_path("HoursOfOperationId")
+        params = json.loads(self.body) if self.body else {}
+        result = self.connect_backend.create_hours_of_operation_override(
+            instance_id=instance_id,
+            hours_of_operation_id=hours_id,
+            name=str(params["Name"]),
+            description=params.get("Description", ""),
+            config=params.get("Config"),
+            effective_from=params.get("EffectiveFrom", ""),
+            effective_till=params.get("EffectiveTill", ""),
+        )
+        return json.dumps(result)
+
+    def describe_hours_of_operation_override(self) -> str:
+        instance_id = self._get_instance_id()
+        hours_id = self._get_param_from_path("HoursOfOperationId")
+        override_id = self._get_param_from_path("HoursOfOperationOverrideId")
+        result = self.connect_backend.describe_hours_of_operation_override(
+            instance_id=instance_id,
+            hours_of_operation_id=hours_id,
+            hours_of_operation_override_id=override_id,
+        )
+        return json.dumps({"HoursOfOperationOverride": result})
+
+    def update_hours_of_operation_override(self) -> str:
+        instance_id = self._get_instance_id()
+        hours_id = self._get_param_from_path("HoursOfOperationId")
+        override_id = self._get_param_from_path("HoursOfOperationOverrideId")
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.update_hours_of_operation_override(
+            instance_id=instance_id,
+            hours_of_operation_id=hours_id,
+            hours_of_operation_override_id=override_id,
+            name=params.get("Name"),
+            description=params.get("Description"),
+            config=params.get("Config"),
+            effective_from=params.get("EffectiveFrom"),
+            effective_till=params.get("EffectiveTill"),
+        )
+        return "{}"
+
+    def delete_hours_of_operation_override(self) -> str:
+        instance_id = self._get_instance_id()
+        hours_id = self._get_param_from_path("HoursOfOperationId")
+        override_id = self._get_param_from_path("HoursOfOperationOverrideId")
+        self.connect_backend.delete_hours_of_operation_override(
+            instance_id=instance_id,
+            hours_of_operation_id=hours_id,
+            hours_of_operation_override_id=override_id,
+        )
+        return "{}"
+
+    def list_hours_of_operation_overrides(self) -> str:
+        instance_id = self._get_instance_id()
+        hours_id = self._get_param_from_path("HoursOfOperationId")
+        results = self.connect_backend.list_hours_of_operation_overrides(
+            instance_id=instance_id, hours_of_operation_id=hours_id
+        )
+        return json.dumps({"HoursOfOperationOverrideList": results})
+
     # ---- Prompt ----
 
     def create_prompt(self) -> str:
@@ -527,8 +624,10 @@ class ConnectResponse(BaseResponse):
         prompt_id = self._get_param_from_path("PromptId")
         params = json.loads(self.body) if self.body else {}
         result = self.connect_backend.update_prompt(
-            instance_id=instance_id, prompt_id=prompt_id,
-            name=params.get("Name"), description=params.get("Description"),
+            instance_id=instance_id,
+            prompt_id=prompt_id,
+            name=params.get("Name"),
+            description=params.get("Description"),
             s3_uri=params.get("S3Uri"),
         )
         return json.dumps(result)
@@ -568,8 +667,10 @@ class ConnectResponse(BaseResponse):
         queue_id = self._get_param_from_path("QueueId")
         params = json.loads(self.body) if self.body else {}
         self.connect_backend.update_queue_name(
-            instance_id=instance_id, queue_id=queue_id,
-            name=params.get("Name"), description=params.get("Description"),
+            instance_id=instance_id,
+            queue_id=queue_id,
+            name=params.get("Name"),
+            description=params.get("Description"),
         )
         return "{}"
 
@@ -578,7 +679,9 @@ class ConnectResponse(BaseResponse):
         queue_id = self._get_param_from_path("QueueId")
         params = json.loads(self.body) if self.body else {}
         self.connect_backend.update_queue_status(
-            instance_id=instance_id, queue_id=queue_id, status=str(params["Status"]),
+            instance_id=instance_id,
+            queue_id=queue_id,
+            status=str(params["Status"]),
         )
         return "{}"
 
@@ -587,7 +690,9 @@ class ConnectResponse(BaseResponse):
         queue_id = self._get_param_from_path("QueueId")
         params = json.loads(self.body) if self.body else {}
         self.connect_backend.update_queue_max_contacts(
-            instance_id=instance_id, queue_id=queue_id, max_contacts=int(params["MaxContacts"]),
+            instance_id=instance_id,
+            queue_id=queue_id,
+            max_contacts=int(params["MaxContacts"]),
         )
         return "{}"
 
@@ -596,7 +701,8 @@ class ConnectResponse(BaseResponse):
         queue_id = self._get_param_from_path("QueueId")
         params = json.loads(self.body) if self.body else {}
         self.connect_backend.update_queue_hours_of_operation(
-            instance_id=instance_id, queue_id=queue_id,
+            instance_id=instance_id,
+            queue_id=queue_id,
             hours_of_operation_id=str(params["HoursOfOperationId"]),
         )
         return "{}"
@@ -606,7 +712,8 @@ class ConnectResponse(BaseResponse):
         queue_id = self._get_param_from_path("QueueId")
         params = json.loads(self.body) if self.body else {}
         self.connect_backend.update_queue_outbound_caller_config(
-            instance_id=instance_id, queue_id=queue_id,
+            instance_id=instance_id,
+            queue_id=queue_id,
             outbound_caller_config=params["OutboundCallerConfig"],
         )
         return "{}"
@@ -644,8 +751,10 @@ class ConnectResponse(BaseResponse):
         qc_id = self._get_param_from_path("QuickConnectId")
         params = json.loads(self.body) if self.body else {}
         self.connect_backend.update_quick_connect_name(
-            instance_id=instance_id, quick_connect_id=qc_id,
-            name=params.get("Name"), description=params.get("Description"),
+            instance_id=instance_id,
+            quick_connect_id=qc_id,
+            name=params.get("Name"),
+            description=params.get("Description"),
         )
         return "{}"
 
@@ -654,7 +763,8 @@ class ConnectResponse(BaseResponse):
         qc_id = self._get_param_from_path("QuickConnectId")
         params = json.loads(self.body) if self.body else {}
         self.connect_backend.update_quick_connect_config(
-            instance_id=instance_id, quick_connect_id=qc_id,
+            instance_id=instance_id,
+            quick_connect_id=qc_id,
             quick_connect_config=params["QuickConnectConfig"],
         )
         return "{}"
@@ -695,8 +805,10 @@ class ConnectResponse(BaseResponse):
         rp_id = self._get_param_from_path("RoutingProfileId")
         params = json.loads(self.body) if self.body else {}
         self.connect_backend.update_routing_profile_name(
-            instance_id=instance_id, routing_profile_id=rp_id,
-            name=params.get("Name"), description=params.get("Description"),
+            instance_id=instance_id,
+            routing_profile_id=rp_id,
+            name=params.get("Name"),
+            description=params.get("Description"),
         )
         return "{}"
 
@@ -705,7 +817,8 @@ class ConnectResponse(BaseResponse):
         rp_id = self._get_param_from_path("RoutingProfileId")
         params = json.loads(self.body) if self.body else {}
         self.connect_backend.update_routing_profile_concurrency(
-            instance_id=instance_id, routing_profile_id=rp_id,
+            instance_id=instance_id,
+            routing_profile_id=rp_id,
             media_concurrencies=params["MediaConcurrencies"],
         )
         return "{}"
@@ -715,7 +828,8 @@ class ConnectResponse(BaseResponse):
         rp_id = self._get_param_from_path("RoutingProfileId")
         params = json.loads(self.body) if self.body else {}
         self.connect_backend.update_routing_profile_default_outbound_queue(
-            instance_id=instance_id, routing_profile_id=rp_id,
+            instance_id=instance_id,
+            routing_profile_id=rp_id,
             default_outbound_queue_id=str(params["DefaultOutboundQueueId"]),
         )
         return "{}"
@@ -757,7 +871,8 @@ class ConnectResponse(BaseResponse):
         sp_id = self._get_param_from_path("SecurityProfileId")
         params = json.loads(self.body) if self.body else {}
         self.connect_backend.update_security_profile(
-            instance_id=instance_id, security_profile_id=sp_id,
+            instance_id=instance_id,
+            security_profile_id=sp_id,
             security_profile_name=params.get("SecurityProfileName"),
             description=params.get("Description"),
             permissions=params.get("Permissions"),
@@ -805,7 +920,9 @@ class ConnectResponse(BaseResponse):
         user_id = self._get_param_from_path("UserId")
         params = json.loads(self.body) if self.body else {}
         self.connect_backend.update_user_identity_info(
-            instance_id=instance_id, user_id=user_id, identity_info=params["IdentityInfo"],
+            instance_id=instance_id,
+            user_id=user_id,
+            identity_info=params["IdentityInfo"],
         )
         return "{}"
 
@@ -814,7 +931,9 @@ class ConnectResponse(BaseResponse):
         user_id = self._get_param_from_path("UserId")
         params = json.loads(self.body) if self.body else {}
         self.connect_backend.update_user_phone_config(
-            instance_id=instance_id, user_id=user_id, phone_config=params["PhoneConfig"],
+            instance_id=instance_id,
+            user_id=user_id,
+            phone_config=params["PhoneConfig"],
         )
         return "{}"
 
@@ -823,7 +942,8 @@ class ConnectResponse(BaseResponse):
         user_id = self._get_param_from_path("UserId")
         params = json.loads(self.body) if self.body else {}
         self.connect_backend.update_user_routing_profile(
-            instance_id=instance_id, user_id=user_id,
+            instance_id=instance_id,
+            user_id=user_id,
             routing_profile_id=str(params["RoutingProfileId"]),
         )
         return "{}"
@@ -833,7 +953,8 @@ class ConnectResponse(BaseResponse):
         user_id = self._get_param_from_path("UserId")
         params = json.loads(self.body) if self.body else {}
         self.connect_backend.update_user_security_profiles(
-            instance_id=instance_id, user_id=user_id,
+            instance_id=instance_id,
+            user_id=user_id,
             security_profile_ids=params["SecurityProfileIds"],
         )
         return "{}"
@@ -843,7 +964,8 @@ class ConnectResponse(BaseResponse):
         user_id = self._get_param_from_path("UserId")
         params = json.loads(self.body) if self.body else {}
         self.connect_backend.update_user_hierarchy(
-            instance_id=instance_id, user_id=user_id,
+            instance_id=instance_id,
+            user_id=user_id,
             hierarchy_group_id=params.get("HierarchyGroupId"),
         )
         return "{}"
@@ -957,6 +1079,36 @@ class ConnectResponse(BaseResponse):
         )
         return json.dumps({"View": result})
 
+    def delete_view(self) -> str:
+        instance_id = self._get_instance_id()
+        view_id = self._get_param_from_path("ViewId")
+        self.connect_backend.delete_view(instance_id=instance_id, view_id=view_id)
+        return "{}"
+
+    def update_view_content(self) -> str:
+        instance_id = self._get_instance_id()
+        view_id = self._get_param_from_path("ViewId")
+        params = json.loads(self.body) if self.body else {}
+        result = self.connect_backend.update_view_content(
+            instance_id=instance_id,
+            view_id=view_id,
+            content=params["Content"],
+            status=params.get("Status"),
+        )
+        return json.dumps({"View": result})
+
+    def update_view_metadata(self) -> str:
+        instance_id = self._get_instance_id()
+        view_id = self._get_param_from_path("ViewId")
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.update_view_metadata(
+            instance_id=instance_id,
+            view_id=view_id,
+            name=params.get("Name"),
+            description=params.get("Description"),
+        )
+        return "{}"
+
     # ---- Phone Number ----
 
     def describe_phone_number(self) -> str:
@@ -1007,6 +1159,50 @@ class ConnectResponse(BaseResponse):
         )
         return json.dumps({"EvaluationForm": result})
 
+    def activate_evaluation_form(self) -> str:
+        instance_id = self._get_instance_id()
+        form_id = self._get_param_from_path("EvaluationFormId")
+        params = json.loads(self.body) if self.body else {}
+        result = self.connect_backend.activate_evaluation_form(
+            instance_id=instance_id,
+            evaluation_form_id=form_id,
+            evaluation_form_version=params.get("EvaluationFormVersion", 1),
+        )
+        return json.dumps(result)
+
+    def deactivate_evaluation_form(self) -> str:
+        instance_id = self._get_instance_id()
+        form_id = self._get_param_from_path("EvaluationFormId")
+        params = json.loads(self.body) if self.body else {}
+        result = self.connect_backend.deactivate_evaluation_form(
+            instance_id=instance_id,
+            evaluation_form_id=form_id,
+            evaluation_form_version=params.get("EvaluationFormVersion", 1),
+        )
+        return json.dumps(result)
+
+    def delete_evaluation_form(self) -> str:
+        instance_id = self._get_instance_id()
+        form_id = self._get_param_from_path("EvaluationFormId")
+        self.connect_backend.delete_evaluation_form(
+            instance_id=instance_id, evaluation_form_id=form_id
+        )
+        return "{}"
+
+    def update_evaluation_form(self) -> str:
+        instance_id = self._get_instance_id()
+        form_id = self._get_param_from_path("EvaluationFormId")
+        params = json.loads(self.body) if self.body else {}
+        result = self.connect_backend.update_evaluation_form(
+            instance_id=instance_id,
+            evaluation_form_id=form_id,
+            title=str(params["Title"]),
+            description=params.get("Description", ""),
+            items=params.get("Items"),
+            scoring_strategy=params.get("ScoringStrategy"),
+        )
+        return json.dumps(result)
+
     # ---- Rule ----
 
     def create_rule(self) -> str:
@@ -1035,9 +1231,12 @@ class ConnectResponse(BaseResponse):
         rule_id = self._get_param_from_path("RuleId")
         params = json.loads(self.body) if self.body else {}
         self.connect_backend.update_rule(
-            instance_id=instance_id, rule_id=rule_id,
-            name=str(params["Name"]), function=str(params["Function"]),
-            actions=params["Actions"], publish_status=str(params["PublishStatus"]),
+            instance_id=instance_id,
+            rule_id=rule_id,
+            name=str(params["Name"]),
+            function=str(params["Function"]),
+            actions=params["Actions"],
+            publish_status=str(params["PublishStatus"]),
         )
         return "{}"
 
@@ -1052,7 +1251,9 @@ class ConnectResponse(BaseResponse):
     def claim_phone_number(self) -> str:
         params = json.loads(self.body) if self.body else {}
         target_arn = params.get("TargetArn", "")
-        instance_id = params.get("InstanceId") or (target_arn.split("/")[-1] if target_arn else "")
+        instance_id = params.get("InstanceId") or (
+            target_arn.split("/")[-1] if target_arn else ""
+        )
         result = self.connect_backend.claim_phone_number(
             instance_id=instance_id,
             phone_number=str(params["PhoneNumber"]),
@@ -1111,6 +1312,538 @@ class ConnectResponse(BaseResponse):
         )
         return "{}"
 
+    # ---- PredefinedAttribute ----
+
+    def create_predefined_attribute(self) -> str:
+        instance_id = self._get_instance_id()
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.create_predefined_attribute(
+            instance_id=instance_id,
+            name=str(params["Name"]),
+            values=params["Values"],
+        )
+        return "{}"
+
+    def describe_predefined_attribute(self) -> str:
+        instance_id = self._get_instance_id()
+        name = self._get_param_from_path("Name")
+        result = self.connect_backend.describe_predefined_attribute(
+            instance_id=instance_id, name=name
+        )
+        return json.dumps({"PredefinedAttribute": result})
+
+    def update_predefined_attribute(self) -> str:
+        instance_id = self._get_instance_id()
+        name = self._get_param_from_path("Name")
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.update_predefined_attribute(
+            instance_id=instance_id,
+            name=name,
+            values=params["Values"],
+        )
+        return "{}"
+
+    def delete_predefined_attribute(self) -> str:
+        instance_id = self._get_instance_id()
+        name = self._get_param_from_path("Name")
+        self.connect_backend.delete_predefined_attribute(
+            instance_id=instance_id,
+            name=name,
+        )
+        return "{}"
+
+    def list_predefined_attributes(self) -> str:
+        instance_id = self._get_instance_id()
+        results = self.connect_backend.list_predefined_attributes(
+            instance_id=instance_id
+        )
+        return json.dumps({"PredefinedAttributeSummaryList": results})
+
+    def search_predefined_attributes(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        instance_id = str(params["InstanceId"])
+        results = self.connect_backend.search_predefined_attributes(
+            instance_id=instance_id,
+            search_criteria=params.get("SearchCriteria"),
+        )
+        return json.dumps(
+            {
+                "PredefinedAttributes": results,
+                "ApproximateTotalCount": len(results),
+            }
+        )
+
+    # ---- TaskTemplate ----
+
+    def create_task_template(self) -> str:
+        instance_id = self._get_instance_id()
+        params = json.loads(self.body) if self.body else {}
+        result = self.connect_backend.create_task_template(
+            instance_id=instance_id,
+            name=str(params["Name"]),
+            description=params.get("Description", ""),
+            fields=params.get("Fields"),
+            defaults=params.get("Defaults"),
+            constraints=params.get("Constraints"),
+            contact_flow_id=params.get("ContactFlowId", ""),
+            status=params.get("Status", "ACTIVE"),
+            tags=params.get("Tags"),
+        )
+        return json.dumps(result)
+
+    def get_task_template(self) -> str:
+        instance_id = self._get_instance_id()
+        task_template_id = self._get_param_from_path("TaskTemplateId")
+        result = self.connect_backend.get_task_template(
+            instance_id=instance_id, task_template_id=task_template_id
+        )
+        return json.dumps(result)
+
+    def update_task_template(self) -> str:
+        instance_id = self._get_instance_id()
+        task_template_id = self._get_param_from_path("TaskTemplateId")
+        params = json.loads(self.body) if self.body else {}
+        result = self.connect_backend.update_task_template(
+            instance_id=instance_id,
+            task_template_id=task_template_id,
+            name=params.get("Name"),
+            description=params.get("Description"),
+            fields=params.get("Fields"),
+            defaults=params.get("Defaults"),
+            constraints=params.get("Constraints"),
+            contact_flow_id=params.get("ContactFlowId"),
+            status=params.get("Status"),
+        )
+        return json.dumps(result)
+
+    def delete_task_template(self) -> str:
+        instance_id = self._get_instance_id()
+        task_template_id = self._get_param_from_path("TaskTemplateId")
+        self.connect_backend.delete_task_template(
+            instance_id=instance_id, task_template_id=task_template_id
+        )
+        return "{}"
+
+    # ---- IntegrationAssociation ----
+
+    def create_integration_association(self) -> str:
+        instance_id = self._get_instance_id()
+        params = json.loads(self.body) if self.body else {}
+        result = self.connect_backend.create_integration_association(
+            instance_id=instance_id,
+            integration_type=str(params["IntegrationType"]),
+            integration_arn=str(params["IntegrationArn"]),
+            source_application_url=params.get("SourceApplicationUrl", ""),
+            source_application_name=params.get("SourceApplicationName", ""),
+            source_type=params.get("SourceType", ""),
+            tags=params.get("Tags"),
+        )
+        return json.dumps(result)
+
+    def delete_integration_association(self) -> str:
+        instance_id = self._get_instance_id()
+        integration_id = self._get_param_from_path("IntegrationAssociationId")
+        self.connect_backend.delete_integration_association(
+            instance_id=instance_id,
+            integration_association_id=integration_id,
+        )
+        return "{}"
+
+    # ---- UseCase ----
+
+    def create_use_case(self) -> str:
+        instance_id = self._get_instance_id()
+        integration_id = self._get_param_from_path("IntegrationAssociationId")
+        params = json.loads(self.body) if self.body else {}
+        result = self.connect_backend.create_use_case(
+            instance_id=instance_id,
+            integration_association_id=integration_id,
+            use_case_type=str(params["UseCaseType"]),
+            tags=params.get("Tags"),
+        )
+        return json.dumps(result)
+
+    def delete_use_case(self) -> str:
+        instance_id = self._get_instance_id()
+        integration_id = self._get_param_from_path("IntegrationAssociationId")
+        use_case_id = self._get_param_from_path("UseCaseId")
+        self.connect_backend.delete_use_case(
+            instance_id=instance_id,
+            integration_association_id=integration_id,
+            use_case_id=use_case_id,
+        )
+        return "{}"
+
+    # ---- Contact ----
+
+    def create_contact(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        instance_id = self._get_instance_id() or params.get("InstanceId", "")
+        result = self.connect_backend.create_contact(
+            instance_id=instance_id,
+            channel=str(params["Channel"]),
+            initiation_method=str(params["InitiationMethod"]),
+            description=params.get("Description", ""),
+            name=params.get("Name", ""),
+            related_contact_id=params.get("RelatedContactId", ""),
+            segment_attributes=params.get("SegmentAttributes"),
+            user_info=params.get("UserInfo"),
+        )
+        return json.dumps(result)
+
+    def describe_contact(self) -> str:
+        instance_id = self._get_instance_id()
+        contact_id = self._get_param_from_path("ContactId")
+        result = self.connect_backend.describe_contact(
+            instance_id=instance_id, contact_id=contact_id
+        )
+        return json.dumps({"Contact": result})
+
+    def update_contact(self) -> str:
+        instance_id = self._get_instance_id()
+        contact_id = self._get_param_from_path("ContactId")
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.update_contact(
+            instance_id=instance_id,
+            contact_id=contact_id,
+            name=params.get("Name"),
+            description=params.get("Description"),
+        )
+        return "{}"
+
+    def stop_contact(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        instance_id = str(params["InstanceId"])
+        contact_id = str(params["ContactId"])
+        self.connect_backend.stop_contact(
+            instance_id=instance_id, contact_id=contact_id
+        )
+        return "{}"
+
+    # ---- Association operations ----
+
+    def associate_approved_origin(self) -> str:
+        instance_id = self._get_instance_id()
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.associate_approved_origin(
+            instance_id=instance_id, origin=str(params["Origin"])
+        )
+        return "{}"
+
+    def disassociate_approved_origin(self) -> str:
+        instance_id = self._get_instance_id()
+        origin = self.querystring.get("origin", [""])[0]
+        self.connect_backend.disassociate_approved_origin(
+            instance_id=instance_id, origin=origin
+        )
+        return "{}"
+
+    def associate_lambda_function(self) -> str:
+        instance_id = self._get_instance_id()
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.associate_lambda_function(
+            instance_id=instance_id, function_arn=str(params["FunctionArn"])
+        )
+        return "{}"
+
+    def disassociate_lambda_function(self) -> str:
+        instance_id = self._get_instance_id()
+        function_arn = self.querystring.get("functionArn", [""])[0]
+        self.connect_backend.disassociate_lambda_function(
+            instance_id=instance_id, function_arn=function_arn
+        )
+        return "{}"
+
+    def associate_bot(self) -> str:
+        instance_id = self._get_instance_id()
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.associate_bot(
+            instance_id=instance_id,
+            lex_bot=params.get("LexBot"),
+            lex_v2_bot=params.get("LexV2Bot"),
+        )
+        return "{}"
+
+    def disassociate_bot(self) -> str:
+        instance_id = self._get_instance_id()
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.disassociate_bot(
+            instance_id=instance_id,
+            lex_bot=params.get("LexBot"),
+            lex_v2_bot=params.get("LexV2Bot"),
+        )
+        return "{}"
+
+    def associate_security_key(self) -> str:
+        instance_id = self._get_instance_id()
+        params = json.loads(self.body) if self.body else {}
+        result = self.connect_backend.associate_security_key(
+            instance_id=instance_id, key=str(params["Key"])
+        )
+        return json.dumps(result)
+
+    def disassociate_security_key(self) -> str:
+        instance_id = self._get_instance_id()
+        association_id = self._get_param_from_path("AssociationId")
+        self.connect_backend.disassociate_security_key(
+            instance_id=instance_id, association_id=association_id
+        )
+        return "{}"
+
+    def associate_instance_storage_config(self) -> str:
+        instance_id = self._get_instance_id()
+        params = json.loads(self.body) if self.body else {}
+        result = self.connect_backend.associate_instance_storage_config(
+            instance_id=instance_id,
+            resource_type=str(params["ResourceType"]),
+            storage_config=params["StorageConfig"],
+        )
+        return json.dumps(result)
+
+    def disassociate_instance_storage_config(self) -> str:
+        instance_id = self._get_instance_id()
+        association_id = self._get_param_from_path("AssociationId")
+        resource_type = self.querystring.get("resourceType", [""])[0]
+        self.connect_backend.disassociate_instance_storage_config(
+            instance_id=instance_id,
+            association_id=association_id,
+            resource_type=resource_type,
+        )
+        return "{}"
+
+    def associate_queue_quick_connects(self) -> str:
+        instance_id = self._get_instance_id()
+        queue_id = self._get_param_from_path("QueueId")
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.associate_queue_quick_connects(
+            instance_id=instance_id,
+            queue_id=queue_id,
+            quick_connect_ids=params["QuickConnectIds"],
+        )
+        return "{}"
+
+    def disassociate_queue_quick_connects(self) -> str:
+        instance_id = self._get_instance_id()
+        queue_id = self._get_param_from_path("QueueId")
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.disassociate_queue_quick_connects(
+            instance_id=instance_id,
+            queue_id=queue_id,
+            quick_connect_ids=params["QuickConnectIds"],
+        )
+        return "{}"
+
+    def associate_routing_profile_queues(self) -> str:
+        instance_id = self._get_instance_id()
+        routing_profile_id = self._get_param_from_path("RoutingProfileId")
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.associate_routing_profile_queues(
+            instance_id=instance_id,
+            routing_profile_id=routing_profile_id,
+            queue_configs=params["QueueConfigs"],
+        )
+        return "{}"
+
+    def disassociate_routing_profile_queues(self) -> str:
+        instance_id = self._get_instance_id()
+        routing_profile_id = self._get_param_from_path("RoutingProfileId")
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.disassociate_routing_profile_queues(
+            instance_id=instance_id,
+            routing_profile_id=routing_profile_id,
+            queue_references=params["QueueReferences"],
+        )
+        return "{}"
+
+    def update_routing_profile_queues(self) -> str:
+        instance_id = self._get_instance_id()
+        routing_profile_id = self._get_param_from_path("RoutingProfileId")
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.update_routing_profile_queues(
+            instance_id=instance_id,
+            routing_profile_id=routing_profile_id,
+            queue_configs=params["QueueConfigs"],
+        )
+        return "{}"
+
+    # ---- User Hierarchy Group: Delete/Update ----
+
+    def delete_user_hierarchy_group(self) -> str:
+        instance_id = self._get_instance_id()
+        group_id = self._get_param_from_path("HierarchyGroupId")
+        self.connect_backend.delete_user_hierarchy_group(
+            instance_id=instance_id, hierarchy_group_id=group_id
+        )
+        return "{}"
+
+    def update_user_hierarchy_group_name(self) -> str:
+        instance_id = self._get_instance_id()
+        group_id = self._get_param_from_path("HierarchyGroupId")
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.update_user_hierarchy_group_name(
+            instance_id=instance_id,
+            hierarchy_group_id=group_id,
+            name=str(params["Name"]),
+        )
+        return "{}"
+
+    def update_user_hierarchy_structure(self) -> str:
+        instance_id = self._get_instance_id()
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.update_user_hierarchy_structure(
+            instance_id=instance_id,
+            hierarchy_structure=params.get("HierarchyStructure", {}),
+        )
+        return "{}"
+
+    # ---- Traffic Distribution Group: Delete/List ----
+
+    def delete_traffic_distribution_group(self) -> str:
+        tdg_id = self._get_param_from_path("TrafficDistributionGroupId")
+        self.connect_backend.delete_traffic_distribution_group(
+            traffic_distribution_group_id=tdg_id
+        )
+        return "{}"
+
+    def list_traffic_distribution_groups(self) -> str:
+        instance_id = self.querystring.get("instanceId", [None])[0]
+        results = self.connect_backend.list_traffic_distribution_groups(
+            instance_id=instance_id
+        )
+        return json.dumps({"TrafficDistributionGroupSummaryList": results})
+
+    # ---- Search operations ----
+
+    def search_queues(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        instance_id = str(params["InstanceId"])
+        results = self.connect_backend.search_queues(
+            instance_id=instance_id,
+            search_criteria=params.get("SearchCriteria"),
+        )
+        return json.dumps({"Queues": results, "ApproximateTotalCount": len(results)})
+
+    def search_quick_connects(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        instance_id = str(params["InstanceId"])
+        results = self.connect_backend.search_quick_connects(
+            instance_id=instance_id,
+            search_criteria=params.get("SearchCriteria"),
+        )
+        return json.dumps(
+            {
+                "QuickConnects": results,
+                "ApproximateTotalCount": len(results),
+            }
+        )
+
+    def search_prompts(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        instance_id = str(params["InstanceId"])
+        results = self.connect_backend.search_prompts(
+            instance_id=instance_id,
+            search_criteria=params.get("SearchCriteria"),
+        )
+        return json.dumps({"Prompts": results, "ApproximateTotalCount": len(results)})
+
+    def search_routing_profiles(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        instance_id = str(params["InstanceId"])
+        results = self.connect_backend.search_routing_profiles(
+            instance_id=instance_id,
+            search_criteria=params.get("SearchCriteria"),
+        )
+        return json.dumps(
+            {
+                "RoutingProfiles": results,
+                "ApproximateTotalCount": len(results),
+            }
+        )
+
+    def search_security_profiles(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        instance_id = str(params["InstanceId"])
+        results = self.connect_backend.search_security_profiles(
+            instance_id=instance_id,
+            search_criteria=params.get("SearchCriteria"),
+        )
+        return json.dumps(
+            {
+                "SecurityProfiles": results,
+                "ApproximateTotalCount": len(results),
+            }
+        )
+
+    def search_hours_of_operations(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        instance_id = str(params["InstanceId"])
+        results = self.connect_backend.search_hours_of_operations(
+            instance_id=instance_id,
+            search_criteria=params.get("SearchCriteria"),
+        )
+        return json.dumps(
+            {
+                "HoursOfOperations": results,
+                "ApproximateTotalCount": len(results),
+            }
+        )
+
+    def search_agent_statuses(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        instance_id = str(params["InstanceId"])
+        results = self.connect_backend.search_agent_statuses(
+            instance_id=instance_id,
+            search_criteria=params.get("SearchCriteria"),
+        )
+        return json.dumps(
+            {
+                "AgentStatuses": results,
+                "ApproximateTotalCount": len(results),
+            }
+        )
+
+    def search_contact_flows(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        instance_id = str(params["InstanceId"])
+        results = self.connect_backend.search_contact_flows(
+            instance_id=instance_id,
+            search_criteria=params.get("SearchCriteria"),
+        )
+        return json.dumps(
+            {
+                "ContactFlows": results,
+                "ApproximateTotalCount": len(results),
+            }
+        )
+
+    def search_contact_flow_modules(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        instance_id = str(params["InstanceId"])
+        results = self.connect_backend.search_contact_flow_modules(
+            instance_id=instance_id,
+            search_criteria=params.get("SearchCriteria"),
+        )
+        return json.dumps(
+            {
+                "ContactFlowModules": results,
+                "ApproximateTotalCount": len(results),
+            }
+        )
+
+    def search_user_hierarchy_groups(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        instance_id = str(params["InstanceId"])
+        results = self.connect_backend.search_user_hierarchy_groups(
+            instance_id=instance_id,
+            search_criteria=params.get("SearchCriteria"),
+        )
+        return json.dumps(
+            {
+                "UserHierarchyGroups": results,
+                "ApproximateTotalCount": len(results),
+            }
+        )
+
     # ---- Tags ----
 
     def _get_resource_arn(self) -> str:
@@ -1127,7 +1860,9 @@ class ConnectResponse(BaseResponse):
     def untag_resource(self) -> str:
         resource_arn = self._get_resource_arn()
         tag_keys = self.querystring.get("tagKeys", [])
-        self.connect_backend.untag_resource(resource_arn=resource_arn, tag_keys=tag_keys)
+        self.connect_backend.untag_resource(
+            resource_arn=resource_arn, tag_keys=tag_keys
+        )
         return "{}"
 
     def list_tags_for_resource(self) -> str:
