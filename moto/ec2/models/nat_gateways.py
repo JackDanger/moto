@@ -141,6 +141,10 @@ class NatGatewayBackend:
         return nat_gateway
 
     def delete_nat_gateway(self, nat_gateway_id: str) -> NatGateway:
-        nat_gw: NatGateway = self.nat_gateways.get(nat_gateway_id)  # type: ignore
+        nat_gw = self.nat_gateways.get(nat_gateway_id)
+        if not nat_gw:
+            from ..exceptions import InvalidNatGatewayIdError
+
+            raise InvalidNatGatewayIdError(nat_gateway_id)
         nat_gw.state = "deleted"
         return nat_gw

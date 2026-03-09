@@ -5,6 +5,7 @@ from typing import Any, Optional
 from moto.core.utils import utcnow
 from moto.utilities.utils import filter_resources
 
+from ..exceptions import InvalidTransitGatewayAttachmentIdError
 from ..utils import random_transit_gateway_route_table_id
 from .core import TaggedEC2Resource
 
@@ -75,12 +76,11 @@ class TransitGatewayRelations:
         self.ec2_backend = backend
         self.transit_gateway_attachment_id = transit_gateway_attachment_id
         self.transit_gateway_route_table_id = transit_gateway_route_table_id
-        self.resource_id = backend.transit_gateway_attachments[
-            transit_gateway_attachment_id
-        ].resource_id
-        self.resource_type = backend.transit_gateway_attachments[
-            transit_gateway_attachment_id
-        ].resource_type
+        attachment = backend.transit_gateway_attachments.get(transit_gateway_attachment_id)
+        if not attachment:
+            raise InvalidTransitGatewayAttachmentIdError(transit_gateway_attachment_id)
+        self.resource_id = attachment.resource_id
+        self.resource_type = attachment.resource_type
         self.state = state
 
 
@@ -222,7 +222,9 @@ class TransitGatewayRouteTableBackend:
         self, transit_gateway_attachment_id: str, transit_gateway_route_table_id: str
     ) -> None:
         table = self.transit_gateways_route_tables[transit_gateway_route_table_id]
-        attachment = self.transit_gateway_attachments[transit_gateway_attachment_id]  # type: ignore[attr-defined]
+        attachment = self.transit_gateway_attachments.get(transit_gateway_attachment_id)  # type: ignore[attr-defined]
+        if not attachment:
+            raise InvalidTransitGatewayAttachmentIdError(transit_gateway_attachment_id)
         table.route_table_associations[transit_gateway_attachment_id] = (
             RouteTableAssociation(
                 resource_id=attachment.resource_id,
@@ -240,7 +242,9 @@ class TransitGatewayRouteTableBackend:
         self, transit_gateway_attachment_id: str, transit_gateway_route_table_id: str
     ) -> None:
         route_table = self.transit_gateways_route_tables[transit_gateway_route_table_id]
-        attchment = self.transit_gateway_attachments[transit_gateway_attachment_id]  # type: ignore[attr-defined]
+        attchment = self.transit_gateway_attachments.get(transit_gateway_attachment_id)  # type: ignore[attr-defined]
+        if not attchment:
+            raise InvalidTransitGatewayAttachmentIdError(transit_gateway_attachment_id)
         propagation = RouteTablePropagation(
             resource_id=attchment.resource_id,
             resource_type=attchment.resource_type,
@@ -362,6 +366,8 @@ class TransitGatewayRouteTableBackend:
     def disable_transit_gateway_route_table_propagation(
         self, transit_gateway_attachment_id: str, transit_gateway_route_table_id: str
     ) -> TransitGatewayRelations:
+        if transit_gateway_attachment_id not in self.transit_gateway_propagations:
+            raise InvalidTransitGatewayAttachmentIdError(transit_gateway_attachment_id)
         self.disable_route_table_propagation(
             transit_gateway_attachment_id=transit_gateway_attachment_id,
             transit_gateway_route_table_id=transit_gateway_route_table_id,
@@ -381,6 +387,8 @@ class TransitGatewayRouteTableBackend:
     def disassociate_transit_gateway_route_table(
         self, tgw_attach_id: str, tgw_rt_id: str
     ) -> TransitGatewayRelations:
+        if tgw_attach_id not in self.transit_gateway_associations:
+            raise InvalidTransitGatewayAttachmentIdError(tgw_attach_id)
         tgw_association = self.transit_gateway_associations.pop(tgw_attach_id)
         tgw_association.state = "disassociated"
 

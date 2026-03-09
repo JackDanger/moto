@@ -167,10 +167,17 @@ class NetworkAclBackend:
     ) -> "NetworkAclAssociation":
         # lookup existing association for subnet and delete it
         default_acl = next(
-            value
-            for key, value in self.network_acls.items()
-            if association_id in value.associations.keys()
+            (
+                value
+                for key, value in self.network_acls.items()
+                if association_id in value.associations.keys()
+            ),
+            None,
         )
+        if not default_acl:
+            from ..exceptions import InvalidAssociationIdError
+
+            raise InvalidAssociationIdError(association_id)
 
         subnet_id = None
         for key in default_acl.associations:

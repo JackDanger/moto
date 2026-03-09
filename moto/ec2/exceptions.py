@@ -949,3 +949,51 @@ class InvalidCidrReservationNotFound(EC2ClientError):
             "InvalidSubnetCidrReservationID.NotFound",
             f"The subnet-cidr-reservation ID '{reservation_id}' does not exist",
         )
+
+
+class InvalidIpamIdError(EC2ClientError):
+    def __init__(self, ipam_id: str):
+        super().__init__(
+            "InvalidIpamId.NotFound",
+            f"The IPAM ID '{ipam_id}' does not exist",
+        )
+
+
+class InvalidClientVpnEndpointIdError(EC2ClientError):
+    def __init__(self, client_vpn_endpoint_id: str):
+        super().__init__(
+            "InvalidClientVpnEndpointId.NotFound",
+            f"The Client VPN endpoint ID '{client_vpn_endpoint_id}' does not exist",
+        )
+
+
+class InvalidNatGatewayIdError(EC2ClientError):
+    def __init__(self, nat_gateway_id: str):
+        super().__init__(
+            "NatGatewayNotFound",
+            f"The natGateway ID '{nat_gateway_id}' does not exist",
+        )
+
+
+class InvalidManagedPrefixListIdError(EC2ClientError):
+    def __init__(self, prefix_list_id: str):
+        super().__init__(
+            "InvalidPrefixListID.NotFound",
+            f"The prefix list ID '{prefix_list_id}' does not exist",
+        )
+
+
+class InvalidTransitGatewayAttachmentIdError(EC2ClientError):
+    def __init__(self, attachment_id: str):
+        super().__init__(
+            "InvalidTransitGatewayAttachmentID.NotFound",
+            f"The transitGatewayAttachment ID '{attachment_id}' does not exist",
+        )
+
+
+class InvalidSpotFleetRequestIdError(EC2ClientError):
+    def __init__(self, spot_fleet_request_id: str):
+        super().__init__(
+            "InvalidSpotFleetRequestId.NotFound",
+            f"Spot fleet request ID '{spot_fleet_request_id}' does not exist",
+        )
