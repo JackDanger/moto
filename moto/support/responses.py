@@ -65,3 +65,50 @@ class SupportResponse(BaseResponse):
         )
 
         return json.dumps(describe_cases_response)
+
+    def add_attachments_to_set(self) -> str:
+        attachment_set_id = self._get_param("attachmentSetId")
+        attachments = self._get_param("attachments")
+        result = self.support_backend.add_attachments_to_set(
+            attachment_set_id=attachment_set_id,
+            attachments=attachments or [],
+        )
+        return json.dumps(result)
+
+    def describe_attachment(self) -> str:
+        attachment_id = self._get_param("attachmentId")
+        result = self.support_backend.describe_attachment(
+            attachment_id=attachment_id,
+        )
+        return json.dumps(result)
+
+    def describe_create_case_options(self) -> str:
+        issue_type = self._get_param("issueType")
+        service_code = self._get_param("serviceCode")
+        language = self._get_param("language")
+        category_code = self._get_param("categoryCode")
+        result = self.support_backend.describe_create_case_options(
+            issue_type=issue_type,
+            service_code=service_code,
+            language=language,
+            category_code=category_code,
+        )
+        return json.dumps(result)
+
+    def describe_supported_languages(self) -> str:
+        issue_type = self._get_param("issueType")
+        service_code = self._get_param("serviceCode")
+        category_code = self._get_param("categoryCode")
+        result = self.support_backend.describe_supported_languages(
+            issue_type=issue_type,
+            service_code=service_code,
+            category_code=category_code,
+        )
+        return json.dumps(result)
+
+    def describe_trusted_advisor_check_refresh_statuses(self) -> str:
+        check_ids = self._get_param("checkIds")
+        result = self.support_backend.describe_trusted_advisor_check_refresh_statuses(
+            check_ids=check_ids or [],
+        )
+        return json.dumps(result)
