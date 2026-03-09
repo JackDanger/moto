@@ -2190,5 +2190,132 @@ class LogsBackend(BaseBackend):
         # Scheduled queries are not yet modeled; return empty list
         return []
 
+    def get_data_protection_policy(
+        self,
+        log_group_identifier: Optional[str] = None,
+    ) -> dict[str, Any]:
+        # Look up the log group by name or ARN
+        log_group = None
+        if log_group_identifier:
+            for group in self.groups.values():
+                if (
+                    group.name == log_group_identifier
+                    or group.arn == log_group_identifier
+                ):
+                    log_group = group
+                    break
+            if not log_group:
+                raise ResourceNotFoundException()
+        # Data protection policies are not yet modeled; return empty
+        # AWS returns the log group identifier and empty policy when none is set
+        return {}
+
+    def get_log_record(
+        self,
+        log_record_pointer: str,
+    ) -> dict[str, str]:
+        # logRecordPointer is an opaque string. In AWS it encodes the log group,
+        # stream and event offset. We scan all events looking for a match.
+        # The pointer format used by get_log_events/filter_log_events isn't
+        # formally specified; we use eventId as a rough equivalent.
+        for group in self.groups.values():
+            for stream in group.streams.values():
+                for event in stream.events:
+                    if str(event.event_id) == log_record_pointer:
+                        return {
+                            "@message": event.message,
+                            "@timestamp": str(event.timestamp),
+                            "@logStream": stream.log_stream_name,
+                            "@logGroup": group.name,
+                            "@ingestionTime": str(event.ingestion_time),
+                        }
+        raise ResourceNotFoundException(
+            msg="The specified log record does not exist."
+        )
+
+    def get_transformer(
+        self,
+        log_group_identifier: Optional[str] = None,
+    ) -> dict[str, Any]:
+        # Transformers are not yet modeled
+        if log_group_identifier:
+            # Verify the log group exists
+            found = False
+            for group in self.groups.values():
+                if (
+                    group.name == log_group_identifier
+                    or group.arn == log_group_identifier
+                ):
+                    found = True
+                    break
+            if not found:
+                raise ResourceNotFoundException()
+        raise ResourceNotFoundException(
+            msg="No transformer found for the specified log group."
+        )
+
+    def list_transformers(
+        self,
+        log_group_name_prefix: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        # Transformers are not yet modeled; return empty list
+        return []
+
+    def get_integration(
+        self,
+        integration_name: Optional[str] = None,
+    ) -> dict[str, Any]:
+        # Integrations are not yet modeled
+        raise ResourceNotFoundException(
+            msg=f"Integration with name [{integration_name}] does not exist."
+        )
+
+    def get_log_fields(
+        self,
+        log_group_name: Optional[str] = None,
+        log_group_identifier: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        identifier = log_group_name or log_group_identifier
+        if identifier:
+            found = False
+            for group in self.groups.values():
+                if group.name == identifier or group.arn == identifier:
+                    found = True
+                    break
+            if not found:
+                raise ResourceNotFoundException()
+        # Return common fields that CloudWatch Logs always includes
+        return [
+            {"name": "@timestamp", "percent": 100},
+            {"name": "@message", "percent": 100},
+            {"name": "@logStream", "percent": 100},
+        ]
+
+    def describe_field_indexes(
+        self,
+        log_group_identifiers: Optional[list[str]] = None,
+    ) -> list[dict[str, Any]]:
+        # Field indexes are not yet modeled; return empty list
+        return []
+
+    def describe_import_task_batches(
+        self,
+        import_task_identifier: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        # Import task batches are not yet modeled; return empty list
+        return []
+
+    def list_log_groups_for_query(
+        self,
+        query_id: Optional[str] = None,
+    ) -> list[str]:
+        if query_id and query_id in self.queries:
+            return self.queries[query_id].log_group_names
+        if query_id:
+            raise ResourceNotFoundException(
+                msg=f"Query with id [{query_id}] does not exist."
+            )
+        return []
+
 
 logs_backends = BackendDict(LogsBackend, "logs")

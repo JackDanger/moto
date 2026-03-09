@@ -785,3 +785,72 @@ class LogsResponse(BaseResponse):
             log_group_identifier=log_group_identifier,
         )
         return "{}"
+
+    def get_data_protection_policy(self) -> str:
+        log_group_identifier = self._get_param("logGroupIdentifier")
+        policy = self.logs_backend.get_data_protection_policy(
+            log_group_identifier=log_group_identifier,
+        )
+        return json.dumps(policy)
+
+    def get_log_record(self) -> str:
+        log_record_pointer = self._get_param("logRecordPointer")
+        record = self.logs_backend.get_log_record(
+            log_record_pointer=log_record_pointer,
+        )
+        return json.dumps({"logRecord": record})
+
+    def get_transformer(self) -> str:
+        log_group_identifier = self._get_param("logGroupIdentifier")
+        transformer = self.logs_backend.get_transformer(
+            log_group_identifier=log_group_identifier,
+        )
+        return json.dumps(transformer)
+
+    def list_transformers(self) -> str:
+        log_group_name_prefix = self._get_param("logGroupNamePrefix")
+        transformers = self.logs_backend.list_transformers(
+            log_group_name_prefix=log_group_name_prefix,
+        )
+        return json.dumps({"transformers": transformers})
+
+    def get_integration(self) -> str:
+        integration_name = self._get_param("integrationName")
+        integration = self.logs_backend.get_integration(
+            integration_name=integration_name,
+        )
+        return json.dumps(integration)
+
+    def get_log_fields(self) -> str:
+        log_group_name = self._get_param("logGroupName")
+        log_group_identifier = self._get_param("logGroupIdentifier")
+        fields = self.logs_backend.get_log_fields(
+            log_group_name=log_group_name,
+            log_group_identifier=log_group_identifier,
+        )
+        return json.dumps({"logGroupFields": fields})
+
+    def describe_field_indexes(self) -> str:
+        log_group_identifiers = self._get_param("logGroupIdentifiers")
+        indexes = self.logs_backend.describe_field_indexes(
+            log_group_identifiers=log_group_identifiers,
+        )
+        return json.dumps({"fieldIndexes": indexes})
+
+    # Alias for compatibility
+    def list_field_indexes(self) -> str:
+        return self.describe_field_indexes()
+
+    def describe_import_task_batches(self) -> str:
+        import_id = self._get_param("importId")
+        batches = self.logs_backend.describe_import_task_batches(
+            import_task_identifier=import_id,
+        )
+        return json.dumps({"importBatches": batches})
+
+    def list_log_groups_for_query(self) -> str:
+        query_id = self._get_param("queryId")
+        log_group_names = self.logs_backend.list_log_groups_for_query(
+            query_id=query_id,
+        )
+        return json.dumps({"logGroupIdentifiers": log_group_names})
