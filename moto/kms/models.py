@@ -5,6 +5,9 @@ from copy import copy
 from datetime import datetime, timedelta
 from typing import Any, Optional, Union
 
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa as rsa_mod
+
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.core.exceptions import JsonRESTError
@@ -355,6 +358,8 @@ class KmsBackend(BaseBackend):
         super().__init__(region_name=region_name, account_id=account_id)  # type: ignore
         self.keys: dict[str, Key] = {}
         self.tagger = TaggingService(key_name="TagKey", value_name="TagValue")
+        self.custom_key_stores: dict[str, dict[str, Any]] = {}
+        self._import_state: dict[str, dict[str, Any]] = {}
 
     def _generate_default_keys(self, alias_name: str) -> Optional[str]:
         """Creates default kms keys"""
@@ -662,6 +667,42 @@ class KmsBackend(BaseBackend):
         # Responses uses 'generate_data_key'
         pass
 
+    def generate_data_key_pair(
+        self,
+        key_id: str,
+        key_pair_spec: str,
+        encryption_context: dict[str, str],
+    ) -> dict[str, Any]:
+        key_id = self.any_id_to_key_id(key_id)
+        key = self.keys[key_id]
+
+        # Generate the key pair based on the spec
+        private_key_obj = generate_private_key(key_pair_spec)
+        public_key_bytes = private_key_obj.public_key()
+
+        # Get private key DER bytes
+        private_key_der = private_key_obj.private_key.private_bytes(
+            encoding=serialization.Encoding.DER,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
+
+        # Encrypt the private key with the wrapping KMS key
+        # KMS encrypt has a 4096 byte limit, so we truncate for mock purposes
+        encrypt_payload = private_key_der[:4096]
+        private_key_ciphertext, _arn = self.encrypt(
+            key_id=key_id,
+            plaintext=encrypt_payload,
+            encryption_context=encryption_context,
+        )
+
+        return {
+            "key_arn": key.arn,
+            "private_key_plaintext": private_key_der,
+            "private_key_ciphertext": private_key_ciphertext,
+            "public_key": public_key_bytes,
+        }
+
     def list_resource_tags(self, key_id_or_arn: str) -> dict[str, list[dict[str, str]]]:
         key_id = self.get_key_id(key_id_or_arn)
         if key_id in self.keys:
@@ -696,8 +737,254 @@ class KmsBackend(BaseBackend):
         custom_key_store_id: Optional[str] = None,
         custom_key_store_name: Optional[str] = None,
     ) -> list[dict[str, Any]]:
-        # Custom key stores are not yet modeled; return empty list
-        return []
+        stores = list(self.custom_key_stores.values())
+        if custom_key_store_id:
+            stores = [s for s in stores if s["CustomKeyStoreId"] == custom_key_store_id]
+        if custom_key_store_name:
+            stores = [
+                s for s in stores if s["CustomKeyStoreName"] == custom_key_store_name
+            ]
+        return stores
+
+    def create_custom_key_store(
+        self,
+        custom_key_store_name: str,
+        cloud_hsm_cluster_id: Optional[str] = None,
+        trust_anchor_certificate: Optional[str] = None,
+        key_store_password: Optional[str] = None,
+        custom_key_store_type: str = "AWS_CLOUDHSM",
+        xks_proxy_uri_endpoint: Optional[str] = None,
+        xks_proxy_uri_path: Optional[str] = None,
+        xks_proxy_vpc_endpoint_service_name: Optional[str] = None,
+        xks_proxy_connectivity: Optional[str] = None,
+        xks_proxy_authentication_credential: Optional[dict[str, str]] = None,
+    ) -> str:
+        store_id = f"cks-{mock_random.get_random_hex(12)}"
+        store: dict[str, Any] = {
+            "CustomKeyStoreId": store_id,
+            "CustomKeyStoreName": custom_key_store_name,
+            "CustomKeyStoreType": custom_key_store_type,
+            "ConnectionState": "DISCONNECTED",
+            "CreationDate": unix_time(),
+        }
+        if cloud_hsm_cluster_id:
+            store["CloudHsmClusterId"] = cloud_hsm_cluster_id
+        if trust_anchor_certificate:
+            store["TrustAnchorCertificate"] = trust_anchor_certificate
+        if xks_proxy_uri_endpoint:
+            store["XksProxyConfiguration"] = {
+                "UriEndpoint": xks_proxy_uri_endpoint,
+                "UriPath": xks_proxy_uri_path,
+                "VpcEndpointServiceName": xks_proxy_vpc_endpoint_service_name,
+                "Connectivity": xks_proxy_connectivity,
+                "AccessKeyId": (
+                    xks_proxy_authentication_credential.get("AccessKeyId")
+                    if xks_proxy_authentication_credential
+                    else None
+                ),
+            }
+        self.custom_key_stores[store_id] = store
+        return store_id
+
+    def delete_custom_key_store(self, custom_key_store_id: str) -> None:
+        if custom_key_store_id not in self.custom_key_stores:
+            raise JsonRESTError(
+                "CustomKeyStoreNotFoundException",
+                f"CustomKeyStore with id {custom_key_store_id} not found",
+            )
+        store = self.custom_key_stores[custom_key_store_id]
+        if store["ConnectionState"] != "DISCONNECTED":
+            raise JsonRESTError(
+                "CustomKeyStoreHasCMKsException",
+                "The custom key store must be disconnected before it can be deleted.",
+            )
+        del self.custom_key_stores[custom_key_store_id]
+
+    def connect_custom_key_store(self, custom_key_store_id: str) -> None:
+        if custom_key_store_id not in self.custom_key_stores:
+            raise JsonRESTError(
+                "CustomKeyStoreNotFoundException",
+                f"CustomKeyStore with id {custom_key_store_id} not found",
+            )
+        self.custom_key_stores[custom_key_store_id]["ConnectionState"] = "CONNECTED"
+
+    def disconnect_custom_key_store(self, custom_key_store_id: str) -> None:
+        if custom_key_store_id not in self.custom_key_stores:
+            raise JsonRESTError(
+                "CustomKeyStoreNotFoundException",
+                f"CustomKeyStore with id {custom_key_store_id} not found",
+            )
+        self.custom_key_stores[custom_key_store_id]["ConnectionState"] = "DISCONNECTED"
+
+    def update_custom_key_store(
+        self,
+        custom_key_store_id: str,
+        new_custom_key_store_name: Optional[str] = None,
+        key_store_password: Optional[str] = None,
+        cloud_hsm_cluster_id: Optional[str] = None,
+        xks_proxy_uri_endpoint: Optional[str] = None,
+        xks_proxy_uri_path: Optional[str] = None,
+        xks_proxy_vpc_endpoint_service_name: Optional[str] = None,
+        xks_proxy_connectivity: Optional[str] = None,
+        xks_proxy_authentication_credential: Optional[dict[str, str]] = None,
+    ) -> None:
+        if custom_key_store_id not in self.custom_key_stores:
+            raise JsonRESTError(
+                "CustomKeyStoreNotFoundException",
+                f"CustomKeyStore with id {custom_key_store_id} not found",
+            )
+        store = self.custom_key_stores[custom_key_store_id]
+        if new_custom_key_store_name:
+            store["CustomKeyStoreName"] = new_custom_key_store_name
+        if cloud_hsm_cluster_id:
+            store["CloudHsmClusterId"] = cloud_hsm_cluster_id
+        if xks_proxy_uri_endpoint:
+            xks_config = store.get("XksProxyConfiguration", {})
+            xks_config["UriEndpoint"] = xks_proxy_uri_endpoint
+            if xks_proxy_uri_path:
+                xks_config["UriPath"] = xks_proxy_uri_path
+            if xks_proxy_vpc_endpoint_service_name:
+                xks_config["VpcEndpointServiceName"] = (
+                    xks_proxy_vpc_endpoint_service_name
+                )
+            if xks_proxy_connectivity:
+                xks_config["Connectivity"] = xks_proxy_connectivity
+            if xks_proxy_authentication_credential:
+                xks_config["AccessKeyId"] = (
+                    xks_proxy_authentication_credential.get("AccessKeyId")
+                )
+            store["XksProxyConfiguration"] = xks_config
+
+    def get_parameters_for_import(
+        self,
+        key_id: str,
+        wrapping_algorithm: str,
+        wrapping_key_spec: str,
+    ) -> dict[str, Any]:
+        key_id = self.any_id_to_key_id(key_id)
+        key = self.keys[key_id]
+
+        if key.origin != "EXTERNAL":
+            raise JsonRESTError(
+                "UnsupportedOperationException",
+                f"Key {key.arn} origin is {key.origin} which is not valid for this "
+                "operation.",
+            )
+
+        # Generate a wrapping key (RSA key pair for import)
+        wrapping_key = rsa_mod.generate_private_key(
+            public_exponent=65537,
+            key_size=2048 if wrapping_key_spec == "RSA_2048" else 4096,
+        )
+        public_key_der = wrapping_key.public_key().public_bytes(
+            encoding=serialization.Encoding.DER,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
+        )
+
+        import_token = os.urandom(32)
+
+        # Store import state for later use
+        self._import_state[key_id] = {
+            "wrapping_key": wrapping_key,
+            "import_token": import_token,
+            "wrapping_algorithm": wrapping_algorithm,
+        }
+
+        return {
+            "key_id": key_id,
+            "import_token": import_token,
+            "public_key": public_key_der,
+            "parameters_valid_to": unix_time(utcnow() + timedelta(days=1)),
+        }
+
+    def import_key_material(
+        self,
+        key_id: str,
+        import_token: Any,
+        encrypted_key_material: Any,
+        valid_to: Optional[str] = None,
+        expiration_model: Optional[str] = None,
+    ) -> None:
+        key_id = self.any_id_to_key_id(key_id)
+        key = self.keys[key_id]
+
+        if key.origin != "EXTERNAL":
+            raise JsonRESTError(
+                "UnsupportedOperationException",
+                f"Key {key.arn} origin is {key.origin} which is not valid for this "
+                "operation.",
+            )
+
+        # Mark the key as having imported material
+        key.key_state = "Enabled"
+        key.enabled = True
+
+    def delete_imported_key_material(self, key_id: str) -> None:
+        key_id = self.any_id_to_key_id(key_id)
+        key = self.keys[key_id]
+
+        if key.origin != "EXTERNAL":
+            raise JsonRESTError(
+                "UnsupportedOperationException",
+                f"Key {key.arn} origin is {key.origin} which is not valid for this "
+                "operation.",
+            )
+
+        key.key_state = "PendingImport"
+        key.enabled = False
+
+    def update_primary_region(self, key_id: str, primary_region: str) -> None:
+        key_id = self.any_id_to_key_id(key_id)
+        key = self.keys[key_id]
+
+        if not key.multi_region:
+            raise JsonRESTError(
+                "UnsupportedOperationException",
+                "The key is not a multi-Region key.",
+            )
+
+        # Update the multi-region configuration
+        key.multi_region_configuration["PrimaryKey"] = {
+            "Arn": (
+                f"arn:{get_partition(primary_region)}:kms:{primary_region}:"
+                f"{key.account_id}:key/{key.id}"
+            ),
+            "Region": primary_region,
+        }
+        key.multi_region_configuration["MultiRegionKeyType"] = "REPLICA"
+
+        # Update the replica in the target region
+        target_backend = kms_backends[self.account_id][primary_region]
+        if key.id in target_backend.keys:
+            target_key = target_backend.keys[key.id]
+            target_key.multi_region_configuration["PrimaryKey"] = (
+                key.multi_region_configuration["PrimaryKey"]
+            )
+            target_key.multi_region_configuration["MultiRegionKeyType"] = "PRIMARY"
+
+    def derive_shared_secret(
+        self,
+        key_id: str,
+        key_agreement_algorithm: str,
+        public_key: Any,
+    ) -> dict[str, Any]:
+        key_id = self.any_id_to_key_id(key_id)
+        key = self.keys[key_id]
+
+        if key.key_usage != "KEY_AGREEMENT":
+            raise JsonRESTError(
+                "InvalidKeyUsageException",
+                "The key usage of the key is not KEY_AGREEMENT.",
+            )
+
+        # For mock purposes, return a deterministic shared secret
+        shared_secret = os.urandom(32)
+
+        return {
+            "key_id": key.arn,
+            "shared_secret": shared_secret,
+            "key_origin": key.origin,
+        }
 
     def create_grant(
         self,

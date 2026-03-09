@@ -318,6 +318,8 @@ class KmsResponse(BaseResponse):
         name = self._get_param("Name")
         constraints = self._get_param("Constraints")
 
+        self._validate_key_id(key_id)
+
         grant_id, grant_token = self.kms_backend.create_grant(
             key_id,
             grantee_principal,
@@ -331,6 +333,8 @@ class KmsResponse(BaseResponse):
     def list_grants(self) -> str:
         key_id = self._get_param("KeyId")
         grant_id = self._get_param("GrantId")
+
+        self._validate_key_id(key_id)
 
         grants = self.kms_backend.list_grants(key_id=key_id, grant_id=grant_id)
         return json.dumps(
@@ -357,6 +361,8 @@ class KmsResponse(BaseResponse):
         key_id = self._get_param("KeyId")
         grant_id = self._get_param("GrantId")
 
+        self._validate_key_id(key_id)
+
         self.kms_backend.revoke_grant(key_id, grant_id)
         return "{}"
 
@@ -364,6 +370,9 @@ class KmsResponse(BaseResponse):
         key_id = self._get_param("KeyId")
         grant_id = self._get_param("GrantId")
         grant_token = self._get_param("GrantToken")
+
+        if key_id:
+            self._validate_key_id(key_id)
 
         self.kms_backend.retire_grant(key_id, grant_id, grant_token)
         return "{}"
@@ -636,7 +645,13 @@ class KmsResponse(BaseResponse):
         """https://docs.aws.amazon.com/kms/latest/APIReference/API_GenerateRandom.html"""
         number_of_bytes = self._get_param("NumberOfBytes")
 
-        if number_of_bytes and (number_of_bytes > 1024 or number_of_bytes < 1):
+        if not number_of_bytes:
+            raise ValidationException(
+                "1 validation error detected: Value at 'numberOfBytes' failed "
+                "to satisfy constraint: Member must not be null"
+            )
+
+        if number_of_bytes > 1024 or number_of_bytes < 1:
             raise ValidationException(
                 f"1 validation error detected: Value '{number_of_bytes:d}' at 'numberOfBytes' failed "
                 "to satisfy constraint: Member must have value less than or "
@@ -807,6 +822,224 @@ class KmsResponse(BaseResponse):
             response["NextMarker"] = next_marker
 
         return json.dumps(response)
+
+    def create_custom_key_store(self) -> str:
+        """https://docs.aws.amazon.com/kms/latest/APIReference/API_CreateCustomKeyStore.html"""
+        custom_key_store_name = self._get_param("CustomKeyStoreName")
+        cloud_hsm_cluster_id = self._get_param("CloudHsmClusterId")
+        trust_anchor_certificate = self._get_param("TrustAnchorCertificate")
+        key_store_password = self._get_param("KeyStorePassword")
+        custom_key_store_type = self._get_param("CustomKeyStoreType", "AWS_CLOUDHSM")
+        xks_proxy_uri_endpoint = self._get_param("XksProxyUriEndpoint")
+        xks_proxy_uri_path = self._get_param("XksProxyUriPath")
+        xks_proxy_vpc_endpoint_service_name = self._get_param(
+            "XksProxyVpcEndpointServiceName"
+        )
+        xks_proxy_connectivity = self._get_param("XksProxyConnectivity")
+        xks_proxy_authentication_credential = self._get_param(
+            "XksProxyAuthenticationCredential"
+        )
+
+        custom_key_store_id = self.kms_backend.create_custom_key_store(
+            custom_key_store_name=custom_key_store_name,
+            cloud_hsm_cluster_id=cloud_hsm_cluster_id,
+            trust_anchor_certificate=trust_anchor_certificate,
+            key_store_password=key_store_password,
+            custom_key_store_type=custom_key_store_type,
+            xks_proxy_uri_endpoint=xks_proxy_uri_endpoint,
+            xks_proxy_uri_path=xks_proxy_uri_path,
+            xks_proxy_vpc_endpoint_service_name=xks_proxy_vpc_endpoint_service_name,
+            xks_proxy_connectivity=xks_proxy_connectivity,
+            xks_proxy_authentication_credential=xks_proxy_authentication_credential,
+        )
+        return json.dumps({"CustomKeyStoreId": custom_key_store_id})
+
+    def delete_custom_key_store(self) -> str:
+        """https://docs.aws.amazon.com/kms/latest/APIReference/API_DeleteCustomKeyStore.html"""
+        custom_key_store_id = self._get_param("CustomKeyStoreId")
+        self.kms_backend.delete_custom_key_store(custom_key_store_id)
+        return "{}"
+
+    def connect_custom_key_store(self) -> str:
+        """https://docs.aws.amazon.com/kms/latest/APIReference/API_ConnectCustomKeyStore.html"""
+        custom_key_store_id = self._get_param("CustomKeyStoreId")
+        self.kms_backend.connect_custom_key_store(custom_key_store_id)
+        return "{}"
+
+    def disconnect_custom_key_store(self) -> str:
+        """https://docs.aws.amazon.com/kms/latest/APIReference/API_DisconnectCustomKeyStore.html"""
+        custom_key_store_id = self._get_param("CustomKeyStoreId")
+        self.kms_backend.disconnect_custom_key_store(custom_key_store_id)
+        return "{}"
+
+    def update_custom_key_store(self) -> str:
+        """https://docs.aws.amazon.com/kms/latest/APIReference/API_UpdateCustomKeyStore.html"""
+        custom_key_store_id = self._get_param("CustomKeyStoreId")
+        new_custom_key_store_name = self._get_param("NewCustomKeyStoreName")
+        key_store_password = self._get_param("KeyStorePassword")
+        cloud_hsm_cluster_id = self._get_param("CloudHsmClusterId")
+        xks_proxy_uri_endpoint = self._get_param("XksProxyUriEndpoint")
+        xks_proxy_uri_path = self._get_param("XksProxyUriPath")
+        xks_proxy_vpc_endpoint_service_name = self._get_param(
+            "XksProxyVpcEndpointServiceName"
+        )
+        xks_proxy_connectivity = self._get_param("XksProxyConnectivity")
+        xks_proxy_authentication_credential = self._get_param(
+            "XksProxyAuthenticationCredential"
+        )
+        self.kms_backend.update_custom_key_store(
+            custom_key_store_id=custom_key_store_id,
+            new_custom_key_store_name=new_custom_key_store_name,
+            key_store_password=key_store_password,
+            cloud_hsm_cluster_id=cloud_hsm_cluster_id,
+            xks_proxy_uri_endpoint=xks_proxy_uri_endpoint,
+            xks_proxy_uri_path=xks_proxy_uri_path,
+            xks_proxy_vpc_endpoint_service_name=xks_proxy_vpc_endpoint_service_name,
+            xks_proxy_connectivity=xks_proxy_connectivity,
+            xks_proxy_authentication_credential=xks_proxy_authentication_credential,
+        )
+        return "{}"
+
+    def generate_data_key_pair(self) -> str:
+        """https://docs.aws.amazon.com/kms/latest/APIReference/API_GenerateDataKeyPair.html"""
+        key_id = self._get_param("KeyId")
+        key_pair_spec = self._get_param("KeyPairSpec")
+        encryption_context = self._get_param("EncryptionContext", {})
+
+        self._validate_key_id(key_id)
+
+        valid_specs = [
+            "RSA_2048",
+            "RSA_3072",
+            "RSA_4096",
+            "ECC_NIST_P256",
+            "ECC_NIST_P384",
+            "ECC_NIST_P521",
+            "ECC_SECG_P256K1",
+            "SM2",
+        ]
+        if key_pair_spec not in valid_specs:
+            raise ValidationException(
+                f"1 validation error detected: Value '{key_pair_spec}' at 'keyPairSpec' "
+                "failed to satisfy constraint: Member must satisfy enum value set: "
+                f"{valid_specs}"
+            )
+
+        result = self.kms_backend.generate_data_key_pair(
+            key_id=key_id,
+            key_pair_spec=key_pair_spec,
+            encryption_context=encryption_context,
+        )
+
+        return json.dumps(
+            {
+                "KeyId": result["key_arn"],
+                "KeyPairSpec": key_pair_spec,
+                "PrivateKeyCiphertextBlob": base64.b64encode(
+                    result["private_key_ciphertext"]
+                ).decode("utf-8"),
+                "PrivateKeyPlaintext": base64.b64encode(
+                    result["private_key_plaintext"]
+                ).decode("utf-8"),
+                "PublicKey": base64.b64encode(result["public_key"]).decode("utf-8"),
+            }
+        )
+
+    def generate_data_key_pair_without_plaintext(self) -> str:
+        """https://docs.aws.amazon.com/kms/latest/APIReference/API_GenerateDataKeyPairWithoutPlaintext.html"""
+        result = json.loads(self.generate_data_key_pair())
+        del result["PrivateKeyPlaintext"]
+        return json.dumps(result)
+
+    def get_parameters_for_import(self) -> str:
+        """https://docs.aws.amazon.com/kms/latest/APIReference/API_GetParametersForImport.html"""
+        key_id = self._get_param("KeyId")
+        wrapping_algorithm = self._get_param("WrappingAlgorithm")
+        wrapping_key_spec = self._get_param("WrappingKeySpec")
+
+        self._validate_key_id(key_id)
+
+        result = self.kms_backend.get_parameters_for_import(
+            key_id=key_id,
+            wrapping_algorithm=wrapping_algorithm,
+            wrapping_key_spec=wrapping_key_spec,
+        )
+
+        return json.dumps(
+            {
+                "KeyId": result["key_id"],
+                "ImportToken": base64.b64encode(
+                    result["import_token"]
+                ).decode("utf-8"),
+                "PublicKey": base64.b64encode(result["public_key"]).decode("utf-8"),
+                "ParametersValidTo": result["parameters_valid_to"],
+            }
+        )
+
+    def import_key_material(self) -> str:
+        """https://docs.aws.amazon.com/kms/latest/APIReference/API_ImportKeyMaterial.html"""
+        key_id = self._get_param("KeyId")
+        import_token = self._get_param("ImportToken")
+        encrypted_key_material = self._get_param("EncryptedKeyMaterial")
+        valid_to = self._get_param("ValidTo")
+        expiration_model = self._get_param("ExpirationModel")
+
+        self._validate_key_id(key_id)
+
+        self.kms_backend.import_key_material(
+            key_id=key_id,
+            import_token=import_token,
+            encrypted_key_material=encrypted_key_material,
+            valid_to=valid_to,
+            expiration_model=expiration_model,
+        )
+        return "{}"
+
+    def delete_imported_key_material(self) -> str:
+        """https://docs.aws.amazon.com/kms/latest/APIReference/API_DeleteImportedKeyMaterial.html"""
+        key_id = self._get_param("KeyId")
+
+        self._validate_key_id(key_id)
+
+        self.kms_backend.delete_imported_key_material(key_id=key_id)
+        return "{}"
+
+    def update_primary_region(self) -> str:
+        """https://docs.aws.amazon.com/kms/latest/APIReference/API_UpdatePrimaryRegion.html"""
+        key_id = self._get_param("KeyId")
+        primary_region = self._get_param("PrimaryRegion")
+
+        self._validate_key_id(key_id)
+
+        self.kms_backend.update_primary_region(
+            key_id=key_id, primary_region=primary_region
+        )
+        return "{}"
+
+    def derive_shared_secret(self) -> str:
+        """https://docs.aws.amazon.com/kms/latest/APIReference/API_DeriveSharedSecret.html"""
+        key_id = self._get_param("KeyId")
+        key_agreement_algorithm = self._get_param("KeyAgreementAlgorithm")
+        public_key_param = self._get_param("PublicKey")
+
+        self._validate_key_id(key_id)
+
+        result = self.kms_backend.derive_shared_secret(
+            key_id=key_id,
+            key_agreement_algorithm=key_agreement_algorithm,
+            public_key=public_key_param,
+        )
+
+        return json.dumps(
+            {
+                "KeyId": result["key_id"],
+                "SharedSecret": base64.b64encode(
+                    result["shared_secret"]
+                ).decode("utf-8"),
+                "KeyAgreementAlgorithm": key_agreement_algorithm,
+                "KeyOrigin": result["key_origin"],
+            }
+        )
 
 
 def _assert_default_policy(policy_name: str) -> None:
