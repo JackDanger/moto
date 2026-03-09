@@ -157,9 +157,14 @@ class ElasticBlockStore(EC2BaseResponse):
         return template.render(volumes=volumes)
 
     def describe_volume_attribute(self) -> str:
-        raise NotImplementedError(
-            "ElasticBlockStore.describe_volume_attribute is not yet implemented"
+        volume_id = self._get_param("VolumeId")
+        attribute = self._get_param("Attribute")
+        result = self.ec2_backend.describe_volume_attribute(
+            volume_id=volume_id,
+            attribute=attribute,
         )
+        template = self.response_template(DESCRIBE_VOLUME_ATTRIBUTE_RESPONSE)
+        return template.render(result=result, attribute=attribute)
 
     def describe_volume_status(self) -> str:
         template = self.response_template(DESCRIBE_VOLUME_STATUS_RESPONSE)
@@ -218,9 +223,14 @@ class ElasticBlockStore(EC2BaseResponse):
     def modify_volume_attribute(self) -> str:
         self.error_on_dryrun()
 
-        raise NotImplementedError(
-            "ElasticBlockStore.modify_volume_attribute is not yet implemented"
+        volume_id = self._get_param("VolumeId")
+        auto_enable_io = self._get_param("AutoEnableIO")
+        self.ec2_backend.modify_volume_attribute(
+            volume_id=volume_id,
+            auto_enable_io=auto_enable_io,
         )
+        template = self.response_template(MODIFY_VOLUME_ATTRIBUTE_RESPONSE)
+        return template.render()
 
     def reset_snapshot_attribute(self) -> str:
         self.error_on_dryrun()
@@ -577,3 +587,20 @@ MODIFY_EBS_DEFAULT_KMS_KEY_ID_RESPONSE = """
     <kmsKeyId>{{ kmsKeyId }}</kmsKeyId>
 </ModifyEbsDefaultKmsKeyIdResponse>
 """
+
+DESCRIBE_VOLUME_ATTRIBUTE_RESPONSE = """<DescribeVolumeAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+  <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
+  <volumeId>{{ result.volume_id }}</volumeId>
+  {% if attribute == 'autoEnableIO' %}
+  <autoEnableIO>
+    <value>{{ result.auto_enable_io }}</value>
+  </autoEnableIO>
+  {% elif attribute == 'productCodes' %}
+  <productCodes/>
+  {% endif %}
+</DescribeVolumeAttributeResponse>"""
+
+MODIFY_VOLUME_ATTRIBUTE_RESPONSE = """<ModifyVolumeAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+  <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
+  <return>true</return>
+</ModifyVolumeAttributeResponse>"""

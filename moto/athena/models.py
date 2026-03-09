@@ -258,6 +258,7 @@ class AthenaBackend(BaseBackend):
         self.prepared_statements: dict[str, PreparedStatement] = {}
         self.databases: dict[str, dict[str, Database]] = {}  # catalog_name -> {db_name -> Database}
         self.tables: dict[str, dict[str, dict[str, TableMetadata]]] = {}  # catalog -> db -> {table -> TableMetadata}
+        self.sessions: dict[str, dict[str, Any]] = {}
         self.tagger = TaggingService()
 
         # Initialise with the primary workgroup
@@ -307,6 +308,26 @@ class AthenaBackend(BaseBackend):
             "Description": wg.description,
             "CreationTime": time.time(),
         }
+
+    def update_work_group(
+        self,
+        name: str,
+        description: Optional[str] = None,
+        configuration_updates: Optional[dict[str, Any]] = None,
+        state: Optional[str] = None,
+    ) -> bool:
+        if name not in self.work_groups:
+            return False
+        wg = self.work_groups[name]
+        if description is not None:
+            wg.description = description
+        if state is not None:
+            wg.state = state
+        if configuration_updates:
+            # Merge configuration updates into existing config
+            for key, value in configuration_updates.items():
+                wg.configuration[key] = value
+        return True
 
     def delete_work_group(self, name: str) -> None:
         self.work_groups.pop(name, None)
@@ -630,6 +651,33 @@ class AthenaBackend(BaseBackend):
             f"PreparedStatement {statement_name} was not found"
         )
 
+    def update_prepared_statement(
+        self,
+        statement_name: str,
+        work_group: str,
+        query_statement: str,
+        description: Optional[str] = None,
+    ) -> None:
+        if statement_name in self.prepared_statements:
+            ps = self.prepared_statements[statement_name]
+            if ps.workgroup == work_group:
+                ps.query_statement = query_statement
+                if description is not None:
+                    ps.description = description
+                ps.last_modified_time = datetime.now()
+                return
+        raise InvalidArgumentException(
+            f"PreparedStatement {statement_name} was not found"
+        )
+
+    def list_prepared_statements(
+        self, work_group: str
+    ) -> list[PreparedStatement]:
+        return [
+            ps for ps in self.prepared_statements.values()
+            if ps.workgroup == work_group
+        ]
+
     def batch_get_prepared_statement(
         self, prepared_statement_names: list[str], work_group: str
     ) -> tuple[list[PreparedStatement], list[dict[str, str]]]:
@@ -776,13 +824,68 @@ class AthenaBackend(BaseBackend):
             }
         }
 
-    # --- Session operations (stubs) ---
+    # --- Session operations ---
+
+    def start_session(
+        self,
+        work_group: str,
+        engine_configuration: Optional[dict[str, Any]] = None,
+        notebook_version: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> dict[str, Any]:
+        session_id = str(mock_random.uuid4())
+        session = {
+            "SessionId": session_id,
+            "WorkGroup": work_group,
+            "EngineConfiguration": engine_configuration or {},
+            "NotebookVersion": notebook_version or "",
+            "Description": description or "",
+            "Status": {"State": "IDLE", "StartDateTime": time.time()},
+        }
+        self.sessions[session_id] = session
+        return {"SessionId": session_id, "State": "IDLE"}
 
     def get_session(self, session_id: str) -> Optional[dict[str, Any]]:
-        # Sessions are not stored; return None to indicate not found
+        if session_id in self.sessions:
+            return self.sessions[session_id]
         return None
 
     def get_session_status(self, session_id: str) -> Optional[dict[str, Any]]:
+        if session_id in self.sessions:
+            return {"SessionId": session_id, "Status": self.sessions[session_id]["Status"]}
+        return None
+
+    def terminate_session(self, session_id: str) -> Optional[dict[str, str]]:
+        if session_id in self.sessions:
+            self.sessions[session_id]["Status"]["State"] = "TERMINATED"
+            self.sessions[session_id]["Status"]["EndDateTime"] = time.time()
+            return {"State": "TERMINATING"}
+        return None
+
+    def list_sessions(
+        self, work_group: str
+    ) -> list[dict[str, Any]]:
+        return [
+            {
+                "SessionId": s["SessionId"],
+                "Description": s.get("Description", ""),
+                "EngineVersion": "PySpark engine version 3",
+                "NotebookVersion": s.get("NotebookVersion", ""),
+                "Status": s["Status"],
+            }
+            for s in self.sessions.values()
+            if s.get("WorkGroup") == work_group
+        ]
+
+    def create_presigned_notebook_url(
+        self, session_id: str
+    ) -> Optional[dict[str, Any]]:
+        if session_id in self.sessions:
+            return {
+                "NotebookUrl": f"https://athena-notebooks.amazonaws.com/{session_id}",
+                "AuthToken": f"mock-auth-token-{session_id}",
+                "AuthTokenExpirationTime": time.time() + 3600,
+            }
         return None
 
     # --- Calculation execution operations (stubs) ---

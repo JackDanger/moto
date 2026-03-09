@@ -1,5 +1,6 @@
 import re
 import time
+import uuid as _uuid
 from collections.abc import Iterable
 from datetime import datetime
 from typing import Any, Optional
@@ -13,6 +14,7 @@ from moto.utilities.utils import get_partition
 from .exceptions import (
     ChannelNotFoundException,
     EventDataStoreNotFoundException,
+    ImportNotFoundException,
     InsufficientSnsTopicPolicyException,
     QueryIdNotFoundException,
     ResourceNotFoundException,
@@ -266,8 +268,6 @@ class EventDataStore(BaseModel):
         kms_key_id: Optional[str] = None,
         billing_mode: str = "EXTENDABLE_RETENTION_PRICING",
     ):
-        import uuid as _uuid
-
         self.event_data_store_id = str(_uuid.uuid4())
         self.name = name
         self.status = "ENABLED"
@@ -282,6 +282,8 @@ class EventDataStore(BaseModel):
         self.updated_timestamp = utcnow()
         self.arn = f"arn:{get_partition(region_name)}:cloudtrail:{region_name}:{account_id}:eventdatastore/{self.event_data_store_id}"
         self.insight_selectors: list[dict[str, str]] = []
+        self.federation_status: Optional[str] = None
+        self.federation_role_arn: Optional[str] = None
 
     def description(self) -> dict[str, Any]:
         desc: dict[str, Any] = {
@@ -311,8 +313,6 @@ class Channel(BaseModel):
         source: str,
         destinations: Optional[list[dict[str, Any]]] = None,
     ):
-        import uuid as _uuid
-
         self.channel_id = str(_uuid.uuid4())
         self.name = name
         self.source = source
@@ -334,8 +334,6 @@ class Query(BaseModel):
         event_data_store_arn: str,
         query_statement: str,
     ):
-        import uuid as _uuid
-
         self.query_id = str(_uuid.uuid4())
         self.event_data_store_arn = event_data_store_arn
         self.query_statement = query_statement
@@ -365,6 +363,34 @@ class Query(BaseModel):
         }
 
 
+class ImportResource(BaseModel):
+    def __init__(
+        self,
+        source: str,
+        destinations: list[str],
+        import_id: Optional[str] = None,
+    ):
+        self.import_id = import_id or str(_uuid.uuid4())
+        self.source = source
+        self.destinations = destinations
+        self.import_status = "INITIALIZING"
+        self.created_timestamp = utcnow()
+        self.updated_timestamp = utcnow()
+        self.start_event_time: Optional[datetime] = None
+        self.end_event_time: Optional[datetime] = None
+
+    def description(self) -> dict[str, Any]:
+        desc: dict[str, Any] = {
+            "ImportId": self.import_id,
+            "ImportSource": {"S3": {"S3LocationUri": self.source}},
+            "Destinations": self.destinations,
+            "ImportStatus": self.import_status,
+            "CreatedTimestamp": datetime2int(self.created_timestamp),
+            "UpdatedTimestamp": datetime2int(self.updated_timestamp),
+        }
+        return desc
+
+
 class CloudTrailBackend(BaseBackend):
     """Implementation of CloudTrail APIs."""
 
@@ -375,9 +401,11 @@ class CloudTrailBackend(BaseBackend):
         self.event_data_stores: dict[str, EventDataStore] = {}
         self.channels: dict[str, Channel] = {}
         self.queries: dict[str, Query] = {}
+        self.imports: dict[str, ImportResource] = {}
         self.resource_policies: dict[str, str] = {}
         self.dashboards: dict[str, dict[str, Any]] = {}
         self.event_configuration: Optional[dict[str, Any]] = None
+        self.delegated_admin_account_id: Optional[str] = None
 
     def create_trail(
         self,
@@ -645,6 +673,166 @@ class CloudTrailBackend(BaseBackend):
             raise QueryIdNotFoundException(query_id)
         query = self.queries[query_id]
         return query.query_status, query.query_results, query.query_statistics
+
+    def list_queries(
+        self, event_data_store: str
+    ) -> list[Query]:
+        # Validate the event data store exists
+        self.get_event_data_store(event_data_store)
+        return [
+            q for q in self.queries.values()
+            if q.event_data_store_arn == event_data_store or not q.event_data_store_arn
+        ]
+
+    def cancel_query(self, query_id: str) -> tuple[str, str]:
+        if query_id not in self.queries:
+            raise QueryIdNotFoundException(query_id)
+        query = self.queries[query_id]
+        query.query_status = "CANCELLED"
+        return query.query_id, query.query_status
+
+    # Event Data Store mutation operations
+
+    def delete_event_data_store(self, event_data_store: str) -> None:
+        eds = self.get_event_data_store(event_data_store)
+        eds.status = "PENDING_DELETION"
+        del self.event_data_stores[eds.arn]
+
+    def update_event_data_store(
+        self,
+        event_data_store: str,
+        name: Optional[str] = None,
+        advanced_event_selectors: Optional[list[dict[str, Any]]] = None,
+        multi_region_enabled: Optional[bool] = None,
+        organization_enabled: Optional[bool] = None,
+        retention_period: Optional[int] = None,
+        termination_protection_enabled: Optional[bool] = None,
+        kms_key_id: Optional[str] = None,
+        billing_mode: Optional[str] = None,
+    ) -> EventDataStore:
+        eds = self.get_event_data_store(event_data_store)
+        if name is not None:
+            eds.name = name
+        if advanced_event_selectors is not None:
+            eds.advanced_event_selectors = advanced_event_selectors
+        if multi_region_enabled is not None:
+            eds.multi_region_enabled = multi_region_enabled
+        if organization_enabled is not None:
+            eds.organization_enabled = organization_enabled
+        if retention_period is not None:
+            eds.retention_period = retention_period
+        if termination_protection_enabled is not None:
+            eds.termination_protection_enabled = termination_protection_enabled
+        if kms_key_id is not None:
+            eds.kms_key_id = kms_key_id
+        if billing_mode is not None:
+            eds.billing_mode = billing_mode
+        eds.updated_timestamp = utcnow()
+        return eds
+
+    def restore_event_data_store(self, event_data_store: str) -> EventDataStore:
+        # In real AWS this restores a soft-deleted EDS. We'll just create a new one
+        # or re-enable if it was pending deletion. For mocking, re-create the entry.
+        eds = self.get_event_data_store(event_data_store)
+        eds.status = "ENABLED"
+        eds.updated_timestamp = utcnow()
+        return eds
+
+    # Channel mutation operations
+
+    def delete_channel(self, channel_arn: str) -> None:
+        if channel_arn not in self.channels:
+            raise ChannelNotFoundException(channel_arn)
+        del self.channels[channel_arn]
+
+    def update_channel(
+        self,
+        channel_arn: str,
+        name: Optional[str] = None,
+        source: Optional[str] = None,
+        destinations: Optional[list[dict[str, Any]]] = None,
+    ) -> Channel:
+        channel = self.get_channel(channel_arn)
+        if name is not None:
+            channel.name = name
+        if source is not None:
+            channel.source = source
+        if destinations is not None:
+            channel.destinations = destinations
+        return channel
+
+    # Federation operations
+
+    def enable_federation(
+        self, event_data_store: str, federation_role_arn: str
+    ) -> tuple[str, str, str]:
+        eds = self.get_event_data_store(event_data_store)
+        eds.federation_status = "ENABLED"
+        eds.federation_role_arn = federation_role_arn
+        return eds.arn, "ENABLED", federation_role_arn
+
+    def disable_federation(self, event_data_store: str) -> tuple[str, str]:
+        eds = self.get_event_data_store(event_data_store)
+        eds.federation_status = "DISABLED"
+        eds.federation_role_arn = None
+        return eds.arn, "DISABLED"
+
+    # Import operations
+
+    def start_import(
+        self,
+        source: Optional[str] = None,
+        destinations: Optional[list[str]] = None,
+        import_id: Optional[str] = None,
+    ) -> ImportResource:
+        if import_id and import_id in self.imports:
+            # Restart an existing import
+            imp = self.imports[import_id]
+            imp.import_status = "IN_PROGRESS"
+            imp.updated_timestamp = utcnow()
+            return imp
+        imp = ImportResource(
+            source=source or "",
+            destinations=destinations or [],
+            import_id=import_id,
+        )
+        imp.import_status = "IN_PROGRESS"
+        self.imports[imp.import_id] = imp
+        return imp
+
+    def get_import(self, import_id: str) -> ImportResource:
+        if import_id not in self.imports:
+            raise ImportNotFoundException(import_id)
+        return self.imports[import_id]
+
+    def list_imports(
+        self, destination: Optional[str] = None
+    ) -> list[ImportResource]:
+        imports = list(self.imports.values())
+        if destination:
+            imports = [i for i in imports if destination in i.destinations]
+        return imports
+
+    def stop_import(self, import_id: str) -> ImportResource:
+        if import_id not in self.imports:
+            raise ImportNotFoundException(import_id)
+        imp = self.imports[import_id]
+        imp.import_status = "STOPPED"
+        imp.updated_timestamp = utcnow()
+        return imp
+
+    # Organization delegated admin
+
+    def register_organization_delegated_admin(
+        self, member_account_id: str
+    ) -> None:
+        self.delegated_admin_account_id = member_account_id
+
+    def deregister_organization_delegated_admin(
+        self, delegated_admin_account_id: str
+    ) -> None:
+        if self.delegated_admin_account_id == delegated_admin_account_id:
+            self.delegated_admin_account_id = None
 
     # Resource Policy operations
 

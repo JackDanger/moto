@@ -363,3 +363,211 @@ class ElasticMapReduceResponse(BaseResponse):
         release_label = self._get_param("ReleaseLabel")
         instance_types = self.backend.list_supported_instance_types(release_label)
         return ActionResult({"SupportedInstanceTypes": instance_types})
+
+    def list_security_configurations(self) -> ActionResult:
+        configs = self.backend.list_security_configurations()
+        result = {
+            "SecurityConfigurations": [
+                {
+                    "Name": c.name,
+                    "CreationDateTime": c.creation_date_time,
+                }
+                for c in configs
+            ]
+        }
+        return PaginatedResult(result)
+
+    def cancel_steps(self) -> ActionResult:
+        cluster_id = self._get_param("ClusterId")
+        step_ids = self._get_param("StepIds", [])
+        results = self.backend.cancel_steps(cluster_id, step_ids)
+        return ActionResult({"CancelStepsInfoList": results})
+
+    def create_studio(self) -> ActionResult:
+        name = self._get_param("Name")
+        auth_mode = self._get_param("AuthMode")
+        vpc_id = self._get_param("VpcId")
+        subnet_ids = self._get_param("SubnetIds", [])
+        service_role = self._get_param("ServiceRole")
+        ws_sg = self._get_param("WorkspaceSecurityGroupId")
+        engine_sg = self._get_param("EngineSecurityGroupId")
+        default_s3 = self._get_param("DefaultS3Location", "")
+        description = self._get_param("Description", "")
+        user_role = self._get_param("UserRole", "")
+        tags = self._get_param("Tags", [])
+        tag_dict = {d["Key"]: d["Value"] for d in tags} if tags else {}
+        studio = self.backend.create_studio(
+            name=name,
+            auth_mode=auth_mode,
+            vpc_id=vpc_id,
+            subnet_ids=subnet_ids,
+            service_role=service_role,
+            workspace_security_group_id=ws_sg,
+            engine_security_group_id=engine_sg,
+            default_s3_location=default_s3,
+            description=description,
+            user_role=user_role,
+            tags=tag_dict,
+        )
+        return ActionResult(
+            {"StudioId": studio.studio_id, "Url": studio.url}
+        )
+
+    def describe_studio(self) -> ActionResult:
+        studio_id = self._get_param("StudioId")
+        studio = self.backend.describe_studio(studio_id)
+        result = {
+            "Studio": {
+                "StudioId": studio.studio_id,
+                "StudioArn": studio.arn,
+                "Name": studio.name,
+                "Description": studio.description,
+                "AuthMode": studio.auth_mode,
+                "VpcId": studio.vpc_id,
+                "SubnetIds": studio.subnet_ids,
+                "ServiceRole": studio.service_role,
+                "UserRole": studio.user_role,
+                "WorkspaceSecurityGroupId": (
+                    studio.workspace_security_group_id
+                ),
+                "EngineSecurityGroupId": (
+                    studio.engine_security_group_id
+                ),
+                "Url": studio.url,
+                "DefaultS3Location": studio.default_s3_location,
+                "CreationTime": studio.creation_time,
+                "Tags": studio.tags,
+            }
+        }
+        return ActionResult(result)
+
+    def delete_studio(self) -> ActionResult:
+        studio_id = self._get_param("StudioId")
+        self.backend.delete_studio(studio_id)
+        return EmptyResult()
+
+    def list_studios(self) -> ActionResult:
+        studios = self.backend.list_studios()
+        result = {
+            "Studios": [
+                {
+                    "StudioId": s.studio_id,
+                    "Name": s.name,
+                    "Description": s.description,
+                    "AuthMode": s.auth_mode,
+                    "Url": s.url,
+                    "CreationTime": s.creation_time,
+                }
+                for s in studios
+            ]
+        }
+        return PaginatedResult(result)
+
+    def put_managed_scaling_policy(self) -> ActionResult:
+        cluster_id = self._get_param("ClusterId")
+        policy = self._get_param("ManagedScalingPolicy")
+        self.backend.put_managed_scaling_policy(cluster_id, policy)
+        return EmptyResult()
+
+    def get_managed_scaling_policy(self) -> ActionResult:
+        cluster_id = self._get_param("ClusterId")
+        policy = self.backend.get_managed_scaling_policy(cluster_id)
+        result = {}
+        if policy:
+            result["ManagedScalingPolicy"] = policy
+        return ActionResult(result)
+
+    def remove_managed_scaling_policy(self) -> ActionResult:
+        cluster_id = self._get_param("ClusterId")
+        self.backend.remove_managed_scaling_policy(cluster_id)
+        return EmptyResult()
+
+    def put_auto_termination_policy(self) -> ActionResult:
+        cluster_id = self._get_param("ClusterId")
+        policy = self._get_param("AutoTerminationPolicy")
+        self.backend.put_auto_termination_policy(cluster_id, policy)
+        return EmptyResult()
+
+    def get_auto_termination_policy(self) -> ActionResult:
+        cluster_id = self._get_param("ClusterId")
+        policy = self.backend.get_auto_termination_policy(cluster_id)
+        result = {}
+        if policy:
+            result["AutoTerminationPolicy"] = policy
+        return ActionResult(result)
+
+    def remove_auto_termination_policy(self) -> ActionResult:
+        cluster_id = self._get_param("ClusterId")
+        self.backend.remove_auto_termination_policy(cluster_id)
+        return EmptyResult()
+
+    def create_notebook_execution(self) -> ActionResult:
+        editor_id = self._get_param("EditorId")
+        relative_path = self._get_param("RelativePath")
+        execution_engine = self._get_param("ExecutionEngine")
+        service_role = self._get_param("ServiceRole")
+        name = self._get_param("NotebookExecutionName", "")
+        params = self._get_param("NotebookParams", "")
+        tags = self._get_param("Tags", [])
+        tag_dict = {d["Key"]: d["Value"] for d in tags} if tags else {}
+        execution = self.backend.create_notebook_execution(
+            editor_id=editor_id,
+            relative_path=relative_path,
+            execution_engine=execution_engine,
+            service_role=service_role,
+            notebook_execution_name=name,
+            notebook_params=params,
+            tags=tag_dict,
+        )
+        return ActionResult(
+            {"NotebookExecutionId": execution.notebook_execution_id}
+        )
+
+    def describe_notebook_execution(self) -> ActionResult:
+        nid = self._get_param("NotebookExecutionId")
+        ex = self.backend.describe_notebook_execution(nid)
+        result = {
+            "NotebookExecution": {
+                "NotebookExecutionId": ex.notebook_execution_id,
+                "NotebookExecutionName": ex.notebook_execution_name,
+                "EditorId": ex.editor_id,
+                "ExecutionEngine": ex.execution_engine,
+                "ServiceRole": ex.service_role,
+                "NotebookParams": ex.notebook_params,
+                "Status": ex.status,
+                "StartTime": ex.start_time,
+                "EndTime": ex.end_time,
+                "Tags": ex.tags,
+            }
+        }
+        return ActionResult(result)
+
+    def list_notebook_executions(self) -> ActionResult:
+        status = self._get_param("Status")
+        executions = self.backend.list_notebook_executions(status=status)
+        result = {
+            "NotebookExecutions": [
+                {
+                    "NotebookExecutionId": e.notebook_execution_id,
+                    "NotebookExecutionName": (
+                        e.notebook_execution_name
+                    ),
+                    "EditorId": e.editor_id,
+                    "Status": e.status,
+                    "StartTime": e.start_time,
+                    "EndTime": e.end_time,
+                }
+                for e in executions
+            ]
+        }
+        return PaginatedResult(result)
+
+    def stop_notebook_execution(self) -> ActionResult:
+        nid = self._get_param("NotebookExecutionId")
+        self.backend.stop_notebook_execution(nid)
+        return EmptyResult()
+
+    def describe_release_label(self) -> ActionResult:
+        release_label = self._get_param("ReleaseLabel")
+        result = self.backend.describe_release_label(release_label)
+        return ActionResult(result)

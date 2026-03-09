@@ -368,3 +368,75 @@ class DBInstanceRoleAlreadyExists(RDSClientError):
 class DBClusterRoleAlreadyExists(RDSClientError):
     def __init__(self, message: str):
         super().__init__("DBClusterRoleAlreadyExists", message)
+
+
+class CustomDBEngineVersionAlreadyExistsFault(RDSClientError):
+    def __init__(self, engine: str, engine_version: str):
+        super().__init__(
+            "CustomDBEngineVersionAlreadyExistsFault",
+            f"A custom engine version with engine {engine} and engine version {engine_version} already exists.",
+        )
+
+
+class CustomDBEngineVersionNotFoundFault(RDSClientError):
+    def __init__(self, engine: str, engine_version: str):
+        super().__init__(
+            "CustomDBEngineVersionNotFoundFault",
+            f"Custom engine version {engine} {engine_version} not found.",
+        )
+
+
+class IntegrationAlreadyExistsFault(RDSClientError):
+    def __init__(self, integration_name: str):
+        super().__init__(
+            "IntegrationAlreadyExistsFault",
+            f"An integration with the name {integration_name} already exists.",
+        )
+
+
+class IntegrationNotFoundFault(RDSClientError):
+    def __init__(self, integration_identifier: str):
+        super().__init__(
+            "IntegrationNotFoundFault",
+            f"Integration {integration_identifier} not found.",
+        )
+
+
+class TenantDatabaseAlreadyExistsFault(RDSClientError):
+    def __init__(self, db_instance_identifier: str, tenant_db_name: str):
+        super().__init__(
+            "TenantDatabaseAlreadyExistsFault",
+            f"A tenant database with name {tenant_db_name} already exists on DB instance {db_instance_identifier}.",
+        )
+
+
+class TenantDatabaseNotFoundFault(RDSClientError):
+    def __init__(self, tenant_db_name: str):
+        super().__init__(
+            "TenantDatabaseNotFoundFault",
+            f"Tenant database {tenant_db_name} not found.",
+        )
+
+
+class ReservedDBInstanceNotFoundFault(RDSClientError):
+    def __init__(self, reserved_id: str):
+        super().__init__(
+            "ReservedDBInstanceNotFoundFault",
+            f"Reservation with Id {reserved_id} not found.",
+        )
+
+
+class ReservedDBInstancesOfferingNotFoundFault(RDSClientError):
+    def __init__(self, offering_id: str):
+        super().__init__(
+            "ReservedDBInstancesOfferingNotFoundFault",
+            f"Offering {offering_id} not found.",
+        )
+
+
+class ReservedDBInstanceAlreadyExistsFault(RDSClientError):
+    def __init__(self, reserved_id: str):
+        super().__init__(
+            "ReservedDBInstanceAlreadyExistsFault",
+            f"Reservation with Id {reserved_id} already exists.",
+        )

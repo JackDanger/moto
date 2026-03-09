@@ -602,6 +602,30 @@ class WAFV2Response(BaseResponse):
         result = self.wafv2_backend.describe_managed_rule_group(vendor_name, name, scope)
         return 200, {}, json.dumps(result)
 
+    def list_available_managed_rule_groups(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        scope = body.get("Scope", "REGIONAL")
+        groups = self.wafv2_backend.list_available_managed_rule_groups(scope)
+        return 200, {}, json.dumps({"ManagedRuleGroups": groups, "NextMarker": None})
+
+    def list_available_managed_rule_group_versions(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        vendor_name = body["VendorName"]
+        name = body["Name"]
+        scope = body.get("Scope", "REGIONAL")
+        versions = self.wafv2_backend.list_available_managed_rule_group_versions(
+            vendor_name, name, scope
+        )
+        return (
+            200,
+            {},
+            json.dumps({
+                "Versions": versions,
+                "CurrentDefaultVersion": "Version_2.0",
+                "NextMarker": None,
+            }),
+        )
+
 
 # notes about region and scope
 # --scope = CLOUDFRONT is ALWAYS us-east-1 (but we use "global" instead to differentiate between REGIONAL us-east-1)

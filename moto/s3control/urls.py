@@ -65,6 +65,14 @@ url_paths = {
     r"{0}/v20180820/jobs/(?P<job_id>[^/]+)$": S3ControlResponse.dispatch,
     "/v20180820/jobs": S3ControlResponse.dispatch,
     "/v20180820/jobs/<job_id>": S3ControlResponse.dispatch,
+    # Job priority/status
+    r"{0}/v20180820/jobs/(?P<job_id>[^/]+)/priority$": S3ControlResponse.dispatch,
+    r"{0}/v20180820/jobs/(?P<job_id>[^/]+)/status$": S3ControlResponse.dispatch,
+    "/v20180820/jobs/<job_id>/priority": S3ControlResponse.dispatch,
+    "/v20180820/jobs/<job_id>/status": S3ControlResponse.dispatch,
+    # MRAP routes
+    r"{0}/v20180820/mrap/instances/(?P<mrap_name>[^/]+)/routes$": S3ControlResponse.dispatch,
+    "/v20180820/mrap/instances/<mrap_name>/routes": S3ControlResponse.dispatch,
     # Bucket-level operations
     r"{0}/v20180820/bucket/(?P<bucket>[^/]+)/lifecycleconfiguration$": S3ControlResponse.dispatch,
     r"{0}/v20180820/bucket/(?P<bucket>[^/]+)/policy$": S3ControlResponse.dispatch,

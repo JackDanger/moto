@@ -13,38 +13,60 @@ from ..utils import (
 )
 from .amis import AmiBackend
 from .availability_zones_and_regions import RegionsAndZonesBackend
+from .capacity_block import CapacityBlockBackend
+from .capacity_reservations import CapacityReservationBackend
 from .carrier_gateways import CarrierGatewayBackend
 from .client_vpn_endpoints import ClientVpnEndpointBackend
+from .coip import CoipBackend
 from .customer_gateways import CustomerGatewayBackend
+from .declarative_policies import DeclarativePoliciesBackend
 from .dhcp_options import DHCPOptionsSetBackend
 from .elastic_block_store import EBSBackend
 from .elastic_ip_addresses import ElasticAddressBackend
 from .elastic_network_interfaces import NetworkInterfaceBackend
+from .fast_launch import FastLaunchBackend
 from .fleets import FleetsBackend
 from .flow_logs import FlowLogsBackend
+from .host_reservation import HostReservationBackend
 from .hosts import HostsBackend
 from .iam_instance_profile import IamInstanceProfileAssociationBackend
+from .instance_connect_endpoint import InstanceConnectEndpointBackend
+from .instance_event_window import InstanceEventWindowBackend
+from .instance_metadata_defaults import InstanceMetadataDefaultsBackend
 from .instance_types import InstanceTypeBackend, InstanceTypeOfferingBackend
-from .ipam import IpamBackend
 from .instances import InstanceBackend
 from .internet_gateways import (
     EgressOnlyInternetGatewayBackend,
     InternetGatewayBackend,
 )
+from .ipam import IpamBackend
 from .key_pairs import KeyPairBackend
 from .launch_templates import LaunchTemplateBackend
+from .local_gateways import LocalGatewayBackend
 from .managed_prefixes import ManagedPrefixListBackend
 from .nat_gateways import NatGatewayBackend
 from .network_acls import NetworkAclBackend
+from .network_insights import NetworkInsightsBackend
+from .network_insights_access_scope import NetworkInsightsAccessScopeBackend
+from .public_ipv4_pool import PublicIpv4PoolBackend
+from .replace_root_volume_task import ReplaceRootVolumeTaskBackend
 from .reserved_instances import ReservedInstancesBackend
 from .route_tables import RouteBackend
+from .security_group_vpc_association import SecurityGroupVpcAssociationBackend
 from .security_groups import SecurityGroupBackend
+from .snapshot_block_public_access import SnapshotBlockPublicAccessBackend
+from .spot_datafeed import SpotDatafeedBackend
 from .spot_requests import SpotRequestBackend
+from .store_image_task import StoreImageTaskBackend
 from .subnets import SubnetBackend
 from .tags import TagBackend
+from .traffic_mirror import TrafficMirrorBackend
 from .transit_gateway import TransitGatewayBackend
 from .transit_gateway_attachments import TransitGatewayAttachmentBackend
+from .transit_gateway_connect import TransitGatewayConnectBackend
 from .transit_gateway_route_tables import TransitGatewayRouteTableBackend
+from .verified_access import VerifiedAccessBackend
+from .volume_attribute import VolumeAttributeBackend
 from .vpc_peering_connections import VPCPeeringConnectionBackend
 from .vpc_service_configuration import VPCServiceConfigurationBackend
 from .vpcs import VPCBackend
@@ -112,6 +134,7 @@ class EC2Backend(
     TransitGatewayBackend,
     TransitGatewayRouteTableBackend,
     TransitGatewayAttachmentBackend,
+    TransitGatewayConnectBackend,
     LaunchTemplateBackend,
     IamInstanceProfileAssociationBackend,
     CarrierGatewayBackend,
@@ -121,6 +144,27 @@ class EC2Backend(
     ReservedInstancesBackend,
     ClientVpnEndpointBackend,
     IpamBackend,
+    NetworkInsightsBackend,
+    VerifiedAccessBackend,
+    InstanceConnectEndpointBackend,
+    CapacityReservationBackend,
+    TrafficMirrorBackend,
+    FastLaunchBackend,
+    LocalGatewayBackend,
+    CoipBackend,
+    HostReservationBackend,
+    PublicIpv4PoolBackend,
+    InstanceEventWindowBackend,
+    NetworkInsightsAccessScopeBackend,
+    SnapshotBlockPublicAccessBackend,
+    SecurityGroupVpcAssociationBackend,
+    SpotDatafeedBackend,
+    InstanceMetadataDefaultsBackend,
+    VolumeAttributeBackend,
+    ReplaceRootVolumeTaskBackend,
+    StoreImageTaskBackend,
+    DeclarativePoliciesBackend,
+    CapacityBlockBackend,
 ):
     """
     moto includes a limited set of AMIs in `moto/ec2/resources/amis.json`.

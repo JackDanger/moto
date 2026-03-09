@@ -447,6 +447,20 @@ class RedshiftResponse(BaseResponse):
         )
         return ActionResult(schedule)
 
+    def delete_snapshot_schedule(self) -> ActionResult:
+        schedule_identifier = self._get_param("ScheduleIdentifier")
+        self.redshift_backend.delete_snapshot_schedule(schedule_identifier)
+        return EmptyResult()
+
+    def modify_snapshot_schedule(self) -> ActionResult:
+        schedule_identifier = self._get_param("ScheduleIdentifier")
+        schedule_definitions = self._get_param("ScheduleDefinitions", [])
+        schedule = self.redshift_backend.modify_snapshot_schedule(
+            schedule_identifier=schedule_identifier,
+            schedule_definitions=schedule_definitions,
+        )
+        return ActionResult(schedule)
+
     def describe_snapshot_schedules(self) -> ActionResult:
         schedule_identifier = self._get_param("ScheduleIdentifier")
         schedules = self.redshift_backend.describe_snapshot_schedules(
@@ -997,6 +1011,17 @@ class RedshiftResponse(BaseResponse):
     def delete_endpoint_access(self) -> ActionResult:
         endpoint_name = self._get_param("EndpointName")
         result = self.redshift_backend.delete_endpoint_access(endpoint_name)
+        return ActionResult(result)
+
+    def modify_endpoint_access(self) -> ActionResult:
+        endpoint_name = self._get_param("EndpointName")
+        vpc_security_group_ids = self._get_param("VpcSecurityGroupIds", [])
+        result = self.redshift_backend.modify_endpoint_access(
+            endpoint_name=endpoint_name,
+            vpc_security_group_ids=vpc_security_group_ids
+            if vpc_security_group_ids
+            else None,
+        )
         return ActionResult(result)
 
     def add_partner(self) -> ActionResult:

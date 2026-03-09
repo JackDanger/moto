@@ -797,6 +797,119 @@ class S3ControlBackend(BaseBackend):
     ) -> list[S3Job]:
         return list(self.jobs.values())
 
+    def create_job(
+        self,
+        account_id: str,
+        operation: dict[str, Any],
+        manifest: dict[str, Any],
+        priority: int,
+        role_arn: str,
+        description: str = "",
+        confirmation_required: bool = False,
+    ) -> S3Job:
+        job = S3Job(account_id=account_id, region_name=self.region_name)
+        job.operation = operation
+        job.manifest = manifest
+        job.priority = priority
+        job.role_arn = role_arn
+        job.description = description
+        job.status = "Ready" if not confirmation_required else "Suspended"
+        self.jobs[job.job_id] = job
+        return job
+
+    def update_job_priority(
+        self, account_id: str, job_id: str, priority: int
+    ) -> S3Job:
+        if job_id not in self.jobs:
+            raise JobNotFound(job_id)
+        self.jobs[job_id].priority = priority
+        return self.jobs[job_id]
+
+    def update_job_status(
+        self,
+        account_id: str,
+        job_id: str,
+        requested_job_status: str,
+        status_update_reason: str = "",
+    ) -> S3Job:
+        if job_id not in self.jobs:
+            raise JobNotFound(job_id)
+        self.jobs[job_id].status = requested_job_status
+        return self.jobs[job_id]
+
+    def delete_storage_lens_configuration_tagging(
+        self, config_id: str, account_id: str
+    ) -> None:
+        if account_id != self.account_id:
+            raise WrongPublicAccessBlockAccountIdError()
+        if config_id not in self.storage_lens_configs:
+            raise StorageLensConfigurationNotFound(config_id)
+        self.storage_lens_configs[config_id].tags = {}
+
+    def get_multi_region_access_point_routes(
+        self, account_id: str, mrap: str
+    ) -> list[dict[str, Any]]:
+        name = mrap.split("/")[-1] if "/" in mrap else mrap
+        mrap_obj = self.get_multi_region_access_point(account_id, name)
+        routes = []
+        for region in mrap_obj.regions:
+            routes.append(
+                {
+                    "Bucket": region.get("Bucket", ""),
+                    "Region": region.get("Region", ""),
+                    "TrafficDialPercentage": 100,
+                }
+            )
+        return routes
+
+    def submit_multi_region_access_point_routes(
+        self,
+        account_id: str,
+        mrap: str,
+        route_updates: list[dict[str, Any]],
+    ) -> None:
+        name = mrap.split("/")[-1] if "/" in mrap else mrap
+        self.get_multi_region_access_point(account_id, name)
+
+    def delete_access_grants_instance(self, account_id: str) -> None:
+        if account_id not in self.access_grants_instances:
+            raise AccessGrantsInstanceNotFound()
+        del self.access_grants_instances[account_id]
+        self.access_grants.clear()
+        self.access_grants_locations.clear()
+        self.resource_policy = None
+
+    def delete_access_grants_instance_resource_policy(
+        self, account_id: str
+    ) -> None:
+        if account_id not in self.access_grants_instances:
+            raise AccessGrantsInstanceNotFound()
+        self.resource_policy = None
+
+    def delete_access_grants_location(self, location_id: str) -> None:
+        if location_id not in self.access_grants_locations:
+            raise AccessGrantsLocationNotFound(location_id)
+        del self.access_grants_locations[location_id]
+
+    def update_access_grants_location(
+        self,
+        location_id: str,
+        iam_role_arn: str,
+        location_scope: Optional[str] = None,
+    ) -> AccessGrantsLocation:
+        if location_id not in self.access_grants_locations:
+            raise AccessGrantsLocationNotFound(location_id)
+        loc = self.access_grants_locations[location_id]
+        loc.iam_role_arn = iam_role_arn
+        if location_scope is not None:
+            loc.location_scope = location_scope
+        return loc
+
+    def delete_access_grant(self, grant_id: str) -> None:
+        if grant_id not in self.access_grants:
+            raise AccessGrantNotFound(grant_id)
+        del self.access_grants[grant_id]
+
     # Bucket-level operations (delegating to S3 backend)
 
     def get_bucket_lifecycle_configuration(

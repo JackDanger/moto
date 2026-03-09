@@ -1928,6 +1928,20 @@ class FakeOTAUpdate(BaseModel):
             "creationDate": self.creation_date,
         }
 
+    def to_description_dict(self) -> dict[str, Any]:
+        return {
+            "otaUpdateId": self.ota_update_id,
+            "otaUpdateArn": self.arn,
+            "description": self.description,
+            "targets": self.targets,
+            "protocols": self.protocols,
+            "targetSelection": self.target_selection,
+            "otaUpdateFiles": self.files,
+            "otaUpdateStatus": self.ota_update_status,
+            "creationDate": self.creation_date,
+            "lastModifiedDate": self.last_modified_date,
+        }
+
 
 class IoTBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
@@ -1964,6 +1978,8 @@ class IoTBackend(BaseBackend):
         self.scheduled_audits: dict[str, FakeScheduledAudit] = OrderedDict()
         self.ota_updates: dict[str, FakeOTAUpdate] = OrderedDict()
         self.account_audit_configuration: dict[str, Any] = {}
+        self.default_authorizer_name: Optional[str] = None
+        self.tags: dict[str, list[dict[str, str]]] = {}  # arn -> tags
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -3562,6 +3578,30 @@ class IoTBackend(BaseBackend):
         if security_profile_target_arn in profile.targets:
             profile.targets.remove(security_profile_target_arn)
 
+    def list_targets_for_security_profile(
+        self, security_profile_name: str
+    ) -> list[dict[str, str]]:
+        if security_profile_name not in self.security_profiles:
+            raise ResourceNotFoundException(
+                f"Security profile {security_profile_name} does not exist."
+            )
+        profile = self.security_profiles[security_profile_name]
+        return [{"arn": arn} for arn in profile.targets]
+
+    def list_security_profiles_for_target(
+        self, security_profile_target_arn: str
+    ) -> list[dict[str, str]]:
+        result = []
+        for profile in self.security_profiles.values():
+            if security_profile_target_arn in profile.targets:
+                result.append(
+                    {
+                        "name": profile.security_profile_name,
+                        "arn": profile.arn,
+                    }
+                )
+        return result
+
     # --- Authorizers ---
 
     def create_authorizer(
@@ -3637,6 +3677,21 @@ class IoTBackend(BaseBackend):
 
     def list_authorizers(self) -> list[FakeAuthorizer]:
         return list(self.authorizers.values())
+
+    def set_default_authorizer(self, authorizer_name: str) -> FakeAuthorizer:
+        if authorizer_name not in self.authorizers:
+            raise ResourceNotFoundException(
+                f"Authorizer {authorizer_name} does not exist."
+            )
+        self.default_authorizer_name = authorizer_name
+        return self.authorizers[authorizer_name]
+
+    def describe_default_authorizer(self) -> FakeAuthorizer:
+        if self.default_authorizer_name is None:
+            raise ResourceNotFoundException("Default authorizer does not exist.")
+        if self.default_authorizer_name not in self.authorizers:
+            raise ResourceNotFoundException("Default authorizer does not exist.")
+        return self.authorizers[self.default_authorizer_name]
 
     # --- Provisioning Templates ---
 
@@ -4049,6 +4104,26 @@ class IoTBackend(BaseBackend):
             raise ResourceNotFoundException(f"Stream {stream_id} does not exist.")
         del self.streams[stream_id]
 
+    def update_stream(
+        self,
+        stream_id: str,
+        description: Optional[str],
+        files: Optional[list[dict[str, Any]]],
+        role_arn: Optional[str],
+    ) -> FakeStream:
+        if stream_id not in self.streams:
+            raise ResourceNotFoundException(f"Stream {stream_id} does not exist.")
+        stream = self.streams[stream_id]
+        if description is not None:
+            stream.description = description
+        if files is not None:
+            stream.files = files
+        if role_arn is not None:
+            stream.role_arn = role_arn
+        stream.stream_version += 1
+        stream.last_updated_at = utcnow()
+        return stream
+
     # --- Mitigation Actions ---
 
     def create_mitigation_action(
@@ -4086,6 +4161,24 @@ class IoTBackend(BaseBackend):
                 f"Mitigation action {action_name} does not exist."
             )
         del self.mitigation_actions[action_name]
+
+    def update_mitigation_action(
+        self,
+        action_name: str,
+        role_arn: Optional[str],
+        action_params: Optional[dict[str, Any]],
+    ) -> FakeMitigationAction:
+        if action_name not in self.mitigation_actions:
+            raise ResourceNotFoundException(
+                f"Mitigation action {action_name} does not exist."
+            )
+        action = self.mitigation_actions[action_name]
+        if role_arn is not None:
+            action.role_arn = role_arn
+        if action_params is not None:
+            action.action_params = action_params
+        action.last_modified_date = utcnow()
+        return action
 
     # --- Scheduled Audits ---
 
@@ -4134,6 +4227,29 @@ class IoTBackend(BaseBackend):
             )
         del self.scheduled_audits[scheduled_audit_name]
 
+    def update_scheduled_audit(
+        self,
+        scheduled_audit_name: str,
+        frequency: Optional[str],
+        day_of_month: Optional[str],
+        day_of_week: Optional[str],
+        target_check_names: Optional[list[str]],
+    ) -> FakeScheduledAudit:
+        if scheduled_audit_name not in self.scheduled_audits:
+            raise ResourceNotFoundException(
+                f"Scheduled audit {scheduled_audit_name} does not exist."
+            )
+        audit = self.scheduled_audits[scheduled_audit_name]
+        if frequency is not None:
+            audit.frequency = frequency
+        if day_of_month is not None:
+            audit.day_of_month = day_of_month
+        if day_of_week is not None:
+            audit.day_of_week = day_of_week
+        if target_check_names is not None:
+            audit.target_check_names = target_check_names
+        return audit
+
     # --- OTA Updates ---
 
     def create_ota_update(
@@ -4177,6 +4293,13 @@ class IoTBackend(BaseBackend):
                 f"OTA update {ota_update_id} does not exist."
             )
         del self.ota_updates[ota_update_id]
+
+    def describe_ota_update(self, ota_update_id: str) -> FakeOTAUpdate:
+        if ota_update_id not in self.ota_updates:
+            raise ResourceNotFoundException(
+                f"OTA update {ota_update_id} does not exist."
+            )
+        return self.ota_updates[ota_update_id]
 
     # --- CA Certificates listing ---
 
@@ -4273,6 +4396,34 @@ class IoTBackend(BaseBackend):
         for v in template.versions:  # type: ignore[attr-defined]
             if v["versionId"] == version_id:
                 return v
+        raise ResourceNotFoundException(
+            f"Version {version_id} of provisioning template {template_name} does not exist."
+        )
+
+    def delete_provisioning_template_version(
+        self, template_name: str, version_id: int
+    ) -> None:
+        if template_name not in self.provisioning_templates:
+            raise ResourceNotFoundException(
+                f"Provisioning template {template_name} does not exist."
+            )
+        template = self.provisioning_templates[template_name]
+        if not hasattr(template, "versions"):
+            if version_id == 1:
+                raise InvalidRequestException(
+                    "Cannot delete the default version of a provisioning template."
+                )
+            raise ResourceNotFoundException(
+                f"Version {version_id} of provisioning template {template_name} does not exist."
+            )
+        for v in template.versions:  # type: ignore[attr-defined]
+            if v["versionId"] == version_id:
+                if v["isDefaultVersion"]:
+                    raise InvalidRequestException(
+                        "Cannot delete the default version of a provisioning template."
+                    )
+                template.versions.remove(v)  # type: ignore[attr-defined]
+                return
         raise ResourceNotFoundException(
             f"Version {version_id} of provisioning template {template_name} does not exist."
         )
@@ -4404,6 +4555,92 @@ class IoTBackend(BaseBackend):
         raise ResourceNotFoundException(
             f"Task {task_id} cannot be found."
         )
+
+    # --- Tags ---
+
+    def _get_resource_tags(self, resource_arn: str) -> list[dict[str, str]]:
+        """Get tags from the resource object if it exists, otherwise from tags dict."""
+        return self.tags.get(resource_arn, [])
+
+    def _find_resource_by_arn(self, resource_arn: str) -> Optional[Any]:
+        """Find a resource object by its ARN to access its tags attribute."""
+        # Check all resource stores that have objects with .arn and .tags
+        for store in [
+            self.things,
+            self.thing_types,
+            self.thing_groups,
+            self.billing_groups,
+            self.policies,
+            self.rules,
+            self.role_aliases,
+            self.domain_configurations,
+            self.security_profiles,
+            self.authorizers,
+            self.provisioning_templates,
+            self.dimensions,
+            self.custom_metrics,
+            self.fleet_metrics,
+            self.streams,
+            self.mitigation_actions,
+            self.scheduled_audits,
+            self.ota_updates,
+        ]:
+            for obj in store.values():
+                if hasattr(obj, "arn") and obj.arn == resource_arn:
+                    return obj
+        # Also check certificates
+        for cert in self.certificates.values():
+            if cert.arn == resource_arn:
+                return cert
+        for cert in self.ca_certificates.values():
+            if cert.arn == resource_arn:
+                return cert
+        return None
+
+    def tag_resource(
+        self, resource_arn: str, tags: list[dict[str, str]]
+    ) -> None:
+        resource = self._find_resource_by_arn(resource_arn)
+        if resource is None:
+            raise ResourceNotFoundException(
+                f"Resource {resource_arn} does not exist."
+            )
+        if hasattr(resource, "tags"):
+            existing = {t["Key"]: t for t in resource.tags}
+            for tag in tags:
+                existing[tag["Key"]] = tag
+            resource.tags = list(existing.values())
+        else:
+            existing = {t["Key"]: t for t in self.tags.get(resource_arn, [])}
+            for tag in tags:
+                existing[tag["Key"]] = tag
+            self.tags[resource_arn] = list(existing.values())
+
+    def untag_resource(
+        self, resource_arn: str, tag_keys: list[str]
+    ) -> None:
+        resource = self._find_resource_by_arn(resource_arn)
+        if resource is None:
+            raise ResourceNotFoundException(
+                f"Resource {resource_arn} does not exist."
+            )
+        if hasattr(resource, "tags"):
+            resource.tags = [t for t in resource.tags if t["Key"] not in tag_keys]
+        else:
+            current = self.tags.get(resource_arn, [])
+            self.tags[resource_arn] = [t for t in current if t["Key"] not in tag_keys]
+
+    def list_tags_for_resource(
+        self, resource_arn: str
+    ) -> list[dict[str, str]]:
+        resource = self._find_resource_by_arn(resource_arn)
+        if resource is None:
+            raise ResourceNotFoundException(
+                f"Resource {resource_arn} does not exist."
+            )
+        if hasattr(resource, "tags"):
+            return resource.tags
+        return self.tags.get(resource_arn, [])
 
 
 iot_backends = BackendDict(IoTBackend, "iot")

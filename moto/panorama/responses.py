@@ -20,10 +20,8 @@ class PanoramaResponse(BaseResponse):
         networking_configuration = self._get_param("NetworkingConfiguration")
         tags = self._get_param("Tags")
         device = self.panorama_backend.provision_device(
-            description=description,
-            name=name,
-            networking_configuration=networking_configuration,
-            tags=tags,
+            description=description, name=name,
+            networking_configuration=networking_configuration, tags=tags,
         )
         return json.dumps(device.response_provision)
 
@@ -32,12 +30,8 @@ class PanoramaResponse(BaseResponse):
         device = self.panorama_backend.describe_device(device_id=device_id)
         return json.dumps(device.response_object())
 
-    def list_devices(
-        self,
-    ) -> str:
-        device_aggregated_status_filter = self._get_param(
-            "DeviceAggregatedStatusFilter"
-        )
+    def list_devices(self) -> str:
+        device_aggregated_status_filter = self._get_param("DeviceAggregatedStatusFilter")
         max_results = self._get_int_param("MaxResults")
         name_filter = self._get_param("NameFilter")
         next_token = self._get_param("NextToken")
@@ -45,18 +39,13 @@ class PanoramaResponse(BaseResponse):
         sort_order = self._get_param("SortOrder")
         list_devices, next_token = self.panorama_backend.list_devices(
             device_aggregated_status_filter=device_aggregated_status_filter,
-            max_results=max_results,
-            name_filter=name_filter,
-            next_token=next_token,
-            sort_by=sort_by,
-            sort_order=sort_order,
+            max_results=max_results, name_filter=name_filter,
+            next_token=next_token, sort_by=sort_by, sort_order=sort_order,
         )
-        return json.dumps(
-            {
-                "Devices": [device.response_listed() for device in list_devices],
-                "NextToken": next_token,
-            }
-        )
+        return json.dumps({
+            "Devices": [device.response_listed() for device in list_devices],
+            "NextToken": next_token,
+        })
 
     def update_device_metadata(self) -> str:
         device_id = urllib.parse.unquote(self._get_param("DeviceId"))
@@ -80,13 +69,10 @@ class PanoramaResponse(BaseResponse):
         template_parameters = self._get_param("TemplateParameters")
         template_type = self._get_param("TemplateType")
         node = self.panorama_backend.create_node_from_template_job(
-            job_tags=job_tags,
-            node_description=node_description,
-            node_name=node_name,
-            output_package_name=output_package_name,
+            job_tags=job_tags, node_description=node_description,
+            node_name=node_name, output_package_name=output_package_name,
             output_package_version=output_package_version,
-            template_parameters=template_parameters,
-            template_type=template_type,
+            template_parameters=template_parameters, template_type=template_type,
         )
         return json.dumps(node.response_created())
 
@@ -95,6 +81,17 @@ class PanoramaResponse(BaseResponse):
         node = self.panorama_backend.describe_node_from_template_job(job_id=job_id)
         return json.dumps(node.response_described())
 
+    def list_node_from_template_jobs(self) -> str:
+        max_results = self._get_int_param("maxResults")
+        next_token = self._get_param("nextToken")
+        jobs, next_token = self.panorama_backend.list_node_from_template_jobs(
+            max_results=max_results, next_token=next_token,
+        )
+        return json.dumps({
+            "NodeFromTemplateJobs": [job.response_listed() for job in jobs],
+            "NextToken": next_token,
+        })
+
     def list_nodes(self) -> str:
         category = self._get_param("category")
         max_results = self._get_int_param("maxResults")
@@ -102,17 +99,18 @@ class PanoramaResponse(BaseResponse):
         list_nodes, next_token = self.panorama_backend.list_nodes(
             category=category, max_results=max_results, next_token=next_token
         )
-        return json.dumps(
-            {
-                "Nodes": [node.response_listed() for node in list_nodes],
-                "NextToken": next_token,
-            }
-        )
+        return json.dumps({
+            "Nodes": [node.response_listed() for node in list_nodes],
+            "NextToken": next_token,
+        })
+
+    def describe_node(self) -> str:
+        node_id = urllib.parse.unquote(self._get_param("NodeId"))
+        node = self.panorama_backend.describe_node(node_id=node_id)
+        return json.dumps(node.response_object())
 
     def create_application_instance(self) -> str:
-        application_instance_id_to_replace = self._get_param(
-            "ApplicationInstanceIdToReplace"
-        )
+        application_instance_id_to_replace = self._get_param("ApplicationInstanceIdToReplace")
         default_runtime_context_device = self._get_param("DefaultRuntimeContextDevice")
         description = self._get_param("Description")
         manifest_overrides_payload = self._get_param("ManifestOverridesPayload")
@@ -123,12 +121,9 @@ class PanoramaResponse(BaseResponse):
         application_instance = self.panorama_backend.create_application_instance(
             application_instance_id_to_replace=application_instance_id_to_replace,
             default_runtime_context_device=default_runtime_context_device,
-            description=description,
-            manifest_overrides_payload=manifest_overrides_payload,
-            manifest_payload=manifest_payload,
-            name=name,
-            runtime_role_arn=runtime_role_arn,
-            tags=tags,
+            description=description, manifest_overrides_payload=manifest_overrides_payload,
+            manifest_payload=manifest_payload, name=name,
+            runtime_role_arn=runtime_role_arn, tags=tags,
         )
         return json.dumps(application_instance.response_created())
 
@@ -142,6 +137,15 @@ class PanoramaResponse(BaseResponse):
     def describe_application_instance_details(self) -> str:
         return self.describe_application_instance()
 
+    def remove_application_instance(self) -> str:
+        application_instance_id = urllib.parse.unquote(
+            self._get_param("ApplicationInstanceId")
+        )
+        self.panorama_backend.remove_application_instance(
+            application_instance_id=application_instance_id
+        )
+        return json.dumps({})
+
     def list_application_instances(self) -> str:
         device_id = self._get_param("deviceId")
         max_results = self._get_int_param("maxResults")
@@ -149,18 +153,68 @@ class PanoramaResponse(BaseResponse):
         next_token = self._get_param("nextToken")
         list_application_instances, next_token = (
             self.panorama_backend.list_application_instances(
-                device_id=device_id,
-                max_results=max_results,
-                status_filter=status_filter,
-                next_token=next_token,
+                device_id=device_id, max_results=max_results,
+                status_filter=status_filter, next_token=next_token,
             )
         )
-        return json.dumps(
-            {
-                "ApplicationInstances": [
-                    application_instance.response_describe()
-                    for application_instance in list_application_instances
-                ],
-                "NextToken": next_token,
-            }
+        return json.dumps({
+            "ApplicationInstances": [
+                ai.response_describe() for ai in list_application_instances
+            ],
+            "NextToken": next_token,
+        })
+
+    def create_package(self) -> str:
+        package_name = self._get_param("PackageName")
+        tags = self._get_param("Tags")
+        pkg = self.panorama_backend.create_package(package_name=package_name, tags=tags)
+        return json.dumps(pkg.response_created())
+
+    def describe_package(self) -> str:
+        package_id = urllib.parse.unquote(self._get_param("PackageId"))
+        pkg = self.panorama_backend.describe_package(package_id=package_id)
+        return json.dumps(pkg.response_describe())
+
+    def delete_package(self) -> str:
+        package_id = urllib.parse.unquote(self._get_param("PackageId"))
+        self.panorama_backend.delete_package(package_id=package_id)
+        return json.dumps({})
+
+    def list_packages(self) -> str:
+        max_results = self._get_int_param("maxResults")
+        next_token = self._get_param("nextToken")
+        packages, next_token = self.panorama_backend.list_packages(
+            max_results=max_results, next_token=next_token,
         )
+        return json.dumps({
+            "Packages": [pkg.response_listed() for pkg in packages],
+            "NextToken": next_token,
+        })
+
+    def create_package_import_job(self) -> str:
+        client_token = self._get_param("ClientToken")
+        input_config = self._get_param("InputConfig")
+        job_type = self._get_param("JobType")
+        output_config = self._get_param("OutputConfig")
+        job_tags = self._get_param("JobTags")
+        job = self.panorama_backend.create_package_import_job(
+            client_token=client_token, input_config=input_config,
+            job_type=job_type, output_config=output_config, job_tags=job_tags,
+        )
+        return json.dumps(job.response_created())
+
+    def describe_package_import_job(self) -> str:
+        job_id = urllib.parse.unquote(self._get_param("JobId"))
+        job = self.panorama_backend.describe_package_import_job(job_id=job_id)
+        return json.dumps(job.response_describe())
+
+    def list_package_import_jobs(self) -> str:
+        max_results = self._get_int_param("maxResults")
+        next_token = self._get_param("nextToken")
+        jobs, next_token = self.panorama_backend.list_package_import_jobs(
+            max_results=max_results, next_token=next_token,
+        )
+        return json.dumps({
+            "PackageImportJobs": [job.response_listed() for job in jobs],
+            "NextToken": next_token,
+        })

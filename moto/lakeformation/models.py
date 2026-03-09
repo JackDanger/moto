@@ -688,14 +688,14 @@ class LakeFormationBackend(BaseBackend):
                 for tag in tags:
                     existing_tags.remove(tag)
 
-
     def describe_transaction(self, transaction_id: str) -> Transaction:
         if transaction_id not in self.transactions:
             raise EntityNotFound
         return self.transactions[transaction_id]
 
     def list_transactions(
-        self, status_filter: Optional[str] = None,
+        self,
+        status_filter: Optional[str] = None,
     ) -> list[Transaction]:
         transactions = list(self.transactions.values())
         if status_filter:
@@ -726,7 +726,9 @@ class LakeFormationBackend(BaseBackend):
         return f"arn:aws:iam::{self.account_id}:root"
 
     def get_effective_permissions_for_path(
-        self, catalog_id: str, resource_arn: str,
+        self,
+        catalog_id: str,
+        resource_arn: str,
     ) -> list[dict[str, Any]]:
         """Return permissions that apply to the given S3 path. Simplified: return empty list."""
         return []
@@ -753,7 +755,9 @@ class LakeFormationBackend(BaseBackend):
     def get_work_units(self, query_id: str) -> list[dict[str, Any]]:
         return []
 
-    def get_work_unit_results(self, query_id: str, work_unit_id: int, work_unit_token: str) -> bytes:
+    def get_work_unit_results(
+        self, query_id: str, work_unit_id: int, work_unit_token: str
+    ) -> bytes:
         return b""
 
     def get_temporary_glue_partition_credentials(
@@ -782,7 +786,8 @@ class LakeFormationBackend(BaseBackend):
         }
 
     def create_data_cells_filter(
-        self, table_data: dict[str, Any],
+        self,
+        table_data: dict[str, Any],
     ) -> None:
         dcf = DataCellsFilter(
             table_catalog_id=table_data.get("TableCatalogId", self.account_id),
@@ -799,12 +804,19 @@ class LakeFormationBackend(BaseBackend):
         self.data_cells_filters[key] = dcf
 
     def get_data_cells_filter(
-        self, table_catalog_id: str, database_name: str, table_name: str, name: str,
+        self,
+        table_catalog_id: str,
+        database_name: str,
+        table_name: str,
+        name: str,
     ) -> DataCellsFilter:
         key = (table_catalog_id, database_name, table_name, name)
         if key not in self.data_cells_filters:
             raise EntityNotFound
         return self.data_cells_filters[key]
+
+    def list_data_cells_filter(self) -> list[dict[str, Any]]:
+        return [dcf.to_dict() for dcf in self.data_cells_filters.values()]
 
     def delete_data_cells_filter(
         self,
@@ -818,36 +830,107 @@ class LakeFormationBackend(BaseBackend):
             raise EntityNotFound
         del self.data_cells_filters[key]
 
-    def list_data_cells_filter(self) -> list[dict[str, Any]]:
-        return [dcf.to_dict() for dcf in self.data_cells_filters.values()]
+    def update_data_cells_filter(
+        self,
+        table_data: dict[str, Any],
+    ) -> None:
+        table_catalog_id = table_data.get("TableCatalogId", self.account_id)
+        database_name = table_data["DatabaseName"]
+        table_name = table_data["TableName"]
+        name = table_data["Name"]
+        key = (table_catalog_id, database_name, table_name, name)
+        if key not in self.data_cells_filters:
+            raise EntityNotFound
+        dcf = self.data_cells_filters[key]
+        dcf.row_filter = table_data.get("RowFilter", dcf.row_filter)
+        dcf.column_names = table_data.get("ColumnNames", dcf.column_names)
+        dcf.column_wildcard = table_data.get("ColumnWildcard", dcf.column_wildcard)
 
     def search_databases_by_lf_tags(
         self,
-        expression: list[dict[str, Any]],
         catalog_id: str,
+        expression: list[dict[str, Any]],
     ) -> list[dict[str, Any]]:
+        """Search databases that have matching LF tags."""
         results = []
+        if not expression:
+            return results
+
+        search_tags = {e["TagKey"]: e.get("TagValues", []) for e in expression}
+
         for (db_catalog_id, db_name), tags in self.lf_database_tags.items():
-            if self._tags_match_expression(tags, expression):
+            tag_dict = {
+                t["TagKey"]: t.get("TagValues", [t.get("TagValue", "")]) for t in tags
+            }
+            match = True
+            for key, values in search_tags.items():
+                if key not in tag_dict:
+                    match = False
+                    break
+                if values and not set(values).intersection(
+                    set(tag_dict[key])
+                    if isinstance(tag_dict[key], list)
+                    else {tag_dict[key]}
+                ):
+                    match = False
+                    break
+            if match:
+                lf_tags = [
+                    {
+                        "CatalogId": db_catalog_id,
+                        "TagKey": t["TagKey"],
+                        "TagValues": t.get("TagValues", [t.get("TagValue", "")]),
+                    }
+                    for t in tags
+                ]
                 results.append(
                     {
                         "Database": {
                             "CatalogId": db_catalog_id,
                             "Name": db_name,
                         },
-                        "LFTags": tags,
+                        "LFTags": lf_tags,
                     }
                 )
         return results
 
     def search_tables_by_lf_tags(
         self,
-        expression: list[dict[str, Any]],
         catalog_id: str,
+        expression: list[dict[str, Any]],
     ) -> list[dict[str, Any]]:
+        """Search tables that have matching LF tags."""
         results = []
+        if not expression:
+            return results
+
+        search_tags = {e["TagKey"]: e.get("TagValues", []) for e in expression}
+
         for (tbl_catalog_id, db_name, tbl_name), tags in self.lf_table_tags.items():
-            if self._tags_match_expression(tags, expression):
+            tag_dict = {
+                t["TagKey"]: t.get("TagValues", [t.get("TagValue", "")]) for t in tags
+            }
+            match = True
+            for key, values in search_tags.items():
+                if key not in tag_dict:
+                    match = False
+                    break
+                if values and not set(values).intersection(
+                    set(tag_dict[key])
+                    if isinstance(tag_dict[key], list)
+                    else {tag_dict[key]}
+                ):
+                    match = False
+                    break
+            if match:
+                lf_tags = [
+                    {
+                        "CatalogId": tbl_catalog_id,
+                        "TagKey": t["TagKey"],
+                        "TagValues": t.get("TagValues", [t.get("TagValue", "")]),
+                    }
+                    for t in tags
+                ]
                 results.append(
                     {
                         "Table": {
@@ -855,35 +938,23 @@ class LakeFormationBackend(BaseBackend):
                             "DatabaseName": db_name,
                             "Name": tbl_name,
                         },
-                        "LFTags": tags,
+                        "LFTags": lf_tags,
                     }
                 )
         return results
 
-    def _tags_match_expression(
-        self, tags: list[dict[str, str]], expression: list[dict[str, Any]]
-    ) -> bool:
-        for expr in expression:
-            expr_key = expr["TagKey"]
-            expr_values = expr["TagValues"]
-            found = False
-            for tag in tags:
-                if tag.get("TagKey") == expr_key:
-                    tag_values = tag.get("TagValues", [])
-                    if isinstance(tag_values, list):
-                        if any(v in expr_values for v in tag_values):
-                            found = True
-                            break
-                    elif tag_values in expr_values:
-                        found = True
-                        break
-            if not found:
-                return False
-        return True
-
+    def start_query_planning(
+        self,
+        query_planning_context: dict[str, Any],
+        query_string: str,
+    ) -> dict[str, Any]:
+        """Start query planning - returns a mock query ID."""
+        query_id = str(uuid.uuid4())
+        return {"QueryId": query_id}
 
     def describe_lake_formation_identity_center_configuration(
-        self, catalog_id: str,
+        self,
+        catalog_id: str,
     ) -> dict[str, Any]:
         return {
             "CatalogId": catalog_id,

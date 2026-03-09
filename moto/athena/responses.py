@@ -41,6 +41,18 @@ class AthenaResponse(BaseResponse):
         name = self._get_param("WorkGroup")
         return json.dumps({"WorkGroup": self.athena_backend.get_work_group(name)})
 
+    def update_work_group(self) -> Union[tuple[str, dict[str, int]], str]:
+        name = self._get_param("WorkGroup")
+        description = self._get_param("Description")
+        configuration_updates = self._get_param("ConfigurationUpdates")
+        state = self._get_param("State")
+        result = self.athena_backend.update_work_group(
+            name, description, configuration_updates, state
+        )
+        if not result:
+            return self.error("WorkGroup does not exist", 400)
+        return json.dumps({})
+
     def delete_work_group(self) -> str:
         name = self._get_param("WorkGroup")
         self.athena_backend.delete_work_group(name)
@@ -357,6 +369,36 @@ class AthenaResponse(BaseResponse):
         self.athena_backend.delete_prepared_statement(statement_name, work_group)
         return json.dumps({})
 
+    def update_prepared_statement(self) -> Union[str, tuple[str, dict[str, int]]]:
+        statement_name = self._get_param("StatementName")
+        work_group = self._get_param("WorkGroup")
+        query_statement = self._get_param("QueryStatement")
+        description = self._get_param("Description")
+        self.athena_backend.update_prepared_statement(
+            statement_name=statement_name,
+            work_group=work_group,
+            query_statement=query_statement,
+            description=description,
+        )
+        return json.dumps({})
+
+    def list_prepared_statements(self) -> str:
+        work_group = self._get_param("WorkGroup")
+        prepared_statements = self.athena_backend.list_prepared_statements(
+            work_group=work_group,
+        )
+        return json.dumps({
+            "PreparedStatements": [
+                {
+                    "StatementName": ps.statement_name,
+                    "LastModifiedTime": ps.last_modified_time.timestamp()
+                    if hasattr(ps, "last_modified_time") and ps.last_modified_time
+                    else None,
+                }
+                for ps in prepared_statements
+            ]
+        })
+
     def batch_get_prepared_statement(self) -> str:
         prepared_statement_names = self._get_param("PreparedStatementNames")
         work_group = self._get_param("WorkGroup")
@@ -486,6 +528,21 @@ class AthenaResponse(BaseResponse):
             return self.error("Capacity Reservation does not exist", 400)
         return json.dumps(result)
 
+    def start_session(self) -> Union[str, tuple[str, dict[str, int]]]:
+        work_group = self._get_param("WorkGroup")
+        engine_configuration = self._get_param("EngineConfiguration")
+        notebook_version = self._get_param("NotebookVersion")
+        description = self._get_param("Description")
+        if work_group and not self.athena_backend.get_work_group(work_group):
+            return self.error("WorkGroup does not exist", 400)
+        result = self.athena_backend.start_session(
+            work_group=work_group,
+            engine_configuration=engine_configuration,
+            notebook_version=notebook_version,
+            description=description,
+        )
+        return json.dumps(result)
+
     def get_session(self) -> Union[str, tuple[str, dict[str, int]]]:
         session_id = self._get_param("SessionId")
         result = self.athena_backend.get_session(session_id)
@@ -496,6 +553,28 @@ class AthenaResponse(BaseResponse):
     def get_session_status(self) -> Union[str, tuple[str, dict[str, int]]]:
         session_id = self._get_param("SessionId")
         result = self.athena_backend.get_session_status(session_id)
+        if result is None:
+            return self.error(f"Session {session_id} was not found", 400)
+        return json.dumps(result)
+
+    def terminate_session(self) -> Union[str, tuple[str, dict[str, int]]]:
+        session_id = self._get_param("SessionId")
+        result = self.athena_backend.terminate_session(session_id)
+        if result is None:
+            return self.error(f"Session {session_id} was not found", 400)
+        return json.dumps(result)
+
+    def list_sessions(self) -> str:
+        work_group = self._get_param("WorkGroup")
+        sessions = self.athena_backend.list_sessions(work_group)
+        return json.dumps({
+            "Sessions": sessions,
+            "Description": "",
+        })
+
+    def create_presigned_notebook_url(self) -> Union[str, tuple[str, dict[str, int]]]:
+        session_id = self._get_param("SessionId")
+        result = self.athena_backend.create_presigned_notebook_url(session_id)
         if result is None:
             return self.error(f"Session {session_id} was not found", 400)
         return json.dumps(result)

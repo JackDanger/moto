@@ -72,6 +72,25 @@ EC2_RESOURCE_TO_PREFIX = {
     "carrier-gateway": "cagw",
     "key-pair": "key",
     "subnet-cidr-reservation": "scr",
+    "transit-gateway-connect": "tgw-attach",
+    "transit-gateway-connect-peer": "tgw-connect-peer",
+    "network-insights-path": "nip",
+    "network-insights-analysis": "nia",
+    "verified-access-instance": "vai",
+    "verified-access-trust-provider": "vatp",
+    "verified-access-group": "vag",
+    "verified-access-endpoint": "vae",
+    "instance-connect-endpoint": "eice",
+    "ipam-pool-allocation": "ipam-pool-alloc",
+    "ipam-pool-cidr": "ipam-pool-cidr",
+    "capacity-reservation": "cr",
+    "capacity-reservation-fleet": "crf",
+    "traffic-mirror-filter": "tmf",
+    "traffic-mirror-filter-rule": "tmfr",
+    "traffic-mirror-target": "tmt",
+    "traffic-mirror-session": "tms",
+    "local-gateway": "lgw",
+    "local-gateway-route-table": "lgw-rtb",
 }
 
 
@@ -275,6 +294,78 @@ def random_public_ip() -> str:
 
 def random_dedicated_host_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["dedicated_host"])
+
+
+def random_transit_gateway_connect_peer_id() -> str:
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["transit-gateway-connect-peer"])
+
+
+def random_network_insights_path_id() -> str:
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["network-insights-path"])
+
+
+def random_network_insights_analysis_id() -> str:
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["network-insights-analysis"])
+
+
+def random_verified_access_instance_id() -> str:
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["verified-access-instance"])
+
+
+def random_verified_access_trust_provider_id() -> str:
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["verified-access-trust-provider"])
+
+
+def random_verified_access_group_id() -> str:
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["verified-access-group"])
+
+
+def random_verified_access_endpoint_id() -> str:
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["verified-access-endpoint"])
+
+
+def random_instance_connect_endpoint_id() -> str:
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["instance-connect-endpoint"])
+
+
+def random_ipam_pool_allocation_id() -> str:
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["ipam-pool-allocation"])
+
+
+def random_ipam_pool_cidr_id() -> str:
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["ipam-pool-cidr"])
+
+
+def random_capacity_reservation_id() -> str:
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["capacity-reservation"])
+
+
+def random_capacity_reservation_fleet_id() -> str:
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["capacity-reservation-fleet"])
+
+
+def random_traffic_mirror_filter_id() -> str:
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["traffic-mirror-filter"])
+
+
+def random_traffic_mirror_filter_rule_id() -> str:
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["traffic-mirror-filter-rule"])
+
+
+def random_traffic_mirror_target_id() -> str:
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["traffic-mirror-target"])
+
+
+def random_traffic_mirror_session_id() -> str:
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["traffic-mirror-session"])
+
+
+def random_local_gateway_id() -> str:
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["local-gateway"])
+
+
+def random_local_gateway_route_table_id() -> str:
+    return random_id(prefix=EC2_RESOURCE_TO_PREFIX["local-gateway-route-table"])
 
 
 def random_private_ip(cidr: Optional[str] = None, ipv6: bool = False) -> str:

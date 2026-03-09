@@ -56,4 +56,6 @@ url_paths = {
     "{0}/restore-testing/plans/(?P<planName>[^/]+)/?$": response.dispatch,
     "{0}/restore-testing/plans/(?P<planName>[^/]+)/selections/?$": response.dispatch,
     "{0}/restore-testing/plans/(?P<planName>[^/]+)/selections/(?P<selName>[^/]+)/?$": response.dispatch,
+    "{0}/logically-air-gapped-backup-vaults/?$": response.dispatch,
+    "{0}/logically-air-gapped-backup-vaults/(?P<name>[^/]+)/?$": response.dispatch,
 }

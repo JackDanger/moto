@@ -940,6 +940,100 @@ class APIGatewayResponse(BaseResponse):
         cert = self.backend.get_client_certificate(cert_id)
         return json.dumps(cert.to_json())
 
+    def delete_client_certificate(self) -> TYPE_RESPONSE:
+        cert_id = self.path.split("/")[2]
+        self.backend.delete_client_certificate(cert_id)
+        return 202, {"status": 202}, "{}"
+
+    def update_client_certificate(self) -> str:
+        cert_id = self.path.split("/")[2]
+        patch_operations = self._get_param("patchOperations")
+        cert = self.backend.update_client_certificate(cert_id, patch_operations)
+        return json.dumps(cert.to_json())
+
+    def delete_documentation_version(self) -> TYPE_RESPONSE:
+        url_path_parts = self.path.split("/")
+        rest_api_id = url_path_parts[2]
+        version = url_path_parts[5]
+        self.backend.delete_documentation_version(rest_api_id, version)
+        return 202, {"status": 202}, "{}"
+
+    def update_documentation_version(self) -> str:
+        url_path_parts = self.path.split("/")
+        rest_api_id = url_path_parts[2]
+        version = url_path_parts[5]
+        patch_operations = self._get_param("patchOperations")
+        doc_version = self.backend.update_documentation_version(
+            rest_api_id, version, patch_operations
+        )
+        return json.dumps(doc_version.to_json())
+
+    def update_gateway_response(self) -> TYPE_RESPONSE:
+        rest_api_id = self.path.split("/")[-3]
+        response_type = self.path.split("/")[-1]
+        patch_operations = self._get_param("patchOperations")
+        response = self.backend.update_gateway_response(
+            rest_api_id, response_type, patch_operations
+        )
+        return 200, {}, json.dumps(response.to_json())
+
+    def update_method(self) -> str:
+        url_path_parts = self.path.split("/")
+        function_id = url_path_parts[2]
+        resource_id = url_path_parts[4]
+        method_type = url_path_parts[6]
+        patch_operations = self._get_param("patchOperations")
+        method = self.backend.update_method(
+            function_id, resource_id, method_type, patch_operations
+        )
+        return json.dumps(method.to_json())
+
+    def update_integration(self) -> str:
+        url_path_parts = self.path.split("/")
+        function_id = url_path_parts[2]
+        resource_id = url_path_parts[4]
+        method_type = url_path_parts[6]
+        patch_operations = self._get_param("patchOperations")
+        integration = self.backend.update_integration(
+            function_id, resource_id, method_type, patch_operations
+        )
+        return json.dumps(integration.to_json())
+
+    def update_method_response(self) -> str:
+        url_path_parts = self.path.split("/")
+        function_id = url_path_parts[2]
+        resource_id = url_path_parts[4]
+        method_type = url_path_parts[6]
+        response_code = url_path_parts[8]
+        patch_operations = self._get_param("patchOperations")
+        method_response = self.backend.update_method_response(
+            function_id, resource_id, method_type, response_code, patch_operations
+        )
+        return json.dumps(method_response.to_json())
+
+    def update_integration_response(self) -> str:
+        url_path_parts = self.path.split("/")
+        function_id = url_path_parts[2]
+        resource_id = url_path_parts[4]
+        method_type = url_path_parts[6]
+        status_code = url_path_parts[9]
+        patch_operations = self._get_param("patchOperations")
+        integration_response = self.backend.update_integration_response(
+            function_id, resource_id, method_type, status_code, patch_operations
+        )
+        return json.dumps(integration_response.to_json())
+
+    def get_usage(self) -> str:
+        usage_plan_id = self.path.split("/")[2]
+        usage = self.backend.get_usage(usage_plan_id)
+        return json.dumps(usage)
+
+    def update_usage(self) -> str:
+        usage_plan_id = self.path.split("/")[2]
+        patch_operations = self._get_param("patchOperations")
+        usage = self.backend.update_usage(usage_plan_id, patch_operations)
+        return json.dumps(usage)
+
     def update_account(self) -> str:
         patch_operations = self._get_param("patchOperations")
         account = self.backend.update_account(patch_operations)

@@ -534,6 +534,150 @@ class S3ControlResponse(BaseResponse):
         template = self.response_template(LIST_JOBS_TEMPLATE)
         return template.render(jobs=jobs, next_token=next_token)
 
+    def create_job(self) -> TYPE_RESPONSE:
+        account_id = self.headers.get("x-amz-account-id")
+        params = xmltodict.parse(self.body)["CreateJobRequest"]
+        operation = params.get("Operation", {})
+        manifest = params.get("Manifest", {})
+        priority = int(params.get("Priority", 0))
+        role_arn = params.get("RoleArn", "")
+        description = params.get("Description", "")
+        confirmation = params.get("ConfirmationRequired", "false")
+        confirmation_required = confirmation in ("true", "True", True)
+        job = self.backend.create_job(
+            account_id=account_id,
+            operation=operation,
+            manifest=manifest,
+            priority=priority,
+            role_arn=role_arn,
+            description=description,
+            confirmation_required=confirmation_required,
+        )
+        template = self.response_template(CREATE_JOB_TEMPLATE)
+        return 200, {}, template.render(job=job)
+
+    def update_job_priority(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        job_id = self.path.split("/")[-2]
+        params = self._get_params()
+        priority = int(params.get("priority", 0))
+        job = self.backend.update_job_priority(
+            account_id=account_id, job_id=job_id, priority=priority
+        )
+        template = self.response_template(UPDATE_JOB_PRIORITY_TEMPLATE)
+        return template.render(job=job)
+
+    def update_job_status(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        job_id = self.path.split("/")[-2]
+        params = self._get_params()
+        requested_job_status = params.get("requestedJobStatus", "")
+        status_update_reason = params.get("statusUpdateReason", "")
+        job = self.backend.update_job_status(
+            account_id=account_id,
+            job_id=job_id,
+            requested_job_status=requested_job_status,
+            status_update_reason=status_update_reason,
+        )
+        template = self.response_template(UPDATE_JOB_STATUS_TEMPLATE)
+        return template.render(job=job)
+
+    def delete_storage_lens_configuration_tagging(self) -> TYPE_RESPONSE:
+        account_id = self.headers.get("x-amz-account-id")
+        config_id = self.path.split("/")[-2]
+        self.backend.delete_storage_lens_configuration_tagging(
+            config_id=config_id, account_id=account_id
+        )
+        return 200, {}, ""
+
+    def delete_access_grants_instance(self) -> TYPE_RESPONSE:
+        account_id = self.headers.get("x-amz-account-id")
+        self.backend.delete_access_grants_instance(account_id=account_id)
+        return 200, {}, ""
+
+    def put_access_grants_instance_resource_policy(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        params = xmltodict.parse(self.body) if self.body else {}
+        policy = ""
+        if "PutAccessGrantsInstanceResourcePolicyRequest" in params:
+            policy = params["PutAccessGrantsInstanceResourcePolicyRequest"].get(
+                "Policy", ""
+            )
+        result = self.backend.put_access_grants_instance_resource_policy(
+            account_id=account_id, policy=policy
+        )
+        template = self.response_template(
+            PUT_ACCESS_GRANTS_INSTANCE_RESOURCE_POLICY_TEMPLATE
+        )
+        return template.render(policy=result)
+
+    def delete_access_grants_instance_resource_policy(self) -> TYPE_RESPONSE:
+        account_id = self.headers.get("x-amz-account-id")
+        self.backend.delete_access_grants_instance_resource_policy(
+            account_id=account_id
+        )
+        return 200, {}, ""
+
+    def delete_access_grants_location(self) -> TYPE_RESPONSE:
+        location_id = self.path.split("/")[-1]
+        self.backend.delete_access_grants_location(location_id=location_id)
+        return 200, {}, ""
+
+    def update_access_grants_location(self) -> str:
+        location_id = self.path.split("/")[-1]
+        params = xmltodict.parse(self.body) if self.body else {}
+        req = params.get("UpdateAccessGrantsLocationRequest", {})
+        iam_role_arn = req.get("IAMRoleArn", "")
+        location_scope = req.get("LocationScope")
+        location = self.backend.update_access_grants_location(
+            location_id=location_id,
+            iam_role_arn=iam_role_arn,
+            location_scope=location_scope,
+        )
+        template = self.response_template(UPDATE_ACCESS_GRANTS_LOCATION_TEMPLATE)
+        return template.render(location=location)
+
+    def delete_access_grant(self) -> TYPE_RESPONSE:
+        grant_id = self.path.split("/")[-1]
+        self.backend.delete_access_grant(grant_id=grant_id)
+        return 200, {}, ""
+
+    def get_multi_region_access_point_routes(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        mrap_name = self.path.split("/instances/")[1].split("/routes")[0]
+        routes = self.backend.get_multi_region_access_point_routes(
+            account_id=account_id, mrap=mrap_name
+        )
+        template = self.response_template(GET_MRAP_ROUTES_TEMPLATE)
+        return template.render(mrap=mrap_name, routes=routes)
+
+    def submit_multi_region_access_point_routes(self) -> TYPE_RESPONSE:
+        account_id = self.headers.get("x-amz-account-id")
+        mrap_name = self.path.split("/instances/")[1].split("/routes")[0]
+        params = xmltodict.parse(self.body) if self.body else {}
+        req = params.get("SubmitMultiRegionAccessPointRoutesRequest", {})
+        route_updates = req.get("RouteUpdates", {}).get("Route", [])
+        if isinstance(route_updates, dict):
+            route_updates = [route_updates]
+        self.backend.submit_multi_region_access_point_routes(
+            account_id=account_id, mrap=mrap_name, route_updates=route_updates
+        )
+        return 200, {}, ""
+
+    def get_access_point_policy_for_object_lambda(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        name = self.path.split("/")[-2]
+        try:
+            policy = self.backend.get_access_point_policy(account_id, name)
+        except Exception:
+            policy = ""
+        template = self.response_template(GET_ACCESS_POINT_POLICY_TEMPLATE)
+        return template.render(policy=policy)
+
+    def get_access_point_policy_status_for_object_lambda(self) -> str:
+        template = self.response_template(GET_ACCESS_POINT_POLICY_STATUS_TEMPLATE)
+        return template.render()
+
     # Bucket-level operations
 
     def get_bucket_lifecycle_configuration(self) -> str:
@@ -1130,4 +1274,49 @@ GET_BUCKET_TAGGING_TEMPLATE = f"""<GetBucketTaggingResult {XMLNS}>
 GET_BUCKET_VERSIONING_TEMPLATE = f"""<GetBucketVersioningResult {XMLNS}>
   <Status>{{{{ status }}}}</Status>
 </GetBucketVersioningResult>
+"""
+
+CREATE_JOB_TEMPLATE = f"""<CreateJobResult {XMLNS}>
+  <JobId>{{{{ job.job_id }}}}</JobId>
+</CreateJobResult>
+"""
+
+UPDATE_JOB_PRIORITY_TEMPLATE = f"""<UpdateJobPriorityResult {XMLNS}>
+  <JobId>{{{{ job.job_id }}}}</JobId>
+  <Priority>{{{{ job.priority }}}}</Priority>
+</UpdateJobPriorityResult>
+"""
+
+UPDATE_JOB_STATUS_TEMPLATE = f"""<UpdateJobStatusResult {XMLNS}>
+  <JobId>{{{{ job.job_id }}}}</JobId>
+  <Status>{{{{ job.status }}}}</Status>
+</UpdateJobStatusResult>
+"""
+
+PUT_ACCESS_GRANTS_INSTANCE_RESOURCE_POLICY_TEMPLATE = f"""<PutAccessGrantsInstanceResourcePolicyResult {XMLNS}>
+  <Policy>{{{{ policy }}}}</Policy>
+</PutAccessGrantsInstanceResourcePolicyResult>
+"""
+
+UPDATE_ACCESS_GRANTS_LOCATION_TEMPLATE = f"""<UpdateAccessGrantsLocationResult {XMLNS}>
+  <AccessGrantsLocationId>{{{{ location.location_id }}}}</AccessGrantsLocationId>
+  <AccessGrantsLocationArn>{{{{ location.location_arn }}}}</AccessGrantsLocationArn>
+  <LocationScope>{{{{ location.location_scope }}}}</LocationScope>
+  <IAMRoleArn>{{{{ location.iam_role_arn }}}}</IAMRoleArn>
+  <CreatedAt>{{{{ location.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ") }}}}</CreatedAt>
+</UpdateAccessGrantsLocationResult>
+"""
+
+GET_MRAP_ROUTES_TEMPLATE = f"""<GetMultiRegionAccessPointRoutesResult {XMLNS}>
+  <Mrap>{{{{ mrap }}}}</Mrap>
+  <Routes>
+    {{% for route in routes %}}
+    <Route>
+      <Bucket>{{{{ route.Bucket }}}}</Bucket>
+      <Region>{{{{ route.Region }}}}</Region>
+      <TrafficDialPercentage>{{{{ route.TrafficDialPercentage }}}}</TrafficDialPercentage>
+    </Route>
+    {{% endfor %}}
+  </Routes>
+</GetMultiRegionAccessPointRoutesResult>
 """

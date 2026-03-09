@@ -110,3 +110,13 @@ class QueryIdNotFoundException(JsonRESTError):
             "QueryIdNotFoundException",
             f"The query ID {query_id} was not found.",
         )
+
+
+class ImportNotFoundException(JsonRESTError):
+    code = 400
+
+    def __init__(self, import_id: str):
+        super().__init__(
+            "ImportNotFoundException",
+            f"The import {import_id} was not found.",
+        )
