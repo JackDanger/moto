@@ -339,3 +339,238 @@ def test_restore_testing_selection_not_found():
             RestoreTestingPlanName="test-plan",
             RestoreTestingSelectionName="nonexistent",
         )
+
+
+# --- Legal Hold Tests ---
+
+
+@mock_aws
+def test_legal_hold_create_get_list():
+    client = boto3.client("backup", region_name="us-east-1")
+    resp = client.create_legal_hold(
+        Title="TestHold",
+        Description="A test legal hold",
+        RecoveryPointSelection={
+            "VaultNames": ["my-vault"],
+            "ResourceIdentifiers": ["*"],
+        },
+        Tags={"env": "test"},
+    )
+    assert resp["Title"] == "TestHold"
+    assert resp["Description"] == "A test legal hold"
+    assert resp["Status"] == "ACTIVE"
+    assert "LegalHoldId" in resp
+    assert "LegalHoldArn" in resp
+    hold_id = resp["LegalHoldId"]
+
+    # Get
+    resp = client.get_legal_hold(LegalHoldId=hold_id)
+    assert resp["Title"] == "TestHold"
+    assert resp["Status"] == "ACTIVE"
+    assert resp["RecoveryPointSelection"]["VaultNames"] == ["my-vault"]
+
+    # List
+    resp = client.list_legal_holds()
+    assert len(resp["LegalHolds"]) == 1
+    assert resp["LegalHolds"][0]["LegalHoldId"] == hold_id
+
+
+@mock_aws
+def test_legal_hold_cancel():
+    client = boto3.client("backup", region_name="us-east-1")
+    resp = client.create_legal_hold(Title="ToCancel", Description="Will cancel")
+    hold_id = resp["LegalHoldId"]
+
+    client.cancel_legal_hold(
+        LegalHoldId=hold_id,
+        CancelDescription="No longer needed",
+    )
+    resp = client.get_legal_hold(LegalHoldId=hold_id)
+    assert resp["Status"] == "CANCELED"
+    assert "CancellationDate" in resp
+
+
+@mock_aws
+def test_legal_hold_not_found():
+    client = boto3.client("backup", region_name="us-east-1")
+    with pytest.raises(client.exceptions.ResourceNotFoundException):
+        client.get_legal_hold(LegalHoldId="nonexistent")
+
+
+@mock_aws
+def test_legal_hold_cancel_already_canceled():
+    client = boto3.client("backup", region_name="us-east-1")
+    resp = client.create_legal_hold(Title="X", Description="Y")
+    hold_id = resp["LegalHoldId"]
+    client.cancel_legal_hold(LegalHoldId=hold_id, CancelDescription="done")
+    with pytest.raises(client.exceptions.InvalidRequestException):
+        client.cancel_legal_hold(LegalHoldId=hold_id, CancelDescription="again")
+
+
+# --- Export Backup Plan Template ---
+
+
+@mock_aws
+def test_export_backup_plan_template():
+    client = boto3.client("backup", region_name="us-east-1")
+    plan_resp = client.create_backup_plan(
+        BackupPlan={
+            "BackupPlanName": "test-export",
+            "Rules": [
+                {
+                    "RuleName": "daily",
+                    "TargetBackupVaultName": "Default",
+                }
+            ],
+        }
+    )
+    plan_id = plan_resp["BackupPlanId"]
+
+    resp = client.export_backup_plan_template(BackupPlanId=plan_id)
+    assert "BackupPlanTemplateJson" in resp
+    template = json.loads(resp["BackupPlanTemplateJson"])
+    assert template["BackupPlanName"] == "test-export"
+
+
+@mock_aws
+def test_export_backup_plan_template_not_found():
+    client = boto3.client("backup", region_name="us-east-1")
+    with pytest.raises(client.exceptions.ResourceNotFoundException):
+        client.export_backup_plan_template(BackupPlanId="nonexistent")
+
+
+# --- Get Backup Plan From Template ---
+
+
+@mock_aws
+def test_get_backup_plan_from_template():
+    client = boto3.client("backup", region_name="us-east-1")
+    templates = client.list_backup_plan_templates()
+    template_id = templates["BackupPlanTemplatesList"][0]["BackupPlanTemplateId"]
+
+    resp = client.get_backup_plan_from_template(BackupPlanTemplateId=template_id)
+    assert "BackupPlanDocument" in resp
+    assert "BackupPlanName" in resp["BackupPlanDocument"]
+    assert "Rules" in resp["BackupPlanDocument"]
+
+
+@mock_aws
+def test_get_backup_plan_from_template_not_found():
+    client = boto3.client("backup", region_name="us-east-1")
+    with pytest.raises(client.exceptions.ResourceNotFoundException):
+        client.get_backup_plan_from_template(
+            BackupPlanTemplateId="nonexistent-template-id"
+        )
+
+
+# --- Restore Jobs ---
+
+
+@mock_aws
+def test_restore_job_lifecycle():
+    client = boto3.client("backup", region_name="us-east-1")
+    resp = client.start_restore_job(
+        RecoveryPointArn="arn:aws:backup:us-east-1:123456789012:recovery-point:abc-123",
+        IamRoleArn="arn:aws:iam::123456789012:role/restore-role",
+        Metadata={"key1": "val1"},
+        ResourceType="DynamoDB",
+    )
+    assert "RestoreJobId" in resp
+    job_id = resp["RestoreJobId"]
+
+    # Describe
+    resp = client.describe_restore_job(RestoreJobId=job_id)
+    assert resp["RestoreJobId"] == job_id
+    assert resp["Status"] == "COMPLETED"
+    assert resp["ResourceType"] == "DynamoDB"
+    assert "CreatedResourceArn" in resp
+
+    # List
+    resp = client.list_restore_jobs()
+    assert len(resp["RestoreJobs"]) == 1
+    assert resp["RestoreJobs"][0]["RestoreJobId"] == job_id
+
+
+@mock_aws
+def test_restore_job_not_found():
+    client = boto3.client("backup", region_name="us-east-1")
+    with pytest.raises(client.exceptions.ResourceNotFoundException):
+        client.describe_restore_job(RestoreJobId="nonexistent")
+
+
+@mock_aws
+def test_list_restore_jobs_empty():
+    client = boto3.client("backup", region_name="us-east-1")
+    resp = client.list_restore_jobs()
+    assert "RestoreJobs" in resp
+    assert len(resp["RestoreJobs"]) == 0
+
+
+@mock_aws
+def test_get_restore_job_metadata():
+    client = boto3.client("backup", region_name="us-east-1")
+    resp = client.start_restore_job(
+        RecoveryPointArn="arn:aws:backup:us-east-1:123456789012:recovery-point:abc-123",
+        IamRoleArn="arn:aws:iam::123456789012:role/restore-role",
+        Metadata={"region": "us-east-1"},
+    )
+    job_id = resp["RestoreJobId"]
+
+    resp = client.get_restore_job_metadata(RestoreJobId=job_id)
+    assert resp["RestoreJobId"] == job_id
+    assert resp["Metadata"]["region"] == "us-east-1"
+
+
+@mock_aws
+def test_put_restore_validation_result():
+    client = boto3.client("backup", region_name="us-east-1")
+    resp = client.start_restore_job(
+        RecoveryPointArn="arn:aws:backup:us-east-1:123456789012:recovery-point:abc-123",
+        IamRoleArn="arn:aws:iam::123456789012:role/restore-role",
+        Metadata={},
+    )
+    job_id = resp["RestoreJobId"]
+
+    client.put_restore_validation_result(
+        RestoreJobId=job_id,
+        ValidationStatus="SUCCESSFUL",
+        ValidationStatusMessage="All good",
+    )
+
+    resp = client.describe_restore_job(RestoreJobId=job_id)
+    assert resp["ValidationStatus"] == "SUCCESSFUL"
+    assert resp["ValidationStatusMessage"] == "All good"
+
+
+# --- Recovery Points ---
+
+
+@mock_aws
+def test_list_recovery_points_by_backup_vault_empty():
+    client = boto3.client("backup", region_name="us-east-1")
+    client.create_backup_vault(BackupVaultName="test-vault")
+
+    resp = client.list_recovery_points_by_backup_vault(
+        BackupVaultName="test-vault"
+    )
+    assert "RecoveryPoints" in resp
+    assert len(resp["RecoveryPoints"]) == 0
+
+
+@mock_aws
+def test_list_recovery_points_by_backup_vault_not_found():
+    client = boto3.client("backup", region_name="us-east-1")
+    with pytest.raises(client.exceptions.ResourceNotFoundException):
+        client.list_recovery_points_by_backup_vault(
+            BackupVaultName="nonexistent"
+        )
+
+
+@mock_aws
+def test_list_recovery_points_by_resource_empty():
+    client = boto3.client("backup", region_name="us-east-1")
+    resp = client.list_recovery_points_by_resource(
+        ResourceArn="arn:aws:dynamodb:us-east-1:123456789012:table/mytable"
+    )
+    assert "RecoveryPoints" in resp
+    assert len(resp["RecoveryPoints"]) == 0

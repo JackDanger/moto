@@ -292,6 +292,206 @@ class BackupResponse(BaseResponse):
         )
         return json.dumps(dict(framework.to_dict()))
 
+    # --- Legal Holds ---
+
+    def create_legal_hold(self) -> str:
+        params = json.loads(self.body)
+        hold = self.backup_backend.create_legal_hold(
+            title=params.get("Title", ""),
+            description=params.get("Description", ""),
+            recovery_point_selection=params.get("RecoveryPointSelection"),
+            tags=params.get("Tags"),
+        )
+        return json.dumps(hold.to_dict())
+
+    def cancel_legal_hold(self) -> str:
+        legal_hold_id = self.path.split("/legal-holds/")[1].split("?")[0].rstrip("/")
+        params = self._get_params()
+        cancel_description = params.get("cancelDescription", "")
+        retain_record_in_days = params.get("retainRecordInDays")
+        if retain_record_in_days:
+            retain_record_in_days = int(retain_record_in_days)
+        self.backup_backend.cancel_legal_hold(
+            legal_hold_id=legal_hold_id,
+            cancel_description=cancel_description,
+            retain_record_in_days=retain_record_in_days,
+        )
+        return "{}"
+
+    def get_legal_hold(self) -> str:
+        legal_hold_id = self.path.split("/legal-holds/")[1].rstrip("/")
+        hold = self.backup_backend.get_legal_hold(
+            legal_hold_id=legal_hold_id,
+        )
+        return json.dumps(hold.to_dict())
+
+    def list_legal_holds(self) -> str:
+        holds = self.backup_backend.list_legal_holds()
+        return json.dumps(
+            {"LegalHolds": [h.to_list_dict() for h in holds]}
+        )
+
+    # --- Delete Recovery Point ---
+
+    def delete_recovery_point(self) -> str:
+        parts = self.path.split("/")
+        vault_idx = parts.index("backup-vaults")
+        backup_vault_name = parts[vault_idx + 1]
+        rp_idx = parts.index("recovery-points")
+        recovery_point_arn = unquote("/".join(parts[rp_idx + 1:]).rstrip("/"))
+        self.backup_backend.delete_recovery_point(
+            backup_vault_name=backup_vault_name,
+            recovery_point_arn=recovery_point_arn,
+        )
+        return "{}"
+
+    # --- Recovery Points by Vault / Resource ---
+
+    def list_recovery_points_by_backup_vault(self) -> str:
+        parts = self.path.split("/")
+        vault_idx = parts.index("backup-vaults")
+        backup_vault_name = parts[vault_idx + 1]
+        params = self._get_params()
+        rps = self.backup_backend.list_recovery_points_by_backup_vault(
+            backup_vault_name=backup_vault_name,
+            by_resource_arn=params.get("resourceArn"),
+            by_resource_type=params.get("resourceType"),
+        )
+        return json.dumps(
+            {"RecoveryPoints": [r.to_dict() for r in rps]}
+        )
+
+    def list_recovery_points_by_resource(self) -> str:
+        resource_arn = unquote(self.path.split("/resources/")[1].split("/recovery-points")[0])
+        rps = self.backup_backend.list_recovery_points_by_resource(
+            resource_arn=resource_arn,
+        )
+        return json.dumps(
+            {"RecoveryPoints": [r.to_dict() for r in rps]}
+        )
+
+    def get_recovery_point_restore_metadata(self) -> str:
+        # Path: /backup-vaults/{name}/recovery-points/{rpArn}/restore-metadata
+        parts = self.path.split("/")
+        vault_idx = parts.index("backup-vaults")
+        backup_vault_name = parts[vault_idx + 1]
+        rp_idx = parts.index("recovery-points")
+        # rpArn is between recovery-points/ and /restore-metadata
+        rp_parts = parts[rp_idx + 1:]
+        # Remove "restore-metadata" at the end
+        if "restore-metadata" in rp_parts:
+            rp_parts = rp_parts[:rp_parts.index("restore-metadata")]
+        recovery_point_arn = unquote("/".join(rp_parts).rstrip("/"))
+        result = self.backup_backend.get_recovery_point_restore_metadata(
+            backup_vault_name=backup_vault_name,
+            recovery_point_arn=recovery_point_arn,
+        )
+        return json.dumps(result)
+
+    def update_recovery_point_lifecycle(self) -> str:
+        parts = self.path.split("/")
+        vault_idx = parts.index("backup-vaults")
+        backup_vault_name = parts[vault_idx + 1]
+        rp_idx = parts.index("recovery-points")
+        recovery_point_arn = unquote("/".join(parts[rp_idx + 1:]).rstrip("/"))
+        params = json.loads(self.body) if self.body else {}
+        lifecycle = params.get("Lifecycle")
+        result = self.backup_backend.update_recovery_point_lifecycle(
+            backup_vault_name=backup_vault_name,
+            recovery_point_arn=recovery_point_arn,
+            lifecycle=lifecycle,
+        )
+        return json.dumps(result)
+
+    # --- Export Backup Plan Template ---
+
+    def export_backup_plan_template(self) -> str:
+        backup_plan_id = self.path.split("/plans/")[1].split("/")[0]
+        template_json = self.backup_backend.export_backup_plan_template(
+            backup_plan_id=backup_plan_id,
+        )
+        return json.dumps({"BackupPlanTemplateJson": template_json})
+
+    # --- Get Backup Plan From Template ---
+
+    def get_backup_plan_from_template(self) -> str:
+        # Path: /backup/template/plans/{templateId}/toPlan
+        parts = self.path.split("/")
+        plans_idx = parts.index("plans")
+        template_id = parts[plans_idx + 1]
+        plan = self.backup_backend.get_backup_plan_from_template(
+            backup_plan_template_id=template_id,
+        )
+        return json.dumps({"BackupPlanDocument": plan})
+
+    # --- Restore Jobs ---
+
+    def start_restore_job(self) -> str:
+        params = json.loads(self.body)
+        job = self.backup_backend.start_restore_job(
+            recovery_point_arn=params.get("RecoveryPointArn", ""),
+            iam_role_arn=params.get("IamRoleArn", ""),
+            metadata=params.get("Metadata"),
+            resource_type=params.get("ResourceType"),
+            idempotency_token=params.get("IdempotencyToken"),
+        )
+        return json.dumps(
+            {
+                "RestoreJobId": job.restore_job_id,
+            }
+        )
+
+    def describe_restore_job(self) -> str:
+        restore_job_id = self.path.split("/restore-jobs/")[1].rstrip("/")
+        # Strip any sub-paths
+        if "/" in restore_job_id:
+            restore_job_id = restore_job_id.split("/")[0]
+        job = self.backup_backend.describe_restore_job(
+            restore_job_id=restore_job_id,
+        )
+        return json.dumps(job.to_dict())
+
+    def list_restore_jobs(self) -> str:
+        params = self._get_params()
+        jobs = self.backup_backend.list_restore_jobs(
+            by_account_id=params.get("accountId"),
+            by_status=params.get("status"),
+            by_resource_type=params.get("resourceType"),
+        )
+        return json.dumps(
+            {"RestoreJobs": [j.to_list_dict() for j in jobs]}
+        )
+
+    def list_restore_jobs_by_protected_resource(self) -> str:
+        resource_arn = unquote(self.path.split("/resources/")[1].split("/restore-jobs")[0])
+        jobs = self.backup_backend.list_restore_jobs_by_protected_resource(
+            resource_arn=resource_arn,
+        )
+        return json.dumps(
+            {"RestoreJobs": [j.to_list_dict() for j in jobs]}
+        )
+
+    def get_restore_job_metadata(self) -> str:
+        restore_job_id = self.path.split("/restore-jobs/")[1].rstrip("/")
+        if "/" in restore_job_id:
+            restore_job_id = restore_job_id.split("/")[0]
+        result = self.backup_backend.get_restore_job_metadata(
+            restore_job_id=restore_job_id,
+        )
+        return json.dumps(result)
+
+    def put_restore_validation_result(self) -> str:
+        restore_job_id = self.path.split("/restore-jobs/")[1].rstrip("/")
+        if "/" in restore_job_id:
+            restore_job_id = restore_job_id.split("/")[0]
+        params = json.loads(self.body) if self.body else {}
+        self.backup_backend.put_restore_validation_result(
+            restore_job_id=restore_job_id,
+            validation_status=params.get("ValidationStatus", ""),
+            validation_status_message=params.get("ValidationStatusMessage"),
+        )
+        return "{}"
+
     # --- Vault Lock ---
 
     def put_backup_vault_lock_configuration(self) -> str:

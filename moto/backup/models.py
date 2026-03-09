@@ -439,6 +439,126 @@ class RecoveryPoint(BaseModel):
         return dct
 
 
+class LegalHold(BaseModel):
+    def __init__(
+        self,
+        title: str,
+        description: str,
+        backend: "BackupBackend",
+        recovery_point_selection: Optional[dict[str, Any]] = None,
+        tags: Optional[dict[str, str]] = None,
+    ):
+        self.legal_hold_id = str(mock_random.uuid4())
+        partition = get_partition(backend.region_name)
+        self.legal_hold_arn = (
+            f"arn:{partition}:backup:{backend.region_name}"
+            f":{backend.account_id}:legal-hold:{self.legal_hold_id}"
+        )
+        self.title = title
+        self.description = description
+        self.status = "ACTIVE"
+        self.creation_date = unix_time()
+        self.cancellation_date: Optional[float] = None
+        self.recovery_point_selection = recovery_point_selection or {}
+        self.retain_record_until: Optional[float] = None
+
+    def to_dict(self) -> dict[str, Any]:
+        dct: dict[str, Any] = {
+            "LegalHoldId": self.legal_hold_id,
+            "LegalHoldArn": self.legal_hold_arn,
+            "Title": self.title,
+            "Description": self.description,
+            "Status": self.status,
+            "CreationDate": self.creation_date,
+            "RecoveryPointSelection": self.recovery_point_selection,
+        }
+        if self.cancellation_date is not None:
+            dct["CancellationDate"] = self.cancellation_date
+        if self.retain_record_until is not None:
+            dct["RetainRecordUntil"] = self.retain_record_until
+        return dct
+
+    def to_list_dict(self) -> dict[str, Any]:
+        dct: dict[str, Any] = {
+            "LegalHoldId": self.legal_hold_id,
+            "LegalHoldArn": self.legal_hold_arn,
+            "Title": self.title,
+            "Description": self.description,
+            "Status": self.status,
+            "CreationDate": self.creation_date,
+        }
+        if self.cancellation_date is not None:
+            dct["CancellationDate"] = self.cancellation_date
+        return dct
+
+
+class RestoreJob(BaseModel):
+    def __init__(
+        self,
+        recovery_point_arn: str,
+        iam_role_arn: str,
+        metadata: dict[str, str],
+        backend: "BackupBackend",
+        resource_type: Optional[str] = None,
+        idempotency_token: Optional[str] = None,
+    ):
+        self.restore_job_id = str(mock_random.uuid4())
+        self.recovery_point_arn = recovery_point_arn
+        self.iam_role_arn = iam_role_arn
+        self.metadata = metadata
+        self.resource_type = resource_type or ""
+        self.idempotency_token = idempotency_token
+        self.creation_date = unix_time()
+        self.completion_date: Optional[float] = unix_time()
+        self.status = "COMPLETED"
+        self.status_message = ""
+        self.percent_done = "100.0"
+        self.backup_size_in_bytes = 0
+        self.account_id = backend.account_id
+        self.region_name = backend.region_name
+        partition = get_partition(backend.region_name)
+        # For restore, created_resource_arn is the "restored" resource
+        self.created_resource_arn = (
+            f"arn:{partition}:backup:{backend.region_name}"
+            f":{backend.account_id}:restored-resource:{str(mock_random.uuid4())}"
+        )
+        self.validation_status: Optional[str] = None
+        self.validation_status_message: Optional[str] = None
+
+    def to_dict(self) -> dict[str, Any]:
+        dct: dict[str, Any] = {
+            "RestoreJobId": self.restore_job_id,
+            "RecoveryPointArn": self.recovery_point_arn,
+            "IamRoleArn": self.iam_role_arn,
+            "CreationDate": self.creation_date,
+            "Status": self.status,
+            "StatusMessage": self.status_message,
+            "PercentDone": self.percent_done,
+            "BackupSizeInBytes": self.backup_size_in_bytes,
+            "CreatedResourceArn": self.created_resource_arn,
+            "AccountId": self.account_id,
+            "ResourceType": self.resource_type,
+        }
+        if self.completion_date is not None:
+            dct["CompletionDate"] = self.completion_date
+        if self.validation_status is not None:
+            dct["ValidationStatus"] = self.validation_status
+        if self.validation_status_message is not None:
+            dct["ValidationStatusMessage"] = self.validation_status_message
+        return dct
+
+    def to_list_dict(self) -> dict[str, Any]:
+        return {
+            "RestoreJobId": self.restore_job_id,
+            "RecoveryPointArn": self.recovery_point_arn,
+            "CreationDate": self.creation_date,
+            "Status": self.status,
+            "AccountId": self.account_id,
+            "ResourceType": self.resource_type,
+            "CreatedResourceArn": self.created_resource_arn,
+        }
+
+
 class RestoreTestingPlan(BaseModel):
     def __init__(
         self,
@@ -609,6 +729,8 @@ class BackupBackend(BaseBackend):
         self.protected_resources: dict[str, RecoveryPoint] = {}
         self.restore_testing_plans: dict[str, RestoreTestingPlan] = {}
         self.restore_testing_selections: dict[str, dict[str, RestoreTestingSelection]] = {}
+        self.legal_holds: dict[str, LegalHold] = {}
+        self.restore_jobs: dict[str, RestoreJob] = {}
         self.vault_access_policies: dict[str, dict[str, Any]] = {}
         self.vault_notifications: dict[str, dict[str, Any]] = {}
         self.global_settings: dict[str, str] = {
@@ -1477,6 +1599,276 @@ class BackupBackend(BaseBackend):
             restore_testing_plan_name, {}
         )
         return list(plan_sels.values())
+
+    # --- Legal Holds ---
+
+    def create_legal_hold(
+        self,
+        title: str,
+        description: str,
+        recovery_point_selection: Optional[dict[str, Any]] = None,
+        tags: Optional[dict[str, str]] = None,
+    ) -> LegalHold:
+        hold = LegalHold(
+            title=title,
+            description=description,
+            backend=self,
+            recovery_point_selection=recovery_point_selection,
+            tags=tags,
+        )
+        if tags:
+            self.tag_resource(hold.legal_hold_arn, tags)
+        self.legal_holds[hold.legal_hold_id] = hold
+        return hold
+
+    def cancel_legal_hold(
+        self,
+        legal_hold_id: str,
+        cancel_description: str,
+        retain_record_in_days: Optional[int] = None,
+    ) -> None:
+        if legal_hold_id not in self.legal_holds:
+            raise ResourceNotFoundException(
+                msg=f"Legal hold {legal_hold_id} not found"
+            )
+        hold = self.legal_holds[legal_hold_id]
+        if hold.status == "CANCELED":
+            raise InvalidRequestException(
+                msg=f"Legal hold {legal_hold_id} is already canceled"
+            )
+        hold.status = "CANCELED"
+        hold.cancellation_date = unix_time()
+        if retain_record_in_days:
+            hold.retain_record_until = unix_time() + (
+                retain_record_in_days * 24 * 60 * 60
+            )
+
+    def get_legal_hold(self, legal_hold_id: str) -> LegalHold:
+        if legal_hold_id not in self.legal_holds:
+            raise ResourceNotFoundException(
+                msg=f"Legal hold {legal_hold_id} not found"
+            )
+        return self.legal_holds[legal_hold_id]
+
+    def list_legal_holds(self) -> list[LegalHold]:
+        """
+        Pagination is not yet implemented
+        """
+        return list(self.legal_holds.values())
+
+    # --- Delete Recovery Point ---
+
+    def delete_recovery_point(
+        self, backup_vault_name: str, recovery_point_arn: str,
+    ) -> None:
+        if backup_vault_name not in self.vaults:
+            raise ResourceNotFoundException(
+                msg=f"Backup vault {backup_vault_name} not found"
+            )
+        vault_rps = self.recovery_points.get(backup_vault_name, {})
+        if recovery_point_arn not in vault_rps:
+            raise ResourceNotFoundException(
+                msg=f"Recovery point {recovery_point_arn} not found"
+            )
+        vault_rps.pop(recovery_point_arn)
+        # Also remove from protected resources
+        rp = vault_rps.get(recovery_point_arn)
+        if rp:
+            self.protected_resources.pop(rp.resource_arn, None)
+        vault = self.vaults[backup_vault_name]
+        vault.num_of_recovery_points = max(0, vault.num_of_recovery_points - 1)
+
+    # --- Recovery Point operations ---
+
+    def list_recovery_points_by_backup_vault(
+        self,
+        backup_vault_name: str,
+        by_resource_arn: Optional[str] = None,
+        by_resource_type: Optional[str] = None,
+    ) -> list[RecoveryPoint]:
+        """
+        Pagination is not yet implemented
+        """
+        if backup_vault_name not in self.vaults:
+            raise ResourceNotFoundException(
+                msg=f"Backup vault {backup_vault_name} not found"
+            )
+        vault_rps = self.recovery_points.get(backup_vault_name, {})
+        rps = list(vault_rps.values())
+        if by_resource_arn:
+            rps = [r for r in rps if r.resource_arn == by_resource_arn]
+        if by_resource_type:
+            rps = [r for r in rps if r.resource_type == by_resource_type]
+        return rps
+
+    def list_recovery_points_by_resource(
+        self, resource_arn: str,
+    ) -> list[RecoveryPoint]:
+        """
+        Pagination is not yet implemented
+        """
+        results: list[RecoveryPoint] = []
+        for vault_rps in self.recovery_points.values():
+            for rp in vault_rps.values():
+                if rp.resource_arn == resource_arn:
+                    results.append(rp)
+        return results
+
+    def get_recovery_point_restore_metadata(
+        self, backup_vault_name: str, recovery_point_arn: str,
+    ) -> dict[str, Any]:
+        if backup_vault_name not in self.vaults:
+            raise ResourceNotFoundException(
+                msg=f"Backup vault {backup_vault_name} not found"
+            )
+        vault_rps = self.recovery_points.get(backup_vault_name, {})
+        if recovery_point_arn not in vault_rps:
+            raise ResourceNotFoundException(
+                msg=f"Recovery point {recovery_point_arn} not found"
+            )
+        rp = vault_rps[recovery_point_arn]
+        return {
+            "BackupVaultArn": rp.backup_vault_arn,
+            "RecoveryPointArn": rp.recovery_point_arn,
+            "ResourceType": rp.resource_type,
+            "RestoreMetadata": {},
+        }
+
+    def update_recovery_point_lifecycle(
+        self,
+        backup_vault_name: str,
+        recovery_point_arn: str,
+        lifecycle: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any]:
+        if backup_vault_name not in self.vaults:
+            raise ResourceNotFoundException(
+                msg=f"Backup vault {backup_vault_name} not found"
+            )
+        vault_rps = self.recovery_points.get(backup_vault_name, {})
+        if recovery_point_arn not in vault_rps:
+            raise ResourceNotFoundException(
+                msg=f"Recovery point {recovery_point_arn} not found"
+            )
+        rp = vault_rps[recovery_point_arn]
+        if lifecycle is not None:
+            rp.lifecycle = lifecycle
+        return {
+            "BackupVaultArn": rp.backup_vault_arn,
+            "RecoveryPointArn": rp.recovery_point_arn,
+            "Lifecycle": rp.lifecycle,
+            "CalculatedLifecycle": {},
+        }
+
+    # --- Export Backup Plan Template ---
+
+    def export_backup_plan_template(
+        self, backup_plan_id: str,
+    ) -> str:
+        import json as json_mod
+
+        if backup_plan_id not in self.plans:
+            raise ResourceNotFoundException(
+                msg="Failed reading Backup plan with provided version"
+            )
+        plan = self.plans[backup_plan_id]
+        return json_mod.dumps(plan.backup_plan)
+
+    # --- Get Backup Plan From Template ---
+
+    def get_backup_plan_from_template(
+        self, backup_plan_template_id: str,
+    ) -> dict[str, Any]:
+        if backup_plan_template_id not in BACKUP_PLAN_TEMPLATE_DETAILS:
+            raise ResourceNotFoundException(
+                msg=f"Backup plan template {backup_plan_template_id} not found"
+            )
+        return BACKUP_PLAN_TEMPLATE_DETAILS[backup_plan_template_id]
+
+    # --- Restore Jobs ---
+
+    def start_restore_job(
+        self,
+        recovery_point_arn: str,
+        iam_role_arn: str,
+        metadata: Optional[dict[str, str]] = None,
+        resource_type: Optional[str] = None,
+        idempotency_token: Optional[str] = None,
+    ) -> RestoreJob:
+        job = RestoreJob(
+            recovery_point_arn=recovery_point_arn,
+            iam_role_arn=iam_role_arn,
+            metadata=metadata or {},
+            backend=self,
+            resource_type=resource_type,
+            idempotency_token=idempotency_token,
+        )
+        self.restore_jobs[job.restore_job_id] = job
+        return job
+
+    def describe_restore_job(self, restore_job_id: str) -> RestoreJob:
+        if restore_job_id not in self.restore_jobs:
+            raise ResourceNotFoundException(
+                msg=f"Restore job {restore_job_id} not found"
+            )
+        return self.restore_jobs[restore_job_id]
+
+    def list_restore_jobs(
+        self,
+        by_account_id: Optional[str] = None,
+        by_status: Optional[str] = None,
+        by_resource_type: Optional[str] = None,
+    ) -> list[RestoreJob]:
+        """
+        Pagination is not yet implemented
+        """
+        jobs = list(self.restore_jobs.values())
+        if by_account_id:
+            jobs = [j for j in jobs if j.account_id == by_account_id]
+        if by_status:
+            jobs = [j for j in jobs if j.status == by_status]
+        if by_resource_type:
+            jobs = [j for j in jobs if j.resource_type == by_resource_type]
+        return jobs
+
+    def list_restore_jobs_by_protected_resource(
+        self, resource_arn: str,
+    ) -> list[RestoreJob]:
+        """
+        Pagination is not yet implemented
+        """
+        return [
+            j for j in self.restore_jobs.values()
+            if j.recovery_point_arn == resource_arn
+            or j.created_resource_arn == resource_arn
+        ]
+
+    def get_restore_job_metadata(
+        self, restore_job_id: str,
+    ) -> dict[str, Any]:
+        if restore_job_id not in self.restore_jobs:
+            raise ResourceNotFoundException(
+                msg=f"Restore job {restore_job_id} not found"
+            )
+        job = self.restore_jobs[restore_job_id]
+        return {
+            "RestoreJobId": job.restore_job_id,
+            "Metadata": job.metadata,
+        }
+
+    def put_restore_validation_result(
+        self,
+        restore_job_id: str,
+        validation_status: str,
+        validation_status_message: Optional[str] = None,
+    ) -> None:
+        if restore_job_id not in self.restore_jobs:
+            raise ResourceNotFoundException(
+                msg=f"Restore job {restore_job_id} not found"
+            )
+        job = self.restore_jobs[restore_job_id]
+        job.validation_status = validation_status
+        if validation_status_message is not None:
+            job.validation_status_message = validation_status_message
 
 
 backup_backends = BackendDict(BackupBackend, "backup")
