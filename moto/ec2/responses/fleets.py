@@ -87,3 +87,33 @@ class Fleets(EC2BaseResponse):
         if fleet.instances is not None:
             result["Instances"] = fleet.instances
         return ActionResult(result)
+
+    def modify_fleet(self) -> ActionResult:
+        fleet_id = self._get_param("FleetId")
+        target_capacity_specification = self._get_param(
+            "TargetCapacitySpecification", {}
+        )
+        excess_capacity_termination_policy = self._get_param(
+            "ExcessCapacityTerminationPolicy"
+        )
+        fleet = self.ec2_backend.modify_fleet(
+            fleet_id=fleet_id,
+            target_capacity_specification=target_capacity_specification or None,
+            excess_capacity_termination_policy=excess_capacity_termination_policy,
+        )
+        result = {"Return": True}
+        return ActionResult(result)
+
+    def describe_fleet_history(self) -> ActionResult:
+        fleet_id = self._get_param("FleetId")
+        start_time = self._get_param("StartTime")
+        events = self.ec2_backend.describe_fleet_history(
+            fleet_id=fleet_id,
+            start_time=start_time,
+        )
+        result = {
+            "FleetId": fleet_id,
+            "HistoryRecords": events,
+            "StartTime": start_time or "",
+        }
+        return ActionResult(result)

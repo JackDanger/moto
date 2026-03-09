@@ -959,6 +959,79 @@ class InvalidIpamIdError(EC2ClientError):
         )
 
 
+
+
+class InvalidIpamScopeIdError(EC2ClientError):
+    def __init__(self, ipam_scope_id: str):
+        super().__init__(
+            "InvalidIpamScopeId.NotFound",
+            f"The IPAM scope ID '{ipam_scope_id}' does not exist",
+        )
+
+
+class InvalidCapacityReservationIdError(EC2ClientError):
+    def __init__(self, capacity_reservation_id: str):
+        super().__init__(
+            "InvalidCapacityReservationId.NotFound",
+            f"The capacity reservation ID '{capacity_reservation_id}' does not exist",
+        )
+
+
+class InvalidCapacityReservationFleetIdError(EC2ClientError):
+    def __init__(self, capacity_reservation_fleet_id: str):
+        super().__init__(
+            "InvalidCapacityReservationFleetId.NotFound",
+            f"The capacity reservation fleet ID '{capacity_reservation_fleet_id}' does not exist",
+        )
+
+
+class InvalidTrafficMirrorFilterIdError(EC2ClientError):
+    def __init__(self, traffic_mirror_filter_id: str):
+        super().__init__(
+            "InvalidTrafficMirrorFilterId.NotFound",
+            f"The traffic mirror filter ID '{traffic_mirror_filter_id}' does not exist",
+        )
+
+
+class InvalidTrafficMirrorTargetIdError(EC2ClientError):
+    def __init__(self, traffic_mirror_target_id: str):
+        super().__init__(
+            "InvalidTrafficMirrorTargetId.NotFound",
+            f"The traffic mirror target ID '{traffic_mirror_target_id}' does not exist",
+        )
+
+
+class InvalidTrafficMirrorSessionIdError(EC2ClientError):
+    def __init__(self, traffic_mirror_session_id: str):
+        super().__init__(
+            "InvalidTrafficMirrorSessionId.NotFound",
+            f"The traffic mirror session ID '{traffic_mirror_session_id}' does not exist",
+        )
+
+
+class InvalidTrafficMirrorFilterRuleIdError(EC2ClientError):
+    def __init__(self, traffic_mirror_filter_rule_id: str):
+        super().__init__(
+            "InvalidTrafficMirrorFilterRuleId.NotFound",
+            f"The traffic mirror filter rule ID '{traffic_mirror_filter_rule_id}' does not exist",
+        )
+
+
+class InvalidLocalGatewayRouteTableIdError(EC2ClientError):
+    def __init__(self, local_gateway_route_table_id: str):
+        super().__init__(
+            "InvalidLocalGatewayRouteTableId.NotFound",
+            f"The local gateway route table ID '{local_gateway_route_table_id}' does not exist",
+        )
+
+
+class InvalidFleetIdError(EC2ClientError):
+    def __init__(self, fleet_id: str):
+        super().__init__(
+            "InvalidFleetId.NotFound",
+            f"The fleet ID '{fleet_id}' does not exist",
+        )
+
 class InvalidClientVpnEndpointIdError(EC2ClientError):
     def __init__(self, client_vpn_endpoint_id: str):
         super().__init__(

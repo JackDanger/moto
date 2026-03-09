@@ -15,3 +15,10 @@ class EngineTypeNotFoundException(JsonRESTError):
         super().__init__(
             "EngineTypeNotFoundException", f"Engine Type not found: {domain_name}"
         )
+
+
+class ConflictException(JsonRESTError):
+    code = 409
+
+    def __init__(self, message: str):
+        super().__init__("ConflictException", message)

@@ -43,6 +43,10 @@ from .vpn_connections import VPNConnections
 from .windows import Windows
 from .client_vpn_endpoints import ClientVpnEndpoints
 from .ipam import IpamResponse
+from .capacity_reservations import CapacityReservations
+from .fast_launch import FastLaunchResponse
+from .local_gateways import LocalGatewayResponse
+from .traffic_mirror import TrafficMirrorResponse
 from .gap_stubs import GapStubs
 
 
@@ -53,6 +57,10 @@ class EC2Response(
     NetworkInsightsResponse,
     VerifiedAccessResponse,
     InstanceConnectEndpointResponse,
+    CapacityReservations,
+    TrafficMirrorResponse,
+    FastLaunchResponse,
+    LocalGatewayResponse,
     GapStubs,
     AccountAttributes,
     AmisResponse,
