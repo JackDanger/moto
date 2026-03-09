@@ -580,6 +580,64 @@ class SimpleSystemManagerResponse(BaseResponse):
         )
         return ActionResult({"BaselineId": baseline_id, "PatchGroup": patch_group})
 
+    def create_association(self) -> ActionResult:
+        name = self._get_param("Name")
+        instance_id = self._get_param("InstanceId")
+        targets = self._get_param("Targets")
+        parameters = self._get_param("Parameters")
+        schedule_expression = self._get_param("ScheduleExpression")
+        output_location = self._get_param("OutputLocation")
+        association_name = self._get_param("AssociationName")
+        document_version = self._get_param("DocumentVersion")
+        max_errors = self._get_param("MaxErrors")
+        max_concurrency = self._get_param("MaxConcurrency")
+        compliance_severity = self._get_param("ComplianceSeverity")
+        apply_only_at_cron_interval = self._get_param("ApplyOnlyAtCronInterval", False)
+        association = self.ssm_backend.create_association(
+            name=name,
+            instance_id=instance_id,
+            targets=targets,
+            parameters=parameters,
+            schedule_expression=schedule_expression,
+            output_location=output_location,
+            association_name=association_name,
+            document_version=document_version,
+            max_errors=max_errors,
+            max_concurrency=max_concurrency,
+            compliance_severity=compliance_severity,
+            apply_only_at_cron_interval=apply_only_at_cron_interval,
+        )
+        return ActionResult({"AssociationDescription": association.describe()})
+
+    def update_association(self) -> ActionResult:
+        association_id = self._get_param("AssociationId")
+        parameters = self._get_param("Parameters")
+        schedule_expression = self._get_param("ScheduleExpression")
+        output_location = self._get_param("OutputLocation")
+        association_name = self._get_param("AssociationName")
+        document_version = self._get_param("DocumentVersion")
+        max_errors = self._get_param("MaxErrors")
+        max_concurrency = self._get_param("MaxConcurrency")
+        compliance_severity = self._get_param("ComplianceSeverity")
+        apply_only_at_cron_interval = self._get_param("ApplyOnlyAtCronInterval")
+        name = self._get_param("Name")
+        targets = self._get_param("Targets")
+        association = self.ssm_backend.update_association(
+            association_id=association_id,
+            parameters=parameters,
+            schedule_expression=schedule_expression,
+            output_location=output_location,
+            association_name=association_name,
+            document_version=document_version,
+            max_errors=max_errors,
+            max_concurrency=max_concurrency,
+            compliance_severity=compliance_severity,
+            apply_only_at_cron_interval=apply_only_at_cron_interval,
+            name=name,
+            targets=targets,
+        )
+        return ActionResult({"AssociationDescription": association.describe()})
+
     def delete_association(self) -> ActionResult:
         name = self._get_param("Name")
         association_id = self._get_param("AssociationId")
@@ -698,6 +756,129 @@ class SimpleSystemManagerResponse(BaseResponse):
     def list_resource_data_sync(self) -> ActionResult:
         syncs = self.ssm_backend.list_resource_data_sync()
         return ActionResult({"ResourceDataSyncItems": syncs})
+
+    def create_ops_item(self) -> ActionResult:
+        title = self._get_param("Title")
+        source = self._get_param("Source")
+        description = self._get_param("Description")
+        priority = self._get_param("Priority")
+        category = self._get_param("Category")
+        severity = self._get_param("Severity")
+        operational_data = self._get_param("OperationalData")
+        notifications = self._get_param("Notifications")
+        tags = self._get_param("Tags")
+        ops_item = self.ssm_backend.create_ops_item(
+            title=title,
+            source=source,
+            description=description,
+            priority=priority,
+            category=category,
+            severity=severity,
+            operational_data=operational_data,
+            notifications=notifications,
+            tags=tags,
+        )
+        return ActionResult({"OpsItemId": ops_item.ops_item_id, "OpsItemArn": ops_item.arn})
+
+    def get_ops_item(self) -> ActionResult:
+        ops_item_id = self._get_param("OpsItemId")
+        ops_item = self.ssm_backend.get_ops_item(ops_item_id)
+        return ActionResult({"OpsItem": ops_item.to_json()})
+
+    def update_ops_item(self) -> ActionResult:
+        ops_item_id = self._get_param("OpsItemId")
+        title = self._get_param("Title")
+        description = self._get_param("Description")
+        status = self._get_param("Status")
+        priority = self._get_param("Priority")
+        category = self._get_param("Category")
+        severity = self._get_param("Severity")
+        operational_data = self._get_param("OperationalData")
+        notifications = self._get_param("Notifications")
+        self.ssm_backend.update_ops_item(
+            ops_item_id=ops_item_id,
+            title=title,
+            description=description,
+            status=status,
+            priority=priority,
+            category=category,
+            severity=severity,
+            operational_data=operational_data,
+            notifications=notifications,
+        )
+        return EmptyResult()
+
+    def create_activation(self) -> ActionResult:
+        iam_role = self._get_param("IamRole")
+        description = self._get_param("Description")
+        default_instance_name = self._get_param("DefaultInstanceName")
+        registration_limit = self._get_param("RegistrationLimit", 1)
+        expiration_date = self._get_param("ExpirationDate")
+        tags = self._get_param("Tags")
+        activation = self.ssm_backend.create_activation(
+            iam_role=iam_role,
+            description=description,
+            default_instance_name=default_instance_name,
+            registration_limit=registration_limit,
+            expiration_date=expiration_date,
+            tags=tags,
+        )
+        return ActionResult({"ActivationId": activation.activation_id, "ActivationCode": str(activation.activation_id)})
+
+    def delete_activation(self) -> ActionResult:
+        activation_id = self._get_param("ActivationId")
+        self.ssm_backend.delete_activation(activation_id)
+        return EmptyResult()
+
+    def create_resource_data_sync(self) -> ActionResult:
+        sync_name = self._get_param("SyncName")
+        s3_destination = self._get_param("S3Destination")
+        sync_type = self._get_param("SyncType")
+        sync_source = self._get_param("SyncSource")
+        self.ssm_backend.create_resource_data_sync(
+            sync_name=sync_name,
+            s3_destination=s3_destination,
+            sync_type=sync_type,
+            sync_source=sync_source,
+        )
+        return EmptyResult()
+
+    def delete_resource_data_sync(self) -> ActionResult:
+        sync_name = self._get_param("SyncName")
+        self.ssm_backend.delete_resource_data_sync(sync_name)
+        return EmptyResult()
+
+    def start_automation_execution(self) -> ActionResult:
+        document_name = self._get_param("DocumentName")
+        document_version = self._get_param("DocumentVersion")
+        parameters = self._get_param("Parameters")
+        target_parameter_name = self._get_param("TargetParameterName")
+        targets = self._get_param("Targets")
+        mode = self._get_param("Mode")
+        max_concurrency = self._get_param("MaxConcurrency")
+        max_errors = self._get_param("MaxErrors")
+        execution = self.ssm_backend.start_automation_execution(
+            document_name=document_name,
+            document_version=document_version,
+            parameters=parameters,
+            target_parameter_name=target_parameter_name,
+            targets=targets,
+            mode=mode,
+            max_concurrency=max_concurrency,
+            max_errors=max_errors,
+        )
+        return ActionResult({"AutomationExecutionId": execution.automation_execution_id})
+
+    def get_automation_execution(self) -> ActionResult:
+        automation_execution_id = self._get_param("AutomationExecutionId")
+        execution = self.ssm_backend.get_automation_execution(automation_execution_id)
+        return ActionResult({"AutomationExecution": execution.get_execution()})
+
+    def stop_automation_execution(self) -> ActionResult:
+        automation_execution_id = self._get_param("AutomationExecutionId")
+        type_ = self._get_param("Type")
+        self.ssm_backend.stop_automation_execution(automation_execution_id, type_)
+        return EmptyResult()
 
     def register_patch_baseline_for_patch_group(self) -> ActionResult:
         baseline_id = self._get_param("BaselineId")
