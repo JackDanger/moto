@@ -67,11 +67,7 @@ class BackupResponse(BaseResponse):
             include_deleted=include_deleted
         )
         return json.dumps(
-            {
-                "BackupPlansList": [
-                    p.to_list_dict() for p in backup_plans_list
-                ]
-            }
+            {"BackupPlansList": [p.to_list_dict() for p in backup_plans_list]}
         )
 
     def update_backup_plan(self) -> str:
@@ -111,11 +107,7 @@ class BackupResponse(BaseResponse):
     def list_backup_vaults(self) -> str:
         backup_vault_list = self.backup_backend.list_backup_vaults()
         return json.dumps(
-            {
-                "BackupVaultList": [
-                    v.to_list_dict() for v in backup_vault_list
-                ]
-            }
+            {"BackupVaultList": [v.to_list_dict() for v in backup_vault_list]}
         )
 
     def list_tags(self) -> str:
@@ -193,11 +185,7 @@ class BackupResponse(BaseResponse):
             backup_plan_id=backup_plan_id,
         )
         return json.dumps(
-            {
-                "BackupSelectionsList": [
-                    s.to_list_dict() for s in selections
-                ]
-            }
+            {"BackupSelectionsList": [s.to_list_dict() for s in selections]}
         )
 
     # --- Backup Jobs ---
@@ -225,9 +213,7 @@ class BackupResponse(BaseResponse):
 
     def describe_backup_job(self) -> str:
         backup_job_id = self.path.split("/")[-1].rstrip("/")
-        job = self.backup_backend.describe_backup_job(
-            backup_job_id=backup_job_id
-        )
+        job = self.backup_backend.describe_backup_job(backup_job_id=backup_job_id)
         return json.dumps(dict(job.to_dict()))
 
     def list_backup_jobs(self) -> str:
@@ -239,9 +225,7 @@ class BackupResponse(BaseResponse):
             by_resource_type=params.get("resourceType"),
             by_account_id=params.get("accountId"),
         )
-        return json.dumps(
-            {"BackupJobs": [j.to_list_dict() for j in jobs]}
-        )
+        return json.dumps({"BackupJobs": [j.to_list_dict() for j in jobs]})
 
     def stop_backup_job(self) -> EmptyResult:
         backup_job_id = self.path.split("/")[-1].rstrip("/")
@@ -270,16 +254,12 @@ class BackupResponse(BaseResponse):
 
     def delete_framework(self) -> EmptyResult:
         framework_name = self.path.split("/")[-1].rstrip("/")
-        self.backup_backend.delete_framework(
-            framework_name=framework_name
-        )
+        self.backup_backend.delete_framework(framework_name=framework_name)
         return EmptyResult()
 
     def list_frameworks(self) -> str:
         frameworks = self.backup_backend.list_frameworks()
-        return json.dumps(
-            {"Frameworks": [f.to_list_dict() for f in frameworks]}
-        )
+        return json.dumps({"Frameworks": [f.to_list_dict() for f in frameworks]})
 
     def update_framework(self) -> str:
         framework_name = self.path.split("/")[-1].rstrip("/")
@@ -327,9 +307,7 @@ class BackupResponse(BaseResponse):
 
     def list_legal_holds(self) -> str:
         holds = self.backup_backend.list_legal_holds()
-        return json.dumps(
-            {"LegalHolds": [h.to_list_dict() for h in holds]}
-        )
+        return json.dumps({"LegalHolds": [h.to_list_dict() for h in holds]})
 
     # --- Delete Recovery Point ---
 
@@ -338,7 +316,7 @@ class BackupResponse(BaseResponse):
         vault_idx = parts.index("backup-vaults")
         backup_vault_name = parts[vault_idx + 1]
         rp_idx = parts.index("recovery-points")
-        recovery_point_arn = unquote("/".join(parts[rp_idx + 1:]).rstrip("/"))
+        recovery_point_arn = unquote("/".join(parts[rp_idx + 1 :]).rstrip("/"))
         self.backup_backend.delete_recovery_point(
             backup_vault_name=backup_vault_name,
             recovery_point_arn=recovery_point_arn,
@@ -357,18 +335,16 @@ class BackupResponse(BaseResponse):
             by_resource_arn=params.get("resourceArn"),
             by_resource_type=params.get("resourceType"),
         )
-        return json.dumps(
-            {"RecoveryPoints": [r.to_dict() for r in rps]}
-        )
+        return json.dumps({"RecoveryPoints": [r.to_dict() for r in rps]})
 
     def list_recovery_points_by_resource(self) -> str:
-        resource_arn = unquote(self.path.split("/resources/")[1].split("/recovery-points")[0])
+        resource_arn = unquote(
+            self.path.split("/resources/")[1].split("/recovery-points")[0]
+        )
         rps = self.backup_backend.list_recovery_points_by_resource(
             resource_arn=resource_arn,
         )
-        return json.dumps(
-            {"RecoveryPoints": [r.to_dict() for r in rps]}
-        )
+        return json.dumps({"RecoveryPoints": [r.to_dict() for r in rps]})
 
     def get_recovery_point_restore_metadata(self) -> str:
         # Path: /backup-vaults/{name}/recovery-points/{rpArn}/restore-metadata
@@ -377,10 +353,10 @@ class BackupResponse(BaseResponse):
         backup_vault_name = parts[vault_idx + 1]
         rp_idx = parts.index("recovery-points")
         # rpArn is between recovery-points/ and /restore-metadata
-        rp_parts = parts[rp_idx + 1:]
+        rp_parts = parts[rp_idx + 1 :]
         # Remove "restore-metadata" at the end
         if "restore-metadata" in rp_parts:
-            rp_parts = rp_parts[:rp_parts.index("restore-metadata")]
+            rp_parts = rp_parts[: rp_parts.index("restore-metadata")]
         recovery_point_arn = unquote("/".join(rp_parts).rstrip("/"))
         result = self.backup_backend.get_recovery_point_restore_metadata(
             backup_vault_name=backup_vault_name,
@@ -393,7 +369,7 @@ class BackupResponse(BaseResponse):
         vault_idx = parts.index("backup-vaults")
         backup_vault_name = parts[vault_idx + 1]
         rp_idx = parts.index("recovery-points")
-        recovery_point_arn = unquote("/".join(parts[rp_idx + 1:]).rstrip("/"))
+        recovery_point_arn = unquote("/".join(parts[rp_idx + 1 :]).rstrip("/"))
         params = json.loads(self.body) if self.body else {}
         lifecycle = params.get("Lifecycle")
         result = self.backup_backend.update_recovery_point_lifecycle(
@@ -458,18 +434,16 @@ class BackupResponse(BaseResponse):
             by_status=params.get("status"),
             by_resource_type=params.get("resourceType"),
         )
-        return json.dumps(
-            {"RestoreJobs": [j.to_list_dict() for j in jobs]}
-        )
+        return json.dumps({"RestoreJobs": [j.to_list_dict() for j in jobs]})
 
     def list_restore_jobs_by_protected_resource(self) -> str:
-        resource_arn = unquote(self.path.split("/resources/")[1].split("/restore-jobs")[0])
+        resource_arn = unquote(
+            self.path.split("/resources/")[1].split("/restore-jobs")[0]
+        )
         jobs = self.backup_backend.list_restore_jobs_by_protected_resource(
             resource_arn=resource_arn,
         )
-        return json.dumps(
-            {"RestoreJobs": [j.to_list_dict() for j in jobs]}
-        )
+        return json.dumps({"RestoreJobs": [j.to_list_dict() for j in jobs]})
 
     def get_restore_job_metadata(self) -> str:
         restore_job_id = self.path.split("/restore-jobs/")[1].rstrip("/")
@@ -548,9 +522,7 @@ class BackupResponse(BaseResponse):
     def delete_report_plan(self) -> EmptyResult:
         report_plan_name = self.path.split("/report-plans/")[-1]
         plan_name = report_plan_name.replace("/", "")
-        self.backup_backend.delete_report_plan(
-            report_plan_name=plan_name
-        )
+        self.backup_backend.delete_report_plan(report_plan_name=plan_name)
         return EmptyResult()
 
     # --- Global/Region Settings ---
@@ -603,11 +575,7 @@ class BackupResponse(BaseResponse):
             backup_plan_id=backup_plan_id,
         )
         return json.dumps(
-            {
-                "BackupPlanVersionsList": [
-                    v.to_list_dict() for v in versions
-                ]
-            }
+            {"BackupPlanVersionsList": [v.to_list_dict() for v in versions]}
         )
 
     # --- Copy Jobs ---
@@ -616,9 +584,7 @@ class BackupResponse(BaseResponse):
         params = json.loads(self.body)
         job = self.backup_backend.start_copy_job(
             source_backup_vault_name=params.get("SourceBackupVaultName"),
-            destination_backup_vault_arn=params.get(
-                "DestinationBackupVaultArn"
-            ),
+            destination_backup_vault_arn=params.get("DestinationBackupVaultArn"),
             recovery_point_arn=params.get("RecoveryPointArn"),
             iam_role_arn=params.get("IamRoleArn"),
             idempotency_token=params.get("IdempotencyToken"),
@@ -633,9 +599,7 @@ class BackupResponse(BaseResponse):
 
     def describe_copy_job(self) -> str:
         copy_job_id = self.path.split("/")[-1].rstrip("/")
-        job = self.backup_backend.describe_copy_job(
-            copy_job_id=copy_job_id
-        )
+        job = self.backup_backend.describe_copy_job(copy_job_id=copy_job_id)
         return json.dumps({"CopyJob": job.to_dict()})
 
     def list_copy_jobs(self) -> str:
@@ -647,9 +611,7 @@ class BackupResponse(BaseResponse):
             by_account_id=params.get("accountId"),
             by_destination_vault_arn=params.get("destinationVaultArn"),
         )
-        return json.dumps(
-            {"CopyJobs": [j.to_dict() for j in jobs]}
-        )
+        return json.dumps({"CopyJobs": [j.to_dict() for j in jobs]})
 
     # --- Recovery Points ---
 
@@ -659,7 +621,7 @@ class BackupResponse(BaseResponse):
         vault_idx = parts.index("backup-vaults")
         backup_vault_name = parts[vault_idx + 1]
         rp_idx = parts.index("recovery-points")
-        recovery_point_arn = unquote("/".join(parts[rp_idx + 1:]).rstrip("/"))
+        recovery_point_arn = unquote("/".join(parts[rp_idx + 1 :]).rstrip("/"))
         rp = self.backup_backend.describe_recovery_point(
             backup_vault_name=backup_vault_name,
             recovery_point_arn=recovery_point_arn,
@@ -772,13 +734,7 @@ class BackupResponse(BaseResponse):
 
     def list_restore_testing_plans(self) -> str:
         plans = self.backup_backend.list_restore_testing_plans()
-        return json.dumps(
-            {
-                "RestoreTestingPlans": [
-                    p.to_list_dict() for p in plans
-                ]
-            }
-        )
+        return json.dumps({"RestoreTestingPlans": [p.to_list_dict() for p in plans]})
 
     # --- Restore Testing Selections ---
 
@@ -790,15 +746,11 @@ class BackupResponse(BaseResponse):
         rts = params.get("RestoreTestingSelection", {})
         selection = self.backup_backend.create_restore_testing_selection(
             restore_testing_plan_name=plan_name,
-            restore_testing_selection_name=rts.get(
-                "RestoreTestingSelectionName"
-            ),
+            restore_testing_selection_name=rts.get("RestoreTestingSelectionName"),
             protected_resource_type=rts.get("ProtectedResourceType"),
             iam_role_arn=rts.get("IamRoleArn"),
             protected_resource_arns=rts.get("ProtectedResourceArns"),
-            protected_resource_conditions=rts.get(
-                "ProtectedResourceConditions"
-            ),
+            protected_resource_conditions=rts.get("ProtectedResourceConditions"),
             restore_metadata_overrides=rts.get("RestoreMetadataOverrides"),
             validation_window_hours=rts.get("ValidationWindowHours"),
         )
@@ -845,11 +797,7 @@ class BackupResponse(BaseResponse):
             restore_testing_plan_name=plan_name,
         )
         return json.dumps(
-            {
-                "RestoreTestingSelections": [
-                    s.to_dict() for s in selections
-                ]
-            }
+            {"RestoreTestingSelections": [s.to_dict() for s in selections]}
         )
 
     # --- Update Report Plan ---
@@ -940,11 +888,7 @@ class BackupResponse(BaseResponse):
     def list_logically_air_gapped_backup_vaults(self) -> str:
         vaults = self.backup_backend.list_logically_air_gapped_backup_vaults()
         return json.dumps(
-            {
-                "LogicallyAirGappedBackupVaults": [
-                    v.to_dict() for v in vaults
-                ]
-            }
+            {"LogicallyAirGappedBackupVaults": [v.to_dict() for v in vaults]}
         )
 
     def delete_logically_air_gapped_backup_vault(self) -> EmptyResult:
@@ -953,3 +897,108 @@ class BackupResponse(BaseResponse):
             backup_vault_name=backup_vault_name,
         )
         return EmptyResult()
+
+    # --- Report Jobs ---
+
+    def describe_report_job(self) -> str:
+        report_job_id = self.path.split("/report-jobs/")[1].rstrip("/")
+        result = self.backup_backend.describe_report_job(
+            report_job_id=report_job_id,
+        )
+        return json.dumps({"ReportJob": result})
+
+    def list_report_jobs(self) -> str:
+        params = self._get_params()
+        jobs = self.backup_backend.list_report_jobs(
+            by_report_plan_name=params.get("reportPlanName"),
+            by_status=params.get("status"),
+        )
+        return json.dumps({"ReportJobs": jobs})
+
+    def start_report_job(self) -> str:
+        report_plan_name = self.path.split("/report-plans/")[1].split("/")[0]
+        report_job_id = self.backup_backend.start_report_job(
+            report_plan_name=report_plan_name,
+        )
+        return json.dumps({"ReportJobId": report_job_id})
+
+    # --- Disassociate Recovery Point ---
+
+    def disassociate_recovery_point(self) -> str:
+        parts = self.path.split("/")
+        vault_idx = parts.index("backup-vaults")
+        backup_vault_name = parts[vault_idx + 1]
+        rp_idx = parts.index("recovery-points")
+        rp_parts = parts[rp_idx + 1 :]
+        if "disassociate" in rp_parts:
+            rp_parts = rp_parts[: rp_parts.index("disassociate")]
+        recovery_point_arn = unquote("/".join(rp_parts).rstrip("/"))
+        self.backup_backend.disassociate_recovery_point(
+            backup_vault_name=backup_vault_name,
+            recovery_point_arn=recovery_point_arn,
+        )
+        return "{}"
+
+    def disassociate_recovery_point_from_parent(self) -> str:
+        parts = self.path.split("/")
+        vault_idx = parts.index("backup-vaults")
+        backup_vault_name = parts[vault_idx + 1]
+        rp_idx = parts.index("recovery-points")
+        rp_parts = parts[rp_idx + 1 :]
+        if "parentDisassociate" in rp_parts:
+            rp_parts = rp_parts[: rp_parts.index("parentDisassociate")]
+        recovery_point_arn = unquote("/".join(rp_parts).rstrip("/"))
+        self.backup_backend.disassociate_recovery_point_from_parent(
+            backup_vault_name=backup_vault_name,
+            recovery_point_arn=recovery_point_arn,
+        )
+        return "{}"
+
+    # --- List Recovery Points By Legal Hold ---
+
+    def list_recovery_points_by_legal_hold(self) -> str:
+        legal_hold_id = self.path.split("/legal-holds/")[1].split("/")[0]
+        rps = self.backup_backend.list_recovery_points_by_legal_hold(
+            legal_hold_id=legal_hold_id,
+        )
+        return json.dumps({"RecoveryPoints": rps})
+
+    # --- List Protected Resources By Backup Vault ---
+
+    def list_protected_resources_by_backup_vault(self) -> str:
+        parts = self.path.split("/")
+        vault_idx = parts.index("backup-vaults")
+        backup_vault_name = parts[vault_idx + 1]
+        resources = self.backup_backend.list_protected_resources_by_backup_vault(
+            backup_vault_name=backup_vault_name,
+        )
+        return json.dumps({"Results": resources})
+
+    # --- Job Summaries ---
+
+    def list_backup_job_summaries(self) -> str:
+        params = self._get_params()
+        summaries = self.backup_backend.list_backup_job_summaries(
+            account_id=params.get("accountId"),
+            state=params.get("state"),
+            resource_type=params.get("resourceType"),
+        )
+        return json.dumps({"BackupJobSummaries": summaries})
+
+    def list_copy_job_summaries(self) -> str:
+        params = self._get_params()
+        summaries = self.backup_backend.list_copy_job_summaries(
+            account_id=params.get("accountId"),
+            state=params.get("state"),
+            resource_type=params.get("resourceType"),
+        )
+        return json.dumps({"CopyJobSummaries": summaries})
+
+    def list_restore_job_summaries(self) -> str:
+        params = self._get_params()
+        summaries = self.backup_backend.list_restore_job_summaries(
+            account_id=params.get("accountId"),
+            state=params.get("state"),
+            resource_type=params.get("resourceType"),
+        )
+        return json.dumps({"RestoreJobSummaries": summaries})

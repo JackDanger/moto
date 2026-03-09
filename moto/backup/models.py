@@ -761,7 +761,9 @@ class BackupBackend(BaseBackend):
         self.recovery_points: dict[str, dict[str, RecoveryPoint]] = {}
         self.protected_resources: dict[str, RecoveryPoint] = {}
         self.restore_testing_plans: dict[str, RestoreTestingPlan] = {}
-        self.restore_testing_selections: dict[str, dict[str, RestoreTestingSelection]] = {}
+        self.restore_testing_selections: dict[
+            str, dict[str, RestoreTestingSelection]
+        ] = {}
         self.legal_holds: dict[str, LegalHold] = {}
         self.restore_jobs: dict[str, RestoreJob] = {}
         self.vault_access_policies: dict[str, dict[str, Any]] = {}
@@ -789,6 +791,7 @@ class BackupBackend(BaseBackend):
         }
         self.tagger = TaggingService()
         self.logically_air_gapped_vaults: dict[str, LogicallyAirGappedVault] = {}
+        self.report_jobs: dict[str, dict[str, Any]] = {}
 
     def create_backup_plan(
         self,
@@ -812,9 +815,7 @@ class BackupBackend(BaseBackend):
         self.plans[plan.backup_plan_id] = plan
         return plan
 
-    def get_backup_plan(
-        self, backup_plan_id: str, version_id: Optional[Any]
-    ) -> Plan:
+    def get_backup_plan(self, backup_plan_id: str, version_id: Optional[Any]) -> Plan:
         msg = "Failed reading Backup plan with provided version"
         if backup_plan_id not in self.plans:
             raise ResourceNotFoundException(msg=msg)
@@ -826,9 +827,7 @@ class BackupBackend(BaseBackend):
                 raise ResourceNotFoundException(msg=msg)
         return plan
 
-    def delete_backup_plan(
-        self, backup_plan_id: str
-    ) -> tuple[str, str, float, str]:
+    def delete_backup_plan(self, backup_plan_id: str) -> tuple[str, str, float, str]:
         if backup_plan_id not in self.plans:
             raise ResourceNotFoundException(
                 msg="Failed reading Backup plan with provided version"
@@ -878,12 +877,8 @@ class BackupBackend(BaseBackend):
             rule["ScheduleExpression"] = rule.get(
                 "ScheduleExpression", "cron(0 5 ? * * *)"
             )
-            rule["StartWindowMinutes"] = rule.get(
-                "StartWindowMinutes", 480
-            )
-            rule["CompletionWindowMinutes"] = rule.get(
-                "CompletionWindowMinutes", 10080
-            )
+            rule["StartWindowMinutes"] = rule.get("StartWindowMinutes", 480)
+            rule["CompletionWindowMinutes"] = rule.get("CompletionWindowMinutes", 10080)
             rule["ScheduleExpressionTimezone"] = rule.get(
                 "ScheduleExpressionTimezone", "Etc/UTC"
             )
@@ -970,9 +965,7 @@ class BackupBackend(BaseBackend):
         vault.changeable_for_days = changeable_for_days
 
         if changeable_for_days is not None:
-            vault.lock_date = unix_time() + (
-                changeable_for_days * 24 * 60 * 60
-            )
+            vault.lock_date = unix_time() + (changeable_for_days * 24 * 60 * 60)
 
     def delete_backup_vault_lock_configuration(
         self,
@@ -1012,9 +1005,7 @@ class BackupBackend(BaseBackend):
         tags_input = TaggingService.convert_dict_to_tags_input(tags or {})
         self.tagger.tag_resource(resource_arn, tags_input)
 
-    def untag_resource(
-        self, resource_arn: str, tag_key_list: list[str]
-    ) -> None:
+    def untag_resource(self, resource_arn: str, tag_key_list: list[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_key_list)
 
     # --- Backup Selections ---
@@ -1040,9 +1031,7 @@ class BackupBackend(BaseBackend):
         self.selections[backup_plan_id][selection.selection_id] = selection
         return selection
 
-    def get_backup_selection(
-        self, backup_plan_id: str, selection_id: str
-    ) -> Selection:
+    def get_backup_selection(self, backup_plan_id: str, selection_id: str) -> Selection:
         if backup_plan_id not in self.plans:
             raise ResourceNotFoundException(
                 msg="Failed reading Backup plan with provided version"
@@ -1054,15 +1043,11 @@ class BackupBackend(BaseBackend):
             )
         return plan_selections[selection_id]
 
-    def delete_backup_selection(
-        self, backup_plan_id: str, selection_id: str
-    ) -> None:
+    def delete_backup_selection(self, backup_plan_id: str, selection_id: str) -> None:
         plan_selections = self.selections.get(backup_plan_id, {})
         plan_selections.pop(selection_id, None)
 
-    def list_backup_selections(
-        self, backup_plan_id: str
-    ) -> list[Selection]:
+    def list_backup_selections(self, backup_plan_id: str) -> list[Selection]:
         """
         Pagination is not yet implemented
         """
@@ -1112,9 +1097,7 @@ class BackupBackend(BaseBackend):
 
     def describe_backup_job(self, backup_job_id: str) -> BackupJob:
         if backup_job_id not in self.backup_jobs:
-            raise ResourceNotFoundException(
-                msg=f"Backup job {backup_job_id} not found"
-            )
+            raise ResourceNotFoundException(msg=f"Backup job {backup_job_id} not found")
         return self.backup_jobs[backup_job_id]
 
     def list_backup_jobs(
@@ -1130,10 +1113,7 @@ class BackupBackend(BaseBackend):
         """
         jobs = list(self.backup_jobs.values())
         if by_backup_vault_name:
-            jobs = [
-                j for j in jobs
-                if j.backup_vault_name == by_backup_vault_name
-            ]
+            jobs = [j for j in jobs if j.backup_vault_name == by_backup_vault_name]
         if by_state:
             jobs = [j for j in jobs if j.state == by_state]
         if by_resource_arn:
@@ -1146,9 +1126,7 @@ class BackupBackend(BaseBackend):
 
     def stop_backup_job(self, backup_job_id: str) -> None:
         if backup_job_id not in self.backup_jobs:
-            raise ResourceNotFoundException(
-                msg=f"Backup job {backup_job_id} not found"
-            )
+            raise ResourceNotFoundException(msg=f"Backup job {backup_job_id} not found")
         job = self.backup_jobs[backup_job_id]
         if job.state not in ("CREATED", "RUNNING"):
             raise InvalidRequestException(
@@ -1187,16 +1165,12 @@ class BackupBackend(BaseBackend):
 
     def describe_framework(self, framework_name: str) -> Framework:
         if framework_name not in self.frameworks:
-            raise ResourceNotFoundException(
-                msg=f"Framework {framework_name} not found"
-            )
+            raise ResourceNotFoundException(msg=f"Framework {framework_name} not found")
         return self.frameworks[framework_name]
 
     def delete_framework(self, framework_name: str) -> None:
         if framework_name not in self.frameworks:
-            raise ResourceNotFoundException(
-                msg=f"Framework {framework_name} not found"
-            )
+            raise ResourceNotFoundException(msg=f"Framework {framework_name} not found")
         self.frameworks.pop(framework_name)
 
     def list_frameworks(self) -> list[Framework]:
@@ -1213,9 +1187,7 @@ class BackupBackend(BaseBackend):
         idempotency_token: Optional[str],
     ) -> Framework:
         if framework_name not in self.frameworks:
-            raise ResourceNotFoundException(
-                msg=f"Framework {framework_name} not found"
-            )
+            raise ResourceNotFoundException(msg=f"Framework {framework_name} not found")
         framework = self.frameworks[framework_name]
         if framework_description is not None:
             framework.framework_description = framework_description
@@ -1249,9 +1221,7 @@ class BackupBackend(BaseBackend):
         self.report_plans[report_plan_name] = report_plan
         return report_plan
 
-    def describe_report_plan(
-        self, report_plan_name: str
-    ) -> ReportPlan:
+    def describe_report_plan(self, report_plan_name: str) -> ReportPlan:
         if report_plan_name not in self.report_plans:
             raise ResourceNotFoundException(
                 msg=f"Report Plan {report_plan_name} not found"
@@ -1295,7 +1265,8 @@ class BackupBackend(BaseBackend):
         return BACKUP_PLAN_TEMPLATES
 
     def get_backup_plan_from_json(
-        self, backup_plan_template_json: str,
+        self,
+        backup_plan_template_json: str,
     ) -> dict[str, Any]:
         import json as json_mod
 
@@ -1304,7 +1275,8 @@ class BackupBackend(BaseBackend):
         return plan_doc
 
     def get_backup_plan_from_template(
-        self, backup_plan_template_id: str,
+        self,
+        backup_plan_template_id: str,
     ) -> dict[str, Any]:
         if backup_plan_template_id not in BACKUP_PLAN_TEMPLATE_DETAILS:
             raise ResourceNotFoundException(
@@ -1315,7 +1287,8 @@ class BackupBackend(BaseBackend):
     # --- Backup Plan Versions ---
 
     def list_backup_plan_versions(
-        self, backup_plan_id: str,
+        self,
+        backup_plan_id: str,
     ) -> list[Plan]:
         """
         Pagination is not yet implemented. Currently only returns the
@@ -1352,9 +1325,7 @@ class BackupBackend(BaseBackend):
 
     def describe_copy_job(self, copy_job_id: str) -> CopyJob:
         if copy_job_id not in self.copy_jobs:
-            raise ResourceNotFoundException(
-                msg=f"Copy job {copy_job_id} not found"
-            )
+            raise ResourceNotFoundException(msg=f"Copy job {copy_job_id} not found")
         return self.copy_jobs[copy_job_id]
 
     def list_copy_jobs(
@@ -1379,7 +1350,8 @@ class BackupBackend(BaseBackend):
             jobs = [j for j in jobs if j.account_id == by_account_id]
         if by_destination_vault_arn:
             jobs = [
-                j for j in jobs
+                j
+                for j in jobs
                 if j.destination_backup_vault_arn == by_destination_vault_arn
             ]
         return jobs
@@ -1387,7 +1359,9 @@ class BackupBackend(BaseBackend):
     # --- Recovery Points ---
 
     def describe_recovery_point(
-        self, backup_vault_name: str, recovery_point_arn: str,
+        self,
+        backup_vault_name: str,
+        recovery_point_arn: str,
     ) -> RecoveryPoint:
         if backup_vault_name not in self.vaults:
             raise ResourceNotFoundException(
@@ -1403,7 +1377,8 @@ class BackupBackend(BaseBackend):
     # --- Protected Resources ---
 
     def describe_protected_resource(
-        self, resource_arn: str,
+        self,
+        resource_arn: str,
     ) -> dict[str, Any]:
         if resource_arn in self.protected_resources:
             rp = self.protected_resources[resource_arn]
@@ -1412,9 +1387,7 @@ class BackupBackend(BaseBackend):
                 "ResourceType": rp.resource_type,
                 "LastBackupTime": rp.creation_date,
             }
-        raise ResourceNotFoundException(
-            msg=f"Resource {resource_arn} is not protected"
-        )
+        raise ResourceNotFoundException(msg=f"Resource {resource_arn} is not protected")
 
     def list_protected_resources(self) -> list[dict[str, Any]]:
         """
@@ -1422,17 +1395,21 @@ class BackupBackend(BaseBackend):
         """
         results = []
         for resource_arn, rp in self.protected_resources.items():
-            results.append({
-                "ResourceArn": resource_arn,
-                "ResourceType": rp.resource_type,
-                "LastBackupTime": rp.creation_date,
-            })
+            results.append(
+                {
+                    "ResourceArn": resource_arn,
+                    "ResourceType": rp.resource_type,
+                    "LastBackupTime": rp.creation_date,
+                }
+            )
         return results
 
     # --- Vault Access Policy ---
 
     def put_backup_vault_access_policy(
-        self, backup_vault_name: str, policy: str,
+        self,
+        backup_vault_name: str,
+        policy: str,
     ) -> None:
         if backup_vault_name not in self.vaults:
             raise ResourceNotFoundException(
@@ -1445,7 +1422,8 @@ class BackupBackend(BaseBackend):
         }
 
     def get_backup_vault_access_policy(
-        self, backup_vault_name: str,
+        self,
+        backup_vault_name: str,
     ) -> dict[str, Any]:
         if backup_vault_name not in self.vaults:
             raise ResourceNotFoundException(
@@ -1458,7 +1436,8 @@ class BackupBackend(BaseBackend):
         return self.vault_access_policies[backup_vault_name]
 
     def delete_backup_vault_access_policy(
-        self, backup_vault_name: str,
+        self,
+        backup_vault_name: str,
     ) -> None:
         if backup_vault_name not in self.vaults:
             raise ResourceNotFoundException(
@@ -1486,7 +1465,8 @@ class BackupBackend(BaseBackend):
         }
 
     def get_backup_vault_notifications(
-        self, backup_vault_name: str,
+        self,
+        backup_vault_name: str,
     ) -> dict[str, Any]:
         if backup_vault_name not in self.vaults:
             raise ResourceNotFoundException(
@@ -1499,7 +1479,8 @@ class BackupBackend(BaseBackend):
         return self.vault_notifications[backup_vault_name]
 
     def delete_backup_vault_notifications(
-        self, backup_vault_name: str,
+        self,
+        backup_vault_name: str,
     ) -> None:
         if backup_vault_name not in self.vaults:
             raise ResourceNotFoundException(
@@ -1536,7 +1517,8 @@ class BackupBackend(BaseBackend):
         return plan
 
     def get_restore_testing_plan(
-        self, restore_testing_plan_name: str,
+        self,
+        restore_testing_plan_name: str,
     ) -> RestoreTestingPlan:
         if restore_testing_plan_name not in self.restore_testing_plans:
             raise ResourceNotFoundException(
@@ -1545,7 +1527,8 @@ class BackupBackend(BaseBackend):
         return self.restore_testing_plans[restore_testing_plan_name]
 
     def delete_restore_testing_plan(
-        self, restore_testing_plan_name: str,
+        self,
+        restore_testing_plan_name: str,
     ) -> None:
         self.restore_testing_plans.pop(restore_testing_plan_name, None)
         self.restore_testing_selections.pop(restore_testing_plan_name, None)
@@ -1600,9 +1583,7 @@ class BackupBackend(BaseBackend):
             raise ResourceNotFoundException(
                 msg=f"Restore testing plan {restore_testing_plan_name} not found"
             )
-        plan_sels = self.restore_testing_selections.get(
-            restore_testing_plan_name, {}
-        )
+        plan_sels = self.restore_testing_selections.get(restore_testing_plan_name, {})
         if restore_testing_selection_name not in plan_sels:
             raise ResourceNotFoundException(
                 msg=f"Restore testing selection {restore_testing_selection_name} not found"
@@ -1614,13 +1595,12 @@ class BackupBackend(BaseBackend):
         restore_testing_plan_name: str,
         restore_testing_selection_name: str,
     ) -> None:
-        plan_sels = self.restore_testing_selections.get(
-            restore_testing_plan_name, {}
-        )
+        plan_sels = self.restore_testing_selections.get(restore_testing_plan_name, {})
         plan_sels.pop(restore_testing_selection_name, None)
 
     def list_restore_testing_selections(
-        self, restore_testing_plan_name: str,
+        self,
+        restore_testing_plan_name: str,
     ) -> list[RestoreTestingSelection]:
         """
         Pagination is not yet implemented
@@ -1629,9 +1609,7 @@ class BackupBackend(BaseBackend):
             raise ResourceNotFoundException(
                 msg=f"Restore testing plan {restore_testing_plan_name} not found"
             )
-        plan_sels = self.restore_testing_selections.get(
-            restore_testing_plan_name, {}
-        )
+        plan_sels = self.restore_testing_selections.get(restore_testing_plan_name, {})
         return list(plan_sels.values())
 
     # --- Legal Holds ---
@@ -1662,9 +1640,7 @@ class BackupBackend(BaseBackend):
         retain_record_in_days: Optional[int] = None,
     ) -> None:
         if legal_hold_id not in self.legal_holds:
-            raise ResourceNotFoundException(
-                msg=f"Legal hold {legal_hold_id} not found"
-            )
+            raise ResourceNotFoundException(msg=f"Legal hold {legal_hold_id} not found")
         hold = self.legal_holds[legal_hold_id]
         if hold.status == "CANCELED":
             raise InvalidRequestException(
@@ -1679,9 +1655,7 @@ class BackupBackend(BaseBackend):
 
     def get_legal_hold(self, legal_hold_id: str) -> LegalHold:
         if legal_hold_id not in self.legal_holds:
-            raise ResourceNotFoundException(
-                msg=f"Legal hold {legal_hold_id} not found"
-            )
+            raise ResourceNotFoundException(msg=f"Legal hold {legal_hold_id} not found")
         return self.legal_holds[legal_hold_id]
 
     def list_legal_holds(self) -> list[LegalHold]:
@@ -1693,7 +1667,9 @@ class BackupBackend(BaseBackend):
     # --- Delete Recovery Point ---
 
     def delete_recovery_point(
-        self, backup_vault_name: str, recovery_point_arn: str,
+        self,
+        backup_vault_name: str,
+        recovery_point_arn: str,
     ) -> None:
         if backup_vault_name not in self.vaults:
             raise ResourceNotFoundException(
@@ -1736,7 +1712,8 @@ class BackupBackend(BaseBackend):
         return rps
 
     def list_recovery_points_by_resource(
-        self, resource_arn: str,
+        self,
+        resource_arn: str,
     ) -> list[RecoveryPoint]:
         """
         Pagination is not yet implemented
@@ -1749,7 +1726,9 @@ class BackupBackend(BaseBackend):
         return results
 
     def get_recovery_point_restore_metadata(
-        self, backup_vault_name: str, recovery_point_arn: str,
+        self,
+        backup_vault_name: str,
+        recovery_point_arn: str,
     ) -> dict[str, Any]:
         if backup_vault_name not in self.vaults:
             raise ResourceNotFoundException(
@@ -1796,7 +1775,8 @@ class BackupBackend(BaseBackend):
     # --- Export Backup Plan Template ---
 
     def export_backup_plan_template(
-        self, backup_plan_id: str,
+        self,
+        backup_plan_id: str,
     ) -> str:
         import json as json_mod
 
@@ -1806,17 +1786,6 @@ class BackupBackend(BaseBackend):
             )
         plan = self.plans[backup_plan_id]
         return json_mod.dumps(plan.backup_plan)
-
-    # --- Get Backup Plan From Template ---
-
-    def get_backup_plan_from_template(
-        self, backup_plan_template_id: str,
-    ) -> dict[str, Any]:
-        if backup_plan_template_id not in BACKUP_PLAN_TEMPLATE_DETAILS:
-            raise ResourceNotFoundException(
-                msg=f"Backup plan template {backup_plan_template_id} not found"
-            )
-        return BACKUP_PLAN_TEMPLATE_DETAILS[backup_plan_template_id]
 
     # --- Restore Jobs ---
 
@@ -1865,19 +1834,22 @@ class BackupBackend(BaseBackend):
         return jobs
 
     def list_restore_jobs_by_protected_resource(
-        self, resource_arn: str,
+        self,
+        resource_arn: str,
     ) -> list[RestoreJob]:
         """
         Pagination is not yet implemented
         """
         return [
-            j for j in self.restore_jobs.values()
+            j
+            for j in self.restore_jobs.values()
             if j.recovery_point_arn == resource_arn
             or j.created_resource_arn == resource_arn
         ]
 
     def get_restore_job_metadata(
-        self, restore_job_id: str,
+        self,
+        restore_job_id: str,
     ) -> dict[str, Any]:
         if restore_job_id not in self.restore_jobs:
             raise ResourceNotFoundException(
@@ -2025,14 +1997,196 @@ class BackupBackend(BaseBackend):
     ) -> list[LogicallyAirGappedVault]:
         return list(self.logically_air_gapped_vaults.values())
 
-    def delete_logically_air_gapped_backup_vault(
-        self, backup_vault_name: str
-    ) -> None:
+    def delete_logically_air_gapped_backup_vault(self, backup_vault_name: str) -> None:
         if backup_vault_name not in self.logically_air_gapped_vaults:
             raise ResourceNotFoundException(
                 msg=f"Logically air-gapped vault {backup_vault_name} not found"
             )
         del self.logically_air_gapped_vaults[backup_vault_name]
+
+    # --- Report Jobs ---
+
+    def describe_report_job(self, report_job_id: str) -> dict[str, Any]:
+        if report_job_id not in self.report_jobs:
+            raise ResourceNotFoundException(msg=f"Report job {report_job_id} not found")
+        return self.report_jobs[report_job_id]
+
+    def list_report_jobs(
+        self,
+        by_report_plan_name: Optional[str] = None,
+        by_status: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        jobs = list(self.report_jobs.values())
+        if by_report_plan_name:
+            jobs = [
+                j
+                for j in jobs
+                if j.get("ReportPlanArn", "").endswith(by_report_plan_name)
+            ]
+        if by_status:
+            jobs = [j for j in jobs if j.get("Status") == by_status]
+        return jobs
+
+    def start_report_job(self, report_plan_name: str) -> str:
+        # Verify the report plan exists
+        if report_plan_name not in self.report_plans:
+            raise ResourceNotFoundException(
+                msg=f"Report plan {report_plan_name} not found"
+            )
+        report_job_id = str(mock_random.uuid4())
+        plan = self.report_plans[report_plan_name]
+        get_partition(self.region_name)
+        self.report_jobs[report_job_id] = {
+            "ReportJobId": report_job_id,
+            "ReportPlanArn": plan.report_plan_arn,
+            "CreationTime": unix_time(),
+            "CompletionTime": unix_time(),
+            "Status": "COMPLETED",
+            "StatusMessage": "",
+            "ReportDestination": plan.report_delivery_channel,
+        }
+        return report_job_id
+
+    # --- Disassociate Recovery Point ---
+
+    def disassociate_recovery_point(
+        self,
+        backup_vault_name: str,
+        recovery_point_arn: str,
+    ) -> None:
+        vault_rps = self.recovery_points.get(backup_vault_name, {})
+        if recovery_point_arn not in vault_rps:
+            raise ResourceNotFoundException(
+                msg=f"Recovery point {recovery_point_arn} not found"
+            )
+        del vault_rps[recovery_point_arn]
+
+    # --- List Recovery Points By Legal Hold ---
+
+    def list_recovery_points_by_legal_hold(
+        self,
+        legal_hold_id: str,
+    ) -> list[dict[str, Any]]:
+        if legal_hold_id not in self.legal_holds:
+            raise ResourceNotFoundException(msg=f"Legal hold {legal_hold_id} not found")
+        # Return all recovery points (simplified - real AWS filters by hold scope)
+        result = []
+        for vault_rps in self.recovery_points.values():
+            for rp in vault_rps.values():
+                result.append(rp.to_dict())
+        return result
+
+    # --- List Protected Resources By Backup Vault ---
+
+    def list_protected_resources_by_backup_vault(
+        self,
+        backup_vault_name: str,
+    ) -> list[dict[str, Any]]:
+        if backup_vault_name not in self.vaults:
+            raise ResourceNotFoundException(
+                msg=f"Backup vault {backup_vault_name} not found"
+            )
+        vault_rps = self.recovery_points.get(backup_vault_name, {})
+        seen: dict[str, dict[str, Any]] = {}
+        for rp in vault_rps.values():
+            if rp.resource_arn not in seen:
+                seen[rp.resource_arn] = {
+                    "ResourceArn": rp.resource_arn,
+                    "ResourceType": rp.resource_type,
+                    "LastBackupTime": rp.creation_date,
+                }
+        return list(seen.values())
+
+    # --- Job Summaries ---
+
+    def list_backup_job_summaries(
+        self,
+        account_id: Optional[str] = None,
+        state: Optional[str] = None,
+        resource_type: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        # Aggregate backup jobs by state
+        counts: dict[str, int] = {}
+        for job in self.backup_jobs.values():
+            if state and job.state != state:
+                continue
+            if resource_type and job.resource_type != resource_type:
+                continue
+            counts[job.state] = counts.get(job.state, 0) + 1
+        result = []
+        for s, count in counts.items():
+            result.append(
+                {
+                    "Region": self.region_name,
+                    "AccountId": self.account_id,
+                    "State": s,
+                    "Count": count,
+                }
+            )
+        return result
+
+    def list_copy_job_summaries(
+        self,
+        account_id: Optional[str] = None,
+        state: Optional[str] = None,
+        resource_type: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        counts: dict[str, int] = {}
+        for job in self.copy_jobs.values():
+            if state and job.state != state:
+                continue
+            counts[job.state] = counts.get(job.state, 0) + 1
+        result = []
+        for s, count in counts.items():
+            result.append(
+                {
+                    "Region": self.region_name,
+                    "AccountId": self.account_id,
+                    "State": s,
+                    "Count": count,
+                }
+            )
+        return result
+
+    def list_restore_job_summaries(
+        self,
+        account_id: Optional[str] = None,
+        state: Optional[str] = None,
+        resource_type: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        counts: dict[str, int] = {}
+        for job in self.restore_jobs.values():
+            if state and job.status != state:
+                continue
+            if resource_type and job.resource_type != resource_type:
+                continue
+            counts[job.status] = counts.get(job.status, 0) + 1
+        result = []
+        for s, count in counts.items():
+            result.append(
+                {
+                    "Region": self.region_name,
+                    "AccountId": self.account_id,
+                    "State": s,
+                    "Count": count,
+                }
+            )
+        return result
+
+    # --- Disassociate Recovery Point From Parent ---
+
+    def disassociate_recovery_point_from_parent(
+        self,
+        backup_vault_name: str,
+        recovery_point_arn: str,
+    ) -> None:
+        # Simplified - just verify the recovery point exists
+        vault_rps = self.recovery_points.get(backup_vault_name, {})
+        if recovery_point_arn not in vault_rps:
+            raise ResourceNotFoundException(
+                msg=f"Recovery point {recovery_point_arn} not found"
+            )
+        # In real AWS this detaches from composite recovery point - here it's a no-op
 
 
 backup_backends = BackendDict(BackupBackend, "backup")
