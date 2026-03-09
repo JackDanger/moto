@@ -51,7 +51,7 @@ class BudgetAction(BaseModel):
         subscribers: list[dict[str, Any]],
         region: str,
     ):
-        self.action_id = mock_random.get_random_hex(16)
+        self.action_id = str(mock_random.uuid4())
         self.account_id = account_id
         self.budget_name = budget_name
         self.notification_type = notification_type
