@@ -180,6 +180,17 @@ class CloudTrailResponse(BaseResponse):
     def put_insight_selectors(self) -> str:
         trail_name = self._get_param("TrailName")
         insight_selectors = self._get_param("InsightSelectors")
+        event_data_store = self._get_param("EventDataStore")
+        if event_data_store:
+            eds_arn, selectors = (
+                self.cloudtrail_backend.put_insight_selectors_for_event_data_store(
+                    event_data_store=event_data_store,
+                    insight_selectors=insight_selectors,
+                )
+            )
+            return json.dumps(
+                {"EventDataStoreArn": eds_arn, "InsightSelectors": selectors}
+            )
         trail_arn, insight_selectors = self.cloudtrail_backend.put_insight_selectors(
             trail_name=trail_name, insight_selectors=insight_selectors
         )
@@ -305,6 +316,151 @@ class CloudTrailResponse(BaseResponse):
             "QueryResultRows": query_results,
         }
         return json.dumps(resp)
+
+    def delete_event_data_store(self) -> str:
+        event_data_store = self._get_param("EventDataStore")
+        self.cloudtrail_backend.delete_event_data_store(event_data_store)
+        return json.dumps({})
+
+    def update_event_data_store(self) -> str:
+        event_data_store = self._get_param("EventDataStore")
+        name = self._get_param("Name")
+        advanced_event_selectors = self._get_param("AdvancedEventSelectors")
+        multi_region_enabled = self._get_param("MultiRegionEnabled")
+        organization_enabled = self._get_param("OrganizationEnabled")
+        retention_period = self._get_param("RetentionPeriod")
+        termination_protection_enabled = self._get_param("TerminationProtectionEnabled")
+        kms_key_id = self._get_param("KmsKeyId")
+        billing_mode = self._get_param("BillingMode")
+        eds = self.cloudtrail_backend.update_event_data_store(
+            event_data_store=event_data_store,
+            name=name,
+            advanced_event_selectors=advanced_event_selectors,
+            multi_region_enabled=multi_region_enabled,
+            organization_enabled=organization_enabled,
+            retention_period=retention_period,
+            termination_protection_enabled=termination_protection_enabled,
+            kms_key_id=kms_key_id,
+            billing_mode=billing_mode,
+        )
+        return json.dumps(eds.description())
+
+    def restore_event_data_store(self) -> str:
+        event_data_store = self._get_param("EventDataStore")
+        eds = self.cloudtrail_backend.restore_event_data_store(event_data_store)
+        return json.dumps(eds.description())
+
+    def list_queries(self) -> str:
+        event_data_store = self._get_param("EventDataStore")
+        queries = self.cloudtrail_backend.list_queries(event_data_store)
+        return json.dumps(
+            {
+                "Queries": [
+                    {
+                        "QueryId": q.query_id,
+                        "QueryStatus": q.query_status,
+                        "CreationTime": q.query_statistics.get("CreationTime", 0),
+                    }
+                    for q in queries
+                ]
+            }
+        )
+
+    def cancel_query(self) -> str:
+        query_id = self._get_param("QueryId")
+        qid, status = self.cloudtrail_backend.cancel_query(query_id)
+        return json.dumps({"QueryId": qid, "QueryStatus": status})
+
+    def delete_channel(self) -> str:
+        channel_arn = self._get_param("Channel")
+        self.cloudtrail_backend.delete_channel(channel_arn)
+        return json.dumps({})
+
+    def update_channel(self) -> str:
+        channel_arn = self._get_param("Channel")
+        name = self._get_param("Name")
+        source = self._get_param("Source")
+        destinations = self._get_param("Destinations")
+        channel = self.cloudtrail_backend.update_channel(
+            channel_arn=channel_arn,
+            name=name,
+            source=source,
+            destinations=destinations,
+        )
+        return json.dumps(channel.description())
+
+    def enable_federation(self) -> str:
+        event_data_store = self._get_param("EventDataStore")
+        federation_role_arn = self._get_param("FederationRoleArn")
+        eds_arn, status, role_arn = self.cloudtrail_backend.enable_federation(
+            event_data_store=event_data_store,
+            federation_role_arn=federation_role_arn,
+        )
+        return json.dumps(
+            {
+                "EventDataStoreArn": eds_arn,
+                "FederationStatus": status,
+                "FederationRoleArn": role_arn,
+            }
+        )
+
+    def disable_federation(self) -> str:
+        event_data_store = self._get_param("EventDataStore")
+        eds_arn, status = self.cloudtrail_backend.disable_federation(
+            event_data_store=event_data_store,
+        )
+        return json.dumps(
+            {
+                "EventDataStoreArn": eds_arn,
+                "FederationStatus": status,
+            }
+        )
+
+    def start_import(self) -> str:
+        params = json.loads(self.body)
+        source = None
+        import_source = params.get("ImportSource")
+        if import_source and "S3" in import_source:
+            source = import_source["S3"].get("S3LocationUri")
+        destinations = params.get("Destinations")
+        import_id = params.get("ImportId")
+        imp = self.cloudtrail_backend.start_import(
+            source=source,
+            destinations=destinations,
+            import_id=import_id,
+        )
+        return json.dumps(imp.description())
+
+    def get_import(self) -> str:
+        import_id = self._get_param("ImportId")
+        imp = self.cloudtrail_backend.get_import(import_id)
+        return json.dumps(imp.description())
+
+    def list_imports(self) -> str:
+        destination = self._get_param("Destination")
+        imports = self.cloudtrail_backend.list_imports(destination=destination)
+        return json.dumps(
+            {"Imports": [imp.description() for imp in imports]}
+        )
+
+    def stop_import(self) -> str:
+        import_id = self._get_param("ImportId")
+        imp = self.cloudtrail_backend.stop_import(import_id)
+        return json.dumps(imp.description())
+
+    def register_organization_delegated_admin(self) -> str:
+        member_account_id = self._get_param("MemberAccountId")
+        self.cloudtrail_backend.register_organization_delegated_admin(
+            member_account_id=member_account_id,
+        )
+        return json.dumps({})
+
+    def deregister_organization_delegated_admin(self) -> str:
+        delegated_admin_account_id = self._get_param("DelegatedAdminAccountId")
+        self.cloudtrail_backend.deregister_organization_delegated_admin(
+            delegated_admin_account_id=delegated_admin_account_id,
+        )
+        return json.dumps({})
 
     # Resource Policy operations
 
