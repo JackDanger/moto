@@ -246,7 +246,7 @@ elasticsearch_instance_types = [
 
 reserved_instance_offerings = [
     {
-        'ReservedInstanceOfferingId': 'ri-offering-001',
+        'ReservedInstanceOfferingId': '00000001-0000-0000-0000-000000000001',
         'InstanceType': 't3.small.search',
         'Duration': 31536000,
         'FixedPrice': 500.0,
@@ -256,7 +256,7 @@ reserved_instance_offerings = [
         'RecurringCharges': [],
     },
     {
-        'ReservedInstanceOfferingId': 'ri-offering-002',
+        'ReservedInstanceOfferingId': '00000002-0000-0000-0000-000000000002',
         'InstanceType': 'm5.large.search',
         'Duration': 31536000,
         'FixedPrice': 2000.0,
@@ -266,7 +266,7 @@ reserved_instance_offerings = [
         'RecurringCharges': [],
     },
     {
-        'ReservedInstanceOfferingId': 'ri-offering-003',
+        'ReservedInstanceOfferingId': '00000003-0000-0000-0000-000000000003',
         'InstanceType': 'r5.large.search',
         'Duration': 94608000,
         'FixedPrice': 4500.0,
@@ -276,7 +276,7 @@ reserved_instance_offerings = [
         'RecurringCharges': [],
     },
     {
-        'ReservedInstanceOfferingId': 'ri-offering-004',
+        'ReservedInstanceOfferingId': '00000004-0000-0000-0000-000000000004',
         'InstanceType': 't3.medium.search',
         'Duration': 31536000,
         'FixedPrice': 0.0,

@@ -91,7 +91,10 @@ class OpenSearchServiceResponse(BaseResponse):
     def compatible_versions(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
         response.setup_class(request, full_url, headers)
-        return 200, {}, response.get_compatible_versions()
+        # ES uses CompatibleElasticsearchVersions key
+        domain_name = response._get_param("domainName")
+        versions = response.opensearch_backend.get_compatible_versions(domain_name=domain_name)
+        return 200, {}, json.dumps({"CompatibleElasticsearchVersions": versions})
 
     @classmethod
     def domain_auto_tunes(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
@@ -543,14 +546,14 @@ class OpenSearchServiceResponse(BaseResponse):
 
     def list_vpc_endpoints(self) -> str:
         endpoints = self.opensearch_backend.list_vpc_endpoints()
-        return json.dumps({"VpcEndpointsSummaryList": endpoints})
+        return json.dumps({"VpcEndpointSummaryList": endpoints})
 
     def list_vpc_endpoints_for_domain(self) -> str:
         parts = self.path.rstrip("/").split("/")
         # /domain/{domain_name}/vpcEndpoints
         domain_name = parts[-2]
         endpoints = self.opensearch_backend.list_vpc_endpoints_for_domain(domain_name)
-        return json.dumps({"VpcEndpointsSummaryList": endpoints})
+        return json.dumps({"VpcEndpointSummaryList": endpoints})
 
     # ---- Connections ----
 
