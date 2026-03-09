@@ -680,6 +680,243 @@ class S3ControlResponse(BaseResponse):
 
     # Bucket-level operations
 
+    # Storage Lens Group operations
+
+    def create_storage_lens_group(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        params = xmltodict.parse(self.body)["CreateStorageLensGroupRequest"]
+        storage_lens_group = params.get("StorageLensGroup", {})
+        name = storage_lens_group.get("Name", "")
+        tags_raw = params.get("Tags", {}).get("Tag", [])
+        if isinstance(tags_raw, dict):
+            tags_raw = [tags_raw]
+        group = self.backend.create_storage_lens_group(
+            account_id=account_id,
+            name=name,
+            storage_lens_group=storage_lens_group,
+            tags=tags_raw,
+        )
+        template = self.response_template(CREATE_STORAGE_LENS_GROUP_TEMPLATE)
+        return template.render(group=group)
+
+    def get_storage_lens_group(self) -> str:
+        name = self.path.split("/")[-1]
+        group = self.backend.get_storage_lens_group(name=name)
+        template = self.response_template(GET_STORAGE_LENS_GROUP_TEMPLATE)
+        return template.render(group=group)
+
+    def delete_storage_lens_group(self) -> TYPE_RESPONSE:
+        name = self.path.split("/")[-1]
+        self.backend.delete_storage_lens_group(name=name)
+        return 204, {"status": 204}, ""
+
+    def update_storage_lens_group(self) -> TYPE_RESPONSE:
+        name = self.path.split("/")[-1]
+        params = xmltodict.parse(self.body)["UpdateStorageLensGroupRequest"]
+        storage_lens_group = params.get("StorageLensGroup", {})
+        self.backend.update_storage_lens_group(
+            name=name,
+            storage_lens_group=storage_lens_group,
+        )
+        return 200, {}, ""
+
+    def list_storage_lens_groups(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        params = self._get_params()
+        next_token = params.get("nextToken")
+        groups, next_token = self.backend.list_storage_lens_groups(
+            account_id=account_id,
+            next_token=next_token,
+        )
+        template = self.response_template(LIST_STORAGE_LENS_GROUPS_TEMPLATE)
+        return template.render(groups=groups, next_token=next_token)
+
+    # Object Lambda Access Point operations
+
+    def create_access_point_for_object_lambda(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        name = self.path.split("/")[-1]
+        params = xmltodict.parse(self.body)["CreateAccessPointForObjectLambdaRequest"]
+        configuration = params.get("Configuration", {})
+        access_point = self.backend.create_access_point_for_object_lambda(
+            account_id=account_id,
+            name=name,
+            configuration=configuration,
+        )
+        template = self.response_template(CREATE_ACCESS_POINT_FOR_OBJECT_LAMBDA_TEMPLATE)
+        return template.render(access_point=access_point)
+
+    def get_access_point_for_object_lambda(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        name = self.path.split("/")[-1]
+        access_point = self.backend.get_access_point_for_object_lambda(
+            account_id=account_id, name=name
+        )
+        template = self.response_template(GET_ACCESS_POINT_FOR_OBJECT_LAMBDA_TEMPLATE)
+        return template.render(access_point=access_point)
+
+    def delete_access_point_for_object_lambda(self) -> TYPE_RESPONSE:
+        account_id = self.headers.get("x-amz-account-id")
+        name = self.path.split("/")[-1]
+        self.backend.delete_access_point_for_object_lambda(
+            account_id=account_id, name=name
+        )
+        return 204, {"status": 204}, ""
+
+    def put_access_point_policy_for_object_lambda(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        name = self.path.split("/")[-2]
+        params = xmltodict.parse(self.body)["PutAccessPointPolicyForObjectLambdaRequest"]
+        policy = params.get("Policy", "")
+        self.backend.put_access_point_policy_for_object_lambda(
+            account_id=account_id, name=name, policy=policy
+        )
+        return ""
+
+    def delete_access_point_policy_for_object_lambda(self) -> TYPE_RESPONSE:
+        account_id = self.headers.get("x-amz-account-id")
+        name = self.path.split("/")[-2]
+        self.backend.delete_access_point_policy_for_object_lambda(
+            account_id=account_id, name=name
+        )
+        return 204, {"status": 204}, ""
+
+    # Access Point Scope operations
+
+    def get_access_point_scope(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        name = self.path.split("/")[-2]
+        scope = self.backend.get_access_point_scope(
+            account_id=account_id, name=name
+        )
+        template = self.response_template(GET_ACCESS_POINT_SCOPE_TEMPLATE)
+        return template.render(scope=scope)
+
+    def put_access_point_scope(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        name = self.path.split("/")[-2]
+        params = xmltodict.parse(self.body)["PutAccessPointScopeRequest"]
+        scope = params.get("Scope", {})
+        self.backend.put_access_point_scope(
+            account_id=account_id, name=name, scope=scope
+        )
+        return ""
+
+    def delete_access_point_scope(self) -> TYPE_RESPONSE:
+        account_id = self.headers.get("x-amz-account-id")
+        name = self.path.split("/")[-2]
+        self.backend.delete_access_point_scope(
+            account_id=account_id, name=name
+        )
+        return 204, {"status": 204}, ""
+
+    # Job Tagging operations
+
+    def get_job_tagging(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        job_id = self.path.split("/")[-2]
+        tags = self.backend.get_job_tagging(account_id=account_id, job_id=job_id)
+        template = self.response_template(GET_JOB_TAGGING_TEMPLATE)
+        return template.render(tags=tags)
+
+    def put_job_tagging(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        job_id = self.path.split("/")[-2]
+        params = xmltodict.parse(self.body, force_list={"Tag": True})
+        tags = params.get("PutJobTaggingRequest", {}).get("Tags", {}).get("Tag", [])
+        self.backend.put_job_tagging(account_id=account_id, job_id=job_id, tags=tags)
+        return ""
+
+    def delete_job_tagging(self) -> TYPE_RESPONSE:
+        account_id = self.headers.get("x-amz-account-id")
+        job_id = self.path.split("/")[-2]
+        self.backend.delete_job_tagging(account_id=account_id, job_id=job_id)
+        return 200, {}, ""
+
+    # Put/Delete bucket-level operations
+
+    def put_bucket_versioning(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        bucket = self.path.split("/")[-2]
+        params = xmltodict.parse(self.body)["PutBucketVersioningRequest"]
+        versioning_config = params.get("VersioningConfiguration", {})
+        status = versioning_config.get("Status", "")
+        self.backend.put_bucket_versioning(
+            account_id=account_id, bucket=bucket, status=status
+        )
+        return ""
+
+    def put_bucket_policy(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        bucket = self.path.split("/")[-2]
+        params = xmltodict.parse(self.body)["PutBucketPolicyRequest"]
+        policy = params.get("Policy", "")
+        self.backend.put_bucket_policy(
+            account_id=account_id, bucket=bucket, policy=policy
+        )
+        return ""
+
+    def delete_bucket_policy(self) -> TYPE_RESPONSE:
+        account_id = self.headers.get("x-amz-account-id")
+        bucket = self.path.split("/")[-2]
+        self.backend.delete_bucket_policy(account_id=account_id, bucket=bucket)
+        return 204, {"status": 204}, ""
+
+    def put_bucket_tagging(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        bucket = self.path.split("/")[-2]
+        params = xmltodict.parse(self.body, force_list={"Tag": True})
+        tagging = params.get("PutBucketTaggingRequest", {}).get("Tagging", {})
+        self.backend.put_bucket_tagging(
+            account_id=account_id, bucket=bucket, tagging=tagging
+        )
+        return ""
+
+    def delete_bucket_tagging(self) -> TYPE_RESPONSE:
+        account_id = self.headers.get("x-amz-account-id")
+        bucket = self.path.split("/")[-2]
+        self.backend.delete_bucket_tagging(account_id=account_id, bucket=bucket)
+        return 204, {"status": 204}, ""
+
+    def put_bucket_lifecycle_configuration(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        bucket = self.path.split("/")[-2]
+        params = xmltodict.parse(self.body, force_list={"Rule": True})
+        rules = (
+            params.get("PutBucketLifecycleConfigurationRequest", {})
+            .get("LifecycleConfiguration", {})
+            .get("Rules", {})
+            .get("Rule", [])
+        )
+        self.backend.put_bucket_lifecycle(
+            account_id=account_id, bucket=bucket, rules=rules
+        )
+        return ""
+
+    def delete_bucket_lifecycle_configuration(self) -> TYPE_RESPONSE:
+        account_id = self.headers.get("x-amz-account-id")
+        bucket = self.path.split("/")[-2]
+        self.backend.delete_bucket_lifecycle(account_id=account_id, bucket=bucket)
+        return 204, {"status": 204}, ""
+
+    def put_bucket_replication(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        bucket = self.path.split("/")[-2]
+        params = xmltodict.parse(self.body)
+        replication = params.get("PutBucketReplicationRequest", {}).get(
+            "ReplicationConfiguration", {}
+        )
+        self.backend.put_bucket_replication(
+            account_id=account_id, bucket=bucket, replication=replication
+        )
+        return ""
+
+    def delete_bucket_replication(self) -> TYPE_RESPONSE:
+        account_id = self.headers.get("x-amz-account-id")
+        bucket = self.path.split("/")[-2]
+        self.backend.delete_bucket_replication(account_id=account_id, bucket=bucket)
+        return 204, {"status": 204}, ""
+
     def get_bucket_lifecycle_configuration(self) -> str:
         account_id = self.headers.get("x-amz-account-id")
         bucket = self.path.split("/")[-2]
@@ -1319,4 +1556,86 @@ GET_MRAP_ROUTES_TEMPLATE = f"""<GetMultiRegionAccessPointRoutesResult {XMLNS}>
     {{% endfor %}}
   </Routes>
 </GetMultiRegionAccessPointRoutesResult>
+"""
+
+# Storage Lens Group templates
+
+CREATE_STORAGE_LENS_GROUP_TEMPLATE = f"""<CreateStorageLensGroupResult {XMLNS}>
+  <StorageLensGroup>
+    <Name>{{{{ group.name }}}}</Name>
+    <StorageLensGroupArn>{{{{ group.arn }}}}</StorageLensGroupArn>
+  </StorageLensGroup>
+</CreateStorageLensGroupResult>
+"""
+
+GET_STORAGE_LENS_GROUP_TEMPLATE = f"""<GetStorageLensGroupResult {XMLNS}>
+  <StorageLensGroup>
+    <Name>{{{{ group.name }}}}</Name>
+    <StorageLensGroupArn>{{{{ group.arn }}}}</StorageLensGroupArn>
+  </StorageLensGroup>
+</GetStorageLensGroupResult>
+"""
+
+LIST_STORAGE_LENS_GROUPS_TEMPLATE = f"""<ListStorageLensGroupsResult {XMLNS}>
+  <StorageLensGroupList>
+    {{% for group in groups %}}
+    <StorageLensGroup>
+      <Name>{{{{ group.name }}}}</Name>
+      <StorageLensGroupArn>{{{{ group.arn }}}}</StorageLensGroupArn>
+    </StorageLensGroup>
+    {{% endfor %}}
+  </StorageLensGroupList>
+  {{% if next_token %}}
+  <NextToken>{{{{ next_token }}}}</NextToken>
+  {{% endif %}}
+</ListStorageLensGroupsResult>
+"""
+
+# Object Lambda Access Point templates
+
+CREATE_ACCESS_POINT_FOR_OBJECT_LAMBDA_TEMPLATE = f"""<CreateAccessPointForObjectLambdaResult {XMLNS}>
+  <ObjectLambdaAccessPointArn>{{{{ access_point.arn }}}}</ObjectLambdaAccessPointArn>
+  <Alias>
+    <Status>READY</Status>
+    <Value>{{{{ access_point.alias }}}}</Value>
+  </Alias>
+</CreateAccessPointForObjectLambdaResult>
+"""
+
+GET_ACCESS_POINT_FOR_OBJECT_LAMBDA_TEMPLATE = f"""<GetAccessPointForObjectLambdaResult {XMLNS}>
+  <Name>{{{{ access_point.name }}}}</Name>
+  <ObjectLambdaAccessPointArn>{{{{ access_point.arn }}}}</ObjectLambdaAccessPointArn>
+  <CreationDate>{{{{ access_point.created }}}}</CreationDate>
+  <Alias>
+    <Status>READY</Status>
+    <Value>{{{{ access_point.alias }}}}</Value>
+  </Alias>
+</GetAccessPointForObjectLambdaResult>
+"""
+
+# Access Point Scope template
+
+GET_ACCESS_POINT_SCOPE_TEMPLATE = f"""<GetAccessPointScopeResult {XMLNS}>
+  {{% if scope %}}
+  <Scope>
+    {{% for key, value in scope.items() %}}
+    <{{{{ key }}}}>{{{{ value }}}}</{{{{ key }}}}>
+    {{% endfor %}}
+  </Scope>
+  {{% endif %}}
+</GetAccessPointScopeResult>
+"""
+
+# Job Tagging templates
+
+GET_JOB_TAGGING_TEMPLATE = f"""<GetJobTaggingResult {XMLNS}>
+  <Tags>
+    {{% for tag in tags %}}
+    <Tag>
+      <Key>{{{{ tag.Key }}}}</Key>
+      <Value>{{{{ tag.Value }}}}</Value>
+    </Tag>
+    {{% endfor %}}
+  </Tags>
+</GetJobTaggingResult>
 """

@@ -425,3 +425,182 @@ class EBResponse(BaseResponse):
             application_name=application_name,
         )
         return EmptyResult()
+
+    def create_configuration_template(self) -> ActionResult:
+        application_name = self._get_param("ApplicationName")
+        template_name = self._get_param("TemplateName")
+        solution_stack_name = self._get_param("SolutionStackName", "")
+        description = self._get_param("Description", "")
+        option_settings = self._get_param("OptionSettings", [])
+        template = self.elasticbeanstalk_backend.create_configuration_template(
+            application_name=application_name,
+            template_name=template_name,
+            solution_stack_name=solution_stack_name,
+            description=description,
+            option_settings=option_settings,
+        )
+        result = {
+            "ApplicationName": template.application_name,
+            "TemplateName": template.template_name,
+            "SolutionStackName": template.solution_stack_name,
+            "Description": template.description,
+            "DateCreated": template.date_created.isoformat(),
+            "DateUpdated": template.date_updated.isoformat(),
+            "DeploymentStatus": template.deployment_status,
+        }
+        return ActionResult(result)
+
+    def update_configuration_template(self) -> ActionResult:
+        application_name = self._get_param("ApplicationName")
+        template_name = self._get_param("TemplateName")
+        description = self._get_param("Description")
+        option_settings = self._get_param("OptionSettings")
+        template = self.elasticbeanstalk_backend.update_configuration_template(
+            application_name=application_name,
+            template_name=template_name,
+            description=description,
+            option_settings=option_settings,
+        )
+        result = {
+            "ApplicationName": template.application_name,
+            "TemplateName": template.template_name,
+            "SolutionStackName": template.solution_stack_name,
+            "Description": template.description,
+            "DateCreated": template.date_created.isoformat(),
+            "DateUpdated": template.date_updated.isoformat(),
+            "DeploymentStatus": template.deployment_status,
+        }
+        return ActionResult(result)
+
+    def delete_configuration_template(self) -> ActionResult:
+        application_name = self._get_param("ApplicationName")
+        template_name = self._get_param("TemplateName")
+        self.elasticbeanstalk_backend.delete_configuration_template(
+            application_name=application_name,
+            template_name=template_name,
+        )
+        return EmptyResult()
+
+    def update_environment(self) -> ActionResult:
+        environment_name = self._get_param("EnvironmentName")
+        environment_id = self._get_param("EnvironmentId")
+        description = self._get_param("Description")
+        option_settings = self._get_param("OptionSettings")
+        version_label = self._get_param("VersionLabel")
+        env = self.elasticbeanstalk_backend.update_environment(
+            environment_name=environment_name,
+            environment_id=environment_id,
+            description=description,
+            option_settings=option_settings,
+            version_label=version_label,
+        )
+        return ActionResult(env)
+
+    def terminate_environment(self) -> ActionResult:
+        environment_name = self._get_param("EnvironmentName")
+        environment_id = self._get_param("EnvironmentId")
+        env = self.elasticbeanstalk_backend.terminate_environment(
+            environment_name=environment_name,
+            environment_id=environment_id,
+        )
+        return ActionResult(env)
+
+    def rebuild_environment(self) -> ActionResult:
+        environment_name = self._get_param("EnvironmentName")
+        environment_id = self._get_param("EnvironmentId")
+        self.elasticbeanstalk_backend.rebuild_environment(
+            environment_name=environment_name,
+            environment_id=environment_id,
+        )
+        return EmptyResult()
+
+    def abort_environment_update(self) -> ActionResult:
+        environment_name = self._get_param("EnvironmentName")
+        environment_id = self._get_param("EnvironmentId")
+        self.elasticbeanstalk_backend.abort_environment_update(
+            environment_name=environment_name,
+            environment_id=environment_id,
+        )
+        return EmptyResult()
+
+    def swap_environment_cnames(self) -> ActionResult:
+        source_environment_name = self._get_param("SourceEnvironmentName")
+        source_environment_id = self._get_param("SourceEnvironmentId")
+        destination_environment_name = self._get_param("DestinationEnvironmentName")
+        destination_environment_id = self._get_param("DestinationEnvironmentId")
+        self.elasticbeanstalk_backend.swap_environment_cnames(
+            source_environment_name=source_environment_name,
+            source_environment_id=source_environment_id,
+            destination_environment_name=destination_environment_name,
+            destination_environment_id=destination_environment_id,
+        )
+        return EmptyResult()
+
+    def compose_environments(self) -> ActionResult:
+        application_name = self._get_param("ApplicationName")
+        group_name = self._get_param("GroupName")
+        version_labels = self._get_param("VersionLabels", [])
+        envs = self.elasticbeanstalk_backend.compose_environments(
+            application_name=application_name,
+            group_name=group_name,
+            version_labels=version_labels or None,
+        )
+        result = {"Environments": envs}
+        return ActionResult(result)
+
+    def create_platform_version(self) -> ActionResult:
+        platform_name = self._get_param("PlatformName", "custom-platform")
+        platform_version = self._get_param("PlatformVersion", "1.0.0")
+        pv = self.elasticbeanstalk_backend.create_platform_version(
+            platform_name=platform_name,
+            platform_version=platform_version,
+        )
+        result = {
+            "PlatformSummary": {
+                "PlatformArn": pv.platform_arn,
+                "PlatformStatus": pv.platform_status,
+            },
+            "Builder": {"ARN": ""},
+        }
+        return ActionResult(result)
+
+    def delete_platform_version(self) -> ActionResult:
+        platform_arn = self._get_param("PlatformArn", "")
+        self.elasticbeanstalk_backend.delete_platform_version(
+            platform_arn=platform_arn,
+        )
+        return EmptyResult()
+
+    def request_environment_info(self) -> ActionResult:
+        environment_name = self._get_param("EnvironmentName")
+        environment_id = self._get_param("EnvironmentId")
+        info_type = self._get_param("InfoType", "tail")
+        self.elasticbeanstalk_backend.request_environment_info(
+            environment_name=environment_name,
+            environment_id=environment_id,
+            info_type=info_type,
+        )
+        return EmptyResult()
+
+    def retrieve_environment_info(self) -> ActionResult:
+        environment_name = self._get_param("EnvironmentName")
+        environment_id = self._get_param("EnvironmentId")
+        info_type = self._get_param("InfoType", "tail")
+        info = self.elasticbeanstalk_backend.retrieve_environment_info(
+            environment_name=environment_name,
+            environment_id=environment_id,
+            info_type=info_type,
+        )
+        result = {"EnvironmentInfo": info}
+        return ActionResult(result)
+
+    def apply_environment_managed_action(self) -> ActionResult:
+        environment_name = self._get_param("EnvironmentName")
+        environment_id = self._get_param("EnvironmentId")
+        action_id = self._get_param("ActionId")
+        result = self.elasticbeanstalk_backend.apply_environment_managed_action(
+            environment_name=environment_name,
+            environment_id=environment_id,
+            action_id=action_id,
+        )
+        return ActionResult(result)

@@ -173,3 +173,14 @@ class JobNotFound(S3ControlError):
             f"The specified job does not exist: {job_id}",
             **kwargs,
         )
+
+
+class StorageLensGroupNotFound(S3ControlError):
+    code = 404
+
+    def __init__(self, name: str, **kwargs: Any):
+        super().__init__(
+            "NoSuchStorageLensGroup",
+            f"The specified Storage Lens group does not exist: {name}",
+            **kwargs,
+        )

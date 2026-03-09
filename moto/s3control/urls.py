@@ -84,4 +84,22 @@ url_paths = {
     "/v20180820/bucket/<bucket>/replication": S3ControlResponse.dispatch,
     "/v20180820/bucket/<bucket>/tagging": S3ControlResponse.dispatch,
     "/v20180820/bucket/<bucket>/versioning": S3ControlResponse.dispatch,
+    # Storage Lens Groups
+    r"{0}/v20180820/storagelensgroup$": S3ControlResponse.dispatch,
+    r"{0}/v20180820/storagelensgroup/(?P<group_name>[^/]+)$": S3ControlResponse.dispatch,
+    "/v20180820/storagelensgroup": S3ControlResponse.dispatch,
+    "/v20180820/storagelensgroup/<group_name>": S3ControlResponse.dispatch,
+    # Object Lambda Access Points
+    r"{0}/v20180820/accesspointforobjectlambda/(?P<name>[^/]+)$": S3ControlResponse.dispatch,
+    r"{0}/v20180820/accesspointforobjectlambda/(?P<name>[^/]+)/policy$": S3ControlResponse.dispatch,
+    r"{0}/v20180820/accesspointforobjectlambda/(?P<name>[^/]+)/policyStatus$": S3ControlResponse.dispatch,
+    "/v20180820/accesspointforobjectlambda/<name>": S3ControlResponse.dispatch,
+    "/v20180820/accesspointforobjectlambda/<name>/policy": S3ControlResponse.dispatch,
+    "/v20180820/accesspointforobjectlambda/<name>/policyStatus": S3ControlResponse.dispatch,
+    # Access Point Scope
+    r"{0}/v20180820/accesspoint/(?P<name>[\w_:%-]+)/scope$": S3ControlResponse.dispatch,
+    "/v20180820/accesspoint/<name>/scope": S3ControlResponse.dispatch,
+    # Job Tagging
+    r"{0}/v20180820/jobs/(?P<job_id>[^/]+)/tagging$": S3ControlResponse.dispatch,
+    "/v20180820/jobs/<job_id>/tagging": S3ControlResponse.dispatch,
 }

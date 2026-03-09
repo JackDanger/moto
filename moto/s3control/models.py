@@ -30,6 +30,7 @@ from .exceptions import (
     MultiRegionAccessPointPolicyNotFound,
     NoSuchPublicAccessBlockConfiguration,
     StorageLensConfigurationNotFound,
+    StorageLensGroupNotFound,
 )
 
 class AccessGrantsInstance(BaseModel):
@@ -79,6 +80,24 @@ class AccessGrant(BaseModel):
         self.permission = permission
         self.location_scope = location_scope
         self.application_arn = application_arn or ""
+
+
+class StorageLensGroup(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        name: str,
+        storage_lens_group: dict[str, Any],
+        tags: Optional[list[dict[str, str]]] = None,
+    ):
+        self.name = name
+        self.account_id = account_id
+        self.region_name = region_name
+        self.storage_lens_group = storage_lens_group
+        self.tags = tags or []
+        self.arn = f"arn:{get_partition(region_name)}:s3:{region_name}:{account_id}:storage-lens-group/{name}"
+        self.created_at = datetime.now(timezone.utc)
 
 
 class S3Job(BaseModel):
@@ -142,6 +161,11 @@ PAGINATION_MODEL = {
         "limit_key": "max_results",
         "limit_default": 1000,
         "unique_attribute": "job_id",
+    },
+    "list_storage_lens_groups": {
+        "input_token": "next_token",
+        "limit_default": 100,
+        "unique_attribute": "name",
     },
 }
 
@@ -316,6 +340,11 @@ class S3ControlBackend(BaseBackend):
         self.access_grants: dict[str, AccessGrant] = {}
         self.jobs: dict[str, S3Job] = {}
         self.resource_policy: Optional[str] = None
+        self.storage_lens_groups: dict[str, StorageLensGroup] = {}
+        self.object_lambda_access_points: dict[str, dict[str, AccessPoint]] = defaultdict(dict)
+        self.object_lambda_access_point_policies: dict[str, dict[str, str]] = defaultdict(dict)
+        self.access_point_scopes: dict[str, dict[str, dict[str, Any]]] = defaultdict(dict)
+        self.job_tags: dict[str, list[dict[str, str]]] = {}
 
     def get_public_access_block(self, account_id: str) -> PublicAccessBlock:
         if account_id != self.account_id:
@@ -968,6 +997,247 @@ class S3ControlBackend(BaseBackend):
         if hasattr(bucket_obj, "versioning_status"):
             return bucket_obj.versioning_status
         return None
+
+    def put_bucket_versioning(
+        self,
+        account_id: str,
+        bucket: str,
+        status: str,
+    ) -> None:
+        backend: S3Backend = s3_backends[self.account_id][self.partition]
+        backend.put_bucket_versioning(bucket, status)
+
+    def put_bucket_policy(
+        self,
+        account_id: str,
+        bucket: str,
+        policy: str,
+    ) -> None:
+        backend: S3Backend = s3_backends[self.account_id][self.partition]
+        backend.put_bucket_policy(bucket, policy)
+
+    def delete_bucket_policy(
+        self,
+        account_id: str,
+        bucket: str,
+    ) -> None:
+        backend: S3Backend = s3_backends[self.account_id][self.partition]
+        backend.delete_bucket_policy(bucket)
+
+    def put_bucket_tagging(
+        self,
+        account_id: str,
+        bucket: str,
+        tagging: dict[str, Any],
+    ) -> None:
+        backend: S3Backend = s3_backends[self.account_id][self.partition]
+        backend.put_bucket_tagging(bucket, tagging)
+
+    def delete_bucket_tagging(
+        self,
+        account_id: str,
+        bucket: str,
+    ) -> None:
+        backend: S3Backend = s3_backends[self.account_id][self.partition]
+        backend.delete_bucket_tagging(bucket)
+
+    def put_bucket_lifecycle(
+        self,
+        account_id: str,
+        bucket: str,
+        rules: list[dict[str, Any]],
+    ) -> None:
+        backend: S3Backend = s3_backends[self.account_id][self.partition]
+        backend.put_bucket_lifecycle(bucket, rules)
+
+    def delete_bucket_lifecycle(
+        self,
+        account_id: str,
+        bucket: str,
+    ) -> None:
+        backend: S3Backend = s3_backends[self.account_id][self.partition]
+        backend.delete_bucket_lifecycle(bucket)
+
+    def put_bucket_replication(
+        self,
+        account_id: str,
+        bucket: str,
+        replication: dict[str, Any],
+    ) -> None:
+        backend: S3Backend = s3_backends[self.account_id][self.partition]
+        bucket_obj = backend.get_bucket(bucket)
+        bucket_obj.replication = replication
+
+    def delete_bucket_replication(
+        self,
+        account_id: str,
+        bucket: str,
+    ) -> None:
+        backend: S3Backend = s3_backends[self.account_id][self.partition]
+        bucket_obj = backend.get_bucket(bucket)
+        bucket_obj.replication = None
+
+    # Storage Lens Group operations
+
+    def create_storage_lens_group(
+        self,
+        account_id: str,
+        name: str,
+        storage_lens_group: dict[str, Any],
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> StorageLensGroup:
+        group = StorageLensGroup(
+            account_id=account_id,
+            region_name=self.region_name,
+            name=name,
+            storage_lens_group=storage_lens_group,
+            tags=tags,
+        )
+        self.storage_lens_groups[name] = group
+        return group
+
+    def get_storage_lens_group(
+        self,
+        name: str,
+    ) -> StorageLensGroup:
+        if name not in self.storage_lens_groups:
+            raise StorageLensGroupNotFound(name)
+        return self.storage_lens_groups[name]
+
+    def delete_storage_lens_group(
+        self,
+        name: str,
+    ) -> None:
+        if name not in self.storage_lens_groups:
+            raise StorageLensGroupNotFound(name)
+        del self.storage_lens_groups[name]
+
+    def update_storage_lens_group(
+        self,
+        name: str,
+        storage_lens_group: dict[str, Any],
+    ) -> StorageLensGroup:
+        if name not in self.storage_lens_groups:
+            raise StorageLensGroupNotFound(name)
+        group = self.storage_lens_groups[name]
+        group.storage_lens_group = storage_lens_group
+        return group
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_storage_lens_groups(
+        self,
+        account_id: str,
+        next_token: Optional[str] = None,
+    ) -> list[StorageLensGroup]:
+        return list(self.storage_lens_groups.values())
+
+    # Object Lambda Access Point operations
+
+    def create_access_point_for_object_lambda(
+        self,
+        account_id: str,
+        name: str,
+        configuration: dict[str, Any],
+    ) -> AccessPoint:
+        access_point = AccessPoint(
+            account_id=account_id,
+            region_name=self.region_name,
+            name=name,
+            bucket=configuration.get("SupportingAccessPoint", ""),
+            vpc_configuration={},
+            public_access_block_configuration={},
+        )
+        self.object_lambda_access_points[account_id][name] = access_point
+        return access_point
+
+    def get_access_point_for_object_lambda(
+        self,
+        account_id: str,
+        name: str,
+    ) -> AccessPoint:
+        if name not in self.object_lambda_access_points.get(account_id, {}):
+            raise AccessPointNotFound(name)
+        return self.object_lambda_access_points[account_id][name]
+
+    def delete_access_point_for_object_lambda(
+        self,
+        account_id: str,
+        name: str,
+    ) -> None:
+        if account_id in self.object_lambda_access_points:
+            self.object_lambda_access_points[account_id].pop(name, None)
+        self.object_lambda_access_point_policies.get(account_id, {}).pop(name, None)
+
+    def put_access_point_policy_for_object_lambda(
+        self,
+        account_id: str,
+        name: str,
+        policy: str,
+    ) -> None:
+        if name not in self.object_lambda_access_points.get(account_id, {}):
+            raise AccessPointNotFound(name)
+        self.object_lambda_access_point_policies[account_id][name] = policy
+
+    def delete_access_point_policy_for_object_lambda(
+        self,
+        account_id: str,
+        name: str,
+    ) -> None:
+        self.object_lambda_access_point_policies.get(account_id, {}).pop(name, None)
+
+    # Access Point Scope operations
+
+    def get_access_point_scope(
+        self,
+        account_id: str,
+        name: str,
+    ) -> dict[str, Any]:
+        return self.access_point_scopes.get(account_id, {}).get(name, {})
+
+    def put_access_point_scope(
+        self,
+        account_id: str,
+        name: str,
+        scope: dict[str, Any],
+    ) -> None:
+        self.access_point_scopes[account_id][name] = scope
+
+    def delete_access_point_scope(
+        self,
+        account_id: str,
+        name: str,
+    ) -> None:
+        self.access_point_scopes.get(account_id, {}).pop(name, None)
+
+    # Job Tagging operations
+
+    def get_job_tagging(
+        self,
+        account_id: str,
+        job_id: str,
+    ) -> list[dict[str, str]]:
+        if job_id not in self.jobs:
+            raise JobNotFound(job_id)
+        return self.job_tags.get(job_id, [])
+
+    def put_job_tagging(
+        self,
+        account_id: str,
+        job_id: str,
+        tags: list[dict[str, str]],
+    ) -> None:
+        if job_id not in self.jobs:
+            raise JobNotFound(job_id)
+        self.job_tags[job_id] = tags
+
+    def delete_job_tagging(
+        self,
+        account_id: str,
+        job_id: str,
+    ) -> None:
+        if job_id not in self.jobs:
+            raise JobNotFound(job_id)
+        self.job_tags.pop(job_id, None)
 
 
 s3control_backends = BackendDict(
