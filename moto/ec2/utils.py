@@ -323,6 +323,10 @@ def random_ipam_pool_allocation_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["ipam-pool-allocation"])
 
 
+def random_ipam_pool_cidr_id() -> str:
+    return f"ipam-pool-cidr-{random_resource_id(size=17)}"
+
+
 def random_private_ip(cidr: Optional[str] = None, ipv6: bool = False) -> str:
     # prefix - ula.prefixlen : get number of remaing length for the IP.
     #                          prefix will be 32 for IPv4 and 128 for IPv6.

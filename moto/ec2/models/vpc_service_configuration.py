@@ -170,3 +170,29 @@ class VPCServiceConfigurationBackend:
             config.supported_regions.append(reg)
         for reg in remove_supported_regions:
             config.supported_regions.remove(reg)
+
+    def accept_vpc_endpoint_connections(
+        self, service_id: str, vpc_endpoint_ids: list[str]
+    ) -> list[str]:
+        self.describe_vpc_endpoint_service_configurations([service_id])
+        failed: list[str] = []
+        for endpoint_id in vpc_endpoint_ids:
+            endpoint = self.vpc_end_points.get(endpoint_id)  # type: ignore[attr-defined]
+            if endpoint:
+                endpoint["State"] = "available"
+            else:
+                failed.append(endpoint_id)
+        return failed
+
+    def reject_vpc_endpoint_connections(
+        self, service_id: str, vpc_endpoint_ids: list[str]
+    ) -> list[str]:
+        self.describe_vpc_endpoint_service_configurations([service_id])
+        failed: list[str] = []
+        for endpoint_id in vpc_endpoint_ids:
+            endpoint = self.vpc_end_points.get(endpoint_id)  # type: ignore[attr-defined]
+            if endpoint:
+                endpoint["State"] = "rejected"
+            else:
+                failed.append(endpoint_id)
+        return failed
