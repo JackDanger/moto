@@ -14,6 +14,7 @@ from ..utils import (
 from .amis import AmiBackend
 from .availability_zones_and_regions import RegionsAndZonesBackend
 from .carrier_gateways import CarrierGatewayBackend
+from .client_vpn_endpoints import ClientVpnEndpointBackend
 from .customer_gateways import CustomerGatewayBackend
 from .dhcp_options import DHCPOptionsSetBackend
 from .elastic_block_store import EBSBackend
@@ -24,6 +25,7 @@ from .flow_logs import FlowLogsBackend
 from .hosts import HostsBackend
 from .iam_instance_profile import IamInstanceProfileAssociationBackend
 from .instance_types import InstanceTypeBackend, InstanceTypeOfferingBackend
+from .ipam import IpamBackend
 from .instances import InstanceBackend
 from .internet_gateways import (
     EgressOnlyInternetGatewayBackend,
@@ -117,6 +119,8 @@ class EC2Backend(
     WindowsBackend,
     HostsBackend,
     ReservedInstancesBackend,
+    ClientVpnEndpointBackend,
+    IpamBackend,
 ):
     """
     moto includes a limited set of AMIs in `moto/ec2/resources/amis.json`.
