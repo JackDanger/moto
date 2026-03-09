@@ -244,6 +244,173 @@ class CloudFrontResponse(BaseResponse):
         response = self.response_template(LIST_KEY_GROUPS_TEMPLATE)
         return 200, {}, response.render(groups=groups)
 
+    def update_key_group(self) -> TYPE_RESPONSE:
+        group_id = self.parsed_url.path.split("/")[-1]
+        config = self._get_xml_body()["KeyGroupConfig"]
+        name = config["Name"]
+        items = config.get("Items", {}).get("PublicKey", [])
+        if isinstance(items, str):
+            items = [items]
+        key_group = self.backend.update_key_group(
+            group_id=group_id, name=name, items=items
+        )
+        response = self.response_template(KEY_GROUP_TEMPLATE)
+        return 200, {"ETag": key_group.etag}, response.render(group=key_group)
+
+    def delete_key_group(self) -> TYPE_RESPONSE:
+        group_id = self.parsed_url.path.split("/")[-1]
+        self.backend.delete_key_group(group_id=group_id)
+        return 204, {"status": 204}, ""
+
+    # CloudFront Functions
+    def create_function(self) -> TYPE_RESPONSE:
+        params = self._get_xml_body().get("CreateFunctionRequest", {})
+        params.pop("@xmlns", None)
+        name = params.get("Name", "")
+        function_code = params.get("FunctionCode", "")
+        function_config = params.get("FunctionConfig", {})
+        func = self.backend.create_function(
+            name=name,
+            function_code=function_code,
+            function_config=function_config,
+        )
+        template = self.response_template(FUNCTION_SUMMARY_TEMPLATE)
+        headers = {
+            "ETag": func.etag,
+            "Location": (
+                "https://cloudfront.amazonaws.com/2020-05-31"
+                f"/function/{func.name}"
+            ),
+            "status": 201,
+        }
+        return 201, headers, template.render(func=func)
+
+    def describe_function(self) -> TYPE_RESPONSE:
+        name = self.path.split("/")[-2]
+        func = self.backend.describe_function(name)
+        template = self.response_template(FUNCTION_SUMMARY_TEMPLATE)
+        return 200, {"ETag": func.etag}, template.render(func=func)
+
+    def get_function(self) -> TYPE_RESPONSE:
+        name = self.path.split("/")[-1]
+        func = self.backend.get_function(name)
+        headers = {"ETag": func.etag, "Content-Type": "application/octet-stream"}
+        return 200, headers, func.function_code
+
+    def update_function(self) -> TYPE_RESPONSE:
+        name = self.path.split("/")[-1]
+        if_match = self.headers.get("If-Match", "")
+        params = self._get_xml_body().get("UpdateFunctionRequest", {})
+        params.pop("@xmlns", None)
+        function_code = params.get("FunctionCode", "")
+        function_config = params.get("FunctionConfig", {})
+        func = self.backend.update_function(
+            name=name,
+            function_code=function_code,
+            function_config=function_config,
+            if_match=if_match,
+        )
+        template = self.response_template(FUNCTION_SUMMARY_TEMPLATE)
+        return 200, {"ETtag": func.etag}, template.render(func=func)
+
+    def delete_function(self) -> TYPE_RESPONSE:
+        name = self.path.split("/")[-1]
+        if_match = self.headers.get("If-Match", "")
+        self.backend.delete_function(name=name, if_match=if_match)
+        return 204, {"status": 204}, ""
+
+    def publish_function(self) -> TYPE_RESPONSE:
+        name = self.path.split("/")[-2]
+        if_match = self.headers.get("If-Match", "")
+        func = self.backend.publish_function(name=name, if_match=if_match)
+        template = self.response_template(FUNCTION_SUMMARY_TEMPLATE)
+        return 200, {"ETag": func.etag}, template.render(func=func)
+
+    def list_functions(self) -> TYPE_RESPONSE:
+        functions = self.backend.list_functions()
+        template = self.response_template(LIST_FUNCTIONS_TEMPLATE)
+        return 200, {}, template.render(functions=functions)
+
+    # Cache Policies
+    def create_cache_policy(self) -> TYPE_RESPONSE:
+        config = self._get_xml_body().get("CachePolicyConfig", {})
+        config.pop("@xmlns", None)
+        policy = self.backend.create_cache_policy(config)
+        template = self.response_template(CACHE_POLICY_TEMPLATE)
+        headers = {
+            "ETag": policy.etag,
+            "Location": (
+                "https://cloudfront.amazonaws.com/2020-05-31"
+                f"/cache-policy/{policy.id}"
+            ),
+            "status": 201,
+        }
+        return 201, headers, template.render(policy=policy)
+
+    def get_cache_policy(self) -> TYPE_RESPONSE:
+        policy_id = self.path.split("/")[-1]
+        policy = self.backend.get_cache_policy(policy_id)
+        template = self.response_template(CACHE_POLICY_TEMPLATE)
+        return 200, {"ETag": policy.etag}, template.render(policy=policy)
+
+    def update_cache_policy(self) -> TYPE_RESPONSE:
+        policy_id = self.path.split("/")[-1]
+        config = self._get_xml_body().get("CachePolicyConfig", {})
+        config.pop("@xmlns", None)
+        policy = self.backend.update_cache_policy(policy_id, config)
+        template = self.response_template(CACHE_POLICY_TEMPLATE)
+        return 200, {"ETag": policy.etag}, template.render(policy=policy)
+
+    def delete_cache_policy(self) -> TYPE_RESPONSE:
+        policy_id = self.path.split("/")[-1]
+        self.backend.delete_cache_policy(policy_id)
+        return 204, {"status": 204}, ""
+
+    def list_cache_policies(self) -> TYPE_RESPONSE:
+        policies = self.backend.list_cache_policies()
+        template = self.response_template(LIST_CACHE_POLICIES_TEMPLATE)
+        return 200, {}, template.render(policies=policies)
+
+    # Response Headers Policies
+    def create_response_headers_policy(self) -> TYPE_RESPONSE:
+        config = self._get_xml_body().get("ResponseHeadersPolicyConfig", {})
+        config.pop("@xmlns", None)
+        policy = self.backend.create_response_headers_policy(config)
+        template = self.response_template(RESPONSE_HEADERS_POLICY_TEMPLATE)
+        headers = {
+            "ETag": policy.etag,
+            "Location": (
+                "https://cloudfront.amazonaws.com/2020-05-31"
+                f"/response-headers-policy/{policy.id}"
+            ),
+            "status": 201,
+        }
+        return 201, headers, template.render(policy=policy)
+
+    def get_response_headers_policy(self) -> TYPE_RESPONSE:
+        policy_id = self.path.split("/")[-1]
+        policy = self.backend.get_response_headers_policy(policy_id)
+        template = self.response_template(RESPONSE_HEADERS_POLICY_TEMPLATE)
+        return 200, {"ETag": policy.etag}, template.render(policy=policy)
+
+    def update_response_headers_policy(self) -> TYPE_RESPONSE:
+        policy_id = self.path.split("/")[-1]
+        config = self._get_xml_body().get("ResponseHeadersPolicyConfig", {})
+        config.pop("@xmlns", None)
+        policy = self.backend.update_response_headers_policy(policy_id, config)
+        template = self.response_template(RESPONSE_HEADERS_POLICY_TEMPLATE)
+        return 200, {"ETag": policy.etag}, template.render(policy=policy)
+
+    def delete_response_headers_policy(self) -> TYPE_RESPONSE:
+        policy_id = self.path.split("/")[-1]
+        self.backend.delete_response_headers_policy(policy_id)
+        return 204, {"status": 204}, ""
+
+    def list_response_headers_policies(self) -> TYPE_RESPONSE:
+        policies = self.backend.list_response_headers_policies()
+        template = self.response_template(LIST_RESPONSE_HEADERS_POLICIES_TEMPLATE)
+        return 200, {}, template.render(policies=policies)
+
 
 DIST_META_TEMPLATE = """
     <Id>{{ distribution.distribution_id }}</Id>
@@ -879,3 +1046,129 @@ LIST_KEY_GROUPS_TEMPLATE = """<?xml version="1.0"?>
   </Items>
   {% endif %}
 </KeyGroupList>"""
+
+
+FUNCTION_SUMMARY_TEMPLATE = """<?xml version="1.0"?>
+<FunctionSummary>
+  <Name>{{ func.name }}</Name>
+  <Status>{{ func.status }}</Status>
+  <FunctionConfig>
+    <Comment>{{ func.function_config.get("Comment", "") }}</Comment>
+    <Runtime>{{ func.function_config.get("Runtime", "cloudfront-js-1.0") }}</Runtime>
+  </FunctionConfig>
+  <FunctionMetadata>
+    <FunctionARN>{{ func.function_arn }}</FunctionARN>
+    <Stage>{{ func.stage }}</Stage>
+    <CreatedTime>{{ func.created_time }}</CreatedTime>
+    <LastModifiedTime>{{ func.last_modified_time }}</LastModifiedTime>
+  </FunctionMetadata>
+</FunctionSummary>
+"""
+
+
+LIST_FUNCTIONS_TEMPLATE = """<?xml version="1.0"?>
+<FunctionList>
+  <MaxItems>100</MaxItems>
+  <Quantity>{{ functions|length }}</Quantity>
+  {% if functions %}
+  <Items>
+    {% for func in functions %}
+    <FunctionSummary>
+      <Name>{{ func.name }}</Name>
+      <Status>{{ func.status }}</Status>
+      <FunctionConfig>
+        <Comment>{{ func.function_config.get("Comment", "") }}</Comment>
+        <Runtime>{{ func.function_config.get("Runtime", "cloudfront-js-1.0") }}</Runtime>
+      </FunctionConfig>
+      <FunctionMetadata>
+        <FunctionARN>{{ func.function_arn }}</FunctionARN>
+        <Stage>{{ func.stage }}</Stage>
+        <CreatedTime>{{ func.created_time }}</CreatedTime>
+        <LastModifiedTime>{{ func.last_modified_time }}</LastModifiedTime>
+      </FunctionMetadata>
+    </FunctionSummary>
+    {% endfor %}
+  </Items>
+  {% endif %}
+</FunctionList>
+"""
+
+
+CACHE_POLICY_TEMPLATE = """<?xml version="1.0"?>
+<CachePolicy>
+  <Id>{{ policy.id }}</Id>
+  <LastModifiedTime>{{ policy.last_modified_time }}</LastModifiedTime>
+  <CachePolicyConfig>
+    <Name>{{ policy.name }}</Name>
+    <Comment>{{ policy.comment }}</Comment>
+    <DefaultTTL>{{ policy.default_ttl }}</DefaultTTL>
+    <MaxTTL>{{ policy.max_ttl }}</MaxTTL>
+    <MinTTL>{{ policy.min_ttl }}</MinTTL>
+  </CachePolicyConfig>
+</CachePolicy>
+"""
+
+
+LIST_CACHE_POLICIES_TEMPLATE = """<?xml version="1.0"?>
+<CachePolicyList>
+  <MaxItems>100</MaxItems>
+  <Quantity>{{ policies|length }}</Quantity>
+  {% if policies %}
+  <Items>
+    {% for policy in policies %}
+    <CachePolicySummary>
+      <Type>custom</Type>
+      <CachePolicy>
+        <Id>{{ policy.id }}</Id>
+        <LastModifiedTime>{{ policy.last_modified_time }}</LastModifiedTime>
+        <CachePolicyConfig>
+          <Name>{{ policy.name }}</Name>
+          <Comment>{{ policy.comment }}</Comment>
+          <DefaultTTL>{{ policy.default_ttl }}</DefaultTTL>
+          <MaxTTL>{{ policy.max_ttl }}</MaxTTL>
+          <MinTTL>{{ policy.min_ttl }}</MinTTL>
+        </CachePolicyConfig>
+      </CachePolicy>
+    </CachePolicySummary>
+    {% endfor %}
+  </Items>
+  {% endif %}
+</CachePolicyList>
+"""
+
+
+RESPONSE_HEADERS_POLICY_TEMPLATE = """<?xml version="1.0"?>
+<ResponseHeadersPolicy>
+  <Id>{{ policy.id }}</Id>
+  <LastModifiedTime>{{ policy.last_modified_time }}</LastModifiedTime>
+  <ResponseHeadersPolicyConfig>
+    <Name>{{ policy.name }}</Name>
+    <Comment>{{ policy.comment }}</Comment>
+  </ResponseHeadersPolicyConfig>
+</ResponseHeadersPolicy>
+"""
+
+
+LIST_RESPONSE_HEADERS_POLICIES_TEMPLATE = """<?xml version="1.0"?>
+<ResponseHeadersPolicyList>
+  <MaxItems>100</MaxItems>
+  <Quantity>{{ policies|length }}</Quantity>
+  {% if policies %}
+  <Items>
+    {% for policy in policies %}
+    <ResponseHeadersPolicySummary>
+      <Type>custom</Type>
+      <ResponseHeadersPolicy>
+        <Id>{{ policy.id }}</Id>
+        <LastModifiedTime>{{ policy.last_modified_time }}</LastModifiedTime>
+        <ResponseHeadersPolicyConfig>
+          <Name>{{ policy.name }}</Name>
+          <Comment>{{ policy.comment }}</Comment>
+        </ResponseHeadersPolicyConfig>
+      </ResponseHeadersPolicy>
+    </ResponseHeadersPolicySummary>
+    {% endfor %}
+  </Items>
+  {% endif %}
+</ResponseHeadersPolicyList>
+"""

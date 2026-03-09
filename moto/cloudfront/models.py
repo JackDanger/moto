@@ -13,10 +13,15 @@ from moto.utilities.utils import PARTITION_NAMES, get_partition
 from .exceptions import (
     DistributionAlreadyExists,
     DomainNameNotAnS3Bucket,
+    FunctionAlreadyExists,
     InvalidIfMatchVersion,
+    NoSuchCachePolicy,
     NoSuchDistribution,
+    NoSuchFunctionExists,
     NoSuchInvalidation,
+    NoSuchKeyGroup,
     NoSuchOriginAccessControl,
+    NoSuchResponseHeadersPolicy,
     OriginDoesNotExist,
 )
 
@@ -333,6 +338,105 @@ class KeyGroup(BaseModel):
             f"https://cloudfront.amazonaws.com/2020-05-31/key-group/{self.id}"
         )
 
+    def update(self, name: str, items: list[str]) -> None:
+        self.name = name
+        self.items = items
+        self.etag = random_id(length=14)
+
+
+class CloudFrontFunction(BaseModel):
+    def __init__(
+        self,
+        name: str,
+        function_code: str,
+        function_config: dict[str, Any],
+        account_id: str,
+        region_name: str,
+    ):
+        self.name = name
+        self.function_code = function_code
+        self.function_config = function_config
+        self.status = "UNPUBLISHED"
+        self.stage = "DEVELOPMENT"
+        self.created_time = iso_8601_datetime_with_milliseconds()
+        self.last_modified_time = self.created_time
+        self.etag = random_id(length=14)
+        partition = get_partition(region_name)
+        self.function_arn = (
+            f"arn:{partition}:cloudfront::{account_id}:function/{self.name}"
+        )
+
+    def update(
+        self, function_code: str, function_config: dict[str, Any]
+    ) -> None:
+        self.function_code = function_code
+        self.function_config = function_config
+        self.last_modified_time = iso_8601_datetime_with_milliseconds()
+        self.etag = random_id(length=14)
+
+    def publish(self) -> None:
+        self.status = "UNASSOCIATED"
+        self.stage = "LIVE"
+        self.etag = random_id(length=14)
+
+
+class CachePolicy(BaseModel):
+    def __init__(self, config: dict[str, Any]):
+        self.id = random_id(length=14)
+        self.name = config.get("Name", "")
+        self.comment = config.get("Comment", "")
+        self.default_ttl = int(config.get("DefaultTTL", 86400))
+        self.max_ttl = int(config.get("MaxTTL", 31536000))
+        self.min_ttl = int(config.get("MinTTL", 0))
+        self.parameters_in_cache_key = config.get(
+            "ParametersInCacheKeyAndForwardedToOrigin", {}
+        )
+        self.last_modified_time = iso_8601_datetime_with_milliseconds()
+        self.etag = random_id(length=14)
+
+    def update(self, config: dict[str, Any]) -> None:
+        self.name = config.get("Name", self.name)
+        self.comment = config.get("Comment", self.comment)
+        self.default_ttl = int(config.get("DefaultTTL", self.default_ttl))
+        self.max_ttl = int(config.get("MaxTTL", self.max_ttl))
+        self.min_ttl = int(config.get("MinTTL", self.min_ttl))
+        if "ParametersInCacheKeyAndForwardedToOrigin" in config:
+            self.parameters_in_cache_key = config[
+                "ParametersInCacheKeyAndForwardedToOrigin"
+            ]
+        self.last_modified_time = iso_8601_datetime_with_milliseconds()
+        self.etag = random_id(length=14)
+
+
+class ResponseHeadersPolicy(BaseModel):
+    def __init__(self, config: dict[str, Any]):
+        self.id = random_id(length=14)
+        self.name = config.get("Name", "")
+        self.comment = config.get("Comment", "")
+        self.cors_config = config.get("CorsConfig")
+        self.security_headers_config = config.get("SecurityHeadersConfig")
+        self.custom_headers_config = config.get("CustomHeadersConfig")
+        self.server_timing_headers_config = config.get("ServerTimingHeadersConfig")
+        self.remove_headers_config = config.get("RemoveHeadersConfig")
+        self.last_modified_time = iso_8601_datetime_with_milliseconds()
+        self.etag = random_id(length=14)
+
+    def update(self, config: dict[str, Any]) -> None:
+        self.name = config.get("Name", self.name)
+        self.comment = config.get("Comment", self.comment)
+        if "CorsConfig" in config:
+            self.cors_config = config["CorsConfig"]
+        if "SecurityHeadersConfig" in config:
+            self.security_headers_config = config["SecurityHeadersConfig"]
+        if "CustomHeadersConfig" in config:
+            self.custom_headers_config = config["CustomHeadersConfig"]
+        if "ServerTimingHeadersConfig" in config:
+            self.server_timing_headers_config = config["ServerTimingHeadersConfig"]
+        if "RemoveHeadersConfig" in config:
+            self.remove_headers_config = config["RemoveHeadersConfig"]
+        self.last_modified_time = iso_8601_datetime_with_milliseconds()
+        self.etag = random_id(length=14)
+
 
 class CloudFrontBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
@@ -342,6 +446,9 @@ class CloudFrontBackend(BaseBackend):
         self.origin_access_controls: dict[str, OriginAccessControl] = {}
         self.public_keys: dict[str, PublicKey] = {}
         self.key_groups: dict[str, KeyGroup] = {}
+        self.functions: dict[str, CloudFrontFunction] = {}
+        self.cache_policies: dict[str, CachePolicy] = {}
+        self.response_headers_policies: dict[str, ResponseHeadersPolicy] = {}
         self.tagger = TaggingService()
 
     def create_distribution(
@@ -538,6 +645,137 @@ class CloudFrontBackend(BaseBackend):
         Pagination is not yet implemented
         """
         return list(self.key_groups.values())
+
+    def update_key_group(
+        self, group_id: str, name: str, items: list[str]
+    ) -> KeyGroup:
+        if group_id not in self.key_groups:
+            raise NoSuchKeyGroup
+        group = self.key_groups[group_id]
+        group.update(name, items)
+        return group
+
+    def delete_key_group(self, group_id: str) -> None:
+        if group_id not in self.key_groups:
+            raise NoSuchKeyGroup
+        del self.key_groups[group_id]
+
+    # CloudFront Functions
+    def create_function(
+        self,
+        name: str,
+        function_code: str,
+        function_config: dict[str, Any],
+    ) -> CloudFrontFunction:
+        for func in self.functions.values():
+            if func.name == name:
+                raise FunctionAlreadyExists
+        func = CloudFrontFunction(
+            name=name,
+            function_code=function_code,
+            function_config=function_config,
+            account_id=self.account_id,
+            region_name=self.region_name,
+        )
+        self.functions[func.name] = func
+        return func
+
+    def get_function(self, name: str) -> CloudFrontFunction:
+        if name not in self.functions:
+            raise NoSuchFunctionExists
+        return self.functions[name]
+
+    def describe_function(self, name: str) -> CloudFrontFunction:
+        return self.get_function(name)
+
+    def update_function(
+        self,
+        name: str,
+        function_code: str,
+        function_config: dict[str, Any],
+        if_match: str,
+    ) -> CloudFrontFunction:
+        func = self.get_function(name)
+        func.update(function_code, function_config)
+        return func
+
+    def delete_function(self, name: str, if_match: str) -> None:
+        if name not in self.functions:
+            raise NoSuchFunctionExists
+        del self.functions[name]
+
+    def publish_function(self, name: str, if_match: str) -> CloudFrontFunction:
+        func = self.get_function(name)
+        func.publish()
+        return func
+
+    def list_functions(self) -> list[CloudFrontFunction]:
+        """
+        Pagination is not yet implemented
+        """
+        return list(self.functions.values())
+
+    # Cache Policies
+    def create_cache_policy(self, config: dict[str, Any]) -> CachePolicy:
+        policy = CachePolicy(config)
+        self.cache_policies[policy.id] = policy
+        return policy
+
+    def get_cache_policy(self, policy_id: str) -> CachePolicy:
+        if policy_id not in self.cache_policies:
+            raise NoSuchCachePolicy
+        return self.cache_policies[policy_id]
+
+    def update_cache_policy(
+        self, policy_id: str, config: dict[str, Any]
+    ) -> CachePolicy:
+        policy = self.get_cache_policy(policy_id)
+        policy.update(config)
+        return policy
+
+    def delete_cache_policy(self, policy_id: str) -> None:
+        if policy_id not in self.cache_policies:
+            raise NoSuchCachePolicy
+        del self.cache_policies[policy_id]
+
+    def list_cache_policies(self) -> list[CachePolicy]:
+        """
+        Pagination is not yet implemented
+        """
+        return list(self.cache_policies.values())
+
+    # Response Headers Policies
+    def create_response_headers_policy(
+        self, config: dict[str, Any]
+    ) -> ResponseHeadersPolicy:
+        policy = ResponseHeadersPolicy(config)
+        self.response_headers_policies[policy.id] = policy
+        return policy
+
+    def get_response_headers_policy(
+        self, policy_id: str
+    ) -> ResponseHeadersPolicy:
+        if policy_id not in self.response_headers_policies:
+            raise NoSuchResponseHeadersPolicy
+        return self.response_headers_policies[policy_id]
+
+    def update_response_headers_policy(
+        self, policy_id: str, config: dict[str, Any]
+    ) -> ResponseHeadersPolicy:
+        policy = self.get_response_headers_policy(policy_id)
+        policy.update(config)
+        return policy
+
+    def delete_response_headers_policy(self, policy_id: str) -> None:
+        if policy_id not in self.response_headers_policies:
+            raise NoSuchResponseHeadersPolicy
+        del self.response_headers_policies[policy_id]
+
+    def list_response_headers_policies(self) -> list[ResponseHeadersPolicy]:
+        """
+        Pagination is not yet implemented
+        """
+        return list(self.response_headers_policies.values())
 
 
 cloudfront_backends = BackendDict(

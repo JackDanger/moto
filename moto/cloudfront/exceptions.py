@@ -83,3 +83,49 @@ class NoSuchInvalidation(CloudFrontException):
         super().__init__(
             "NoSuchInvalidation", message="The specified invalidation does not exist."
         )
+
+
+class NoSuchFunctionExists(CloudFrontException):
+    code = 404
+
+    def __init__(self) -> None:
+        super().__init__(
+            "NoSuchFunctionExists", message="The specified function does not exist."
+        )
+
+
+class FunctionAlreadyExists(CloudFrontException):
+    def __init__(self) -> None:
+        super().__init__(
+            "FunctionAlreadyExists",
+            message="A function with the same name already exists.",
+        )
+
+
+class NoSuchCachePolicy(CloudFrontException):
+    code = 404
+
+    def __init__(self) -> None:
+        super().__init__(
+            "NoSuchCachePolicy", message="The specified cache policy does not exist."
+        )
+
+
+class NoSuchResponseHeadersPolicy(CloudFrontException):
+    code = 404
+
+    def __init__(self) -> None:
+        super().__init__(
+            "NoSuchResponseHeadersPolicy",
+            message="The specified response headers policy does not exist.",
+        )
+
+
+class NoSuchKeyGroup(CloudFrontException):
+    code = 404
+
+    def __init__(self) -> None:
+        super().__init__(
+            "NoSuchResource",
+            message="The specified key group does not exist.",
+        )

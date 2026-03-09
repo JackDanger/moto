@@ -20,4 +20,12 @@ url_paths = {
     "{0}/2020-05-31/origin-access-control/(?P<oac_id>[^/]+)/config$": CloudFrontResponse.dispatch,
     "{0}/2020-05-31/public-key$": CloudFrontResponse.dispatch,
     "{0}/2020-05-31/public-key/(?P<key_name>[^/]+)$": CloudFrontResponse.dispatch,
+    "{0}/2020-05-31/function$": CloudFrontResponse.dispatch,
+    "{0}/2020-05-31/function/(?P<function_name>[^/]+)$": CloudFrontResponse.dispatch,
+    "{0}/2020-05-31/function/(?P<function_name>[^/]+)/describe$": CloudFrontResponse.dispatch,
+    "{0}/2020-05-31/function/(?P<function_name>[^/]+)/publish$": CloudFrontResponse.dispatch,
+    "{0}/2020-05-31/cache-policy$": CloudFrontResponse.dispatch,
+    "{0}/2020-05-31/cache-policy/(?P<policy_id>[^/]+)$": CloudFrontResponse.dispatch,
+    "{0}/2020-05-31/response-headers-policy$": CloudFrontResponse.dispatch,
+    "{0}/2020-05-31/response-headers-policy/(?P<policy_id>[^/]+)$": CloudFrontResponse.dispatch,
 }
