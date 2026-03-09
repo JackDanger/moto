@@ -4368,6 +4368,53 @@ class RDSBackend(BaseBackend):
             global_cluster_identifier, target_db_cluster_identifier
         )
 
+    def describe_db_engine_versions(
+        self,
+        engine: Optional[str] = None,
+        engine_version: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        versions: list[dict[str, Any]] = []
+        engine_data: dict[str, list[str]] = {
+            "neptune": ["1.2.0.0", "1.2.0.1", "1.2.0.2", "1.2.1.0", "1.3.0.0"],
+            "aurora-mysql": ["5.7.mysql_aurora.2.11.2", "8.0.mysql_aurora.3.04.0"],
+            "aurora-postgresql": ["14.6", "15.4"],
+            "mysql": ["8.0.32", "8.0.33"],
+            "postgres": ["14.9", "15.4"],
+        }
+        if engine:
+            engines_to_check = {engine: engine_data.get(engine, ["1.0.0"])}
+        else:
+            engines_to_check = engine_data
+
+        for eng, vers in engines_to_check.items():
+            for ver in vers:
+                if engine_version and ver != engine_version:
+                    continue
+                versions.append(
+                    {
+                        "Engine": eng,
+                        "EngineVersion": ver,
+                        "DBParameterGroupFamily": f"{eng}{ver.split('.')[0]}",
+                        "DBEngineDescription": f"{eng} database engine",
+                        "DBEngineVersionDescription": f"{eng} {ver}",
+                        "ValidUpgradeTarget": [],
+                        "ExportableLogTypes": [],
+                        "SupportsLogExportsToCloudwatchLogs": False,
+                        "SupportsReadReplica": False,
+                        "SupportedEngineModes": [],
+                        "SupportedFeatureNames": [],
+                        "SupportsGlobalDatabases": eng
+                        in ("neptune", "aurora-mysql", "aurora-postgresql"),
+                    }
+                )
+        # Include custom engine versions
+        versions.extend(
+            self._describe_custom_engine_versions(
+                engine=engine, engine_version=engine_version
+            )
+        )
+        return versions
+
     def describe_event_categories(
         self,
         source_type: Optional[str] = None,
@@ -5246,6 +5293,41 @@ class RDSBackend(BaseBackend):
         if status is not None:
             cev.status = status
         return cev
+
+    def _describe_custom_engine_versions(
+        self,
+        engine: Optional[str] = None,
+        engine_version: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        """Return custom engine versions for describe_db_engine_versions."""
+        results: list[dict[str, Any]] = []
+        for cev in self.custom_db_engine_versions.values():
+            if engine and cev.engine != engine:
+                continue
+            if engine_version and cev.engine_version != engine_version:
+                continue
+            results.append(
+                {
+                    "Engine": cev.engine,
+                    "EngineVersion": cev.engine_version,
+                    "DBParameterGroupFamily": f"{cev.engine}{cev.major_engine_version}",
+                    "DBEngineDescription": cev.db_engine_description,
+                    "DBEngineVersionDescription": cev.db_engine_version_description,
+                    "DBEngineVersionArn": cev.db_engine_version_arn,
+                    "Status": cev.status,
+                    "CreateTime": cev.create_time.isoformat(),
+                    "SupportedEngineModes": cev.supported_engine_modes,
+                    "SupportsParallelQuery": cev.supports_parallel_query,
+                    "SupportsGlobalDatabases": cev.supports_global_databases,
+                    "MajorEngineVersion": cev.major_engine_version,
+                    "DatabaseInstallationFilesS3BucketName": cev.database_installation_files_s3_bucket_name,
+                    "DatabaseInstallationFilesS3Prefix": cev.database_installation_files_s3_prefix,
+                    "KMSKeyId": cev.kms_key_id,
+                    "Image": {"ImageId": cev.image_id} if cev.image_id else None,
+                    "Tags": cev.tags,
+                }
+            )
+        return results
 
     # ---- Integration (zero-ETL) ----
 
