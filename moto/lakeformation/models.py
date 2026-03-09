@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import time
+import uuid
 from collections import defaultdict
 from enum import Enum
 from typing import Any, Optional
@@ -204,6 +206,59 @@ class LFTag:
         self.tag_values = tag_values
 
 
+class Transaction:
+    def __init__(self, transaction_type: str = "READ_AND_WRITE"):
+        self.transaction_id = str(uuid.uuid4())
+        self.status = "ACTIVE"
+        self.transaction_type = transaction_type
+        self.transaction_start_time = time.time()
+        self.transaction_end_time: Optional[float] = None
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "TransactionId": self.transaction_id,
+            "TransactionStatus": self.status,
+            "TransactionStartTime": self.transaction_start_time,
+        }
+        if self.transaction_end_time:
+            result["TransactionEndTime"] = self.transaction_end_time
+        return result
+
+
+class DataCellsFilter:
+    def __init__(
+        self,
+        table_catalog_id: str,
+        database_name: str,
+        table_name: str,
+        name: str,
+        row_filter: Optional[dict[str, Any]] = None,
+        column_names: Optional[list[str]] = None,
+        column_wildcard: Optional[dict[str, Any]] = None,
+    ):
+        self.table_catalog_id = table_catalog_id
+        self.database_name = database_name
+        self.table_name = table_name
+        self.name = name
+        self.row_filter = row_filter or {"AllRowsWildcard": {}}
+        self.column_names = column_names
+        self.column_wildcard = column_wildcard
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "TableCatalogId": self.table_catalog_id,
+            "DatabaseName": self.database_name,
+            "TableName": self.table_name,
+            "Name": self.name,
+            "RowFilter": self.row_filter,
+        }
+        if self.column_names is not None:
+            result["ColumnNames"] = self.column_names
+        if self.column_wildcard is not None:
+            result["ColumnWildcard"] = self.column_wildcard
+        return result
+
+
 class ListPermissionsResourceLFTagPolicy:
     def __init__(self, catalog_id: str, resource_type: str, expression: list[LFTag]):
         self.catalog_id = catalog_id
@@ -277,6 +332,8 @@ class LakeFormationBackend(BaseBackend):
         self.lf_database_tags: dict[tuple[str, str], list[dict[str, str]]] = {}
         self.lf_table_tags: dict[tuple[str, str, str], list[dict[str, str]]] = {}
         self.lf_columns_tags: dict[tuple[str, ...], list[dict[str, str]]] = {}
+        self.transactions: dict[str, Transaction] = {}
+        self.data_cells_filters: dict[tuple[str, str, str, str], DataCellsFilter] = {}
 
     def describe_resource(self, resource_arn: str) -> Resource:
         if resource_arn not in self.resources:
@@ -501,12 +558,6 @@ class LakeFormationBackend(BaseBackend):
             arn, TaggingService.convert_dict_to_tags_input(existing_tags)
         )
 
-    def list_data_cells_filter(self) -> list[dict[str, Any]]:
-        """
-        This currently just returns an empty list, as the corresponding Create is not yet implemented
-        """
-        return []
-
     def batch_grant_permissions(
         self, catalog_id: str, entries: list[dict[str, Any]]
     ) -> None:
@@ -636,6 +687,134 @@ class LakeFormationBackend(BaseBackend):
                 existing_tags = self.lf_columns_tags[dct_key]
                 for tag in tags:
                     existing_tags.remove(tag)
+
+
+    def describe_transaction(self, transaction_id: str) -> Transaction:
+        if transaction_id not in self.transactions:
+            raise EntityNotFound
+        return self.transactions[transaction_id]
+
+    def list_transactions(
+        self, status_filter: Optional[str] = None,
+    ) -> list[Transaction]:
+        transactions = list(self.transactions.values())
+        if status_filter:
+            transactions = [t for t in transactions if t.status == status_filter]
+        return transactions
+
+    def start_transaction(self, transaction_type: str = "READ_AND_WRITE") -> str:
+        txn = Transaction(transaction_type=transaction_type)
+        self.transactions[txn.transaction_id] = txn
+        return txn.transaction_id
+
+    def commit_transaction(self, transaction_id: str) -> str:
+        if transaction_id not in self.transactions:
+            raise EntityNotFound
+        txn = self.transactions[transaction_id]
+        txn.status = "COMMITTED"
+        txn.transaction_end_time = time.time()
+        return "COMMITTED"
+
+    def cancel_transaction(self, transaction_id: str) -> None:
+        if transaction_id not in self.transactions:
+            raise EntityNotFound
+        txn = self.transactions[transaction_id]
+        txn.status = "ABORTED"
+        txn.transaction_end_time = time.time()
+
+    def get_data_lake_principal(self) -> str:
+        return f"arn:aws:iam::{self.account_id}:root"
+
+    def get_effective_permissions_for_path(
+        self, catalog_id: str, resource_arn: str,
+    ) -> list[dict[str, Any]]:
+        """Return permissions that apply to the given S3 path. Simplified: return empty list."""
+        return []
+
+    def get_query_state(self, query_id: str) -> str:
+        return "FINISHED"
+
+    def get_query_statistics(self, query_id: str) -> dict[str, Any]:
+        return {
+            "ExecutionStatistics": {
+                "AverageExecutionTimeMillis": 0,
+                "DataScannedBytes": 0,
+                "WorkUnitsExecutedCount": 0,
+            },
+            "PlanningStatistics": {
+                "EstimatedDataToScanBytes": 0,
+                "PlanningTimeMillis": 0,
+                "QueueTimeMillis": 0,
+                "WorkUnitsGeneratedCount": 0,
+            },
+            "SubmissionTime": time.time(),
+        }
+
+    def get_work_units(self, query_id: str) -> list[dict[str, Any]]:
+        return []
+
+    def get_work_unit_results(self, query_id: str, work_unit_id: int, work_unit_token: str) -> bytes:
+        return b""
+
+    def get_temporary_glue_partition_credentials(
+        self,
+        table_arn: str,
+        partition: dict[str, Any],
+        supported_permission_types: list[str],
+    ) -> dict[str, Any]:
+        return {
+            "AccessKeyId": "AKIAIOSFODNN7EXAMPLE",
+            "SecretAccessKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+            "SessionToken": "FwoGZXIvYXdzEBYaDHqa0AP1HCbMGnS/3SLIAbRQhGIOdVKGCMEZxbQtiAEdHRwqEicrW8hR",
+            "Expiration": time.time() + 3600,
+        }
+
+    def get_temporary_glue_table_credentials(
+        self,
+        table_arn: str,
+        supported_permission_types: list[str],
+    ) -> dict[str, Any]:
+        return {
+            "AccessKeyId": "AKIAIOSFODNN7EXAMPLE",
+            "SecretAccessKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+            "SessionToken": "FwoGZXIvYXdzEBYaDHqa0AP1HCbMGnS/3SLIAbRQhGIOdVKGCMEZxbQtiAEdHRwqEicrW8hR",
+            "Expiration": time.time() + 3600,
+        }
+
+    def create_data_cells_filter(
+        self, table_data: dict[str, Any],
+    ) -> None:
+        dcf = DataCellsFilter(
+            table_catalog_id=table_data.get("TableCatalogId", self.account_id),
+            database_name=table_data["DatabaseName"],
+            table_name=table_data["TableName"],
+            name=table_data["Name"],
+            row_filter=table_data.get("RowFilter"),
+            column_names=table_data.get("ColumnNames"),
+            column_wildcard=table_data.get("ColumnWildcard"),
+        )
+        key = (dcf.table_catalog_id, dcf.database_name, dcf.table_name, dcf.name)
+        if key in self.data_cells_filters:
+            raise AlreadyExists("Data cell filter already exists")
+        self.data_cells_filters[key] = dcf
+
+    def get_data_cells_filter(
+        self, table_catalog_id: str, database_name: str, table_name: str, name: str,
+    ) -> DataCellsFilter:
+        key = (table_catalog_id, database_name, table_name, name)
+        if key not in self.data_cells_filters:
+            raise EntityNotFound
+        return self.data_cells_filters[key]
+
+    def list_data_cells_filter(self) -> list[dict[str, Any]]:
+        return [dcf.to_dict() for dcf in self.data_cells_filters.values()]
+
+    def describe_lake_formation_identity_center_configuration(
+        self, catalog_id: str,
+    ) -> dict[str, Any]:
+        return {
+            "CatalogId": catalog_id,
+        }
 
 
 lakeformation_backends = BackendDict(LakeFormationBackend, "lakeformation")
