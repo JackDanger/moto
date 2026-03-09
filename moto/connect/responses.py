@@ -243,6 +243,48 @@ class ConnectResponse(BaseResponse):
         )
         return json.dumps({"UseCaseSummaryList": results})
 
+    def list_users(self) -> str:
+        instance_id = self._get_instance_id()
+        results = self.connect_backend.list_users(instance_id=instance_id)
+        return json.dumps({"UserSummaryList": results})
+
+    def list_user_hierarchy_groups(self) -> str:
+        instance_id = self._get_instance_id()
+        results = self.connect_backend.list_user_hierarchy_groups(
+            instance_id=instance_id
+        )
+        return json.dumps({"UserHierarchyGroupSummaryList": results})
+
+    def list_views(self) -> str:
+        instance_id = self._get_instance_id()
+        results = self.connect_backend.list_views(instance_id=instance_id)
+        return json.dumps({"ViewsSummaryList": results})
+
+    def list_rules(self) -> str:
+        instance_id = self._get_instance_id()
+        results = self.connect_backend.list_rules(instance_id=instance_id)
+        return json.dumps({"RuleSummaryList": results})
+
+    def list_task_templates(self) -> str:
+        instance_id = self._get_instance_id()
+        results = self.connect_backend.list_task_templates(instance_id=instance_id)
+        return json.dumps({"TaskTemplates": results})
+
+    def list_integration_associations(self) -> str:
+        instance_id = self._get_instance_id()
+        results = self.connect_backend.list_integration_associations(
+            instance_id=instance_id
+        )
+        return json.dumps({"IntegrationAssociationSummaryList": results})
+
+    def list_routing_profile_queues(self) -> str:
+        instance_id = self._get_instance_id()
+        routing_profile_id = self._get_param("RoutingProfileId")
+        results = self.connect_backend.list_routing_profile_queues(
+            instance_id=instance_id, routing_profile_id=routing_profile_id
+        )
+        return json.dumps({"RoutingProfileQueueConfigSummaryList": results})
+
     def associate_analytics_data_set(self) -> str:
         instance_id = self._get_instance_id()
         params = json.loads(self.body) if self.body else {}

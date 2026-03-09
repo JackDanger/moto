@@ -918,7 +918,18 @@ class ConnectBackend(BaseBackend):
 
     def list_agent_statuses(self, instance_id: str) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
-        return []
+        statuses = self.agent_statuses.get(instance_id, {})
+        return [
+            {
+                "Id": s.agent_status_id,
+                "Arn": s.arn,
+                "Name": s.name,
+                "Type": s.type,
+                "LastModifiedTime": s.last_modified_time,
+                "LastModifiedRegion": s.last_modified_region,
+            }
+            for s in statuses.values()
+        ]
 
     def list_approved_origins(self, instance_id: str) -> list[str]:
         self._get_instance_or_raise(instance_id)
@@ -934,17 +945,41 @@ class ConnectBackend(BaseBackend):
 
     def list_contact_flow_modules(self, instance_id: str) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
-        return []
+        modules = self.contact_flow_modules.get(instance_id, {})
+        return [
+            {
+                "Id": m.id,
+                "Arn": m.arn,
+                "Name": m.name,
+                "State": m.state,
+            }
+            for m in modules.values()
+        ]
 
     def list_contact_flow_versions(
         self, instance_id: str, contact_flow_id: str
     ) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
+        flows = self.contact_flows.get(instance_id, {})
+        if contact_flow_id in flows:
+            f = flows[contact_flow_id]
+            return [{"Arn": f.arn, "Id": f.id, "Name": f.name, "Version": 1}]
         return []
 
     def list_contact_flows(self, instance_id: str) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
-        return []
+        flows = self.contact_flows.get(instance_id, {})
+        return [
+            {
+                "Id": f.id,
+                "Arn": f.arn,
+                "Name": f.name,
+                "ContactFlowType": f.type,
+                "ContactFlowState": f.state,
+                "ContactFlowStatus": f.status,
+            }
+            for f in flows.values()
+        ]
 
     def list_contact_references(self, instance_id: str) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
@@ -952,17 +987,51 @@ class ConnectBackend(BaseBackend):
 
     def list_default_vocabularies(self, instance_id: str) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
-        return []
+        vocabs = self.vocabularies.get(instance_id, {})
+        return [
+            {
+                "InstanceId": instance_id,
+                "LanguageCode": v.language_code,
+                "VocabularyId": v.vocabulary_id,
+                "VocabularyName": v.name,
+            }
+            for v in vocabs.values()
+        ]
 
     def list_evaluation_form_versions(
         self, instance_id: str, evaluation_form_id: str
     ) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
+        forms = self.evaluation_forms.get(instance_id, {})
+        if evaluation_form_id in forms:
+            f = forms[evaluation_form_id]
+            return [
+                {
+                    "EvaluationFormArn": f.arn,
+                    "EvaluationFormId": f.evaluation_form_id,
+                    "EvaluationFormVersion": f.version,
+                    "CreatedTime": f.created_time,
+                    "LastModifiedTime": f.last_modified_time,
+                    "Status": f.status,
+                }
+            ]
         return []
 
     def list_evaluation_forms(self, instance_id: str) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
-        return []
+        forms = self.evaluation_forms.get(instance_id, {})
+        return [
+            {
+                "EvaluationFormId": f.evaluation_form_id,
+                "EvaluationFormArn": f.arn,
+                "Title": f.title,
+                "Status": f.status,
+                "CreatedTime": f.created_time,
+                "LastModifiedTime": f.last_modified_time,
+                "LatestVersion": f.version,
+            }
+            for f in forms.values()
+        ]
 
     def list_flow_associations(self, instance_id: str) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
@@ -976,13 +1045,30 @@ class ConnectBackend(BaseBackend):
 
     def list_hours_of_operations(self, instance_id: str) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
-        return []
+        hours = self.hours_of_operations.get(instance_id, {})
+        return [
+            {
+                "Id": h.hours_of_operation_id,
+                "Arn": h.arn,
+                "Name": h.name,
+                "LastModifiedTime": h.last_modified_time,
+                "LastModifiedRegion": h.last_modified_region,
+            }
+            for h in hours.values()
+        ]
 
     def list_instance_attributes(self, instance_id: str) -> list[dict[str, Any]]:
+        instance = self._get_instance_or_raise(instance_id)
+        return [
+            {"AttributeType": attr_type, "Value": value}
+            for attr_type, value in instance.attributes.items()
+        ]
+
+    def list_instance_storage_configs(self, instance_id: str) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
         return []
 
-    def list_instance_storage_configs(self, instance_id: str) -> list[dict[str, Any]]:
+    def list_integration_associations(self, instance_id: str) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
         return []
 
@@ -992,32 +1078,130 @@ class ConnectBackend(BaseBackend):
 
     def list_phone_numbers(self, instance_id: str) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
-        return []
+        instance = self.instances[instance_id]
+        return [
+            {
+                "PhoneNumber": pn.phone_number,
+                "PhoneNumberType": pn.phone_number_type,
+                "PhoneNumberCountryCode": pn.phone_number_country_code,
+                "PhoneNumberId": pn.phone_number_id,
+                "PhoneNumberArn": pn.arn,
+            }
+            for pn in self.phone_numbers.values()
+            if pn.instance_id == instance_id
+        ]
 
     def list_phone_numbers_v2(self) -> list[dict[str, Any]]:
-        return []
+        return [
+            {
+                "PhoneNumberId": pn.phone_number_id,
+                "PhoneNumberArn": pn.arn,
+                "PhoneNumber": pn.phone_number,
+                "PhoneNumberCountryCode": pn.phone_number_country_code,
+                "PhoneNumberType": pn.phone_number_type,
+                "TargetArn": pn.target_arn,
+            }
+            for pn in self.phone_numbers.values()
+        ]
 
     def list_prompts(self, instance_id: str) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
-        return []
+        prompts = self.prompts.get(instance_id, {})
+        return [
+            {
+                "Id": p.prompt_id,
+                "Arn": p.arn,
+                "Name": p.name,
+                "LastModifiedTime": p.last_modified_time,
+                "LastModifiedRegion": p.last_modified_region,
+            }
+            for p in prompts.values()
+        ]
 
     def list_queue_quick_connects(
         self, instance_id: str, queue_id: str
     ) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
-        return []
+        # Quick connects are not associated per-queue in this implementation
+        # Return all quick connects for the instance
+        qcs = self.quick_connects.get(instance_id, {})
+        return [
+            {
+                "QuickConnectId": qc.quick_connect_id,
+                "Name": qc.name,
+                "QuickConnectType": qc.quick_connect_config.get("QuickConnectType", "PHONE_NUMBER"),
+            }
+            for qc in qcs.values()
+        ]
 
     def list_queues(self, instance_id: str) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
-        return []
+        queues = self.queues.get(instance_id, {})
+        return [
+            {
+                "Id": q.queue_id,
+                "Arn": q.arn,
+                "Name": q.name,
+                "QueueType": "STANDARD",
+                "LastModifiedTime": q.last_modified_time,
+                "LastModifiedRegion": q.last_modified_region,
+            }
+            for q in queues.values()
+        ]
 
     def list_quick_connects(self, instance_id: str) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
-        return []
+        qcs = self.quick_connects.get(instance_id, {})
+        return [
+            {
+                "QuickConnectId": qc.quick_connect_id,
+                "QuickConnectARN": qc.arn,
+                "Name": qc.name,
+                "QuickConnectType": qc.quick_connect_config.get("QuickConnectType", "PHONE_NUMBER"),
+                "LastModifiedTime": qc.last_modified_time,
+                "LastModifiedRegion": qc.last_modified_region,
+            }
+            for qc in qcs.values()
+        ]
 
     def list_routing_profiles(self, instance_id: str) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
+        rps = self.routing_profiles.get(instance_id, {})
+        return [
+            {
+                "Id": rp.routing_profile_id,
+                "Arn": rp.arn,
+                "Name": rp.name,
+                "LastModifiedTime": rp.last_modified_time,
+                "LastModifiedRegion": rp.last_modified_region,
+            }
+            for rp in rps.values()
+        ]
+
+    def list_routing_profile_queues(
+        self, instance_id: str, routing_profile_id: str
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        # Routing profile queue associations are not tracked; return empty
         return []
+
+    def list_rules(self, instance_id: str) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        rules = self.rules.get(instance_id, {})
+        return [
+            {
+                "RuleId": r.rule_id,
+                "RuleArn": r.arn,
+                "Name": r.name,
+                "PublishStatus": r.publish_status,
+                "ActionSummaries": [
+                    {"ActionType": a.get("ActionType", "UNKNOWN")} for a in r.actions
+                ],
+                "CreatedTime": r.created_time,
+                "LastUpdatedTime": r.last_updated_time,
+            }
+            for r in rules.values()
+        ]
 
     def list_security_keys(self, instance_id: str) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
@@ -1033,9 +1217,26 @@ class ConnectBackend(BaseBackend):
         self, instance_id: str, security_profile_id: str
     ) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
+        sps = self.security_profiles.get(instance_id, {})
+        if security_profile_id in sps:
+            return list(sps[security_profile_id].permissions)
         return []
 
     def list_security_profiles(self, instance_id: str) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        sps = self.security_profiles.get(instance_id, {})
+        return [
+            {
+                "Id": sp.security_profile_id,
+                "Arn": sp.arn,
+                "Name": sp.security_profile_name,
+                "LastModifiedTime": sp.last_modified_time,
+                "LastModifiedRegion": sp.last_modified_region,
+            }
+            for sp in sps.values()
+        ]
+
+    def list_task_templates(self, instance_id: str) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
         return []
 
@@ -1044,6 +1245,47 @@ class ConnectBackend(BaseBackend):
     ) -> list[dict[str, Any]]:
         self._get_instance_or_raise(instance_id)
         return []
+
+    def list_users(self, instance_id: str) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        users = self.users.get(instance_id, {})
+        return [
+            {
+                "Id": u.user_id,
+                "Arn": u.arn,
+                "Username": u.username,
+            }
+            for u in users.values()
+        ]
+
+    def list_user_hierarchy_groups(self, instance_id: str) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        groups = self.user_hierarchy_groups.get(instance_id, {})
+        return [
+            {
+                "Id": g.hierarchy_group_id,
+                "Arn": g.arn,
+                "Name": g.name,
+                "LastModifiedTime": g.last_modified_time,
+                "LastModifiedRegion": g.last_modified_region,
+            }
+            for g in groups.values()
+        ]
+
+    def list_views(self, instance_id: str) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        views = self.views.get(instance_id, {})
+        return [
+            {
+                "Id": v.view_id,
+                "Arn": v.arn,
+                "Name": v.name,
+                "Type": v.type,
+                "Status": v.status,
+                "Description": v.description,
+            }
+            for v in views.values()
+        ]
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_analytics_data_associations(
