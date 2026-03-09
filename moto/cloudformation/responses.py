@@ -843,3 +843,173 @@ class CloudFormationResponse(BaseResponse):
             "TypeVersionArn": f"arn:{self.partition}:cloudformation:{self.region}:{self.current_account}:type/resource/AWS-Example-Resource/00000001",
         }
         return ActionResult(result)
+
+    def update_termination_protection(self) -> ActionResult:
+        stack_name = self._get_param("StackName")
+        enable = self._get_bool_param("EnableTerminationProtection", False)
+        stack = self.cloudformation_backend.update_termination_protection(
+            stack_name, enable
+        )
+        result = {"StackId": stack.stack_id}
+        return ActionResult(result)
+
+    def continue_update_rollback(self) -> ActionResult:
+        stack_name = self._get_param("StackName")
+        self.cloudformation_backend.continue_update_rollback(stack_name)
+        return EmptyResult()
+
+    def rollback_stack(self) -> ActionResult:
+        stack_name = self._get_param("StackName")
+        stack = self.cloudformation_backend.rollback_stack(stack_name)
+        result = {"StackId": stack.stack_id}
+        return ActionResult(result)
+
+    def signal_resource(self) -> ActionResult:
+        stack_name = self._get_param("StackName")
+        logical_resource_id = self._get_param("LogicalResourceId")
+        unique_id = self._get_param("UniqueId")
+        status = self._get_param("Status")
+        self.cloudformation_backend.signal_resource(
+            stack_name, logical_resource_id, unique_id, status
+        )
+        return EmptyResult()
+
+    def detect_stack_drift(self) -> ActionResult:
+        stack_name = self._get_param("StackName")
+        detection_id = self.cloudformation_backend.detect_stack_drift(stack_name)
+        result = {"StackDriftDetectionId": detection_id}
+        return ActionResult(result)
+
+    def detect_stack_resource_drift(self) -> ActionResult:
+        stack_name = self._get_param("StackName")
+        logical_resource_id = self._get_param("LogicalResourceId")
+        drift = self.cloudformation_backend.detect_stack_resource_drift(
+            stack_name, logical_resource_id
+        )
+        result = {"StackResourceDrift": drift}
+        return ActionResult(result)
+
+    def detect_stack_set_drift(self) -> ActionResult:
+        # Stack set drift detection stub — returns an operation id
+        result = {
+            "OperationId": str(mock_random.uuid4()),
+        }
+        return ActionResult(result)
+
+    def describe_stack_drift_detection_status(self) -> ActionResult:
+        detection_id = self._get_param("StackDriftDetectionId")
+        status = self.cloudformation_backend.describe_stack_drift_detection_status(
+            detection_id
+        )
+        return ActionResult(status)
+
+    def describe_stack_resource_drifts(self) -> ActionResult:
+        stack_name = self._get_param("StackName")
+        drifts = self.cloudformation_backend.describe_stack_resource_drifts(stack_name)
+        result = {"StackResourceDrifts": drifts}
+        return ActionResult(result)
+
+    def create_generated_template(self) -> ActionResult:
+        generated_template_name = self._get_param("GeneratedTemplateName")
+        result = {
+            "GeneratedTemplateId": f"arn:{self.partition}:cloudformation:{self.region}:{self.current_account}:generatedtemplate/{mock_random.uuid4()}",
+        }
+        return ActionResult(result)
+
+    def delete_generated_template(self) -> ActionResult:
+        return EmptyResult()
+
+    def describe_generated_template(self) -> ActionResult:
+        generated_template_id = self._get_param("GeneratedTemplateIdentifier")
+        result = {
+            "GeneratedTemplateId": generated_template_id or f"arn:{self.partition}:cloudformation:{self.region}:{self.current_account}:generatedtemplate/{mock_random.uuid4()}",
+            "GeneratedTemplateName": "mock-template",
+            "Status": "COMPLETE",
+            "TemplateBody": "{}",
+            "TotalWarnings": 0,
+            "CreationTime": "2024-01-01T00:00:00Z",
+            "LastUpdatedTime": "2024-01-01T00:00:00Z",
+        }
+        return ActionResult(result)
+
+    def get_generated_template(self) -> ActionResult:
+        result = {
+            "Status": "COMPLETE",
+            "TemplateBody": "{}",
+        }
+        return ActionResult(result)
+
+    def update_generated_template(self) -> ActionResult:
+        generated_template_id = self._get_param("GeneratedTemplateIdentifier")
+        result = {
+            "GeneratedTemplateId": generated_template_id or f"arn:{self.partition}:cloudformation:{self.region}:{self.current_account}:generatedtemplate/{mock_random.uuid4()}",
+        }
+        return ActionResult(result)
+
+    def create_stack_refactor(self) -> ActionResult:
+        result = {
+            "StackRefactorId": str(mock_random.uuid4()),
+        }
+        return ActionResult(result)
+
+    def describe_stack_refactor(self) -> ActionResult:
+        stack_refactor_id = self._get_param("StackRefactorId")
+        result = {
+            "StackRefactorId": stack_refactor_id or str(mock_random.uuid4()),
+            "Status": "CREATE_COMPLETE",
+            "StatusReason": "",
+            "ExecutionStatus": "AVAILABLE",
+        }
+        return ActionResult(result)
+
+    def execute_stack_refactor(self) -> ActionResult:
+        return EmptyResult()
+
+    def list_stack_refactor_actions(self) -> ActionResult:
+        result = {"StackRefactorActions": []}
+        return ActionResult(result)
+
+    def batch_describe_type_configurations(self) -> ActionResult:
+        result = {
+            "Errors": [],
+            "UnprocessedTypeConfigurations": [],
+            "TypeConfigurations": [],
+        }
+        return ActionResult(result)
+
+    def import_stacks_to_stack_set(self) -> ActionResult:
+        stack_set_name = self._get_param("StackSetName")
+        stack_ids = self._get_param("StackIds", [])
+        operation_id = self.cloudformation_backend.import_stacks_to_stack_set(
+            stack_set_name, stack_ids
+        )
+        result = {"OperationId": operation_id}
+        return ActionResult(result)
+
+    def record_handler_progress(self) -> ActionResult:
+        return EmptyResult()
+
+    def list_stack_instance_resource_drifts(self) -> ActionResult:
+        result = {"Summaries": []}
+        return ActionResult(result)
+
+    def list_stack_set_auto_deployment_targets(self) -> ActionResult:
+        result = {"Summaries": []}
+        return ActionResult(result)
+
+    def list_resource_scan_resources(self) -> ActionResult:
+        result = {"Resources": []}
+        return ActionResult(result)
+
+    def list_resource_scan_related_resources(self) -> ActionResult:
+        result = {"RelatedResources": []}
+        return ActionResult(result)
+
+    def describe_change_set_hooks(self) -> ActionResult:
+        result = {
+            "ChangeSetId": self._get_param("ChangeSetName", ""),
+            "ChangeSetName": self._get_param("ChangeSetName", ""),
+            "Hooks": [],
+            "Status": "PLANNING_COMPLETE",
+        }
+        return ActionResult(result)

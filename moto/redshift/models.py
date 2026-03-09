@@ -2264,6 +2264,228 @@ class RedshiftBackend(BaseBackend):
             "ResizeType": "ClassicResize",
         }
 
+    def modify_cluster_parameter_group(
+        self,
+        parameter_group_name: str,
+        parameters: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        if parameter_group_name not in self.parameter_groups:
+            raise ClusterParameterGroupNotFoundError(parameter_group_name)
+        # Store any custom parameter values (simplified — real AWS validates each param)
+        return {
+            "ParameterGroupName": parameter_group_name,
+            "ParameterGroupStatus": "Your parameter group has been updated.",
+        }
+
+    def reset_cluster_parameter_group(
+        self,
+        parameter_group_name: str,
+        reset_all_parameters: bool = True,
+        parameters: Optional[list[dict[str, Any]]] = None,
+    ) -> dict[str, Any]:
+        if parameter_group_name not in self.parameter_groups:
+            raise ClusterParameterGroupNotFoundError(parameter_group_name)
+        return {
+            "ParameterGroupName": parameter_group_name,
+            "ParameterGroupStatus": "Your parameter group has been updated.",
+        }
+
+    def modify_cluster_snapshot(
+        self,
+        snapshot_identifier: str,
+        manual_snapshot_retention_period: Optional[int] = None,
+        force: bool = False,
+    ) -> Snapshot:
+        if snapshot_identifier not in self.snapshots:
+            raise ClusterSnapshotNotFoundError(snapshot_identifier)
+        return self.snapshots[snapshot_identifier]
+
+    def modify_cluster_subnet_group(
+        self,
+        cluster_subnet_group_name: str,
+        description: Optional[str] = None,
+        subnet_ids: Optional[list[str]] = None,
+    ) -> SubnetGroup:
+        if cluster_subnet_group_name not in self.subnet_groups:
+            raise ClusterSubnetGroupNotFoundError(cluster_subnet_group_name)
+        sg = self.subnet_groups[cluster_subnet_group_name]
+        if description is not None:
+            sg.description = description
+        if subnet_ids is not None:
+            sg.subnet_ids = subnet_ids
+            if not sg.subnets:
+                raise InvalidSubnetError(subnet_ids)
+        return sg
+
+    def modify_aqua_configuration(
+        self, cluster_identifier: str, aqua_configuration_status: Optional[str] = None
+    ) -> dict[str, Any]:
+        if cluster_identifier not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier)
+        return {
+            "AquaConfiguration": {
+                "AquaStatus": "disabled",
+                "AquaConfigurationStatus": aqua_configuration_status or "auto",
+            }
+        }
+
+    def reboot_cluster(self, cluster_identifier: str) -> Cluster:
+        if cluster_identifier not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier)
+        cluster = self.clusters[cluster_identifier]
+        cluster.status = "available"
+        return cluster
+
+    def modify_cluster_db_revision(
+        self, cluster_identifier: str, revision_target: Optional[str] = None
+    ) -> Cluster:
+        if cluster_identifier not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier)
+        return self.clusters[cluster_identifier]
+
+    def modify_cluster_maintenance(
+        self,
+        cluster_identifier: str,
+        defer_maintenance: Optional[bool] = None,
+        defer_maintenance_identifier: Optional[str] = None,
+        defer_maintenance_start_time: Optional[str] = None,
+        defer_maintenance_end_time: Optional[str] = None,
+        defer_maintenance_duration: Optional[int] = None,
+    ) -> Cluster:
+        if cluster_identifier not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier)
+        return self.clusters[cluster_identifier]
+
+    def create_custom_domain_association(
+        self,
+        cluster_identifier: str,
+        custom_domain_name: str,
+        custom_domain_certificate_arn: str,
+    ) -> dict[str, Any]:
+        if cluster_identifier not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier)
+        return {
+            "CustomDomainName": custom_domain_name,
+            "CustomDomainCertificateArn": custom_domain_certificate_arn,
+            "ClusterIdentifier": cluster_identifier,
+            "CustomDomainCertExpiryTime": "2099-12-31T23:59:59Z",
+        }
+
+    def delete_custom_domain_association(
+        self, cluster_identifier: str, custom_domain_name: str
+    ) -> None:
+        if cluster_identifier not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier)
+
+    def modify_custom_domain_association(
+        self,
+        cluster_identifier: str,
+        custom_domain_name: str,
+        custom_domain_certificate_arn: str,
+    ) -> dict[str, Any]:
+        if cluster_identifier not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier)
+        return {
+            "CustomDomainName": custom_domain_name,
+            "CustomDomainCertificateArn": custom_domain_certificate_arn,
+            "ClusterIdentifier": cluster_identifier,
+            "CustomDomainCertExpiryTime": "2099-12-31T23:59:59Z",
+        }
+
+    def authorize_data_share(
+        self, data_share_arn: str, consumer_identifier: str
+    ) -> dict[str, Any]:
+        return {
+            "DataShareArn": data_share_arn,
+            "ProducerArn": data_share_arn,
+            "AllowPubliclyAccessibleConsumers": False,
+            "DataShareAssociations": [
+                {
+                    "ConsumerIdentifier": consumer_identifier,
+                    "Status": "AUTHORIZED",
+                    "ConsumerRegion": self.region_name,
+                }
+            ],
+        }
+
+    def deauthorize_data_share(
+        self, data_share_arn: str, consumer_identifier: str
+    ) -> dict[str, Any]:
+        return {
+            "DataShareArn": data_share_arn,
+            "ProducerArn": data_share_arn,
+            "AllowPubliclyAccessibleConsumers": False,
+            "DataShareAssociations": [
+                {
+                    "ConsumerIdentifier": consumer_identifier,
+                    "Status": "DEAUTHORIZED",
+                    "ConsumerRegion": self.region_name,
+                }
+            ],
+        }
+
+    def reject_data_share(self, data_share_arn: str) -> dict[str, Any]:
+        return {
+            "DataShareArn": data_share_arn,
+            "ProducerArn": data_share_arn,
+            "AllowPubliclyAccessibleConsumers": False,
+            "DataShareAssociations": [],
+        }
+
+    def associate_data_share_consumer(
+        self,
+        data_share_arn: str,
+        associate_entire_account: bool = False,
+        consumer_arn: Optional[str] = None,
+        consumer_region: Optional[str] = None,
+    ) -> dict[str, Any]:
+        return {
+            "DataShareArn": data_share_arn,
+            "ProducerArn": data_share_arn,
+            "AllowPubliclyAccessibleConsumers": False,
+            "DataShareAssociations": [
+                {
+                    "ConsumerIdentifier": consumer_arn or self.account_id,
+                    "Status": "ACTIVE",
+                    "ConsumerRegion": consumer_region or self.region_name,
+                }
+            ],
+        }
+
+    def disassociate_data_share_consumer(
+        self,
+        data_share_arn: str,
+        disassociate_entire_account: bool = False,
+        consumer_arn: Optional[str] = None,
+        consumer_region: Optional[str] = None,
+    ) -> dict[str, Any]:
+        return {
+            "DataShareArn": data_share_arn,
+            "ProducerArn": data_share_arn,
+            "AllowPubliclyAccessibleConsumers": False,
+            "DataShareAssociations": [],
+        }
+
+    def revoke_cluster_security_group_ingress(
+        self, security_group_name: str, cidr_ip: Optional[str] = None
+    ) -> SecurityGroup:
+        security_group = self.security_groups.get(security_group_name)
+        if not security_group:
+            raise ClusterSecurityGroupNotFoundError()
+        if cidr_ip and cidr_ip in security_group.ingress_rules:
+            security_group.ingress_rules.remove(cidr_ip)
+        return security_group
+
+    def modify_cluster_snapshot_schedule(
+        self,
+        cluster_identifier: str,
+        schedule_identifier: Optional[str] = None,
+        disassociate_schedule: bool = False,
+    ) -> None:
+        if cluster_identifier not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier)
+        # Association is not deeply modeled — just validate the cluster exists.
+
     # --- Helper methods ---
 
     def _scheduled_action_to_dict(self, action: ScheduledAction) -> dict[str, Any]:

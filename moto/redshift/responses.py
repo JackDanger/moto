@@ -1103,3 +1103,193 @@ class RedshiftResponse(BaseResponse):
             cluster_identifier=cluster_identifier,
         )
         return ActionResult(result)
+
+    def modify_cluster_parameter_group(self) -> ActionResult:
+        parameter_group_name = self._get_param("ParameterGroupName")
+        parameters = self._get_param("Parameters", [])
+        result = self.redshift_backend.modify_cluster_parameter_group(
+            parameter_group_name=parameter_group_name,
+            parameters=parameters,
+        )
+        return ActionResult(result)
+
+    def reset_cluster_parameter_group(self) -> ActionResult:
+        parameter_group_name = self._get_param("ParameterGroupName")
+        reset_all = self._get_bool_param("ResetAllParameters", True)
+        parameters = self._get_param("Parameters", [])
+        result = self.redshift_backend.reset_cluster_parameter_group(
+            parameter_group_name=parameter_group_name,
+            reset_all_parameters=reset_all,
+            parameters=parameters,
+        )
+        return ActionResult(result)
+
+    def modify_cluster_snapshot(self) -> ActionResult:
+        snapshot_identifier = self._get_param("SnapshotIdentifier")
+        retention = self._get_int_param("ManualSnapshotRetentionPeriod")
+        force = self._get_bool_param("Force", False)
+        snapshot = self.redshift_backend.modify_cluster_snapshot(
+            snapshot_identifier=snapshot_identifier,
+            manual_snapshot_retention_period=retention,
+            force=force,
+        )
+        return ActionResult({"Snapshot": snapshot})
+
+    def modify_cluster_subnet_group(self) -> ActionResult:
+        cluster_subnet_group_name = self._get_param("ClusterSubnetGroupName")
+        description = self._get_param("Description")
+        subnet_ids = self._get_param("SubnetIds", [])
+        subnet_group = self.redshift_backend.modify_cluster_subnet_group(
+            cluster_subnet_group_name=cluster_subnet_group_name,
+            description=description,
+            subnet_ids=subnet_ids if subnet_ids else None,
+        )
+        return ActionResult({"ClusterSubnetGroup": subnet_group})
+
+    def modify_aqua_configuration(self) -> ActionResult:
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        aqua_configuration_status = self._get_param("AquaConfigurationStatus")
+        result = self.redshift_backend.modify_aqua_configuration(
+            cluster_identifier=cluster_identifier,
+            aqua_configuration_status=aqua_configuration_status,
+        )
+        return ActionResult(result)
+
+    def reboot_cluster(self) -> ActionResult:
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        cluster = self.redshift_backend.reboot_cluster(
+            cluster_identifier=cluster_identifier,
+        )
+        return ActionResult({"Cluster": cluster})
+
+    def modify_cluster_db_revision(self) -> ActionResult:
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        revision_target = self._get_param("RevisionTarget")
+        cluster = self.redshift_backend.modify_cluster_db_revision(
+            cluster_identifier=cluster_identifier,
+            revision_target=revision_target,
+        )
+        return ActionResult({"Cluster": cluster})
+
+    def modify_cluster_maintenance(self) -> ActionResult:
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        defer_maintenance = self._get_bool_param("DeferMaintenance")
+        defer_maintenance_identifier = self._get_param("DeferMaintenanceIdentifier")
+        defer_maintenance_start_time = self._get_param("DeferMaintenanceStartTime")
+        defer_maintenance_end_time = self._get_param("DeferMaintenanceEndTime")
+        defer_maintenance_duration = self._get_int_param("DeferMaintenanceDuration")
+        cluster = self.redshift_backend.modify_cluster_maintenance(
+            cluster_identifier=cluster_identifier,
+            defer_maintenance=defer_maintenance,
+            defer_maintenance_identifier=defer_maintenance_identifier,
+            defer_maintenance_start_time=defer_maintenance_start_time,
+            defer_maintenance_end_time=defer_maintenance_end_time,
+            defer_maintenance_duration=defer_maintenance_duration,
+        )
+        return ActionResult({"Cluster": cluster})
+
+    def create_custom_domain_association(self) -> ActionResult:
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        custom_domain_name = self._get_param("CustomDomainName")
+        custom_domain_certificate_arn = self._get_param("CustomDomainCertificateArn")
+        result = self.redshift_backend.create_custom_domain_association(
+            cluster_identifier=cluster_identifier,
+            custom_domain_name=custom_domain_name,
+            custom_domain_certificate_arn=custom_domain_certificate_arn,
+        )
+        return ActionResult(result)
+
+    def delete_custom_domain_association(self) -> ActionResult:
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        custom_domain_name = self._get_param("CustomDomainName")
+        self.redshift_backend.delete_custom_domain_association(
+            cluster_identifier=cluster_identifier,
+            custom_domain_name=custom_domain_name,
+        )
+        return EmptyResult()
+
+    def modify_custom_domain_association(self) -> ActionResult:
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        custom_domain_name = self._get_param("CustomDomainName")
+        custom_domain_certificate_arn = self._get_param("CustomDomainCertificateArn")
+        result = self.redshift_backend.modify_custom_domain_association(
+            cluster_identifier=cluster_identifier,
+            custom_domain_name=custom_domain_name,
+            custom_domain_certificate_arn=custom_domain_certificate_arn,
+        )
+        return ActionResult(result)
+
+    def authorize_data_share(self) -> ActionResult:
+        data_share_arn = self._get_param("DataShareArn")
+        consumer_identifier = self._get_param("ConsumerIdentifier")
+        result = self.redshift_backend.authorize_data_share(
+            data_share_arn=data_share_arn,
+            consumer_identifier=consumer_identifier,
+        )
+        return ActionResult(result)
+
+    def deauthorize_data_share(self) -> ActionResult:
+        data_share_arn = self._get_param("DataShareArn")
+        consumer_identifier = self._get_param("ConsumerIdentifier")
+        result = self.redshift_backend.deauthorize_data_share(
+            data_share_arn=data_share_arn,
+            consumer_identifier=consumer_identifier,
+        )
+        return ActionResult(result)
+
+    def reject_data_share(self) -> ActionResult:
+        data_share_arn = self._get_param("DataShareArn")
+        result = self.redshift_backend.reject_data_share(
+            data_share_arn=data_share_arn,
+        )
+        return ActionResult(result)
+
+    def associate_data_share_consumer(self) -> ActionResult:
+        data_share_arn = self._get_param("DataShareArn")
+        associate_entire_account = self._get_bool_param(
+            "AssociateEntireAccount", False
+        )
+        consumer_arn = self._get_param("ConsumerArn")
+        consumer_region = self._get_param("ConsumerRegion")
+        result = self.redshift_backend.associate_data_share_consumer(
+            data_share_arn=data_share_arn,
+            associate_entire_account=associate_entire_account,
+            consumer_arn=consumer_arn,
+            consumer_region=consumer_region,
+        )
+        return ActionResult(result)
+
+    def disassociate_data_share_consumer(self) -> ActionResult:
+        data_share_arn = self._get_param("DataShareArn")
+        disassociate_entire_account = self._get_bool_param(
+            "DisassociateEntireAccount", False
+        )
+        consumer_arn = self._get_param("ConsumerArn")
+        consumer_region = self._get_param("ConsumerRegion")
+        result = self.redshift_backend.disassociate_data_share_consumer(
+            data_share_arn=data_share_arn,
+            disassociate_entire_account=disassociate_entire_account,
+            consumer_arn=consumer_arn,
+            consumer_region=consumer_region,
+        )
+        return ActionResult(result)
+
+    def revoke_cluster_security_group_ingress(self) -> ActionResult:
+        security_group_name = self._get_param("ClusterSecurityGroupName")
+        cidr_ip = self._get_param("CIDRIP")
+        security_group = self.redshift_backend.revoke_cluster_security_group_ingress(
+            security_group_name=security_group_name,
+            cidr_ip=cidr_ip,
+        )
+        return ActionResult({"ClusterSecurityGroup": security_group})
+
+    def modify_cluster_snapshot_schedule(self) -> ActionResult:
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        schedule_identifier = self._get_param("ScheduleIdentifier")
+        disassociate = self._get_bool_param("DisassociateSchedule", False)
+        self.redshift_backend.modify_cluster_snapshot_schedule(
+            cluster_identifier=cluster_identifier,
+            schedule_identifier=schedule_identifier,
+            disassociate_schedule=disassociate,
+        )
+        return EmptyResult()

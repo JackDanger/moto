@@ -1312,6 +1312,86 @@ class CloudFormationBackend(BaseBackend):
     def validate_template(self, template: str) -> list[Any]:
         return validate_template_cfn_lint(template)
 
+    def update_termination_protection(
+        self, stack_name: str, enable_termination_protection: bool
+    ) -> Stack:
+        stack = self.get_stack(stack_name)
+        stack.enable_termination_protection = enable_termination_protection
+        return stack
+
+    def continue_update_rollback(self, stack_name: str) -> Stack:
+        stack = self.get_stack(stack_name)
+        stack.status = "UPDATE_ROLLBACK_COMPLETE"
+        stack._add_stack_event("UPDATE_ROLLBACK_COMPLETE")
+        return stack
+
+    def rollback_stack(self, stack_name: str) -> Stack:
+        stack = self.get_stack(stack_name)
+        stack.status = "ROLLBACK_COMPLETE"
+        stack._add_stack_event(
+            "ROLLBACK_COMPLETE", resource_status_reason="Rollback requested"
+        )
+        return stack
+
+    def signal_resource(
+        self,
+        stack_name: str,
+        logical_resource_id: str,
+        unique_id: str,
+        status: str,
+    ) -> None:
+        # Signal is a no-op in the emulator — real AWS uses it for
+        # WaitCondition / CreationPolicy counters.
+        self.get_stack(stack_name)
+
+    def detect_stack_drift(self, stack_name: str) -> str:
+        self.get_stack(stack_name)
+        return str(mock_random.uuid4())
+
+    def detect_stack_resource_drift(
+        self, stack_name: str, logical_resource_id: str
+    ) -> dict[str, Any]:
+        self.get_stack(stack_name)
+        return {
+            "StackResourceDriftStatus": "IN_SYNC",
+            "StackId": stack_name,
+            "LogicalResourceId": logical_resource_id,
+            "ResourceType": "AWS::CloudFormation::WaitConditionHandle",
+            "Timestamp": iso_8601_datetime_with_milliseconds(utcnow()),
+        }
+
+    def describe_stack_drift_detection_status(
+        self, stack_drift_detection_id: str
+    ) -> dict[str, Any]:
+        return {
+            "StackId": "",
+            "StackDriftDetectionId": stack_drift_detection_id,
+            "StackDriftStatus": "IN_SYNC",
+            "DetectionStatus": "DETECTION_COMPLETE",
+            "DriftedStackResourceCount": 0,
+            "Timestamp": iso_8601_datetime_with_milliseconds(utcnow()),
+        }
+
+    def describe_stack_resource_drifts(
+        self, stack_name: str
+    ) -> list[dict[str, Any]]:
+        self.get_stack(stack_name)
+        return []
+
+    def import_stacks_to_stack_set(
+        self,
+        stack_set_name: str,
+        stack_ids: list[str],
+    ) -> str:
+        stackset = self.describe_stack_set(stack_set_name)
+        operation_id = str(mock_random.uuid4())
+        stackset._create_operation(
+            operation_id=operation_id,
+            action="IMPORT",
+            status="SUCCEEDED",
+        )
+        return operation_id
+
     def _validate_export_uniqueness(self, stack: Stack) -> None:
         new_stack_export_names = [x.name for x in stack.exports]
         export_names = self.exports.keys()
