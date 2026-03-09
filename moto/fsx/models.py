@@ -291,6 +291,76 @@ class FSxBackend(BaseBackend):
             backups = filter_resources(backups, filter_dict, attr_pairs)
         return backups
 
+    def describe_volumes(
+        self,
+        volume_ids: Optional[list[str]] = None,
+        filters: Optional[list[dict[str, Any]]] = None,
+    ) -> list[dict[str, Any]]:
+        """Describe volumes — returns empty list (volumes not stored yet)."""
+        return []
+
+    def describe_storage_virtual_machines(
+        self,
+        storage_virtual_machine_ids: Optional[list[str]] = None,
+        filters: Optional[list[dict[str, Any]]] = None,
+    ) -> list[dict[str, Any]]:
+        """Describe storage virtual machines — returns empty list."""
+        return []
+
+    def describe_data_repository_associations(
+        self,
+        association_ids: Optional[list[str]] = None,
+        filters: Optional[list[dict[str, Any]]] = None,
+    ) -> list[dict[str, Any]]:
+        """Describe data repository associations — returns empty list."""
+        return []
+
+    def describe_data_repository_tasks(
+        self,
+        task_ids: Optional[list[str]] = None,
+        filters: Optional[list[dict[str, Any]]] = None,
+    ) -> list[dict[str, Any]]:
+        """Describe data repository tasks — returns empty list."""
+        return []
+
+    def describe_file_caches(
+        self,
+        file_cache_ids: Optional[list[str]] = None,
+    ) -> list[dict[str, Any]]:
+        """Describe file caches — returns empty list."""
+        return []
+
+    def describe_file_system_aliases(
+        self,
+        file_system_id: str,
+    ) -> list[dict[str, Any]]:
+        """Describe file system aliases — returns empty list."""
+        if file_system_id not in self.file_systems:
+            raise ResourceNotFoundException(
+                msg=f"FSx resource, {file_system_id} does not exist"
+            )
+        return []
+
+    def describe_shared_vpc_configuration(self) -> dict[str, str]:
+        """Describe shared VPC configuration."""
+        return {"EnableFsxRouteTableUpdatesFromParticipantAccounts": "false"}
+
+    def describe_snapshots(
+        self,
+        snapshot_ids: Optional[list[str]] = None,
+        filters: Optional[list[dict[str, Any]]] = None,
+    ) -> list[dict[str, Any]]:
+        """Describe snapshots — returns empty list."""
+        return []
+
+    def describe_s3_access_point_attachments(
+        self,
+        file_system_id: Optional[str] = None,
+        filters: Optional[list[dict[str, Any]]] = None,
+    ) -> list[dict[str, Any]]:
+        """Describe S3 access point attachments — returns empty list."""
+        return []
+
     def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
         self.tagger.tag_resource(resource_arn, tags)
 

@@ -135,6 +135,82 @@ class FSxResponse(BaseResponse):
         list_backups = [backup.to_dict() for backup in backups]
         return json.dumps({"Backups": list_backups, "NextToken": next_token})
 
+    def describe_volumes(self) -> str:
+        params = json.loads(self.body)
+        volume_ids = params.get("VolumeIds")
+        filters = params.get("Filters")
+        volumes = self.fsx_backend.describe_volumes(
+            volume_ids=volume_ids, filters=filters
+        )
+        return json.dumps({"Volumes": volumes, "NextToken": None})
+
+    def describe_storage_virtual_machines(self) -> str:
+        params = json.loads(self.body)
+        svm_ids = params.get("StorageVirtualMachineIds")
+        filters = params.get("Filters")
+        svms = self.fsx_backend.describe_storage_virtual_machines(
+            storage_virtual_machine_ids=svm_ids, filters=filters
+        )
+        return json.dumps({"StorageVirtualMachines": svms, "NextToken": None})
+
+    def describe_data_repository_associations(self) -> str:
+        params = json.loads(self.body)
+        association_ids = params.get("AssociationIds")
+        filters = params.get("Filters")
+        associations = self.fsx_backend.describe_data_repository_associations(
+            association_ids=association_ids, filters=filters
+        )
+        return json.dumps({"Associations": associations, "NextToken": None})
+
+    def describe_data_repository_tasks(self) -> str:
+        params = json.loads(self.body)
+        task_ids = params.get("TaskIds")
+        filters = params.get("Filters")
+        tasks = self.fsx_backend.describe_data_repository_tasks(
+            task_ids=task_ids, filters=filters
+        )
+        return json.dumps({"DataRepositoryTasks": tasks, "NextToken": None})
+
+    def describe_file_caches(self) -> str:
+        params = json.loads(self.body)
+        file_cache_ids = params.get("FileCacheIds")
+        caches = self.fsx_backend.describe_file_caches(
+            file_cache_ids=file_cache_ids
+        )
+        return json.dumps({"FileCaches": caches, "NextToken": None})
+
+    def describe_file_system_aliases(self) -> str:
+        params = json.loads(self.body)
+        file_system_id = params.get("FileSystemId")
+        aliases = self.fsx_backend.describe_file_system_aliases(
+            file_system_id=file_system_id
+        )
+        return json.dumps({"Aliases": aliases, "NextToken": None})
+
+    def describe_shared_vpc_configuration(self) -> str:
+        config = self.fsx_backend.describe_shared_vpc_configuration()
+        return json.dumps(config)
+
+    def describe_snapshots(self) -> str:
+        params = json.loads(self.body)
+        snapshot_ids = params.get("SnapshotIds")
+        filters = params.get("Filters")
+        snapshots = self.fsx_backend.describe_snapshots(
+            snapshot_ids=snapshot_ids, filters=filters
+        )
+        return json.dumps({"Snapshots": snapshots, "NextToken": None})
+
+    def describe_s3_access_point_attachments(self) -> str:
+        params = json.loads(self.body)
+        file_system_id = params.get("FileSystemId")
+        filters = params.get("Filters")
+        attachments = self.fsx_backend.describe_s3_access_point_attachments(
+            file_system_id=file_system_id, filters=filters
+        )
+        return json.dumps(
+            {"S3AccessPointAttachments": attachments, "NextToken": None}
+        )
+
     def tag_resource(self) -> TYPE_RESPONSE:
         params = json.loads(self.body)
         resource_arn = params.get("ResourceARN")

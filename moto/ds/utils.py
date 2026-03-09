@@ -35,6 +35,57 @@ PAGINATION_MODEL = {
         "limit_default": 100,
         "unique_attribute": "Name",
     },
+    "describe_domain_controllers": {
+        "input_token": "next_token",
+        "limit_key": "limit",
+        "limit_default": 100,
+        "unique_attribute": "DomainControllerId",
+    },
+    "describe_conditional_forwarders": {
+        "input_token": "next_token",
+        "limit_key": "limit",
+        "limit_default": 100,
+    },
+    "describe_snapshots": {
+        "input_token": "next_token",
+        "limit_key": "limit",
+        "limit_default": 100,
+    },
+    "describe_shared_directories": {
+        "input_token": "next_token",
+        "limit_key": "limit",
+        "limit_default": 100,
+    },
+    "describe_regions": {
+        "input_token": "next_token",
+        "limit_key": "limit",
+        "limit_default": 100,
+    },
+    "describe_event_topics": {
+        "input_token": "next_token",
+        "limit_key": "limit",
+        "limit_default": 100,
+    },
+    "describe_client_authentication_settings": {
+        "input_token": "next_token",
+        "limit_key": "limit",
+        "limit_default": 100,
+    },
+    "describe_update_directory": {
+        "input_token": "next_token",
+        "limit_key": "limit",
+        "limit_default": 100,
+    },
+    "list_ip_routes": {
+        "input_token": "next_token",
+        "limit_key": "limit",
+        "limit_default": 100,
+    },
+    "list_schema_extensions": {
+        "input_token": "next_token",
+        "limit_key": "limit",
+        "limit_default": 100,
+    },
 }
 
 # List of directory security settings

@@ -755,6 +755,178 @@ class DirectoryServiceBackend(BaseBackend):
 
         return directory_id
 
+    def describe_ad_assessment(
+        self, assessment_id: str
+    ) -> dict[str, Any]:
+        """Describe an AD assessment — raises not found."""
+        raise EntityDoesNotExistException(
+            f"Assessment {assessment_id} does not exist"
+        )
+
+    def describe_ca_enrollment_policy(
+        self, directory_id: str
+    ) -> dict[str, Any]:
+        """Describe CA enrollment policy — returns disabled state."""
+        self._validate_directory_id(directory_id)
+        return {
+            "DirectoryId": directory_id,
+            "CaEnrollmentPolicyStatus": "Disabled",
+        }
+
+    def describe_conditional_forwarders(
+        self, directory_id: str, remote_domain_names: Optional[list[str]]
+    ) -> list[dict[str, Any]]:
+        """Describe conditional forwarders for a directory."""
+        self._validate_directory_id(directory_id)
+        # Conditional forwarders are not stored yet — return empty list
+        return []
+
+    def describe_domain_controllers(
+        self, directory_id: str, domain_controller_ids: Optional[list[str]]
+    ) -> list[dict[str, Any]]:
+        """Describe domain controllers for a directory."""
+        self._validate_directory_id(directory_id)
+        directory = self.directories[directory_id]
+        # Generate two fake domain controllers for Microsoft AD directories
+        if directory.directory_type != "MicrosoftAD":
+            raise UnsupportedOperationException(
+                "Domain controllers are not supported for this Directory Type."
+            )
+        controllers = []
+        for i, subnet_ip in enumerate(directory.dns_ip_addrs):
+            dc_id = f"{directory_id}-dc-{mock_random.get_random_hex(8)}-{i}"
+            vpc_id = directory.vpc_settings["VpcId"] if directory.vpc_settings else ""
+            subnet_id = (
+                directory.vpc_settings["SubnetIds"][i]
+                if directory.vpc_settings and i < len(directory.vpc_settings["SubnetIds"])
+                else ""
+            )
+            az = (
+                directory.vpc_settings["AvailabilityZones"][i]
+                if directory.vpc_settings
+                and "AvailabilityZones" in directory.vpc_settings
+                and i < len(directory.vpc_settings["AvailabilityZones"])
+                else f"{self.region_name}a"
+            )
+            controllers.append(
+                {
+                    "DirectoryId": directory_id,
+                    "DomainControllerId": dc_id,
+                    "DnsIpAddr": subnet_ip,
+                    "VpcId": vpc_id,
+                    "SubnetId": subnet_id,
+                    "AvailabilityZone": az,
+                    "Status": "Active",
+                    "StatusReason": "",
+                    "LaunchTime": directory.launch_time,
+                    "StatusLastUpdatedDateTime": directory.stage_last_updated_date_time,
+                }
+            )
+        if domain_controller_ids:
+            controllers = [
+                c for c in controllers if c["DomainControllerId"] in domain_controller_ids
+            ]
+        return controllers
+
+    def describe_event_topics(
+        self, directory_id: Optional[str], topic_names: Optional[list[str]]
+    ) -> list[dict[str, Any]]:
+        """Describe event topics — returns empty list (no topics registered)."""
+        if directory_id:
+            self._validate_directory_id(directory_id)
+        return []
+
+    def describe_snapshots(
+        self, directory_id: Optional[str], snapshot_ids: Optional[list[str]]
+    ) -> list[dict[str, Any]]:
+        """Describe snapshots — returns empty list (no snapshots created)."""
+        if directory_id:
+            self._validate_directory_id(directory_id)
+        return []
+
+    def describe_shared_directories(
+        self, owner_directory_id: str, shared_directory_ids: Optional[list[str]]
+    ) -> list[dict[str, Any]]:
+        """Describe shared directories — returns empty list."""
+        self._validate_directory_id(owner_directory_id)
+        return []
+
+    def describe_regions(
+        self, directory_id: str, region_name: Optional[str]
+    ) -> list[dict[str, Any]]:
+        """Describe regions for a directory."""
+        self._validate_directory_id(directory_id)
+        directory = self.directories[directory_id]
+        vpc_id = ""
+        subnet_ids: list[str] = []
+        if directory.vpc_settings:
+            vpc_id = directory.vpc_settings.get("VpcId", "")
+            subnet_ids = directory.vpc_settings.get("SubnetIds", [])
+        elif directory.connect_settings:
+            vpc_id = directory.connect_settings.get("VpcId", "")
+            subnet_ids = directory.connect_settings.get("SubnetIds", [])
+        regions_info = [
+            {
+                "DirectoryId": directory_id,
+                "RegionName": self.region_name,
+                "RegionType": "Primary",
+                "Status": "Active",
+                "VpcSettings": {
+                    "VpcId": vpc_id,
+                    "SubnetIds": subnet_ids,
+                },
+                "DesiredNumberOfDomainControllers": directory.desired_number_of_domain_controllers,
+                "LaunchTime": directory.launch_time,
+                "StatusLastUpdatedDateTime": directory.stage_last_updated_date_time,
+                "LastUpdatedDateTime": directory.stage_last_updated_date_time,
+            }
+        ]
+        if region_name:
+            regions_info = [r for r in regions_info if r["RegionName"] == region_name]
+        return regions_info
+
+    def describe_client_authentication_settings(
+        self, directory_id: str, type: Optional[str]
+    ) -> list[dict[str, Any]]:
+        """Describe client authentication settings — returns empty list."""
+        self._validate_directory_id(directory_id)
+        return []
+
+    def describe_update_directory(
+        self, directory_id: str, update_type: Optional[str]
+    ) -> list[dict[str, Any]]:
+        """Describe update directory activities — returns empty list."""
+        self._validate_directory_id(directory_id)
+        return []
+
+    def describe_certificate(
+        self, directory_id: str, certificate_id: str
+    ) -> dict[str, Any]:
+        """Describe a certificate — raises not found."""
+        self._validate_directory_id(directory_id)
+        raise EntityDoesNotExistException(
+            f"Certificate {certificate_id} does not exist"
+        )
+
+    def get_snapshot_limits(self, directory_id: str) -> dict[str, Any]:
+        """Return snapshot limits for a directory."""
+        self._validate_directory_id(directory_id)
+        return {
+            "ManualSnapshotsLimit": 5,
+            "ManualSnapshotsCurrentCount": 0,
+            "ManualSnapshotsLimitReached": False,
+        }
+
+    def list_ip_routes(self, directory_id: str) -> list[dict[str, Any]]:
+        """List IP routes — returns empty list."""
+        self._validate_directory_id(directory_id)
+        return []
+
+    def list_schema_extensions(self, directory_id: str) -> list[dict[str, Any]]:
+        """List schema extensions — returns empty list."""
+        self._validate_directory_id(directory_id)
+        return []
+
     def create_log_subscription(self, directory_id: str, log_group_name: str) -> None:
         self._validate_directory_id(directory_id)
         log_subscription = LogSubscription(directory_id, log_group_name)

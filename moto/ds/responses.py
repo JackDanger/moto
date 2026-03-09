@@ -268,6 +268,132 @@ class DirectoryServiceResponse(BaseResponse):
         )
         return json.dumps({"DirectoryId": directory_id})
 
+    def describe_ad_assessment(self) -> str:
+        assessment_id = self._get_param("AssessmentId")
+        assessment = self.ds_backend.describe_ad_assessment(
+            assessment_id=assessment_id,
+        )
+        return json.dumps({"Assessment": assessment})
+
+    def describe_ca_enrollment_policy(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        policy = self.ds_backend.describe_ca_enrollment_policy(
+            directory_id=directory_id,
+        )
+        return json.dumps(policy)
+
+    def describe_conditional_forwarders(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        remote_domain_names = self._get_param("RemoteDomainNames")
+        forwarders = self.ds_backend.describe_conditional_forwarders(
+            directory_id=directory_id,
+            remote_domain_names=remote_domain_names,
+        )
+        return json.dumps({"ConditionalForwarders": forwarders})
+
+    def describe_domain_controllers(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        domain_controller_ids = self._get_param("DomainControllerIds")
+        next_token = self._get_param("NextToken")
+        limit = self._get_param("Limit")
+        controllers = self.ds_backend.describe_domain_controllers(
+            directory_id=directory_id,
+            domain_controller_ids=domain_controller_ids,
+        )
+        return json.dumps({"DomainControllers": controllers, "NextToken": None})
+
+    def describe_event_topics(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        topic_names = self._get_param("TopicNames")
+        topics = self.ds_backend.describe_event_topics(
+            directory_id=directory_id,
+            topic_names=topic_names,
+        )
+        return json.dumps({"EventTopics": topics})
+
+    def describe_snapshots(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        snapshot_ids = self._get_param("SnapshotIds")
+        next_token = self._get_param("NextToken")
+        limit = self._get_param("Limit")
+        snapshots = self.ds_backend.describe_snapshots(
+            directory_id=directory_id,
+            snapshot_ids=snapshot_ids,
+        )
+        return json.dumps({"Snapshots": snapshots, "NextToken": None})
+
+    def describe_shared_directories(self) -> str:
+        owner_directory_id = self._get_param("OwnerDirectoryId")
+        shared_directory_ids = self._get_param("SharedDirectoryIds")
+        next_token = self._get_param("NextToken")
+        limit = self._get_param("Limit")
+        shared_dirs = self.ds_backend.describe_shared_directories(
+            owner_directory_id=owner_directory_id,
+            shared_directory_ids=shared_directory_ids,
+        )
+        return json.dumps({"SharedDirectories": shared_dirs, "NextToken": None})
+
+    def describe_regions(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        region_name = self._get_param("RegionName")
+        next_token = self._get_param("NextToken")
+        regions = self.ds_backend.describe_regions(
+            directory_id=directory_id,
+            region_name=region_name,
+        )
+        return json.dumps({"RegionsDescription": regions, "NextToken": None})
+
+    def describe_client_authentication_settings(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        type_param = self._get_param("Type")
+        next_token = self._get_param("NextToken")
+        limit = self._get_param("Limit")
+        settings = self.ds_backend.describe_client_authentication_settings(
+            directory_id=directory_id,
+            type=type_param,
+        )
+        return json.dumps(
+            {"ClientAuthenticationSettingsInfo": settings, "NextToken": None}
+        )
+
+    def describe_update_directory(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        update_type = self._get_param("UpdateType")
+        next_token = self._get_param("NextToken")
+        updates = self.ds_backend.describe_update_directory(
+            directory_id=directory_id,
+            update_type=update_type,
+        )
+        return json.dumps({"UpdateActivities": updates, "NextToken": None})
+
+    def describe_certificate(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        certificate_id = self._get_param("CertificateId")
+        certificate = self.ds_backend.describe_certificate(
+            directory_id=directory_id,
+            certificate_id=certificate_id,
+        )
+        return json.dumps({"Certificate": certificate})
+
+    def get_snapshot_limits(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        limits = self.ds_backend.get_snapshot_limits(directory_id=directory_id)
+        return json.dumps({"SnapshotLimits": limits})
+
+    def list_ip_routes(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        next_token = self._get_param("NextToken")
+        limit = self._get_param("Limit")
+        routes = self.ds_backend.list_ip_routes(directory_id=directory_id)
+        return json.dumps({"IpRoutesInfo": routes, "NextToken": None})
+
+    def list_schema_extensions(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        next_token = self._get_param("NextToken")
+        limit = self._get_param("Limit")
+        extensions = self.ds_backend.list_schema_extensions(directory_id=directory_id)
+        return json.dumps({"SchemaExtensionsInfo": extensions, "NextToken": None})
+
     def create_log_subscription(self) -> str:
         directory_id = self._get_param("DirectoryId")
         log_group_name = self._get_param("LogGroupName")
