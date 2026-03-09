@@ -176,7 +176,8 @@ class GlacierResponse(BaseResponse):
         vault_name = self._vault_name_from_path()
         body_bytes = self.body if isinstance(self.body, bytes) else self.body.encode("utf-8")
         json_body = json.loads(body_bytes)
-        config = json_body.get("vaultNotificationConfig", json_body)
+        # The body IS the vaultNotificationConfig payload directly
+        config = json_body
         self.glacier_backend.set_vault_notifications(vault_name, config)
         return 204, {"status": 204}, ""
 
@@ -184,7 +185,8 @@ class GlacierResponse(BaseResponse):
         vault_name = self._vault_name_from_path()
         config = self.glacier_backend.get_vault_notifications(vault_name)
         headers = {"content-type": "application/json"}
-        return 200, headers, json.dumps({"vaultNotificationConfig": config})
+        # Body IS the vaultNotificationConfig payload directly
+        return 200, headers, json.dumps(config)
 
     def delete_vault_notifications(self) -> TYPE_RESPONSE:
         vault_name = self._vault_name_from_path()
@@ -197,8 +199,8 @@ class GlacierResponse(BaseResponse):
         vault_name = self._vault_name_from_path()
         body_bytes = self.body if isinstance(self.body, bytes) else self.body.encode("utf-8")
         json_body = json.loads(body_bytes)
-        policy_obj = json_body.get("policy", json_body)
-        policy_str = policy_obj.get("Policy", "") if isinstance(policy_obj, dict) else str(policy_obj)
+        # Body is the VaultAccessPolicy struct directly: {"Policy": "..."}
+        policy_str = json_body.get("Policy", "")
         self.glacier_backend.set_vault_access_policy(vault_name, policy_str)
         return 204, {"status": 204}, ""
 
@@ -206,7 +208,8 @@ class GlacierResponse(BaseResponse):
         vault_name = self._vault_name_from_path()
         policy = self.glacier_backend.get_vault_access_policy(vault_name)
         headers = {"content-type": "application/json"}
-        return 200, headers, json.dumps({"policy": {"Policy": policy}})
+        # Body IS the VaultAccessPolicy payload directly: {"Policy": "..."}
+        return 200, headers, json.dumps({"Policy": policy})
 
     def delete_vault_access_policy(self) -> TYPE_RESPONSE:
         vault_name = self._vault_name_from_path()
@@ -219,6 +222,7 @@ class GlacierResponse(BaseResponse):
         vault_name = self._vault_name_from_path()
         body_bytes = self.body if isinstance(self.body, bytes) else self.body.encode("utf-8")
         json_body = json.loads(body_bytes)
+        # Body is VaultLockPolicy payload directly: {"Policy": "..."}
         lock_id = self.glacier_backend.initiate_vault_lock(vault_name, json_body)
         headers = {
             "x-amz-lock-id": lock_id,
@@ -230,7 +234,15 @@ class GlacierResponse(BaseResponse):
         vault_name = self._vault_name_from_path()
         lock = self.glacier_backend.get_vault_lock(vault_name)
         headers = {"content-type": "application/json"}
-        return 200, headers, json.dumps(lock)
+        # Only return the fields specified in the output shape
+        result = {
+            "Policy": lock.get("Policy", ""),
+            "State": lock.get("State", ""),
+            "CreationDate": lock.get("CreationDate", ""),
+        }
+        if "ExpirationDate" in lock:
+            result["ExpirationDate"] = lock["ExpirationDate"]
+        return 200, headers, json.dumps(result)
 
     def complete_vault_lock(self) -> TYPE_RESPONSE:
         vault_name = self._vault_name_from_path()

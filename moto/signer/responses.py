@@ -1,7 +1,6 @@
 """Handles incoming signer requests, invokes methods, returns responses."""
 
 import json
-from typing import Any
 from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
@@ -86,79 +85,7 @@ class SignerResponse(BaseResponse):
         self.signer_backend.untag_resource(resource_arn, tag_keys)  # type: ignore
         return "{}"
 
-    def tags(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "GET":
-            return self.list_tags_for_resource()
-        if request.method == "POST":
-            return self.tag_resource()
-        if request.method == "DELETE":
-            return self.untag_resource()
-
-    def signing_jobs(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "POST":
-            return self._start_signing_job()
-        if request.method == "GET":
-            return self._list_signing_jobs()
-
-    def signing_job(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "GET":
-            return self._describe_signing_job()
-
-    def signing_job_revoke(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "PUT":
-            return self._revoke_signature()
-
-    def signing_profile_revoke(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "PUT":
-            return self._revoke_signing_profile()
-
-    def signing_profiles(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "GET":
-            return self.list_signing_profiles()
-
-    def signing_profile(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "GET":
-            return self.get_signing_profile()
-        if request.method == "PUT":
-            return self.put_signing_profile()
-        if request.method == "DELETE":
-            return self.cancel_signing_profile()
-
-    def signing_platform(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "GET":
-            return self.get_signing_platform()
-
-    def profile_permissions(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "POST":
-            return self._add_profile_permission()
-        if request.method == "GET":
-            return self._list_profile_permissions()
-
-    def profile_permission(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "DELETE":
-            return self._remove_profile_permission()
-
-    def sign_payload(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "POST":
-            return self._sign_payload()
-
-    def revocations(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[return]
-        self.setup_class(request, full_url, headers)
-        if request.method == "GET":
-            return self._get_revocation_status()
-
-    def _start_signing_job(self) -> str:
+    def start_signing_job(self) -> str:
         params = json.loads(self.body)
         source = params.get("source", {})
         destination = params.get("destination", {})
@@ -175,19 +102,23 @@ class SignerResponse(BaseResponse):
         )
         return json.dumps({"jobId": job.job_id, "jobOwner": job.job_owner})
 
-    def _describe_signing_job(self) -> str:
+    def describe_signing_job(self) -> str:
         job_id = self.path.split("/")[-1]
         job = self.signer_backend.describe_signing_job(job_id=job_id)
         return json.dumps(job.to_dict(full=True))
 
-    def _list_signing_jobs(self) -> str:
+    def list_signing_jobs(self) -> str:
         status = self._get_param("status")
         platform_id = self._get_param("platformId")
         requested_by = self._get_param("requestedBy")
         is_revoked_str = self._get_param("isRevoked")
         is_revoked = None
         if is_revoked_str is not None:
-            is_revoked = is_revoked_str.lower() == "true" if isinstance(is_revoked_str, str) else bool(is_revoked_str)
+            is_revoked = (
+                is_revoked_str.lower() == "true"
+                if isinstance(is_revoked_str, str)
+                else bool(is_revoked_str)
+            )
 
         jobs = self.signer_backend.list_signing_jobs(
             status=status,
@@ -197,7 +128,7 @@ class SignerResponse(BaseResponse):
         )
         return json.dumps({"jobs": [j.to_dict(full=False) for j in jobs]})
 
-    def _revoke_signature(self) -> str:
+    def revoke_signature(self) -> str:
         parts = self.path.split("/")
         # path: /signing-jobs/{jobId}/revoke
         job_id = parts[-2]
@@ -212,7 +143,7 @@ class SignerResponse(BaseResponse):
         )
         return "{}"
 
-    def _revoke_signing_profile(self) -> str:
+    def revoke_signing_profile(self) -> str:
         parts = self.path.split("/")
         # path: /signing-profiles/{profileName}/revoke
         profile_name = parts[-2]
@@ -229,7 +160,7 @@ class SignerResponse(BaseResponse):
         )
         return "{}"
 
-    def _add_profile_permission(self) -> str:
+    def add_profile_permission(self) -> str:
         parts = self.path.split("/")
         # path: /signing-profiles/{profileName}/permissions
         profile_name = parts[-2]
@@ -250,14 +181,14 @@ class SignerResponse(BaseResponse):
         )
         return json.dumps({"revisionId": new_revision_id})
 
-    def _list_profile_permissions(self) -> str:
+    def list_profile_permissions(self) -> str:
         parts = self.path.split("/")
         # path: /signing-profiles/{profileName}/permissions
         profile_name = parts[-2]
         result = self.signer_backend.list_profile_permissions(profile_name=profile_name)
         return json.dumps(result)
 
-    def _remove_profile_permission(self) -> str:
+    def remove_profile_permission(self) -> str:
         parts = self.path.split("/")
         # path: /signing-profiles/{profileName}/permissions/{statementId}
         statement_id = parts[-1]
@@ -271,7 +202,7 @@ class SignerResponse(BaseResponse):
         )
         return json.dumps({"revisionId": new_revision_id})
 
-    def _sign_payload(self) -> str:
+    def sign_payload(self) -> str:
         params = json.loads(self.body)
         profile_name = params.get("profileName", "")
         profile_owner = params.get("profileOwner")
@@ -286,7 +217,7 @@ class SignerResponse(BaseResponse):
         )
         return json.dumps(result)
 
-    def _get_revocation_status(self) -> str:
+    def get_revocation_status(self) -> str:
         signature_timestamp = self._get_param("signatureTimestamp") or ""
         platform_id = self._get_param("platformId") or ""
         profile_version_arn = self._get_param("profileVersionArn") or ""
