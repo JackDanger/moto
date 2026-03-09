@@ -94,6 +94,150 @@ class Trust(BaseModel):
         }
 
 
+class ConditionalForwarder(BaseModel):
+    def __init__(
+        self,
+        directory_id: str,
+        remote_domain_name: str,
+        dns_ip_addrs: list[str],
+    ) -> None:
+        self.directory_id = directory_id
+        self.remote_domain_name = remote_domain_name
+        self.dns_ip_addrs = dns_ip_addrs
+        self.replication_scope = "Domain"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "RemoteDomainName": self.remote_domain_name,
+            "DnsIpAddrs": self.dns_ip_addrs,
+            "ReplicationScope": self.replication_scope,
+        }
+
+
+class Snapshot(BaseModel):
+    def __init__(self, directory_id: str, name: Optional[str] = None) -> None:
+        self.snapshot_id = f"s-{mock_random.get_random_hex(10)}"
+        self.directory_id = directory_id
+        self.name = name or ""
+        self.status = "Completed"
+        self.type = "Manual"
+        self.start_time = unix_time()
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "SnapshotId": self.snapshot_id,
+            "DirectoryId": self.directory_id,
+            "Name": self.name,
+            "Status": self.status,
+            "Type": self.type,
+            "StartTime": self.start_time,
+        }
+
+
+class EventTopic(BaseModel):
+    def __init__(self, directory_id: str, topic_name: str, sns_topic_arn: str) -> None:
+        self.directory_id = directory_id
+        self.topic_name = topic_name
+        self.sns_topic_arn = sns_topic_arn
+        self.created_date_time = unix_time()
+        self.status = "Registered"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "DirectoryId": self.directory_id,
+            "TopicName": self.topic_name,
+            "TopicArn": self.sns_topic_arn,
+            "CreatedDateTime": self.created_date_time,
+            "Status": self.status,
+        }
+
+
+class IpRoute(BaseModel):
+    def __init__(
+        self,
+        directory_id: str,
+        cidr_ip: str,
+        description: str,
+    ) -> None:
+        self.directory_id = directory_id
+        self.cidr_ip = cidr_ip
+        self.description = description
+        self.added_date_time = unix_time()
+        self.ip_route_status_msg = "Added"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "DirectoryId": self.directory_id,
+            "CidrIp": self.cidr_ip,
+            "IpRouteStatusMsg": self.ip_route_status_msg,
+            "AddedDateTime": self.added_date_time,
+            "IpRouteStatusReason": "",
+            "Description": self.description,
+        }
+
+
+class Certificate(BaseModel):
+    def __init__(
+        self,
+        directory_id: str,
+        certificate_data: str,
+        client_cert_auth_settings: Optional[dict[str, Any]] = None,
+        cert_type: Optional[str] = None,
+    ) -> None:
+        self.certificate_id = f"c-{mock_random.get_random_hex(10)}"
+        self.directory_id = directory_id
+        self.certificate_data = certificate_data
+        self.client_cert_auth_settings = client_cert_auth_settings
+        self.type = cert_type or "ClientCertAuth"
+        self.registered_date_time = unix_time()
+        self.state = "Registered"
+        self.common_name = "MockCertificate"
+        self.expiry_date_time = unix_time() + 365 * 24 * 3600
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "CertificateId": self.certificate_id,
+            "State": self.state,
+            "CommonName": self.common_name,
+            "RegisteredDateTime": self.registered_date_time,
+            "ExpiryDateTime": self.expiry_date_time,
+            "Type": self.type,
+        }
+
+    def to_full_dict(self) -> dict[str, Any]:
+        result = self.to_dict()
+        result["StateReason"] = ""
+        if self.client_cert_auth_settings:
+            result["ClientCertAuthSettings"] = self.client_cert_auth_settings
+        return result
+
+
+class Computer(BaseModel):
+    def __init__(
+        self,
+        directory_id: str,
+        computer_name: str,
+        password: str,
+        organizational_unit_distinguished_name: Optional[str],
+        computer_attributes: Optional[list[dict[str, str]]],
+    ) -> None:
+        self.computer_id = f"comp-{mock_random.get_random_hex(10)}"
+        self.directory_id = directory_id
+        self.computer_name = computer_name
+        self.password = password
+        self.organizational_unit_distinguished_name = (
+            organizational_unit_distinguished_name
+        )
+        self.computer_attributes = computer_attributes or []
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "ComputerId": self.computer_id,
+            "ComputerName": self.computer_name,
+            "ComputerAttributes": self.computer_attributes,
+        }
+
+
 class Directory(BaseModel):
     """Representation of a Simple AD Directory.
 
@@ -294,6 +438,22 @@ class DirectoryServiceBackend(BaseBackend):
         self.directories: dict[str, Directory] = {}
         self.log_subscriptions: dict[str, LogSubscription] = {}
         self.tagger = TaggingService()
+        # Keyed by (directory_id, remote_domain_name)
+        self.conditional_forwarders: dict[tuple[str, str], ConditionalForwarder] = {}
+        # Keyed by snapshot_id
+        self.snapshots: dict[str, Snapshot] = {}
+        # Keyed by (directory_id, topic_name)
+        self.event_topics: dict[tuple[str, str], EventTopic] = {}
+        # Keyed by (directory_id, cidr_ip)
+        self.ip_routes: dict[tuple[str, str], IpRoute] = {}
+        # Keyed by certificate_id
+        self.certificates: dict[str, Certificate] = {}
+        # Keyed by directory_id -> {type -> enabled}
+        self.radius_settings: dict[str, dict[str, Any]] = {}
+        # Keyed by directory_id -> {type -> status}
+        self.client_auth_settings: dict[str, dict[str, str]] = {}
+        # Keyed by directory_id -> list of Computer
+        self.computers: dict[str, list[Computer]] = {}
 
     def _verify_subnets(self, region: str, vpc_settings: dict[str, Any]) -> None:
         """Verify subnets are valid, else raise an exception.
@@ -773,13 +933,70 @@ class DirectoryServiceBackend(BaseBackend):
             "CaEnrollmentPolicyStatus": "Disabled",
         }
 
+    def create_conditional_forwarder(
+        self,
+        directory_id: str,
+        remote_domain_name: str,
+        dns_ip_addrs: list[str],
+    ) -> None:
+        """Create a conditional forwarder for a directory."""
+        self._validate_directory_id(directory_id)
+        key = (directory_id, remote_domain_name)
+        if key in self.conditional_forwarders:
+            raise EntityAlreadyExistsException(
+                f"Conditional forwarder for domain {remote_domain_name} already exists"
+            )
+        forwarder = ConditionalForwarder(
+            directory_id=directory_id,
+            remote_domain_name=remote_domain_name,
+            dns_ip_addrs=dns_ip_addrs,
+        )
+        self.conditional_forwarders[key] = forwarder
+
+    def delete_conditional_forwarder(
+        self,
+        directory_id: str,
+        remote_domain_name: str,
+    ) -> None:
+        """Delete a conditional forwarder."""
+        self._validate_directory_id(directory_id)
+        key = (directory_id, remote_domain_name)
+        if key not in self.conditional_forwarders:
+            raise EntityDoesNotExistException(
+                f"Conditional forwarder for domain {remote_domain_name} does not exist"
+            )
+        self.conditional_forwarders.pop(key)
+
+    def update_conditional_forwarder(
+        self,
+        directory_id: str,
+        remote_domain_name: str,
+        dns_ip_addrs: list[str],
+    ) -> None:
+        """Update a conditional forwarder's DNS IP addresses."""
+        self._validate_directory_id(directory_id)
+        key = (directory_id, remote_domain_name)
+        if key not in self.conditional_forwarders:
+            raise EntityDoesNotExistException(
+                f"Conditional forwarder for domain {remote_domain_name} does not exist"
+            )
+        self.conditional_forwarders[key].dns_ip_addrs = dns_ip_addrs
+
     def describe_conditional_forwarders(
         self, directory_id: str, remote_domain_names: Optional[list[str]]
     ) -> list[dict[str, Any]]:
         """Describe conditional forwarders for a directory."""
         self._validate_directory_id(directory_id)
-        # Conditional forwarders are not stored yet — return empty list
-        return []
+        forwarders = [
+            f.to_dict()
+            for key, f in self.conditional_forwarders.items()
+            if key[0] == directory_id
+        ]
+        if remote_domain_names:
+            forwarders = [
+                f for f in forwarders if f["RemoteDomainName"] in remote_domain_names
+            ]
+        return forwarders
 
     def describe_domain_controllers(
         self, directory_id: str, domain_controller_ids: Optional[list[str]]
@@ -828,21 +1045,89 @@ class DirectoryServiceBackend(BaseBackend):
             ]
         return controllers
 
+    def register_event_topic(
+        self,
+        directory_id: str,
+        topic_name: str,
+        sns_topic_arn: str,
+    ) -> None:
+        """Register an event topic for a directory."""
+        self._validate_directory_id(directory_id)
+        key = (directory_id, topic_name)
+        topic = EventTopic(
+            directory_id=directory_id,
+            topic_name=topic_name,
+            sns_topic_arn=sns_topic_arn,
+        )
+        self.event_topics[key] = topic
+
+    def deregister_event_topic(
+        self,
+        directory_id: str,
+        topic_name: str,
+    ) -> None:
+        """Deregister an event topic."""
+        self._validate_directory_id(directory_id)
+        key = (directory_id, topic_name)
+        if key not in self.event_topics:
+            raise EntityDoesNotExistException(
+                f"Topic {topic_name} does not exist for directory {directory_id}"
+            )
+        self.event_topics.pop(key)
+
     def describe_event_topics(
         self, directory_id: Optional[str], topic_names: Optional[list[str]]
     ) -> list[dict[str, Any]]:
-        """Describe event topics — returns empty list (no topics registered)."""
+        """Describe event topics for a directory."""
         if directory_id:
             self._validate_directory_id(directory_id)
-        return []
+        topics = list(self.event_topics.values())
+        if directory_id:
+            topics = [t for t in topics if t.directory_id == directory_id]
+        if topic_names:
+            topics = [t for t in topics if t.topic_name in topic_names]
+        return [t.to_dict() for t in topics]
+
+    def create_snapshot(
+        self,
+        directory_id: str,
+        name: Optional[str] = None,
+    ) -> str:
+        """Create a snapshot of a directory."""
+        self._validate_directory_id(directory_id)
+        snapshot = Snapshot(directory_id=directory_id, name=name)
+        self.snapshots[snapshot.snapshot_id] = snapshot
+        return snapshot.snapshot_id
+
+    def delete_snapshot(self, snapshot_id: str) -> str:
+        """Delete a directory snapshot."""
+        if snapshot_id not in self.snapshots:
+            raise EntityDoesNotExistException(
+                f"Snapshot {snapshot_id} does not exist"
+            )
+        self.snapshots[snapshot_id].status = "Deleted"
+        self.snapshots.pop(snapshot_id)
+        return snapshot_id
+
+    def restore_from_snapshot(self, snapshot_id: str) -> None:
+        """Restore a directory from a snapshot (no-op in mock)."""
+        if snapshot_id not in self.snapshots:
+            raise EntityDoesNotExistException(
+                f"Snapshot {snapshot_id} does not exist"
+            )
 
     def describe_snapshots(
         self, directory_id: Optional[str], snapshot_ids: Optional[list[str]]
     ) -> list[dict[str, Any]]:
-        """Describe snapshots — returns empty list (no snapshots created)."""
+        """Describe snapshots for a directory."""
         if directory_id:
             self._validate_directory_id(directory_id)
-        return []
+        snapshots = list(self.snapshots.values())
+        if directory_id:
+            snapshots = [s for s in snapshots if s.directory_id == directory_id]
+        if snapshot_ids:
+            snapshots = [s for s in snapshots if s.snapshot_id in snapshot_ids]
+        return [s.to_dict() for s in snapshots]
 
     def describe_shared_directories(
         self, owner_directory_id: str, shared_directory_ids: Optional[list[str]]
@@ -885,12 +1170,82 @@ class DirectoryServiceBackend(BaseBackend):
             regions_info = [r for r in regions_info if r["RegionName"] == region_name]
         return regions_info
 
+    def enable_radius(
+        self,
+        directory_id: str,
+        radius_settings: dict[str, Any],
+    ) -> None:
+        """Enable multi-factor authentication (MFA) with RADIUS."""
+        self._validate_directory_id(directory_id)
+        self.radius_settings[directory_id] = radius_settings
+
+    def disable_radius(self, directory_id: str) -> None:
+        """Disable multi-factor authentication (MFA) with RADIUS."""
+        self._validate_directory_id(directory_id)
+        self.radius_settings.pop(directory_id, None)
+
+    def update_radius(
+        self,
+        directory_id: str,
+        radius_settings: dict[str, Any],
+    ) -> None:
+        """Update the RADIUS server information for a directory."""
+        self._validate_directory_id(directory_id)
+        if directory_id not in self.radius_settings:
+            raise EntityDoesNotExistException(
+                f"RADIUS is not enabled for directory {directory_id}"
+            )
+        self.radius_settings[directory_id] = radius_settings
+
+    def enable_client_authentication(
+        self,
+        directory_id: str,
+        type: str,
+    ) -> None:
+        """Enable client authentication for a directory."""
+        self._validate_directory_id(directory_id)
+        directory = self.directories[directory_id]
+        if directory.directory_type != "MicrosoftAD":
+            raise UnsupportedOperationException(
+                "Client authentication is only supported for Microsoft AD directories."
+            )
+        if directory_id not in self.client_auth_settings:
+            self.client_auth_settings[directory_id] = {}
+        self.client_auth_settings[directory_id][type] = "Enabled"
+
+    def disable_client_authentication(
+        self,
+        directory_id: str,
+        type: str,
+    ) -> None:
+        """Disable client authentication for a directory."""
+        self._validate_directory_id(directory_id)
+        directory = self.directories[directory_id]
+        if directory.directory_type != "MicrosoftAD":
+            raise UnsupportedOperationException(
+                "Client authentication is only supported for Microsoft AD directories."
+            )
+        if directory_id in self.client_auth_settings:
+            self.client_auth_settings[directory_id].pop(type, None)
+
     def describe_client_authentication_settings(
         self, directory_id: str, type: Optional[str]
     ) -> list[dict[str, Any]]:
-        """Describe client authentication settings — returns empty list."""
+        """Describe client authentication settings for a directory."""
         self._validate_directory_id(directory_id)
-        return []
+        settings = self.client_auth_settings.get(directory_id, {})
+        result = []
+        for auth_type, status in settings.items():
+            if type and auth_type != type:
+                continue
+            result.append(
+                {
+                    "Type": auth_type,
+                    "Status": status,
+                    "LastUpdatedDateTime": unix_time(),
+                }
+            )
+        return result
 
     def describe_update_directory(
         self, directory_id: str, update_type: Optional[str]
@@ -899,14 +1254,75 @@ class DirectoryServiceBackend(BaseBackend):
         self._validate_directory_id(directory_id)
         return []
 
+    def register_certificate(
+        self,
+        directory_id: str,
+        certificate_data: str,
+        client_cert_auth_settings: Optional[dict[str, Any]] = None,
+        cert_type: Optional[str] = None,
+    ) -> str:
+        """Register a certificate for a directory."""
+        self._validate_directory_id(directory_id)
+        directory = self.directories[directory_id]
+        if directory.directory_type != "MicrosoftAD":
+            raise UnsupportedOperationException(
+                "Certificates are only supported for Microsoft AD directories."
+            )
+        cert = Certificate(
+            directory_id=directory_id,
+            certificate_data=certificate_data,
+            client_cert_auth_settings=client_cert_auth_settings,
+            cert_type=cert_type,
+        )
+        self.certificates[cert.certificate_id] = cert
+        return cert.certificate_id
+
+    def deregister_certificate(
+        self,
+        directory_id: str,
+        certificate_id: str,
+    ) -> None:
+        """Deregister a certificate."""
+        self._validate_directory_id(directory_id)
+        if certificate_id not in self.certificates:
+            raise EntityDoesNotExistException(
+                f"Certificate {certificate_id} does not exist"
+            )
+        cert = self.certificates[certificate_id]
+        if cert.directory_id != directory_id:
+            raise EntityDoesNotExistException(
+                f"Certificate {certificate_id} does not exist"
+            )
+        self.certificates.pop(certificate_id)
+
+    def list_certificates(
+        self,
+        directory_id: str,
+    ) -> list[dict[str, Any]]:
+        """List certificates for a directory."""
+        self._validate_directory_id(directory_id)
+        certs = [
+            c.to_dict()
+            for c in self.certificates.values()
+            if c.directory_id == directory_id
+        ]
+        return certs
+
     def describe_certificate(
         self, directory_id: str, certificate_id: str
     ) -> dict[str, Any]:
-        """Describe a certificate — raises not found."""
+        """Describe a certificate."""
         self._validate_directory_id(directory_id)
-        raise EntityDoesNotExistException(
-            f"Certificate {certificate_id} does not exist"
-        )
+        if certificate_id not in self.certificates:
+            raise EntityDoesNotExistException(
+                f"Certificate {certificate_id} does not exist"
+            )
+        cert = self.certificates[certificate_id]
+        if cert.directory_id != directory_id:
+            raise EntityDoesNotExistException(
+                f"Certificate {certificate_id} does not exist"
+            )
+        return cert.to_full_dict()
 
     def get_snapshot_limits(self, directory_id: str) -> dict[str, Any]:
         """Return snapshot limits for a directory."""
@@ -917,15 +1333,91 @@ class DirectoryServiceBackend(BaseBackend):
             "ManualSnapshotsLimitReached": False,
         }
 
-    def list_ip_routes(self, directory_id: str) -> list[dict[str, Any]]:
-        """List IP routes — returns empty list."""
+    def add_ip_routes(
+        self,
+        directory_id: str,
+        ip_routes: list[dict[str, str]],
+        update_security_group_for_directory_controllers: bool,
+    ) -> None:
+        """Add IP address routes to the directory."""
         self._validate_directory_id(directory_id)
-        return []
+        for route_info in ip_routes:
+            cidr_ip = route_info["CidrIp"]
+            description = route_info.get("Description", "")
+            key = (directory_id, cidr_ip)
+            if key in self.ip_routes:
+                raise EntityAlreadyExistsException(
+                    f"IP route {cidr_ip} already exists for directory {directory_id}"
+                )
+            ip_route = IpRoute(
+                directory_id=directory_id,
+                cidr_ip=cidr_ip,
+                description=description,
+            )
+            self.ip_routes[key] = ip_route
+
+    def remove_ip_routes(
+        self,
+        directory_id: str,
+        cidr_ips: list[str],
+    ) -> None:
+        """Remove IP address routes from the directory."""
+        self._validate_directory_id(directory_id)
+        for cidr_ip in cidr_ips:
+            key = (directory_id, cidr_ip)
+            if key not in self.ip_routes:
+                raise EntityDoesNotExistException(
+                    f"IP route {cidr_ip} does not exist for directory {directory_id}"
+                )
+            self.ip_routes.pop(key)
+
+    def list_ip_routes(self, directory_id: str) -> list[dict[str, Any]]:
+        """List IP routes for a directory."""
+        self._validate_directory_id(directory_id)
+        routes = [
+            r.to_dict()
+            for key, r in self.ip_routes.items()
+            if key[0] == directory_id
+        ]
+        return routes
 
     def list_schema_extensions(self, directory_id: str) -> list[dict[str, Any]]:
         """List schema extensions — returns empty list."""
         self._validate_directory_id(directory_id)
         return []
+
+    def create_computer(
+        self,
+        directory_id: str,
+        computer_name: str,
+        password: str,
+        organizational_unit_distinguished_name: Optional[str],
+        computer_attributes: Optional[list[dict[str, str]]],
+    ) -> dict[str, Any]:
+        """Create a computer account in the directory."""
+        self._validate_directory_id(directory_id)
+        computer = Computer(
+            directory_id=directory_id,
+            computer_name=computer_name,
+            password=password,
+            organizational_unit_distinguished_name=organizational_unit_distinguished_name,
+            computer_attributes=computer_attributes,
+        )
+        if directory_id not in self.computers:
+            self.computers[directory_id] = []
+        self.computers[directory_id].append(computer)
+        return computer.to_dict()
+
+    def reset_user_password(
+        self,
+        directory_id: str,
+        user_name: str,
+        new_password: str,
+    ) -> None:
+        """Reset a user password (no-op in mock)."""
+        self._validate_directory_id(directory_id)
+        # In a real implementation this would reset the user's password.
+        # For mock purposes, we just validate the directory exists.
 
     def create_log_subscription(self, directory_id: str, log_group_name: str) -> None:
         self._validate_directory_id(directory_id)

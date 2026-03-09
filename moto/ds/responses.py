@@ -282,6 +282,37 @@ class DirectoryServiceResponse(BaseResponse):
         )
         return json.dumps(policy)
 
+    def create_conditional_forwarder(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        remote_domain_name = self._get_param("RemoteDomainName")
+        dns_ip_addrs = self._get_param("DnsIpAddrs")
+        self.ds_backend.create_conditional_forwarder(
+            directory_id=directory_id,
+            remote_domain_name=remote_domain_name,
+            dns_ip_addrs=dns_ip_addrs,
+        )
+        return json.dumps({})
+
+    def delete_conditional_forwarder(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        remote_domain_name = self._get_param("RemoteDomainName")
+        self.ds_backend.delete_conditional_forwarder(
+            directory_id=directory_id,
+            remote_domain_name=remote_domain_name,
+        )
+        return json.dumps({})
+
+    def update_conditional_forwarder(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        remote_domain_name = self._get_param("RemoteDomainName")
+        dns_ip_addrs = self._get_param("DnsIpAddrs")
+        self.ds_backend.update_conditional_forwarder(
+            directory_id=directory_id,
+            remote_domain_name=remote_domain_name,
+            dns_ip_addrs=dns_ip_addrs,
+        )
+        return json.dumps({})
+
     def describe_conditional_forwarders(self) -> str:
         directory_id = self._get_param("DirectoryId")
         remote_domain_names = self._get_param("RemoteDomainNames")
@@ -302,6 +333,26 @@ class DirectoryServiceResponse(BaseResponse):
         )
         return json.dumps({"DomainControllers": controllers, "NextToken": None})
 
+    def register_event_topic(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        topic_name = self._get_param("TopicName")
+        sns_topic_arn = self._get_param("TopicName")  # AWS uses TopicName as the SNS topic
+        self.ds_backend.register_event_topic(
+            directory_id=directory_id,
+            topic_name=topic_name,
+            sns_topic_arn=sns_topic_arn,
+        )
+        return json.dumps({})
+
+    def deregister_event_topic(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        topic_name = self._get_param("TopicName")
+        self.ds_backend.deregister_event_topic(
+            directory_id=directory_id,
+            topic_name=topic_name,
+        )
+        return json.dumps({})
+
     def describe_event_topics(self) -> str:
         directory_id = self._get_param("DirectoryId")
         topic_names = self._get_param("TopicNames")
@@ -310,6 +361,25 @@ class DirectoryServiceResponse(BaseResponse):
             topic_names=topic_names,
         )
         return json.dumps({"EventTopics": topics})
+
+    def create_snapshot(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        name = self._get_param("Name")
+        snapshot_id = self.ds_backend.create_snapshot(
+            directory_id=directory_id,
+            name=name,
+        )
+        return json.dumps({"SnapshotId": snapshot_id})
+
+    def delete_snapshot(self) -> str:
+        snapshot_id = self._get_param("SnapshotId")
+        snapshot_id = self.ds_backend.delete_snapshot(snapshot_id=snapshot_id)
+        return json.dumps({"SnapshotId": snapshot_id})
+
+    def restore_from_snapshot(self) -> str:
+        snapshot_id = self._get_param("SnapshotId")
+        self.ds_backend.restore_from_snapshot(snapshot_id=snapshot_id)
+        return json.dumps({})
 
     def describe_snapshots(self) -> str:
         directory_id = self._get_param("DirectoryId")
@@ -343,6 +413,73 @@ class DirectoryServiceResponse(BaseResponse):
         )
         return json.dumps({"RegionsDescription": regions, "NextToken": None})
 
+    def enable_radius(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        radius_settings = self._get_param("RadiusSettings")
+        self.ds_backend.enable_radius(
+            directory_id=directory_id,
+            radius_settings=radius_settings,
+        )
+        return json.dumps({})
+
+    def disable_radius(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        self.ds_backend.disable_radius(directory_id=directory_id)
+        return json.dumps({})
+
+    def update_radius(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        radius_settings = self._get_param("RadiusSettings")
+        self.ds_backend.update_radius(
+            directory_id=directory_id,
+            radius_settings=radius_settings,
+        )
+        return json.dumps({})
+
+    def enable_client_authentication(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        type_param = self._get_param("Type")
+        self.ds_backend.enable_client_authentication(
+            directory_id=directory_id,
+            type=type_param,
+        )
+        return json.dumps({})
+
+    def disable_client_authentication(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        type_param = self._get_param("Type")
+        self.ds_backend.disable_client_authentication(
+            directory_id=directory_id,
+            type=type_param,
+        )
+        return json.dumps({})
+
+    def create_computer(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        computer_name = self._get_param("ComputerName")
+        password = self._get_param("Password")
+        ou_dn = self._get_param("OrganizationalUnitDistinguishedName")
+        computer_attributes = self._get_param("ComputerAttributes")
+        computer = self.ds_backend.create_computer(
+            directory_id=directory_id,
+            computer_name=computer_name,
+            password=password,
+            organizational_unit_distinguished_name=ou_dn,
+            computer_attributes=computer_attributes,
+        )
+        return json.dumps({"Computer": computer})
+
+    def reset_user_password(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        user_name = self._get_param("UserName")
+        new_password = self._get_param("NewPassword")
+        self.ds_backend.reset_user_password(
+            directory_id=directory_id,
+            user_name=user_name,
+            new_password=new_password,
+        )
+        return json.dumps({})
+
     def describe_client_authentication_settings(self) -> str:
         directory_id = self._get_param("DirectoryId")
         type_param = self._get_param("Type")
@@ -366,6 +503,35 @@ class DirectoryServiceResponse(BaseResponse):
         )
         return json.dumps({"UpdateActivities": updates, "NextToken": None})
 
+    def register_certificate(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        certificate_data = self._get_param("CertificateData")
+        client_cert_auth_settings = self._get_param("ClientCertAuthSettings")
+        cert_type = self._get_param("Type")
+        certificate_id = self.ds_backend.register_certificate(
+            directory_id=directory_id,
+            certificate_data=certificate_data,
+            client_cert_auth_settings=client_cert_auth_settings,
+            cert_type=cert_type,
+        )
+        return json.dumps({"CertificateId": certificate_id})
+
+    def deregister_certificate(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        certificate_id = self._get_param("CertificateId")
+        self.ds_backend.deregister_certificate(
+            directory_id=directory_id,
+            certificate_id=certificate_id,
+        )
+        return json.dumps({})
+
+    def list_certificates(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        next_token = self._get_param("NextToken")
+        limit = self._get_param("Limit")
+        certs = self.ds_backend.list_certificates(directory_id=directory_id)
+        return json.dumps({"CertificatesInfo": certs, "NextToken": None})
+
     def describe_certificate(self) -> str:
         directory_id = self._get_param("DirectoryId")
         certificate_id = self._get_param("CertificateId")
@@ -379,6 +545,26 @@ class DirectoryServiceResponse(BaseResponse):
         directory_id = self._get_param("DirectoryId")
         limits = self.ds_backend.get_snapshot_limits(directory_id=directory_id)
         return json.dumps({"SnapshotLimits": limits})
+
+    def add_ip_routes(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        ip_routes = self._get_param("IpRoutes")
+        update_sg = self._get_param("UpdateSecurityGroupForDirectoryControllers", False)
+        self.ds_backend.add_ip_routes(
+            directory_id=directory_id,
+            ip_routes=ip_routes,
+            update_security_group_for_directory_controllers=update_sg,
+        )
+        return json.dumps({})
+
+    def remove_ip_routes(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        cidr_ips = self._get_param("CidrIps")
+        self.ds_backend.remove_ip_routes(
+            directory_id=directory_id,
+            cidr_ips=cidr_ips,
+        )
+        return json.dumps({})
 
     def list_ip_routes(self) -> str:
         directory_id = self._get_param("DirectoryId")
