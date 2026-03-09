@@ -27,6 +27,7 @@ ACCOUNT_ID_SIZE = 12
 OU_ID_SUFFIX_SIZE = 8
 CREATE_ACCOUNT_STATUS_ID_SIZE = 8
 POLICY_ID_SIZE = 8
+HANDSHAKE_ID_SIZE = 8
 
 EMAIL_REGEX = "^.+@[a-zA-Z0-9-.]+.[a-zA-Z]{2,3}|[0-9]{1,3}$"
 ORG_ID_REGEX = rf"o-[a-z0-9]{{{ORG_ID_SIZE}}}"
@@ -126,6 +127,13 @@ def make_random_policy_id() -> str:
     # from 8 to 128 lower-case letters or digits.
     # e.g. 'p-k2av4a8a'
     return "p-" + "".join(random.choice(CHARSET) for x in range(POLICY_ID_SIZE))
+
+
+def make_random_handshake_id() -> str:
+    # The regex pattern for a handshake ID string requires "h-" followed by
+    # lower-case letters or digits.
+    # e.g. 'h-examplehandshakeid111'
+    return "h-" + "".join(random.choice(CHARSET) for x in range(HANDSHAKE_ID_SIZE))
 
 
 def fullmatch(regex: Union[Pattern[str], str], s: str, flags: int = 0) -> bool:

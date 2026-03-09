@@ -567,3 +567,126 @@ class ConfigResponse(BaseResponse):
             self._get_param("ConfigRuleNames"),
         )
         return json.dumps({})
+
+    def describe_aggregate_compliance_by_config_rules(self) -> str:
+        result = self.config_backend.describe_aggregate_compliance_by_config_rules(
+            self._get_param("ConfigurationAggregatorName"),
+            self._get_param("Filters"),
+            self._get_param("Limit"),
+            self._get_param("NextToken"),
+        )
+        return json.dumps(result)
+
+    def describe_aggregate_compliance_by_conformance_packs(self) -> str:
+        result = self.config_backend.describe_aggregate_compliance_by_conformance_packs(
+            self._get_param("ConfigurationAggregatorName"),
+            self._get_param("Filters"),
+            self._get_param("Limit"),
+            self._get_param("NextToken"),
+        )
+        return json.dumps(result)
+
+    def get_aggregate_compliance_details_by_config_rule(self) -> str:
+        result = self.config_backend.get_aggregate_compliance_details_by_config_rule(
+            self._get_param("ConfigurationAggregatorName"),
+            self._get_param("ConfigRuleName"),
+            self._get_param("AccountId"),
+            self._get_param("AwsRegion"),
+            self._get_param("ComplianceType"),
+            self._get_param("Limit"),
+            self._get_param("NextToken"),
+        )
+        return json.dumps(result)
+
+    def get_aggregate_conformance_pack_compliance_summary(self) -> str:
+        result = self.config_backend.get_aggregate_conformance_pack_compliance_summary(
+            self._get_param("ConfigurationAggregatorName"),
+            self._get_param("Filters"),
+            self._get_param("GroupByKey"),
+            self._get_param("Limit"),
+            self._get_param("NextToken"),
+        )
+        return json.dumps(result)
+
+    def get_aggregate_discovered_resource_counts(self) -> str:
+        result = self.config_backend.get_aggregate_discovered_resource_counts(
+            self._get_param("ConfigurationAggregatorName"),
+            self._get_param("Filters"),
+            self._get_param("GroupByKey"),
+            self._get_param("Limit"),
+            self._get_param("NextToken"),
+        )
+        return json.dumps(result)
+
+    def get_aggregate_resource_config(self) -> str:
+        result = self.config_backend.get_aggregate_resource_config(
+            self._get_param("ConfigurationAggregatorName"),
+            self._get_param("ResourceIdentifier"),
+        )
+        return json.dumps(result)
+
+    def start_resource_evaluation(self) -> str:
+        result = self.config_backend.start_resource_evaluation(
+            self._get_param("ResourceDetails"),
+            self._get_param("EvaluationMode"),
+            self._get_param("EvaluationContext"),
+            self._get_param("EvaluationTimeout"),
+            self._get_param("ClientToken"),
+        )
+        return json.dumps(result)
+
+    def get_resource_evaluation_summary(self) -> str:
+        result = self.config_backend.get_resource_evaluation_summary(
+            self._get_param("ResourceEvaluationId"),
+        )
+        return json.dumps(result)
+
+    def put_external_evaluation(self) -> str:
+        self.config_backend.put_external_evaluation(
+            self._get_param("ConfigRuleName"),
+            self._get_param("ExternalEvaluation"),
+        )
+        return json.dumps({})
+
+    def delete_evaluation_results(self) -> str:
+        self.config_backend.delete_evaluation_results(
+            self._get_param("ConfigRuleName"),
+        )
+        return json.dumps({})
+
+    def get_compliance_details_by_config_rule(self) -> str:
+        result = self.config_backend.get_compliance_details_by_config_rule(
+            self._get_param("ConfigRuleName"),
+            self._get_param("ComplianceTypes"),
+            self._get_param("Limit"),
+            self._get_param("NextToken"),
+        )
+        return json.dumps(result)
+
+    def get_aggregate_config_rule_compliance_summary(self) -> str:
+        result = self.config_backend.get_aggregate_config_rule_compliance_summary(
+            self._get_param("ConfigurationAggregatorName"),
+            self._get_param("Filters"),
+            self._get_param("GroupByKey"),
+            self._get_param("Limit"),
+            self._get_param("NextToken"),
+        )
+        return json.dumps(result)
+
+    def describe_compliance_by_config_rule(self) -> str:
+        result = self.config_backend.describe_compliance_by_config_rule(
+            self._get_param("ConfigRuleNames"),
+            self._get_param("ComplianceTypes"),
+            self._get_param("NextToken"),
+        )
+        return json.dumps(result)
+
+    def describe_compliance_by_resource(self) -> str:
+        result = self.config_backend.describe_compliance_by_resource(
+            self._get_param("ResourceType"),
+            self._get_param("ResourceId"),
+            self._get_param("ComplianceTypes"),
+            self._get_param("Limit"),
+            self._get_param("NextToken"),
+        )
+        return json.dumps(result)

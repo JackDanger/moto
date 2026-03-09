@@ -298,6 +298,62 @@ class FakePolicy(BaseModel):
         return policy_type in FakePolicy.SUPPORTED_POLICY_TYPES
 
 
+class FakeHandshake(BaseModel):
+    VALID_STATES = ["REQUESTED", "OPEN", "CANCELED", "ACCEPTED", "DECLINED", "EXPIRED"]
+
+    def __init__(
+        self,
+        organization: FakeOrganization,
+        target_id: str,
+        target_type: str,
+        action: str = "INVITE",
+    ):
+        self.id = utils.make_random_handshake_id()
+        self.organization = organization
+        self.state = "OPEN"
+        self.requested_timestamp = utcnow()
+        self.expiration_timestamp = utcnow()
+        self.action = action
+        self.parties = [
+            {
+                "Id": organization.master_account_id,
+                "Type": "ACCOUNT",
+            },
+            {
+                "Id": target_id,
+                "Type": target_type,
+            },
+        ]
+        self.resources = [
+            {
+                "Value": organization.id,
+                "Type": "ORGANIZATION",
+            },
+            {
+                "Value": organization.master_account_email,
+                "Type": "EMAIL",
+            },
+            {
+                "Value": organization.master_account_id,
+                "Type": "MASTER_EMAIL",
+            },
+        ]
+
+    def describe(self) -> dict[str, Any]:
+        return {
+            "Handshake": {
+                "Id": self.id,
+                "Arn": f"arn:aws:organizations::{self.organization.master_account_id}:handshake/{self.organization.id}/{self.action.lower()}/{self.id}",
+                "Parties": self.parties,
+                "State": self.state,
+                "RequestedTimestamp": unix_time(self.requested_timestamp),
+                "ExpirationTimestamp": unix_time(self.expiration_timestamp),
+                "Action": self.action,
+                "Resources": self.resources,
+            }
+        }
+
+
 class FakeServiceAccess(BaseModel):
     # List of trusted services, which support trusted access with Organizations
     # https://docs.aws.amazon.com/organizations/latest/userguide/orgs_integrated-services-list.html
@@ -424,6 +480,7 @@ class OrganizationsBackend(BaseBackend):
         self.policies: list[FakePolicy] = []
         self.services: list[dict[str, Any]] = []
         self.admins: list[FakeDelegatedAdministrator] = []
+        self.handshakes: list[FakeHandshake] = []
 
     def _get_root_by_id(self, root_id: str) -> FakeRoot:
         root = next((ou for ou in self.ou if ou.id == root_id), None)
@@ -1056,6 +1113,106 @@ class OrganizationsBackend(BaseBackend):
         for policy in account.attached_policies:
             policy.attachments.remove(account)
         self.accounts.remove(account)
+
+    def invite_account_to_organization(self, **kwargs: Any) -> dict[str, Any]:
+        if self.org is None:
+            raise AWSOrganizationsNotInUseException
+
+        target = kwargs.get("Target", {})
+        target_id = target.get("Id", "")
+        target_type = target.get("Type", "ACCOUNT")
+
+        handshake = FakeHandshake(
+            organization=self.org,
+            target_id=target_id,
+            target_type=target_type,
+            action="INVITE",
+        )
+        self.handshakes.append(handshake)
+        return handshake.describe()
+
+    def _get_handshake_by_id(self, handshake_id: str) -> FakeHandshake:
+        handshake = next((h for h in self.handshakes if h.id == handshake_id), None)
+        if handshake is None:
+            raise RESTError(
+                "HandshakeNotFoundException",
+                "You specified a handshake that doesn't exist.",
+            )
+        return handshake
+
+    def accept_handshake(self, **kwargs: Any) -> dict[str, Any]:
+        handshake = self._get_handshake_by_id(kwargs["HandshakeId"])
+        if handshake.state != "OPEN":
+            raise InvalidInputException(
+                f"Handshake is in {handshake.state} state. Only OPEN handshakes can be accepted."
+            )
+        handshake.state = "ACCEPTED"
+        return handshake.describe()
+
+    def cancel_handshake(self, **kwargs: Any) -> dict[str, Any]:
+        handshake = self._get_handshake_by_id(kwargs["HandshakeId"])
+        if handshake.state != "OPEN":
+            raise InvalidInputException(
+                f"Handshake is in {handshake.state} state. Only OPEN handshakes can be canceled."
+            )
+        handshake.state = "CANCELED"
+        return handshake.describe()
+
+    def decline_handshake(self, **kwargs: Any) -> dict[str, Any]:
+        handshake = self._get_handshake_by_id(kwargs["HandshakeId"])
+        if handshake.state != "OPEN":
+            raise InvalidInputException(
+                f"Handshake is in {handshake.state} state. Only OPEN handshakes can be declined."
+            )
+        handshake.state = "DECLINED"
+        return handshake.describe()
+
+    def describe_handshake(self, **kwargs: Any) -> dict[str, Any]:
+        handshake = self._get_handshake_by_id(kwargs["HandshakeId"])
+        return handshake.describe()
+
+    def list_handshakes_for_account(self, **kwargs: Any) -> dict[str, Any]:
+        # Filter handshakes where the current account is a party
+        account_handshakes = []
+        for h in self.handshakes:
+            for party in h.parties:
+                if party["Id"] == self.account_id:
+                    account_handshakes.append(h.describe()["Handshake"])
+                    break
+        return {"Handshakes": account_handshakes}
+
+    def list_handshakes_for_organization(self, **kwargs: Any) -> dict[str, Any]:
+        if self.org is None:
+            raise AWSOrganizationsNotInUseException
+        return {"Handshakes": [h.describe()["Handshake"] for h in self.handshakes]}
+
+    def enable_all_features(self, **kwargs: Any) -> dict[str, Any]:
+        if self.org is None:
+            raise AWSOrganizationsNotInUseException
+        handshake = FakeHandshake(
+            organization=self.org,
+            target_id=self.org.master_account_id,
+            target_type="ACCOUNT",
+            action="ENABLE_ALL_FEATURES",
+        )
+        handshake.state = "ACCEPTED"
+        self.handshakes.append(handshake)
+        return handshake.describe()
+
+    def describe_effective_policy(self, **kwargs: Any) -> dict[str, Any]:
+        policy_type = kwargs.get("PolicyType", "")
+        target_id = kwargs.get("TargetId", self.account_id)
+        if not FakePolicy.supported_policy_type(policy_type):
+            raise InvalidInputException("You specified an invalid value.")
+        # Return an empty effective policy - simplified mock
+        return {
+            "EffectivePolicy": {
+                "PolicyContent": "{}",
+                "PolicyType": policy_type,
+                "TargetId": target_id,
+                "LastUpdatedTimestamp": unix_time(),
+            }
+        }
 
 
 class OrganizationsBackendDict(BackendDict[OrganizationsBackend]):

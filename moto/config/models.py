@@ -932,6 +932,7 @@ class ConfigBackend(BaseBackend):
         self.remediation_configurations: dict[str, dict[str, Any]] = {}
         self.remediation_exceptions: dict[str, list[dict[str, Any]]] = {}
         self.remediation_executions: dict[str, list[dict[str, Any]]] = {}
+        self.resource_evaluations: dict[str, dict[str, Any]] = {}
 
     def _validate_resource_types(self, resource_list: list[str]) -> None:
         shape = self.config_schema.shape_for("ResourceType")
@@ -2484,9 +2485,7 @@ class ConfigBackend(BaseBackend):
     ) -> dict[str, Any]:
         return {"ComplianceSummariesByResourceType": []}
 
-    def get_custom_rule_policy(
-        self, config_rule_name: Optional[str]
-    ) -> dict[str, Any]:
+    def get_custom_rule_policy(self, config_rule_name: Optional[str]) -> dict[str, Any]:
         return {}
 
     def get_discovered_resource_counts(
@@ -2681,7 +2680,7 @@ class ConfigBackend(BaseBackend):
         expiration_time: Optional[int],
     ) -> dict[str, Any]:
         """Create or update remediation exceptions."""
-        now = datetime2int(utcnow())
+        datetime2int(utcnow())
         exceptions = self.remediation_exceptions.setdefault(config_rule_name, [])
 
         failed = []
@@ -2722,10 +2721,9 @@ class ConfigBackend(BaseBackend):
             filtered = []
             for exc in exceptions:
                 for key in resource_keys:
-                    if (
-                        exc["ResourceType"] == key.get("ResourceType", "")
-                        and exc["ResourceId"] == key.get("ResourceId", "")
-                    ):
+                    if exc["ResourceType"] == key.get("ResourceType", "") and exc[
+                        "ResourceId"
+                    ] == key.get("ResourceId", ""):
                         filtered.append(exc)
                         break
             exceptions = filtered
@@ -2821,6 +2819,218 @@ class ConfigBackend(BaseBackend):
             for name in config_rule_names:
                 if not self.config_rules.get(name):
                     raise NoSuchConfigRuleException(name)
+
+    def describe_aggregate_compliance_by_config_rules(
+        self,
+        configuration_aggregator_name: str,
+        filters: Optional[dict[str, Any]],
+        limit: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Return aggregate compliance by config rules."""
+        if not self.config_aggregators.get(configuration_aggregator_name):
+            raise NoSuchConfigurationAggregatorException()
+        return {"AggregateComplianceByConfigRules": []}
+
+    def describe_aggregate_compliance_by_conformance_packs(
+        self,
+        configuration_aggregator_name: str,
+        filters: Optional[dict[str, Any]],
+        limit: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Return aggregate compliance by conformance packs."""
+        if not self.config_aggregators.get(configuration_aggregator_name):
+            raise NoSuchConfigurationAggregatorException()
+        return {"AggregateComplianceByConformancePacks": []}
+
+    def get_aggregate_compliance_details_by_config_rule(
+        self,
+        configuration_aggregator_name: str,
+        config_rule_name: str,
+        account_id: str,
+        aws_region: str,
+        compliance_type: Optional[str],
+        limit: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Return aggregate compliance details by config rule."""
+        if not self.config_aggregators.get(configuration_aggregator_name):
+            raise NoSuchConfigurationAggregatorException()
+        return {"AggregateEvaluationResults": []}
+
+    def get_aggregate_conformance_pack_compliance_summary(
+        self,
+        configuration_aggregator_name: str,
+        filters: Optional[dict[str, Any]],
+        group_by_key: Optional[str],
+        limit: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Return aggregate conformance pack compliance summary."""
+        if not self.config_aggregators.get(configuration_aggregator_name):
+            raise NoSuchConfigurationAggregatorException()
+        return {"AggregateConformancePackComplianceSummaries": []}
+
+    def get_aggregate_discovered_resource_counts(
+        self,
+        configuration_aggregator_name: str,
+        filters: Optional[dict[str, Any]],
+        group_by_key: Optional[str],
+        limit: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Return aggregate discovered resource counts."""
+        if not self.config_aggregators.get(configuration_aggregator_name):
+            raise NoSuchConfigurationAggregatorException()
+        return {
+            "TotalDiscoveredResources": 0,
+            "GroupByKey": group_by_key,
+            "GroupedResourceCounts": [],
+        }
+
+    def get_aggregate_resource_config(
+        self,
+        configuration_aggregator_name: str,
+        resource_identifier: dict[str, str],
+    ) -> dict[str, Any]:
+        """Return aggregate resource config for a specific resource."""
+        if not self.config_aggregators.get(configuration_aggregator_name):
+            raise NoSuchConfigurationAggregatorException()
+        # Return empty - no resources discovered in mock
+        return {"ConfigurationItem": {}}
+
+    def start_resource_evaluation(
+        self,
+        resource_details: dict[str, Any],
+        evaluation_mode: str,
+        evaluation_context: Optional[dict[str, Any]],
+        evaluation_timeout: Optional[int],
+        client_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Start a resource evaluation."""
+        evaluation_id = f"re-{random_string()}"
+        now = datetime2int(utcnow())
+        evaluation: dict[str, Any] = {
+            "ResourceEvaluationId": evaluation_id,
+            "EvaluationMode": evaluation_mode,
+            "EvaluationStartTimestamp": now,
+            "ResourceDetails": resource_details,
+            "EvaluationStatus": {"Status": "SUCCEEDED"},
+            "Compliance": "NOT_APPLICABLE",
+        }
+        if evaluation_context:
+            evaluation["EvaluationContext"] = evaluation_context
+
+        self.resource_evaluations[evaluation_id] = evaluation
+        return {"ResourceEvaluationId": evaluation_id}
+
+    def get_resource_evaluation_summary(
+        self,
+        resource_evaluation_id: str,
+    ) -> dict[str, Any]:
+        """Return summary of a resource evaluation."""
+        evaluation = self.resource_evaluations.get(resource_evaluation_id)
+        if not evaluation:
+            raise ResourceNotFoundException(resource_evaluation_id)
+        return {
+            "ResourceEvaluationId": resource_evaluation_id,
+            "EvaluationMode": evaluation.get("EvaluationMode", "DETECTIVE"),
+            "EvaluationStatus": evaluation.get(
+                "EvaluationStatus", {"Status": "SUCCEEDED"}
+            ),
+            "EvaluationStartTimestamp": evaluation.get("EvaluationStartTimestamp"),
+            "Compliance": evaluation.get("Compliance", "NOT_APPLICABLE"),
+            "ResourceDetails": evaluation.get("ResourceDetails", {}),
+        }
+
+    def put_external_evaluation(
+        self,
+        config_rule_name: str,
+        external_evaluation: dict[str, Any],
+    ) -> None:
+        """Record an external evaluation."""
+        if not self.config_rules.get(config_rule_name):
+            raise NoSuchConfigRuleException(config_rule_name)
+
+    def delete_evaluation_results(
+        self,
+        config_rule_name: str,
+    ) -> None:
+        """Delete evaluation results for a config rule."""
+        if not self.config_rules.get(config_rule_name):
+            raise NoSuchConfigRuleException(config_rule_name)
+
+    def get_compliance_details_by_config_rule(
+        self,
+        config_rule_name: str,
+        compliance_types: Optional[list[str]],
+        limit: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Return compliance details for a config rule."""
+        if not self.config_rules.get(config_rule_name):
+            raise NoSuchConfigRuleException(config_rule_name)
+        return {"EvaluationResults": []}
+
+    def get_aggregate_config_rule_compliance_summary(
+        self,
+        configuration_aggregator_name: str,
+        filters: Optional[dict[str, Any]],
+        group_by_key: Optional[str],
+        limit: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Return aggregate config rule compliance summary."""
+        if not self.config_aggregators.get(configuration_aggregator_name):
+            raise NoSuchConfigurationAggregatorException()
+        return {
+            "GroupByKey": group_by_key,
+            "AggregateComplianceCounts": [],
+        }
+
+    def describe_compliance_by_config_rule(
+        self,
+        config_rule_names: Optional[list[str]],
+        compliance_types: Optional[list[str]],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Return compliance info by config rule."""
+        results = []
+        target_names = config_rule_names or list(self.config_rules.keys())
+        for name in target_names:
+            if not self.config_rules.get(name):
+                raise NoSuchConfigRuleException(name)
+            results.append(
+                {
+                    "ConfigRuleName": name,
+                    "Compliance": {"ComplianceType": "COMPLIANT"},
+                }
+            )
+        return {"ComplianceByConfigRules": results}
+
+    def describe_compliance_by_resource(
+        self,
+        resource_type: Optional[str],
+        resource_id: Optional[str],
+        compliance_types: Optional[list[str]],
+        limit: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Return compliance info by resource."""
+        return {"ComplianceByResources": []}
+
+    def get_compliance_details_by_config_rule_v2(
+        self,
+        config_rule_name: str,
+        compliance_types: Optional[list[str]],
+        limit: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Return compliance details by config rule."""
+        if not self.config_rules.get(config_rule_name):
+            raise NoSuchConfigRuleException(config_rule_name)
+        return {"EvaluationResults": []}
 
 
 config_backends = BackendDict(ConfigBackend, "config")

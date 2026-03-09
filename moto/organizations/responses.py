@@ -265,3 +265,54 @@ class OrganizationsResponse(BaseResponse):
             **self.request_params
         )
         return "{}"
+
+    def invite_account_to_organization(self) -> str:
+        return json.dumps(
+            self.organizations_backend.invite_account_to_organization(
+                **self.request_params
+            )
+        )
+
+    def accept_handshake(self) -> str:
+        return json.dumps(
+            self.organizations_backend.accept_handshake(**self.request_params)
+        )
+
+    def cancel_handshake(self) -> str:
+        return json.dumps(
+            self.organizations_backend.cancel_handshake(**self.request_params)
+        )
+
+    def decline_handshake(self) -> str:
+        return json.dumps(
+            self.organizations_backend.decline_handshake(**self.request_params)
+        )
+
+    def describe_handshake(self) -> str:
+        return json.dumps(
+            self.organizations_backend.describe_handshake(**self.request_params)
+        )
+
+    def list_handshakes_for_account(self) -> str:
+        return json.dumps(
+            self.organizations_backend.list_handshakes_for_account(
+                **self.request_params
+            )
+        )
+
+    def list_handshakes_for_organization(self) -> str:
+        return json.dumps(
+            self.organizations_backend.list_handshakes_for_organization(
+                **self.request_params
+            )
+        )
+
+    def enable_all_features(self) -> str:
+        return json.dumps(
+            self.organizations_backend.enable_all_features(**self.request_params)
+        )
+
+    def describe_effective_policy(self) -> str:
+        return json.dumps(
+            self.organizations_backend.describe_effective_policy(**self.request_params)
+        )
