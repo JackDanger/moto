@@ -67,9 +67,7 @@ class GlueResponse(BaseResponse):
         database_name = self.parameters.get("DatabaseName")
         table_input = self.parameters.get("TableInput")
         if not table_input:
-            raise InvalidInputException(
-                "CreateTable", "TableInput is required."
-            )
+            raise InvalidInputException("CreateTable", "TableInput is required.")
         table_name = table_input.get("Name")  # type: ignore
         self.glue_backend.create_table(database_name, table_name, table_input)  # type: ignore[arg-type]
         return EmptyResult()
@@ -85,9 +83,7 @@ class GlueResponse(BaseResponse):
         database_name = self.parameters.get("DatabaseName")
         table_input = self.parameters.get("TableInput")
         if not table_input:
-            raise InvalidInputException(
-                "UpdateTable", "TableInput is required."
-            )
+            raise InvalidInputException("UpdateTable", "TableInput is required.")
         table_name = table_input.get("Name")  # type: ignore
         self.glue_backend.update_table(database_name, table_name, table_input)  # type: ignore[arg-type]
         return EmptyResult()
@@ -1695,9 +1691,7 @@ class GlueResponse(BaseResponse):
 
     def get_catalogs(self) -> ActionResult:
         catalogs = self.glue_backend.get_catalogs()
-        return ActionResult(
-            {"CatalogList": [c.as_dict() for c in catalogs]}
-        )
+        return ActionResult({"CatalogList": [c.as_dict() for c in catalogs]})
 
     def update_crawler(self) -> ActionResult:
         self.glue_backend.update_crawler(
@@ -1750,9 +1744,7 @@ class GlueResponse(BaseResponse):
             job_name=self.parameters["JobName"],
             job_run_ids=self.parameters["JobRunIds"],
         )
-        return ActionResult(
-            {"SuccessfulSubmissions": successful, "Errors": errors}
-        )
+        return ActionResult({"SuccessfulSubmissions": successful, "Errors": errors})
 
     def get_job_bookmark(self) -> ActionResult:
         result = self.glue_backend.get_job_bookmark(
@@ -1941,3 +1933,288 @@ class GlueResponse(BaseResponse):
             parameters=self.parameters.get("Parameters"),
         )
         return ActionResult({"RunId": run_id})
+
+    # --- Column Statistics Update ---
+
+    def update_column_statistics_for_table(self) -> ActionResult:
+        result = self.glue_backend.update_column_statistics_for_table(
+            database_name=self.parameters["DatabaseName"],
+            table_name=self.parameters["TableName"],
+            column_statistics_list=self.parameters["ColumnStatisticsList"],
+        )
+        return ActionResult(result)
+
+    def update_column_statistics_for_partition(self) -> ActionResult:
+        result = self.glue_backend.update_column_statistics_for_partition(
+            database_name=self.parameters["DatabaseName"],
+            table_name=self.parameters["TableName"],
+            partition_values=self.parameters["PartitionValues"],
+            column_statistics_list=self.parameters["ColumnStatisticsList"],
+        )
+        return ActionResult(result)
+
+    # --- Integration ---
+
+    def create_integration(self) -> ActionResult:
+        integration = self.glue_backend.create_integration(
+            integration_name=self.parameters["IntegrationName"],
+            source_arn=self.parameters["SourceArn"],
+            target_arn=self.parameters["TargetArn"],
+            description=self.parameters.get("Description"),
+            kms_key_id=self.parameters.get("KmsKeyId"),
+            additional_encryption_context=self.parameters.get(
+                "AdditionalEncryptionContext"
+            ),
+            tags=self.parameters.get("Tags"),
+        )
+        return ActionResult(integration.as_dict())
+
+    def delete_integration(self) -> ActionResult:
+        result = self.glue_backend.delete_integration(
+            integration_arn=self.parameters["IntegrationArn"],
+        )
+        return ActionResult(result)
+
+    def describe_integrations(self) -> ActionResult:
+        integrations = self.glue_backend.describe_integrations(
+            integration_identifier=self.parameters.get("IntegrationIdentifier"),
+        )
+        return ActionResult({"Integrations": [i.as_dict() for i in integrations]})
+
+    def modify_integration(self) -> ActionResult:
+        integration = self.glue_backend.modify_integration(
+            integration_identifier=self.parameters["IntegrationIdentifier"],
+            description=self.parameters.get("Description"),
+        )
+        return ActionResult(integration.as_dict())
+
+    # --- Integration Resource Properties ---
+
+    def create_integration_resource_property(self) -> ActionResult:
+        result = self.glue_backend.create_integration_resource_property(
+            resource_arn=self.parameters["ResourceArn"],
+            source_processing_properties=self.parameters.get(
+                "SourceProcessingProperties"
+            ),
+            target_processing_properties=self.parameters.get(
+                "TargetProcessingProperties"
+            ),
+        )
+        return ActionResult(result)
+
+    def get_integration_resource_property(self) -> ActionResult:
+        result = self.glue_backend.get_integration_resource_property(
+            resource_arn=self.parameters["ResourceArn"],
+        )
+        return ActionResult(result)
+
+    def update_integration_resource_property(self) -> ActionResult:
+        result = self.glue_backend.update_integration_resource_property(
+            resource_arn=self.parameters["ResourceArn"],
+            source_processing_properties=self.parameters.get(
+                "SourceProcessingProperties"
+            ),
+            target_processing_properties=self.parameters.get(
+                "TargetProcessingProperties"
+            ),
+        )
+        return ActionResult(result)
+
+    def delete_integration_resource_property(self) -> ActionResult:
+        self.glue_backend.delete_integration_resource_property(
+            resource_arn=self.parameters["ResourceArn"],
+        )
+        return EmptyResult()
+
+    def list_integration_resource_properties(self) -> ActionResult:
+        results = self.glue_backend.list_integration_resource_properties(
+            resource_arn=self.parameters["ResourceArn"],
+        )
+        return ActionResult({"ResourceProperties": results})
+
+    # --- Integration Table Properties ---
+
+    def create_integration_table_properties(self) -> ActionResult:
+        result = self.glue_backend.create_integration_table_properties(
+            resource_arn=self.parameters["ResourceArn"],
+            table_name=self.parameters["TableName"],
+            source_table_config=self.parameters.get("SourceTableConfig"),
+            target_table_config=self.parameters.get("TargetTableConfig"),
+        )
+        return ActionResult(result)
+
+    def get_integration_table_properties(self) -> ActionResult:
+        result = self.glue_backend.get_integration_table_properties(
+            resource_arn=self.parameters["ResourceArn"],
+            table_name=self.parameters["TableName"],
+        )
+        return ActionResult(result)
+
+    def update_integration_table_properties(self) -> ActionResult:
+        result = self.glue_backend.update_integration_table_properties(
+            resource_arn=self.parameters["ResourceArn"],
+            table_name=self.parameters["TableName"],
+            source_table_config=self.parameters.get("SourceTableConfig"),
+            target_table_config=self.parameters.get("TargetTableConfig"),
+        )
+        return ActionResult(result)
+
+    def delete_integration_table_properties(self) -> ActionResult:
+        self.glue_backend.delete_integration_table_properties(
+            resource_arn=self.parameters["ResourceArn"],
+            table_name=self.parameters["TableName"],
+        )
+        return EmptyResult()
+
+    def describe_inbound_integrations(self) -> ActionResult:
+        results = self.glue_backend.describe_inbound_integrations(
+            integration_arn=self.parameters.get("IntegrationArn"),
+            target_arn=self.parameters.get("TargetArn"),
+        )
+        return ActionResult({"InboundIntegrations": results})
+
+    # --- Column Statistics Task Settings ---
+
+    def create_column_statistics_task_settings(self) -> ActionResult:
+        self.glue_backend.create_column_statistics_task_settings(
+            database_name=self.parameters["DatabaseName"],
+            table_name=self.parameters["TableName"],
+            role=self.parameters["Role"],
+            schedule=self.parameters.get("Schedule"),
+            column_name_list=self.parameters.get("ColumnNameList"),
+            sample_size=self.parameters.get("SampleSize", 0.0),
+            catalog_id=self.parameters.get("CatalogID"),
+            security_configuration=self.parameters.get("SecurityConfiguration"),
+        )
+        return EmptyResult()
+
+    def get_column_statistics_task_settings(self) -> ActionResult:
+        result = self.glue_backend.get_column_statistics_task_settings(
+            database_name=self.parameters["DatabaseName"],
+            table_name=self.parameters["TableName"],
+        )
+        return ActionResult({"ColumnStatisticsTaskSettings": result})
+
+    def update_column_statistics_task_settings(self) -> ActionResult:
+        self.glue_backend.update_column_statistics_task_settings(
+            database_name=self.parameters["DatabaseName"],
+            table_name=self.parameters["TableName"],
+            role=self.parameters.get("Role"),
+            schedule=self.parameters.get("Schedule"),
+            column_name_list=self.parameters.get("ColumnNameList"),
+            sample_size=self.parameters.get("SampleSize"),
+            security_configuration=self.parameters.get("SecurityConfiguration"),
+        )
+        return EmptyResult()
+
+    def delete_column_statistics_task_settings(self) -> ActionResult:
+        self.glue_backend.delete_column_statistics_task_settings(
+            database_name=self.parameters["DatabaseName"],
+            table_name=self.parameters["TableName"],
+        )
+        return EmptyResult()
+
+    def start_column_statistics_task_run(self) -> ActionResult:
+        run_id = self.glue_backend.start_column_statistics_task_run(
+            database_name=self.parameters["DatabaseName"],
+            table_name=self.parameters["TableName"],
+        )
+        return ActionResult({"ColumnStatisticsTaskRunId": run_id})
+
+    def stop_column_statistics_task_run(self) -> ActionResult:
+        self.glue_backend.stop_column_statistics_task_run(
+            database_name=self.parameters["DatabaseName"],
+            table_name=self.parameters["TableName"],
+        )
+        return EmptyResult()
+
+    def start_column_statistics_task_run_schedule(self) -> ActionResult:
+        self.glue_backend.start_column_statistics_task_run_schedule(
+            database_name=self.parameters["DatabaseName"],
+            table_name=self.parameters["TableName"],
+        )
+        return EmptyResult()
+
+    def stop_column_statistics_task_run_schedule(self) -> ActionResult:
+        self.glue_backend.stop_column_statistics_task_run_schedule(
+            database_name=self.parameters["DatabaseName"],
+            table_name=self.parameters["TableName"],
+        )
+        return EmptyResult()
+
+    # --- Data Quality Runs ---
+
+    def start_data_quality_rule_recommendation_run(self) -> ActionResult:
+        run_id = self.glue_backend.start_data_quality_rule_recommendation_run(
+            data_source=self.parameters["DataSource"],
+            role=self.parameters["Role"],
+            number_of_workers=self.parameters.get("NumberOfWorkers"),
+            timeout=self.parameters.get("Timeout"),
+            created_ruleset_name=self.parameters.get("CreatedRulesetName"),
+        )
+        return ActionResult({"RunId": run_id})
+
+    def start_data_quality_ruleset_evaluation_run(self) -> ActionResult:
+        run_id = self.glue_backend.start_data_quality_ruleset_evaluation_run(
+            data_source=self.parameters["DataSource"],
+            role=self.parameters["Role"],
+            ruleset_names=self.parameters["RulesetNames"],
+            number_of_workers=self.parameters.get("NumberOfWorkers"),
+            timeout=self.parameters.get("Timeout"),
+            additional_data_sources=self.parameters.get("AdditionalDataSources"),
+        )
+        return ActionResult({"RunId": run_id})
+
+    def cancel_data_quality_rule_recommendation_run(self) -> ActionResult:
+        self.glue_backend.cancel_data_quality_rule_recommendation_run(
+            run_id=self.parameters["RunId"],
+        )
+        return EmptyResult()
+
+    def cancel_data_quality_ruleset_evaluation_run(self) -> ActionResult:
+        self.glue_backend.cancel_data_quality_ruleset_evaluation_run(
+            run_id=self.parameters["RunId"],
+        )
+        return EmptyResult()
+
+    # --- Data Quality Extras ---
+
+    def batch_get_data_quality_result(self) -> ActionResult:
+        result = self.glue_backend.batch_get_data_quality_result(
+            result_ids=self.parameters["ResultIds"],
+        )
+        return ActionResult(result)
+
+    def get_data_quality_model_result(self) -> ActionResult:
+        self.glue_backend.get_data_quality_model_result(
+            profile_id=self.parameters["ProfileId"],
+            statistic_id=self.parameters.get("StatisticId"),
+        )
+        return EmptyResult()
+
+    def list_data_quality_statistics(self) -> ActionResult:
+        results = self.glue_backend.list_data_quality_statistics(
+            statistic_id=self.parameters.get("StatisticId"),
+            profile_id=self.parameters.get("ProfileId"),
+        )
+        return ActionResult({"Statistics": results})
+
+    def list_data_quality_statistic_annotations(self) -> ActionResult:
+        results = self.glue_backend.list_data_quality_statistic_annotations(
+            statistic_id=self.parameters.get("StatisticId"),
+            profile_id=self.parameters.get("ProfileId"),
+        )
+        return ActionResult({"Annotations": results})
+
+    def batch_put_data_quality_statistic_annotation(self) -> ActionResult:
+        result = self.glue_backend.batch_put_data_quality_statistic_annotation(
+            inclusion_annotations=self.parameters["InclusionAnnotations"],
+        )
+        return ActionResult(result)
+
+    def put_data_quality_profile_annotation(self) -> ActionResult:
+        self.glue_backend.put_data_quality_profile_annotation(
+            profile_id=self.parameters["ProfileId"],
+            inclusion_annotation=self.parameters["InclusionAnnotation"],
+        )
+        return EmptyResult()
