@@ -513,6 +513,63 @@ class GlueBackend(BaseBackend):
         crawler = self.get_crawler(name)
         crawler.stop_crawler()
 
+    def update_crawler(
+        self,
+        name: str,
+        role: Optional[str] = None,
+        database_name: Optional[str] = None,
+        description: Optional[str] = None,
+        targets: Optional[dict[str, Any]] = None,
+        schedule: Optional[str] = None,
+        classifiers: Optional[list[str]] = None,
+        table_prefix: Optional[str] = None,
+        schema_change_policy: Optional[dict[str, str]] = None,
+        recrawl_policy: Optional[dict[str, str]] = None,
+        lineage_configuration: Optional[dict[str, str]] = None,
+        configuration: Optional[str] = None,
+        crawler_security_configuration: Optional[str] = None,
+    ) -> None:
+        crawler = self.get_crawler(name)
+        if role is not None:
+            crawler.role = role
+        if database_name is not None:
+            crawler.database_name = database_name
+        if description is not None:
+            crawler.description = description
+        if targets is not None:
+            crawler.targets = targets
+        if schedule is not None:
+            crawler.schedule = schedule
+        if classifiers is not None:
+            crawler.classifiers = classifiers
+        if table_prefix is not None:
+            crawler.table_prefix = table_prefix
+        if schema_change_policy is not None:
+            crawler.schema_change_policy = schema_change_policy
+        if recrawl_policy is not None:
+            crawler.recrawl_policy = recrawl_policy
+        if lineage_configuration is not None:
+            crawler.lineage_configuration = lineage_configuration
+        if configuration is not None:
+            crawler.configuration = configuration
+        if crawler_security_configuration is not None:
+            crawler.crawler_security_configuration = crawler_security_configuration
+        crawler.last_updated = utcnow()
+        crawler.version += 1
+
+    def update_crawler_schedule(
+        self, crawler_name: str, schedule: Optional[str]
+    ) -> None:
+        crawler = self.get_crawler(crawler_name)
+        crawler.schedule = schedule or ""
+        crawler.last_updated = utcnow()
+
+    def start_crawler_schedule(self, crawler_name: str) -> None:
+        self.get_crawler(crawler_name)
+
+    def stop_crawler_schedule(self, crawler_name: str) -> None:
+        self.get_crawler(crawler_name)
+
     def delete_crawler(self, name: str) -> None:
         try:
             del self.crawlers[name]
@@ -690,6 +747,100 @@ class GlueBackend(BaseBackend):
     def list_jobs(self) -> list["FakeJob"]:
         return [job for _, job in self.jobs.items()]
 
+    def update_job(
+        self, name: str, job_update: dict[str, Any]
+    ) -> str:
+        job = self.get_job(name)
+        for attr, key in [
+            ("role", "Role"), ("description", "Description"),
+            ("log_uri", "LogUri"), ("command", "Command"),
+            ("default_arguments", "DefaultArguments"),
+            ("non_overridable_arguments", "NonOverridableArguments"),
+            ("connections", "Connections"), ("max_retries", "MaxRetries"),
+            ("allocated_capacity", "AllocatedCapacity"),
+            ("timeout", "Timeout"), ("max_capacity", "MaxCapacity"),
+            ("security_configuration", "SecurityConfiguration"),
+            ("notification_property", "NotificationProperty"),
+            ("glue_version", "GlueVersion"),
+            ("number_of_workers", "NumberOfWorkers"),
+            ("worker_type", "WorkerType"),
+            ("execution_property", "ExecutionProperty"),
+            ("execution_class", "ExecutionClass"),
+            ("code_gen_configuration_nodes", "CodeGenConfigurationNodes"),
+            ("source_control_details", "SourceControlDetails"),
+        ]:
+            if key in job_update:
+                setattr(job, attr, job_update[key])
+        job.last_modified_on = utcnow()
+        return name
+
+    def batch_stop_job_run(
+        self, job_name: str, job_run_ids: list[str]
+    ) -> tuple[list[dict[str, str]], list[dict[str, Any]]]:
+        successful: list[dict[str, str]] = []
+        errors: list[dict[str, Any]] = []
+        job = self.get_job(job_name)
+        for run_id in job_run_ids:
+            found = None
+            for jr in job.job_runs:
+                if jr.job_run_id == run_id:
+                    found = jr
+                    break
+            if found is None:
+                errors.append({
+                    "JobName": job_name,
+                    "JobRunId": run_id,
+                    "ErrorDetail": {
+                        "ErrorCode": "EntityNotFoundException",
+                        "ErrorMessage": f"Job run {run_id} not found",
+                    },
+                })
+            elif found.status in [
+                "STARTING", "RUNNING", "SUCCEEDED", "FAILED",
+            ]:
+                found.status = "STOPPED"
+                successful.append(
+                    {"JobName": job_name, "JobRunId": run_id}
+                )
+            else:
+                errors.append({
+                    "JobName": job_name,
+                    "JobRunId": run_id,
+                    "ErrorDetail": {
+                        "ErrorCode": "InvalidInputException",
+                        "ErrorMessage": (
+                            f"Job run {run_id} not in stoppable state"
+                        ),
+                    },
+                })
+        return successful, errors
+
+    def get_job_bookmark(
+        self, job_name: str, run_id: Optional[str] = None
+    ) -> dict[str, Any]:
+        self.get_job(job_name)
+        return {
+            "JobBookmarkEntry": {
+                "JobName": job_name,
+                "Version": 0,
+                "Run": 0,
+                "Attempt": 0,
+                "JobBookmark": "",
+            }
+        }
+
+    def reset_job_bookmark(self, job_name: str) -> dict[str, Any]:
+        self.get_job(job_name)
+        return {
+            "JobBookmarkEntry": {
+                "JobName": job_name,
+                "Version": 0,
+                "Run": 0,
+                "Attempt": 0,
+                "JobBookmark": "",
+            }
+        }
+
     def delete_job(self, name: str) -> None:
         if name in self.jobs:
             del self.jobs[name]
@@ -737,6 +888,18 @@ class GlueBackend(BaseBackend):
 
     def list_registries(self) -> list[dict[str, Any]]:
         return [reg.as_dict() for reg in self.registries.values()]
+
+    def update_registry(
+        self, registry_id: dict[str, Any], description: str
+    ) -> dict[str, Any]:
+        registry_name = validate_registry_id(registry_id, self.registries)
+        registry = self.registries[registry_name]
+        registry.description = description
+        registry.updated_time = utcnow()
+        return {
+            "RegistryArn": registry.registry_arn,
+            "RegistryName": registry.name,
+        }
 
     def create_schema(
         self,
@@ -1180,6 +1343,38 @@ class GlueBackend(BaseBackend):
 
         return list(self.triggers.values())
 
+    def update_trigger(
+        self,
+        name: str,
+        trigger_update: dict[str, Any],
+    ) -> "FakeTrigger":
+        trigger = self.get_trigger(name)
+        if "Description" in trigger_update:
+            trigger.description = trigger_update["Description"]
+        if "Schedule" in trigger_update:
+            trigger.schedule = trigger_update["Schedule"]
+        if "Actions" in trigger_update:
+            trigger.actions = [
+                Action(
+                    job_name=a.get("JobName"),
+                    crawler_name=a.get("CrawlerName"),
+                    arguments=a.get("Arguments"),
+                    timeout=a.get("Timeout"),
+                    security_configuration=a.get("SecurityConfiguration"),
+                    notification_property=a.get("NotificationProperty"),
+                )
+                for a in trigger_update["Actions"]
+            ]
+        if "Predicate" in trigger_update:
+            pred = trigger_update["Predicate"]
+            trigger.predicate = Predicate(
+                logical=pred.get("Logical", "AND"),
+                conditions=pred.get("Conditions", []),
+            )
+        if "EventBatchingCondition" in trigger_update:
+            trigger.event_batching_condition = trigger_update["EventBatchingCondition"]
+        return trigger
+
     def delete_trigger(self, name: str) -> None:
         if name in self.triggers:
             del self.triggers[name]
@@ -1364,11 +1559,57 @@ class GlueBackend(BaseBackend):
         except KeyError:
             raise EntityNotFoundException(f"DevEndpoint {endpoint_name} not found")
 
+    def update_dev_endpoint(
+        self,
+        endpoint_name: str,
+        public_key: Optional[str] = None,
+        custom_libraries: Optional[dict[str, Any]] = None,
+        update_etl_libraries: bool = False,
+        add_public_keys: Optional[list[str]] = None,
+        delete_public_keys: Optional[list[str]] = None,
+        add_arguments: Optional[dict[str, str]] = None,
+        delete_arguments: Optional[list[str]] = None,
+    ) -> None:
+        endpoint = self.get_dev_endpoint(endpoint_name)
+        if public_key is not None:
+            endpoint.public_key = public_key
+        if custom_libraries:
+            if "ExtraPythonLibsS3Path" in custom_libraries:
+                endpoint.extra_python_libs_s3_path = custom_libraries[
+                    "ExtraPythonLibsS3Path"
+                ]
+            if "ExtraJarsS3Path" in custom_libraries:
+                endpoint.extra_jars_s3_path = custom_libraries["ExtraJarsS3Path"]
+        if add_public_keys:
+            endpoint.public_keys.extend(add_public_keys)
+        if delete_public_keys:
+            endpoint.public_keys = [
+                k for k in endpoint.public_keys if k not in delete_public_keys
+            ]
+        if add_arguments:
+            endpoint.arguments.update(add_arguments)
+        if delete_arguments:
+            for key in delete_arguments:
+                endpoint.arguments.pop(key, None)
+        endpoint.last_modified_timestamp = utcnow()
+
     def delete_dev_endpoint(self, endpoint_name: str) -> None:
         try:
             del self.dev_endpoints[endpoint_name]
         except KeyError:
             raise EntityNotFoundException(f"DevEndpoint {endpoint_name} not found")
+
+    def batch_get_dev_endpoints(
+        self, endpoint_names: list[str]
+    ) -> tuple[list[dict[str, Any]], list[str]]:
+        endpoints = []
+        not_found = []
+        for name in endpoint_names:
+            if name in self.dev_endpoints:
+                endpoints.append(self.dev_endpoints[name].as_dict())
+            else:
+                not_found.append(name)
+        return endpoints, not_found
 
     def create_connection(
         self,
@@ -1402,6 +1643,45 @@ class GlueBackend(BaseBackend):
     ) -> list["FakeConnection"]:
         # TODO: Implement filtering
         return list(self.connections.values())
+
+    def update_connection(
+        self,
+        catalog_id: str,
+        name: str,
+        connection_input: dict[str, Any],
+    ) -> None:
+        connection = self.connections.get(name)
+        if not connection:
+            raise EntityNotFoundException(f"Connection {name} not found")
+        connection.connection_input = connection_input
+        connection.description = connection_input.get(
+            "Description", connection.description
+        )
+        connection.connection_properties = connection_input.get(
+            "ConnectionProperties", connection.connection_properties
+        )
+        connection.updated_time = utcnow()
+
+    def delete_connection(self, catalog_id: str, name: str) -> None:
+        if name not in self.connections:
+            raise EntityNotFoundException(f"Connection {name} not found")
+        del self.connections[name]
+
+    def batch_delete_connection(
+        self, catalog_id: str, connection_names: list[str]
+    ) -> tuple[list[str], dict[str, Any]]:
+        succeeded = []
+        errors: dict[str, Any] = {}
+        for name in connection_names:
+            if name in self.connections:
+                del self.connections[name]
+                succeeded.append(name)
+            else:
+                errors[name] = {
+                    "ErrorCode": "EntityNotFoundException",
+                    "ErrorMessage": f"Connection {name} not found",
+                }
+        return succeeded, errors
 
     def put_data_catalog_encryption_settings(
         self,
@@ -1712,6 +1992,9 @@ class GlueBackend(BaseBackend):
             raise EntityNotFoundException(f"Catalog {name} not found.")
         del self.catalogs[name]
 
+    def get_catalogs(self) -> list["FakeCatalog"]:
+        return list(self.catalogs.values())
+
     # --- Data Quality Rulesets ---
 
     def create_data_quality_ruleset(
@@ -1928,6 +2211,160 @@ class GlueBackend(BaseBackend):
 
     def list_dev_endpoints(self) -> list["FakeDevEndpoint"]:
         return list(self.dev_endpoints.values())
+
+    def batch_get_blueprints(
+        self, names: list[str]
+    ) -> tuple[list[dict[str, Any]], list[str]]:
+        blueprints = []
+        missing = []
+        for name in names:
+            if name in self.blueprints:
+                blueprints.append(self.blueprints[name].as_dict())
+            else:
+                missing.append(name)
+        return blueprints, missing
+
+    def batch_get_custom_entity_types(
+        self, names: list[str]
+    ) -> tuple[list[dict[str, Any]], list[str]]:
+        entities = []
+        missing = []
+        for name in names:
+            if name in self.custom_entity_types:
+                entities.append(self.custom_entity_types[name].as_dict())
+            else:
+                missing.append(name)
+        return entities, missing
+
+    def resume_workflow_run(
+        self, name: str, run_id: str, node_ids: list[str]
+    ) -> dict[str, Any]:
+        workflow = self.workflows.get(name)
+        if not workflow:
+            raise EntityNotFoundException("Entity not found")
+        run = workflow.get_run(run_id)
+        new_run_id = workflow.start_run(run.properties)
+        return {"RunId": new_run_id, "NodeIds": node_ids}
+
+    def run_statement(
+        self, session_id: str, code: str, request_origin: Optional[str] = None
+    ) -> dict[str, Any]:
+        self.get_session(session_id)
+        return {"Id": 0}
+
+    def cancel_statement(
+        self, session_id: str, statement_id: int, request_origin: Optional[str] = None
+    ) -> None:
+        self.get_session(session_id)
+
+    def import_catalog_to_glue(self, catalog_id: Optional[str] = None) -> None:
+        pass
+
+    def batch_delete_table_version(
+        self, database_name: str, table_name: str, version_ids: list[str]
+    ) -> list[dict[str, Any]]:
+        table = self.get_table(database_name, table_name)
+        errors = []
+        for ver_id in version_ids:
+            try:
+                table.delete_version(ver_id)
+            except VersionNotFoundException:
+                errors.append({
+                    "TableName": table_name,
+                    "VersionId": ver_id,
+                    "ErrorDetail": {
+                        "ErrorCode": "EntityNotFoundException",
+                        "ErrorMessage": f"Version {ver_id} not found",
+                    },
+                })
+        return errors
+
+    def create_partition_index(
+        self, database_name: str, table_name: str, partition_index: dict[str, Any],
+    ) -> None:
+        self.get_table(database_name, table_name)
+
+    def delete_partition_index(
+        self, database_name: str, table_name: str, index_name: str,
+    ) -> None:
+        self.get_table(database_name, table_name)
+
+    def create_user_defined_function(
+        self, database_name: str, function_input: dict[str, Any],
+    ) -> None:
+        database = self.get_database(database_name)
+        function_name = function_input.get("FunctionName", "")
+        if not hasattr(database, "user_defined_functions"):
+            database.user_defined_functions = OrderedDict()
+        if function_name in database.user_defined_functions:
+            raise AlreadyExistsException("UserDefinedFunction")
+        function_input["CreateTime"] = utcnow()
+        database.user_defined_functions[function_name] = function_input
+
+    def get_user_defined_function(
+        self, database_name: str, function_name: str
+    ) -> dict[str, Any]:
+        database = self.get_database(database_name)
+        udfs = getattr(database, "user_defined_functions", {})
+        if function_name not in udfs:
+            raise EntityNotFoundException(f"Function {function_name} not found")
+        return udfs[function_name]
+
+    def get_user_defined_functions(
+        self, database_name: str, pattern: str
+    ) -> list[dict[str, Any]]:
+        database = self.get_database(database_name)
+        udfs = getattr(database, "user_defined_functions", {})
+        if pattern and pattern != "*":
+            import fnmatch
+            return [v for k, v in udfs.items() if fnmatch.fnmatch(k, pattern)]
+        return list(udfs.values())
+
+    def update_user_defined_function(
+        self, database_name: str, function_name: str, function_input: dict[str, Any],
+    ) -> None:
+        database = self.get_database(database_name)
+        udfs = getattr(database, "user_defined_functions", {})
+        if function_name not in udfs:
+            raise EntityNotFoundException(f"Function {function_name} not found")
+        function_input["CreateTime"] = udfs[function_name].get("CreateTime", utcnow())
+        udfs[function_name] = function_input
+
+    def delete_user_defined_function(
+        self, database_name: str, function_name: str
+    ) -> None:
+        database = self.get_database(database_name)
+        udfs = getattr(database, "user_defined_functions", {})
+        if function_name not in udfs:
+            raise EntityNotFoundException(f"Function {function_name} not found")
+        del udfs[function_name]
+
+    def check_schema_version_validity(
+        self, data_format: str, schema_definition: str
+    ) -> dict[str, Any]:
+        valid = True
+        error = ""
+        if data_format == "JSON":
+            try:
+                import json as json_mod
+                json_mod.loads(schema_definition)
+            except (json_mod.JSONDecodeError, ValueError) as exc:
+                valid = False
+                error = str(exc)
+        return {"Valid": valid, "Error": error}
+
+    def delete_schema_versions(
+        self, schema_id: dict[str, str], versions: str,
+    ) -> list[dict[str, Any]]:
+        return [{"VersionNumber": int(v.strip()), "Status": "SUCCESS"}
+                for v in versions.split(",") if v.strip().isdigit()]
+
+    def start_blueprint_run(
+        self, name: str, role_arn: str, parameters: Optional[str] = None
+    ) -> str:
+        if name not in self.blueprints:
+            raise EntityNotFoundException(f"Blueprint {name} not found.")
+        return f"bp_{mock_random.get_random_hex(32)}"
 
     def search_tables(
         self,
