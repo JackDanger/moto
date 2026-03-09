@@ -22,6 +22,32 @@ from ..ses.models import (
 from ..ses.utils import get_arn
 from .exceptions import AlreadyExistsException, SESV2NotFoundException
 
+class SuppressedDestination(BaseModel):
+    def __init__(self, email_address: str, reason: str) -> None:
+        self.email_address = email_address
+        self.reason = reason
+        self.last_update_time = iso_8601_datetime_with_milliseconds()
+        self.created_timestamp = iso_8601_datetime_with_milliseconds()
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "EmailAddress": self.email_address,
+            "Reason": self.reason,
+            "LastUpdateTime": self.last_update_time,
+        }
+
+    def to_full_dict(self) -> dict[str, Any]:
+        return {
+            "EmailAddress": self.email_address,
+            "Reason": self.reason,
+            "LastUpdateTime": self.last_update_time,
+            "Attributes": {
+                "MessageId": "fake-message-id",
+                "CreatedAt": self.created_timestamp,
+            },
+        }
+
+
 PAGINATION_MODEL = {
     "list_dedicated_ip_pools": {
         "input_token": "next_token",
@@ -95,6 +121,8 @@ class SESV2Backend(BaseBackend):
         self.account_details = {}
         self.account_sending_enabled = True
         self.account_suppression_attributes = {}
+        self.suppressed_destinations: dict[str, SuppressedDestination] = {}
+        self.multi_region_endpoints: list[dict[str, Any]] = []
 
     def create_contact_list(self, params: dict[str, Any]) -> None:
         name = params["ContactListName"]
@@ -406,6 +434,117 @@ class SESV2Backend(BaseBackend):
     def list_tags_for_resource(self, resource_arn: str) -> list[dict[str, str]]:
         tags = self.core_backend.tagger.list_tags_for_resource(resource_arn)
         return tags.get("Tags", [])
+
+
+    def put_suppressed_destination(self, email_address: str, reason: str) -> None:
+        self.suppressed_destinations[email_address] = SuppressedDestination(
+            email_address=email_address, reason=reason
+        )
+
+    def get_suppressed_destination(self, email_address: str) -> SuppressedDestination:
+        if email_address not in self.suppressed_destinations:
+            raise SESV2NotFoundException(
+                f"Suppressed destination {email_address} does not exist."
+            )
+        return self.suppressed_destinations[email_address]
+
+    def list_suppressed_destinations(self) -> list[SuppressedDestination]:
+        return list(self.suppressed_destinations.values())
+
+    def delete_suppressed_destination(self, email_address: str) -> None:
+        if email_address not in self.suppressed_destinations:
+            raise SESV2NotFoundException(
+                f"Suppressed destination {email_address} does not exist."
+            )
+        del self.suppressed_destinations[email_address]
+
+    def get_dedicated_ips(self, pool_name: Optional[str] = None) -> list[dict[str, Any]]:
+        pools = self.core_backend.dedicated_ip_pools
+        ips: list[dict[str, Any]] = []
+        if pool_name:
+            if pool_name not in pools:
+                raise NotFoundException(pool_name)
+            ips.append({
+                "Ip": "192.0.2.1",
+                "WarmupStatus": "DONE",
+                "WarmupPercentage": 100,
+                "PoolName": pool_name,
+            })
+        else:
+            for name in pools:
+                ips.append({
+                    "Ip": "192.0.2.1",
+                    "WarmupStatus": "DONE",
+                    "WarmupPercentage": 100,
+                    "PoolName": name,
+                })
+        return ips
+
+    def get_dedicated_ip(self, ip: str) -> dict[str, Any]:
+        return {
+            "Ip": ip,
+            "WarmupStatus": "DONE",
+            "WarmupPercentage": 100,
+            "PoolName": "default",
+        }
+
+    def put_dedicated_ip_warmup_attributes(
+        self, ip: str, warmup_percentage: int
+    ) -> None:
+        # No real IPs in mock, just accept the call
+        pass
+
+    def get_deliverability_dashboard_options(self) -> dict[str, Any]:
+        return {
+            "DashboardEnabled": False,
+            "AccountStatus": "DISABLED",
+        }
+
+    def get_blacklist_reports(
+        self, blacklist_item_names: list[str]
+    ) -> dict[str, list[Any]]:
+        return {name: [] for name in blacklist_item_names}
+
+    def put_configuration_set_vdm_options(
+        self, configuration_set_name: str, vdm_options: dict[str, Any]
+    ) -> None:
+        config_set = self.core_backend.describe_configuration_set(
+            configuration_set_name=configuration_set_name
+        )
+        config_set.vdm_options = vdm_options
+
+    def put_email_identity_configuration_set_attributes(
+        self, email_identity: str, configuration_set_name: Optional[str] = None
+    ) -> None:
+        if email_identity not in self.core_backend.email_identities:
+            raise NotFoundException(email_identity)
+        identity = self.core_backend.email_identities[email_identity]
+        identity.configuration_set_name = configuration_set_name
+
+    def put_email_identity_dkim_signing_attributes(
+        self,
+        email_identity: str,
+        signing_attributes_origin: str,
+        signing_attributes: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any]:
+        if email_identity not in self.core_backend.email_identities:
+            raise NotFoundException(email_identity)
+        identity = self.core_backend.email_identities[email_identity]
+        dkim_attrs = identity.dkim_attributes or {}
+        dkim_attrs["SigningAttributesOrigin"] = signing_attributes_origin
+        dkim_attrs["Status"] = "SUCCESS"
+        identity.dkim_attributes = dkim_attrs
+        return {
+            "DkimStatus": "SUCCESS",
+            "DkimTokens": [
+                f"token1._domainkey.{email_identity}",
+                f"token2._domainkey.{email_identity}",
+                f"token3._domainkey.{email_identity}",
+            ],
+        }
+
+    def list_multi_region_endpoints(self) -> list[dict[str, Any]]:
+        return self.multi_region_endpoints
 
 
 sesv2_backends = BackendDict(SESV2Backend, "sesv2")

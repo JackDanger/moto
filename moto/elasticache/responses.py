@@ -362,3 +362,74 @@ class ElastiCacheResponse(BaseResponse):
         )
 
         return ActionResult({"Snapshot": snapshot})
+
+    def describe_cache_engine_versions(self) -> ActionResult:
+        engine = self._get_param("Engine")
+        engine_version = self._get_param("EngineVersion")
+        cache_parameter_group_family = self._get_param("CacheParameterGroupFamily")
+        default_only = self._get_bool_param("DefaultOnly")
+
+        versions = self.elasticache_backend.describe_cache_engine_versions(
+            engine=engine,
+            engine_version=engine_version,
+            cache_parameter_group_family=cache_parameter_group_family,
+            default_only=default_only or False,
+        )
+        return PaginatedResult({"CacheEngineVersions": versions})
+
+    def describe_cache_parameter_groups(self) -> ActionResult:
+        cache_parameter_group_name = self._get_param("CacheParameterGroupName")
+        groups = self.elasticache_backend.describe_cache_parameter_groups(
+            cache_parameter_group_name=cache_parameter_group_name,
+        )
+        return PaginatedResult({"CacheParameterGroups": groups})
+
+    def describe_cache_parameters(self) -> ActionResult:
+        cache_parameter_group_name = self._get_param("CacheParameterGroupName")
+        params = self.elasticache_backend.describe_cache_parameters(
+            cache_parameter_group_name=cache_parameter_group_name,
+        )
+        return PaginatedResult({"Parameters": params})
+
+    def describe_events(self) -> ActionResult:
+        source_identifier = self._get_param("SourceIdentifier")
+        source_type = self._get_param("SourceType")
+        duration = self._get_int_param("Duration")
+        events = self.elasticache_backend.describe_events(
+            source_identifier=source_identifier,
+            source_type=source_type,
+            duration=duration,
+        )
+        return PaginatedResult({"Events": events})
+
+    def describe_serverless_caches(self) -> ActionResult:
+        serverless_cache_name = self._get_param("ServerlessCacheName")
+        caches = self.elasticache_backend.describe_serverless_caches(
+            serverless_cache_name=serverless_cache_name,
+        )
+        return PaginatedResult({"ServerlessCaches": caches})
+
+    def describe_service_updates(self) -> ActionResult:
+        service_update_name = self._get_param("ServiceUpdateName")
+        updates = self.elasticache_backend.describe_service_updates(
+            service_update_name=service_update_name,
+        )
+        return PaginatedResult({"ServiceUpdates": updates})
+
+    def describe_update_actions(self) -> ActionResult:
+        replication_group_ids = self._get_param("ReplicationGroupIds")
+        cache_cluster_ids = self._get_param("CacheClusterIds")
+        service_update_name = self._get_param("ServiceUpdateName")
+        actions = self.elasticache_backend.describe_update_actions(
+            replication_group_ids=replication_group_ids,
+            cache_cluster_ids=cache_cluster_ids,
+            service_update_name=service_update_name,
+        )
+        return PaginatedResult({"UpdateActions": actions})
+
+    def describe_user_groups(self) -> ActionResult:
+        user_group_id = self._get_param("UserGroupId")
+        groups = self.elasticache_backend.describe_user_groups(
+            user_group_id=user_group_id,
+        )
+        return PaginatedResult({"UserGroups": groups})

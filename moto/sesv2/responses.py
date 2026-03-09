@@ -411,3 +411,100 @@ class SESV2Response(BaseResponse):
             resource_arn=resource_arn,
         )
         return json.dumps({"Tags": tags})
+
+    # ===== Suppressed Destination handlers =====
+
+    def put_suppressed_destination(self) -> str:
+        params = json.loads(self.body)
+        self.sesv2_backend.put_suppressed_destination(
+            email_address=params["EmailAddress"],
+            reason=params["Reason"],
+        )
+        return json.dumps({})
+
+    def get_suppressed_destination(self) -> str:
+        email_address = self._get_param("EmailAddress")
+        dest = self.sesv2_backend.get_suppressed_destination(email_address)
+        return json.dumps({"SuppressedDestination": dest.to_full_dict()})
+
+    def list_suppressed_destinations(self) -> str:
+        destinations = self.sesv2_backend.list_suppressed_destinations()
+        return json.dumps(
+            {"SuppressedDestinationSummaries": [d.to_dict() for d in destinations]}
+        )
+
+    def delete_suppressed_destination(self) -> str:
+        email_address = self._get_param("EmailAddress")
+        self.sesv2_backend.delete_suppressed_destination(email_address)
+        return json.dumps({})
+
+    # ===== Dedicated IP handlers =====
+
+    def get_dedicated_ips(self) -> str:
+        pool_name = self._get_param("PoolName")
+        ips = self.sesv2_backend.get_dedicated_ips(pool_name=pool_name)
+        return json.dumps({"DedicatedIps": ips})
+
+    def get_dedicated_ip(self) -> str:
+        ip = self._get_param("IP")
+        dedicated_ip = self.sesv2_backend.get_dedicated_ip(ip)
+        return json.dumps({"DedicatedIp": dedicated_ip})
+
+    def put_dedicated_ip_warmup_attributes(self) -> str:
+        ip = self._get_param("IP")
+        params = json.loads(self.body)
+        self.sesv2_backend.put_dedicated_ip_warmup_attributes(
+            ip=ip, warmup_percentage=params.get("WarmupPercentage", 100)
+        )
+        return json.dumps({})
+
+    # ===== Deliverability Dashboard handlers =====
+
+    def get_deliverability_dashboard_options(self) -> str:
+        options = self.sesv2_backend.get_deliverability_dashboard_options()
+        return json.dumps(options)
+
+    def get_blacklist_reports(self) -> str:
+        blacklist_item_names = self.querystring.get("BlacklistItemNames", [])
+        if not blacklist_item_names:
+            blacklist_item_names = ["default"]
+        reports = self.sesv2_backend.get_blacklist_reports(blacklist_item_names)
+        return json.dumps({"BlacklistReport": reports})
+
+    # ===== VDM Options handler =====
+
+    def put_configuration_set_vdm_options(self) -> str:
+        configuration_set_name = self._get_param("ConfigurationSetName")
+        params = json.loads(self.body)
+        self.sesv2_backend.put_configuration_set_vdm_options(
+            configuration_set_name=configuration_set_name,
+            vdm_options=params.get("VdmOptions", {}),
+        )
+        return json.dumps({})
+
+    # ===== Email Identity Configuration Set / DKIM handlers =====
+
+    def put_email_identity_configuration_set_attributes(self) -> str:
+        email_identity = self._get_param("EmailIdentity")
+        params = json.loads(self.body)
+        self.sesv2_backend.put_email_identity_configuration_set_attributes(
+            email_identity=email_identity,
+            configuration_set_name=params.get("ConfigurationSetName"),
+        )
+        return json.dumps({})
+
+    def put_email_identity_dkim_signing_attributes(self) -> str:
+        email_identity = self._get_param("EmailIdentity")
+        params = json.loads(self.body)
+        result = self.sesv2_backend.put_email_identity_dkim_signing_attributes(
+            email_identity=email_identity,
+            signing_attributes_origin=params.get("SigningAttributesOrigin", "AWS_SES"),
+            signing_attributes=params.get("SigningAttributes"),
+        )
+        return json.dumps(result)
+
+    # ===== Multi-Region Endpoints handler =====
+
+    def list_multi_region_endpoints(self) -> str:
+        endpoints = self.sesv2_backend.list_multi_region_endpoints()
+        return json.dumps({"MultiRegionEndpoints": endpoints})
