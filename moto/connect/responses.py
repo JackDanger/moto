@@ -1051,13 +1051,13 @@ class ConnectResponse(BaseResponse):
 
     def claim_phone_number(self) -> str:
         params = json.loads(self.body) if self.body else {}
-        target_arn = str(params["TargetArn"])
-        instance_id = target_arn.split("/")[-1]
+        target_arn = params.get("TargetArn", "")
+        instance_id = params.get("InstanceId") or (target_arn.split("/")[-1] if target_arn else "")
         result = self.connect_backend.claim_phone_number(
             instance_id=instance_id,
             phone_number=str(params["PhoneNumber"]),
-            phone_number_country_code=str(params["PhoneNumberCountryCode"]),
-            phone_number_type=str(params["PhoneNumberType"]),
+            phone_number_country_code=params.get("PhoneNumberCountryCode", "US"),
+            phone_number_type=params.get("PhoneNumberType", "DID"),
             description=params.get("PhoneNumberDescription", ""),
             tags=params.get("Tags"),
         )
