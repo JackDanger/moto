@@ -1666,3 +1666,1542 @@ class SageMakerResponse(BaseResponse):
             model_card_name=model_card_name,
         )
         return EmptyResult()
+
+    def create_action(self) -> ActionResult:
+        actionname = self._get_param("ActionName")
+        source = self._get_param("Source")
+        actiontype = self._get_param("ActionType")
+        description = self._get_param("Description")
+        status = self._get_param("Status")
+        properties = self._get_param("Properties")
+        metadataproperties = self._get_param("MetadataProperties")
+        tags = self._get_param("Tags")
+        result = self.sagemaker_backend.create_action(actionname=actionname, source=source, actiontype=actiontype, description=description, status=status, properties=properties, metadataproperties=metadataproperties, tags=tags)
+        return ActionResult(result)
+
+    def describe_action(self) -> ActionResult:
+        name = self._get_param("ActionName")
+        result = self.sagemaker_backend.describe_action(name=name)
+        return ActionResult(result)
+
+    def list_actions(self) -> ActionResult:
+        results = self.sagemaker_backend.list_actions()
+        return ActionResult({"ActionSummaries": results})
+
+    def update_action(self) -> ActionResult:
+        actionname = self._get_param("ActionName")
+        source = self._get_param("Source")
+        actiontype = self._get_param("ActionType")
+        description = self._get_param("Description")
+        status = self._get_param("Status")
+        properties = self._get_param("Properties")
+        metadataproperties = self._get_param("MetadataProperties")
+        result = self.sagemaker_backend.update_action(actionname=actionname, source=source, actiontype=actiontype, description=description, status=status, properties=properties, metadataproperties=metadataproperties)
+        return ActionResult(result)
+
+    def delete_action(self) -> ActionResult:
+        name = self._get_param("ActionName")
+        self.sagemaker_backend.delete_action(name=name)
+        return ActionResult({})
+
+    def create_algorithm(self) -> ActionResult:
+        algorithmname = self._get_param("AlgorithmName")
+        algorithmdescription = self._get_param("AlgorithmDescription")
+        trainingspecification = self._get_param("TrainingSpecification")
+        inferencespecification = self._get_param("InferenceSpecification")
+        validationspecification = self._get_param("ValidationSpecification")
+        certifyformarketplace = self._get_param("CertifyForMarketplace")
+        tags = self._get_param("Tags")
+        result = self.sagemaker_backend.create_algorithm(algorithmname=algorithmname, algorithmdescription=algorithmdescription, trainingspecification=trainingspecification, inferencespecification=inferencespecification, validationspecification=validationspecification, certifyformarketplace=certifyformarketplace, tags=tags)
+        return ActionResult(result)
+
+    def describe_algorithm(self) -> ActionResult:
+        name = self._get_param("AlgorithmName")
+        result = self.sagemaker_backend.describe_algorithm(name=name)
+        return ActionResult(result)
+
+    def list_algorithms(self) -> ActionResult:
+        results = self.sagemaker_backend.list_algorithms()
+        return ActionResult({"AlgorithmSummaryList": results})
+
+    def delete_algorithm(self) -> ActionResult:
+        name = self._get_param("AlgorithmName")
+        self.sagemaker_backend.delete_algorithm(name=name)
+        return ActionResult({})
+
+    def create_app(self) -> ActionResult:
+        appname = self._get_param("AppName")
+        domainid = self._get_param("DomainId")
+        userprofilename = self._get_param("UserProfileName")
+        spacename = self._get_param("SpaceName")
+        apptype = self._get_param("AppType")
+        resourcespec = self._get_param("ResourceSpec")
+        tags = self._get_param("Tags")
+        result = self.sagemaker_backend.create_app(appname=appname, domainid=domainid, userprofilename=userprofilename, spacename=spacename, apptype=apptype, resourcespec=resourcespec, tags=tags)
+        return ActionResult(result)
+
+    def describe_app(self) -> ActionResult:
+        domainid = self._get_param("DomainId")
+        apptype = self._get_param("AppType")
+        appname = self._get_param("AppName")
+        result = self.sagemaker_backend.describe_app(domainid=domainid, apptype=apptype, appname=appname)
+        return ActionResult(result)
+
+    def list_apps(self) -> ActionResult:
+        results = self.sagemaker_backend.list_apps()
+        return ActionResult({"Apps": results})
+
+    def delete_app(self) -> ActionResult:
+        domainid = self._get_param("DomainId")
+        apptype = self._get_param("AppType")
+        appname = self._get_param("AppName")
+        self.sagemaker_backend.delete_app(domainid=domainid, apptype=apptype, appname=appname)
+        return ActionResult({})
+
+    def create_app_image_config(self) -> ActionResult:
+        appimageconfigname = self._get_param("AppImageConfigName")
+        kernelgatewayimageconfig = self._get_param("KernelGatewayImageConfig")
+        jupyterlabappimageconfig = self._get_param("JupyterLabAppImageConfig")
+        codeeditorappimageconfig = self._get_param("CodeEditorAppImageConfig")
+        tags = self._get_param("Tags")
+        result = self.sagemaker_backend.create_app_image_config(appimageconfigname=appimageconfigname, kernelgatewayimageconfig=kernelgatewayimageconfig, jupyterlabappimageconfig=jupyterlabappimageconfig, codeeditorappimageconfig=codeeditorappimageconfig, tags=tags)
+        return ActionResult(result)
+
+    def describe_app_image_config(self) -> ActionResult:
+        name = self._get_param("AppImageConfigName")
+        result = self.sagemaker_backend.describe_app_image_config(name=name)
+        return ActionResult(result)
+
+    def list_app_image_configs(self) -> ActionResult:
+        results = self.sagemaker_backend.list_app_image_configs()
+        return ActionResult({"AppImageConfigs": results})
+
+    def update_app_image_config(self) -> ActionResult:
+        appimageconfigname = self._get_param("AppImageConfigName")
+        kernelgatewayimageconfig = self._get_param("KernelGatewayImageConfig")
+        jupyterlabappimageconfig = self._get_param("JupyterLabAppImageConfig")
+        codeeditorappimageconfig = self._get_param("CodeEditorAppImageConfig")
+        result = self.sagemaker_backend.update_app_image_config(appimageconfigname=appimageconfigname, kernelgatewayimageconfig=kernelgatewayimageconfig, jupyterlabappimageconfig=jupyterlabappimageconfig, codeeditorappimageconfig=codeeditorappimageconfig)
+        return ActionResult(result)
+
+    def delete_app_image_config(self) -> ActionResult:
+        name = self._get_param("AppImageConfigName")
+        self.sagemaker_backend.delete_app_image_config(name=name)
+        return ActionResult({})
+
+    def create_artifact(self) -> ActionResult:
+        artifactname = self._get_param("ArtifactName")
+        source = self._get_param("Source")
+        artifacttype = self._get_param("ArtifactType")
+        properties = self._get_param("Properties")
+        metadataproperties = self._get_param("MetadataProperties")
+        tags = self._get_param("Tags")
+        result = self.sagemaker_backend.create_artifact(artifactname=artifactname, source=source, artifacttype=artifacttype, properties=properties, metadataproperties=metadataproperties, tags=tags)
+        return ActionResult(result)
+
+    def describe_artifact(self) -> ActionResult:
+        name = self._get_param("ArtifactName")
+        result = self.sagemaker_backend.describe_artifact(name=name)
+        return ActionResult(result)
+
+    def list_artifacts(self) -> ActionResult:
+        results = self.sagemaker_backend.list_artifacts()
+        return ActionResult({"ArtifactSummaries": results})
+
+    def update_artifact(self) -> ActionResult:
+        artifactname = self._get_param("ArtifactName")
+        source = self._get_param("Source")
+        artifacttype = self._get_param("ArtifactType")
+        properties = self._get_param("Properties")
+        metadataproperties = self._get_param("MetadataProperties")
+        result = self.sagemaker_backend.update_artifact(artifactname=artifactname, source=source, artifacttype=artifacttype, properties=properties, metadataproperties=metadataproperties)
+        return ActionResult(result)
+
+    def delete_artifact(self) -> ActionResult:
+        name = self._get_param("ArtifactName")
+        self.sagemaker_backend.delete_artifact(name=name)
+        return ActionResult({})
+
+    def create_code_repository(self) -> ActionResult:
+        coderepositoryname = self._get_param("CodeRepositoryName")
+        gitconfig = self._get_param("GitConfig")
+        tags = self._get_param("Tags")
+        result = self.sagemaker_backend.create_code_repository(coderepositoryname=coderepositoryname, gitconfig=gitconfig, tags=tags)
+        return ActionResult(result)
+
+    def describe_code_repository(self) -> ActionResult:
+        name = self._get_param("CodeRepositoryName")
+        result = self.sagemaker_backend.describe_code_repository(name=name)
+        return ActionResult(result)
+
+    def list_code_repositories(self) -> ActionResult:
+        results = self.sagemaker_backend.list_code_repositories()
+        return ActionResult({"CodeRepositorySummaryList": results})
+
+    def update_code_repository(self) -> ActionResult:
+        coderepositoryname = self._get_param("CodeRepositoryName")
+        gitconfig = self._get_param("GitConfig")
+        result = self.sagemaker_backend.update_code_repository(coderepositoryname=coderepositoryname, gitconfig=gitconfig)
+        return ActionResult(result)
+
+    def delete_code_repository(self) -> ActionResult:
+        name = self._get_param("CodeRepositoryName")
+        self.sagemaker_backend.delete_code_repository(name=name)
+        return ActionResult({})
+
+    def create_context(self) -> ActionResult:
+        contextname = self._get_param("ContextName")
+        source = self._get_param("Source")
+        contexttype = self._get_param("ContextType")
+        description = self._get_param("Description")
+        properties = self._get_param("Properties")
+        tags = self._get_param("Tags")
+        result = self.sagemaker_backend.create_context(contextname=contextname, source=source, contexttype=contexttype, description=description, properties=properties, tags=tags)
+        return ActionResult(result)
+
+    def describe_context(self) -> ActionResult:
+        name = self._get_param("ContextName")
+        result = self.sagemaker_backend.describe_context(name=name)
+        return ActionResult(result)
+
+    def list_contexts(self) -> ActionResult:
+        results = self.sagemaker_backend.list_contexts()
+        return ActionResult({"ContextSummaries": results})
+
+    def update_context(self) -> ActionResult:
+        contextname = self._get_param("ContextName")
+        source = self._get_param("Source")
+        contexttype = self._get_param("ContextType")
+        description = self._get_param("Description")
+        properties = self._get_param("Properties")
+        result = self.sagemaker_backend.update_context(contextname=contextname, source=source, contexttype=contexttype, description=description, properties=properties)
+        return ActionResult(result)
+
+    def delete_context(self) -> ActionResult:
+        name = self._get_param("ContextName")
+        self.sagemaker_backend.delete_context(name=name)
+        return ActionResult({})
+
+    def create_device_fleet(self) -> ActionResult:
+        devicefleetname = self._get_param("DeviceFleetName")
+        rolearn = self._get_param("RoleArn")
+        description = self._get_param("Description")
+        outputconfig = self._get_param("OutputConfig")
+        enableiotrolealias = self._get_param("EnableIotRoleAlias")
+        tags = self._get_param("Tags")
+        result = self.sagemaker_backend.create_device_fleet(devicefleetname=devicefleetname, rolearn=rolearn, description=description, outputconfig=outputconfig, enableiotrolealias=enableiotrolealias, tags=tags)
+        return ActionResult(result)
+
+    def describe_device_fleet(self) -> ActionResult:
+        name = self._get_param("DeviceFleetName")
+        result = self.sagemaker_backend.describe_device_fleet(name=name)
+        return ActionResult(result)
+
+    def list_device_fleets(self) -> ActionResult:
+        results = self.sagemaker_backend.list_device_fleets()
+        return ActionResult({"DeviceFleetSummaries": results})
+
+    def update_device_fleet(self) -> ActionResult:
+        devicefleetname = self._get_param("DeviceFleetName")
+        rolearn = self._get_param("RoleArn")
+        description = self._get_param("Description")
+        outputconfig = self._get_param("OutputConfig")
+        enableiotrolealias = self._get_param("EnableIotRoleAlias")
+        result = self.sagemaker_backend.update_device_fleet(devicefleetname=devicefleetname, rolearn=rolearn, description=description, outputconfig=outputconfig, enableiotrolealias=enableiotrolealias)
+        return ActionResult(result)
+
+    def delete_device_fleet(self) -> ActionResult:
+        name = self._get_param("DeviceFleetName")
+        self.sagemaker_backend.delete_device_fleet(name=name)
+        return ActionResult({})
+
+    def create_edge_deployment_plan(self) -> ActionResult:
+        edgedeploymentplanname = self._get_param("EdgeDeploymentPlanName")
+        modelconfigs = self._get_param("ModelConfigs")
+        devicefleetname = self._get_param("DeviceFleetName")
+        stages = self._get_param("Stages")
+        tags = self._get_param("Tags")
+        result = self.sagemaker_backend.create_edge_deployment_plan(edgedeploymentplanname=edgedeploymentplanname, modelconfigs=modelconfigs, devicefleetname=devicefleetname, stages=stages, tags=tags)
+        return ActionResult(result)
+
+    def describe_edge_deployment_plan(self) -> ActionResult:
+        name = self._get_param("EdgeDeploymentPlanName")
+        result = self.sagemaker_backend.describe_edge_deployment_plan(name=name)
+        return ActionResult(result)
+
+    def list_edge_deployment_plans(self) -> ActionResult:
+        results = self.sagemaker_backend.list_edge_deployment_plans()
+        return ActionResult({"EdgeDeploymentPlanSummaries": results})
+
+    def delete_edge_deployment_plan(self) -> ActionResult:
+        name = self._get_param("EdgeDeploymentPlanName")
+        self.sagemaker_backend.delete_edge_deployment_plan(name=name)
+        return ActionResult({})
+
+    def create_flow_definition(self) -> ActionResult:
+        flowdefinitionname = self._get_param("FlowDefinitionName")
+        humanloopconfig = self._get_param("HumanLoopConfig")
+        humanlooprequestsource = self._get_param("HumanLoopRequestSource")
+        humanloopactivationconfig = self._get_param("HumanLoopActivationConfig")
+        outputconfig = self._get_param("OutputConfig")
+        rolearn = self._get_param("RoleArn")
+        tags = self._get_param("Tags")
+        result = self.sagemaker_backend.create_flow_definition(flowdefinitionname=flowdefinitionname, humanloopconfig=humanloopconfig, humanlooprequestsource=humanlooprequestsource, humanloopactivationconfig=humanloopactivationconfig, outputconfig=outputconfig, rolearn=rolearn, tags=tags)
+        return ActionResult(result)
+
+    def describe_flow_definition(self) -> ActionResult:
+        name = self._get_param("FlowDefinitionName")
+        result = self.sagemaker_backend.describe_flow_definition(name=name)
+        return ActionResult(result)
+
+    def list_flow_definitions(self) -> ActionResult:
+        results = self.sagemaker_backend.list_flow_definitions()
+        return ActionResult({"FlowDefinitionSummaries": results})
+
+    def delete_flow_definition(self) -> ActionResult:
+        name = self._get_param("FlowDefinitionName")
+        self.sagemaker_backend.delete_flow_definition(name=name)
+        return ActionResult({})
+
+    def create_hub(self) -> ActionResult:
+        hubname = self._get_param("HubName")
+        hubdescription = self._get_param("HubDescription")
+        hubdisplayname = self._get_param("HubDisplayName")
+        hubsearchkeywords = self._get_param("HubSearchKeywords")
+        s3storageconfig = self._get_param("S3StorageConfig")
+        tags = self._get_param("Tags")
+        result = self.sagemaker_backend.create_hub(hubname=hubname, hubdescription=hubdescription, hubdisplayname=hubdisplayname, hubsearchkeywords=hubsearchkeywords, s3storageconfig=s3storageconfig, tags=tags)
+        return ActionResult(result)
+
+    def describe_hub(self) -> ActionResult:
+        name = self._get_param("HubName")
+        result = self.sagemaker_backend.describe_hub(name=name)
+        return ActionResult(result)
+
+    def list_hubs(self) -> ActionResult:
+        results = self.sagemaker_backend.list_hubs()
+        return ActionResult({"HubSummaries": results})
+
+    def update_hub(self) -> ActionResult:
+        hubname = self._get_param("HubName")
+        hubdescription = self._get_param("HubDescription")
+        hubdisplayname = self._get_param("HubDisplayName")
+        hubsearchkeywords = self._get_param("HubSearchKeywords")
+        s3storageconfig = self._get_param("S3StorageConfig")
+        result = self.sagemaker_backend.update_hub(hubname=hubname, hubdescription=hubdescription, hubdisplayname=hubdisplayname, hubsearchkeywords=hubsearchkeywords, s3storageconfig=s3storageconfig)
+        return ActionResult(result)
+
+    def delete_hub(self) -> ActionResult:
+        name = self._get_param("HubName")
+        self.sagemaker_backend.delete_hub(name=name)
+        return ActionResult({})
+
+    def create_human_task_ui(self) -> ActionResult:
+        humantaskuiname = self._get_param("HumanTaskUiName")
+        uitemplate = self._get_param("UiTemplate")
+        tags = self._get_param("Tags")
+        result = self.sagemaker_backend.create_human_task_ui(humantaskuiname=humantaskuiname, uitemplate=uitemplate, tags=tags)
+        return ActionResult(result)
+
+    def describe_human_task_ui(self) -> ActionResult:
+        name = self._get_param("HumanTaskUiName")
+        result = self.sagemaker_backend.describe_human_task_ui(name=name)
+        return ActionResult(result)
+
+    def list_human_task_uis(self) -> ActionResult:
+        results = self.sagemaker_backend.list_human_task_uis()
+        return ActionResult({"HumanTaskUiSummaries": results})
+
+    def delete_human_task_ui(self) -> ActionResult:
+        name = self._get_param("HumanTaskUiName")
+        self.sagemaker_backend.delete_human_task_ui(name=name)
+        return ActionResult({})
+
+    def create_image(self) -> ActionResult:
+        imagename = self._get_param("ImageName")
+        rolearn = self._get_param("RoleArn")
+        displayname = self._get_param("DisplayName")
+        description = self._get_param("Description")
+        tags = self._get_param("Tags")
+        result = self.sagemaker_backend.create_image(imagename=imagename, rolearn=rolearn, displayname=displayname, description=description, tags=tags)
+        return ActionResult(result)
+
+    def describe_image(self) -> ActionResult:
+        name = self._get_param("ImageName")
+        result = self.sagemaker_backend.describe_image(name=name)
+        return ActionResult(result)
+
+    def list_images(self) -> ActionResult:
+        results = self.sagemaker_backend.list_images()
+        return ActionResult({"Images": results})
+
+    def update_image(self) -> ActionResult:
+        imagename = self._get_param("ImageName")
+        rolearn = self._get_param("RoleArn")
+        displayname = self._get_param("DisplayName")
+        description = self._get_param("Description")
+        result = self.sagemaker_backend.update_image(imagename=imagename, rolearn=rolearn, displayname=displayname, description=description)
+        return ActionResult(result)
+
+    def delete_image(self) -> ActionResult:
+        name = self._get_param("ImageName")
+        self.sagemaker_backend.delete_image(name=name)
+        return ActionResult({})
+
+    def create_inference_component(self) -> ActionResult:
+        inferencecomponentname = self._get_param("InferenceComponentName")
+        endpointname = self._get_param("EndpointName")
+        variantname = self._get_param("VariantName")
+        specification = self._get_param("Specification")
+        runtimeconfig = self._get_param("RuntimeConfig")
+        tags = self._get_param("Tags")
+        result = self.sagemaker_backend.create_inference_component(inferencecomponentname=inferencecomponentname, endpointname=endpointname, variantname=variantname, specification=specification, runtimeconfig=runtimeconfig, tags=tags)
+        return ActionResult(result)
+
+    def describe_inference_component(self) -> ActionResult:
+        name = self._get_param("InferenceComponentName")
+        result = self.sagemaker_backend.describe_inference_component(name=name)
+        return ActionResult(result)
+
+    def list_inference_components(self) -> ActionResult:
+        results = self.sagemaker_backend.list_inference_components()
+        return ActionResult({"InferenceComponents": results})
+
+    def update_inference_component(self) -> ActionResult:
+        inferencecomponentname = self._get_param("InferenceComponentName")
+        endpointname = self._get_param("EndpointName")
+        variantname = self._get_param("VariantName")
+        specification = self._get_param("Specification")
+        runtimeconfig = self._get_param("RuntimeConfig")
+        result = self.sagemaker_backend.update_inference_component(inferencecomponentname=inferencecomponentname, endpointname=endpointname, variantname=variantname, specification=specification, runtimeconfig=runtimeconfig)
+        return ActionResult(result)
+
+    def delete_inference_component(self) -> ActionResult:
+        name = self._get_param("InferenceComponentName")
+        self.sagemaker_backend.delete_inference_component(name=name)
+        return ActionResult({})
+
+    def create_inference_experiment(self) -> ActionResult:
+        name = self._get_param("Name")
+        type = self._get_param("Type")
+        endpointname = self._get_param("EndpointName")
+        modelvariants = self._get_param("ModelVariants")
+        description = self._get_param("Description")
+        schedule = self._get_param("Schedule")
+        datastorageconfig = self._get_param("DataStorageConfig")
+        shadowmodeconfig = self._get_param("ShadowModeConfig")
+        tags = self._get_param("Tags")
+        result = self.sagemaker_backend.create_inference_experiment(name=name, type=type, endpointname=endpointname, modelvariants=modelvariants, description=description, schedule=schedule, datastorageconfig=datastorageconfig, shadowmodeconfig=shadowmodeconfig, tags=tags)
+        return ActionResult(result)
+
+    def describe_inference_experiment(self) -> ActionResult:
+        name = self._get_param("Name")
+        result = self.sagemaker_backend.describe_inference_experiment(name=name)
+        return ActionResult(result)
+
+    def list_inference_experiments(self) -> ActionResult:
+        results = self.sagemaker_backend.list_inference_experiments()
+        return ActionResult({"InferenceExperiments": results})
+
+    def update_inference_experiment(self) -> ActionResult:
+        name = self._get_param("Name")
+        type = self._get_param("Type")
+        endpointname = self._get_param("EndpointName")
+        modelvariants = self._get_param("ModelVariants")
+        description = self._get_param("Description")
+        schedule = self._get_param("Schedule")
+        datastorageconfig = self._get_param("DataStorageConfig")
+        shadowmodeconfig = self._get_param("ShadowModeConfig")
+        result = self.sagemaker_backend.update_inference_experiment(name=name, type=type, endpointname=endpointname, modelvariants=modelvariants, description=description, schedule=schedule, datastorageconfig=datastorageconfig, shadowmodeconfig=shadowmodeconfig)
+        return ActionResult(result)
+
+    def delete_inference_experiment(self) -> ActionResult:
+        name = self._get_param("Name")
+        self.sagemaker_backend.delete_inference_experiment(name=name)
+        return ActionResult({})
+
+    def create_labeling_job(self) -> ActionResult:
+        labelingjobname = self._get_param("LabelingJobName")
+        labelattributename = self._get_param("LabelAttributeName")
+        inputconfig = self._get_param("InputConfig")
+        outputconfig = self._get_param("OutputConfig")
+        rolearn = self._get_param("RoleArn")
+        labelcategoryconfigs3uri = self._get_param("LabelCategoryConfigS3Uri")
+        humantaskconfig = self._get_param("HumanTaskConfig")
+        tags = self._get_param("Tags")
+        result = self.sagemaker_backend.create_labeling_job(labelingjobname=labelingjobname, labelattributename=labelattributename, inputconfig=inputconfig, outputconfig=outputconfig, rolearn=rolearn, labelcategoryconfigs3uri=labelcategoryconfigs3uri, humantaskconfig=humantaskconfig, tags=tags)
+        return ActionResult(result)
+
+    def describe_labeling_job(self) -> ActionResult:
+        name = self._get_param("LabelingJobName")
+        result = self.sagemaker_backend.describe_labeling_job(name=name)
+        return ActionResult(result)
+
+    def list_labeling_jobs(self) -> ActionResult:
+        results = self.sagemaker_backend.list_labeling_jobs()
+        return ActionResult({"LabelingJobSummaryList": results})
+
+    def stop_labeling_job(self) -> ActionResult:
+        name = self._get_param("LabelingJobName")
+        self.sagemaker_backend.stop_labeling_job(name=name)
+        return ActionResult({})
+
+    def create_mlflow_app(self) -> ActionResult:
+        name = self._get_param("Name")
+        spacesettingsoverride = self._get_param("SpaceSettingsOverride")
+        userprofilename = self._get_param("UserProfileName")
+        domainid = self._get_param("DomainId")
+        tags = self._get_param("Tags")
+        result = self.sagemaker_backend.create_mlflow_app(name=name, spacesettingsoverride=spacesettingsoverride, userprofilename=userprofilename, domainid=domainid, tags=tags)
+        return ActionResult(result)
+
+    def describe_mlflow_app(self) -> ActionResult:
+        name = self._get_param("Name")
+        result = self.sagemaker_backend.describe_mlflow_app(name=name)
+        return ActionResult(result)
+
+    def list_mlflow_apps(self) -> ActionResult:
+        results = self.sagemaker_backend.list_mlflow_apps()
+        return ActionResult({"MlflowApps": results})
+
+    def update_mlflow_app(self) -> ActionResult:
+        name = self._get_param("Name")
+        spacesettingsoverride = self._get_param("SpaceSettingsOverride")
+        userprofilename = self._get_param("UserProfileName")
+        domainid = self._get_param("DomainId")
+        result = self.sagemaker_backend.update_mlflow_app(name=name, spacesettingsoverride=spacesettingsoverride, userprofilename=userprofilename, domainid=domainid)
+        return ActionResult(result)
+
+    def delete_mlflow_app(self) -> ActionResult:
+        name = self._get_param("Name")
+        self.sagemaker_backend.delete_mlflow_app(name=name)
+        return ActionResult({})
+
+    def create_mlflow_tracking_server(self) -> ActionResult:
+        trackingservername = self._get_param("TrackingServerName")
+        artifactstoreuri = self._get_param("ArtifactStoreUri")
+        trackingserversize = self._get_param("TrackingServerSize")
+        mlflowversion = self._get_param("MlflowVersion")
+        rolearn = self._get_param("RoleArn")
+        automaticmodelregistration = self._get_param("AutomaticModelRegistration")
+        weeklymaintenancewindowstart = self._get_param("WeeklyMaintenanceWindowStart")
+        tags = self._get_param("Tags")
+        result = self.sagemaker_backend.create_mlflow_tracking_server(trackingservername=trackingservername, artifactstoreuri=artifactstoreuri, trackingserversize=trackingserversize, mlflowversion=mlflowversion, rolearn=rolearn, automaticmodelregistration=automaticmodelregistration, weeklymaintenancewindowstart=weeklymaintenancewindowstart, tags=tags)
+        return ActionResult(result)
+
+    def describe_mlflow_tracking_server(self) -> ActionResult:
+        name = self._get_param("TrackingServerName")
+        result = self.sagemaker_backend.describe_mlflow_tracking_server(name=name)
+        return ActionResult(result)
+
+    def list_mlflow_tracking_servers(self) -> ActionResult:
+        results = self.sagemaker_backend.list_mlflow_tracking_servers()
+        return ActionResult({"TrackingServerSummaries": results})
+
+    def update_mlflow_tracking_server(self) -> ActionResult:
+        trackingservername = self._get_param("TrackingServerName")
+        artifactstoreuri = self._get_param("ArtifactStoreUri")
+        trackingserversize = self._get_param("TrackingServerSize")
+        mlflowversion = self._get_param("MlflowVersion")
+        rolearn = self._get_param("RoleArn")
+        automaticmodelregistration = self._get_param("AutomaticModelRegistration")
+        weeklymaintenancewindowstart = self._get_param("WeeklyMaintenanceWindowStart")
+        result = self.sagemaker_backend.update_mlflow_tracking_server(trackingservername=trackingservername, artifactstoreuri=artifactstoreuri, trackingserversize=trackingserversize, mlflowversion=mlflowversion, rolearn=rolearn, automaticmodelregistration=automaticmodelregistration, weeklymaintenancewindowstart=weeklymaintenancewindowstart)
+        return ActionResult(result)
+
+    def delete_mlflow_tracking_server(self) -> ActionResult:
+        name = self._get_param("TrackingServerName")
+        self.sagemaker_backend.delete_mlflow_tracking_server(name=name)
+        return ActionResult({})
+
+    def create_monitoring_schedule(self) -> ActionResult:
+        monitoringschedulename = self._get_param("MonitoringScheduleName")
+        monitoringscheduleconfig = self._get_param("MonitoringScheduleConfig")
+        tags = self._get_param("Tags")
+        result = self.sagemaker_backend.create_monitoring_schedule(monitoringschedulename=monitoringschedulename, monitoringscheduleconfig=monitoringscheduleconfig, tags=tags)
+        return ActionResult(result)
+
+    def describe_monitoring_schedule(self) -> ActionResult:
+        name = self._get_param("MonitoringScheduleName")
+        result = self.sagemaker_backend.describe_monitoring_schedule(name=name)
+        return ActionResult(result)
+
+    def list_monitoring_schedules(self) -> ActionResult:
+        results = self.sagemaker_backend.list_monitoring_schedules()
+        return ActionResult({"MonitoringScheduleSummaries": results})
+
+    def update_monitoring_schedule(self) -> ActionResult:
+        monitoringschedulename = self._get_param("MonitoringScheduleName")
+        monitoringscheduleconfig = self._get_param("MonitoringScheduleConfig")
+        result = self.sagemaker_backend.update_monitoring_schedule(monitoringschedulename=monitoringschedulename, monitoringscheduleconfig=monitoringscheduleconfig)
+        return ActionResult(result)
+
+    def delete_monitoring_schedule(self) -> ActionResult:
+        name = self._get_param("MonitoringScheduleName")
+        self.sagemaker_backend.delete_monitoring_schedule(name=name)
+        return ActionResult({})
+
+    def create_optimization_job(self) -> ActionResult:
+        optimizationjobname = self._get_param("OptimizationJobName")
+        rolearn = self._get_param("RoleArn")
+        modelsource = self._get_param("ModelSource")
+        deploymentinstancetype = self._get_param("DeploymentInstanceType")
+        optimizationconfigs = self._get_param("OptimizationConfigs")
+        outputconfig = self._get_param("OutputConfig")
+        stoppingcondition = self._get_param("StoppingCondition")
+        tags = self._get_param("Tags")
+        result = self.sagemaker_backend.create_optimization_job(optimizationjobname=optimizationjobname, rolearn=rolearn, modelsource=modelsource, deploymentinstancetype=deploymentinstancetype, optimizationconfigs=optimizationconfigs, outputconfig=outputconfig, stoppingcondition=stoppingcondition, tags=tags)
+        return ActionResult(result)
+
+    def describe_optimization_job(self) -> ActionResult:
+        name = self._get_param("OptimizationJobName")
+        result = self.sagemaker_backend.describe_optimization_job(name=name)
+        return ActionResult(result)
+
+    def list_optimization_jobs(self) -> ActionResult:
+        results = self.sagemaker_backend.list_optimization_jobs()
+        return ActionResult({"OptimizationJobSummaries": results})
+
+    def delete_optimization_job(self) -> ActionResult:
+        name = self._get_param("OptimizationJobName")
+        self.sagemaker_backend.delete_optimization_job(name=name)
+        return ActionResult({})
+
+    def stop_optimization_job(self) -> ActionResult:
+        name = self._get_param("OptimizationJobName")
+        self.sagemaker_backend.stop_optimization_job(name=name)
+        return ActionResult({})
+
+    def create_partner_app(self) -> ActionResult:
+        name = self._get_param("Name")
+        type = self._get_param("Type")
+        executionrolearn = self._get_param("ExecutionRoleArn")
+        maintenanceconfig = self._get_param("MaintenanceConfig")
+        tier = self._get_param("Tier")
+        applicationconfig = self._get_param("ApplicationConfig")
+        authtype = self._get_param("AuthType")
+        enableiamsessionbasedidentity = self._get_param("EnableIamSessionBasedIdentity")
+        clienttoken = self._get_param("ClientToken")
+        tags = self._get_param("Tags")
+        result = self.sagemaker_backend.create_partner_app(name=name, type=type, executionrolearn=executionrolearn, maintenanceconfig=maintenanceconfig, tier=tier, applicationconfig=applicationconfig, authtype=authtype, enableiamsessionbasedidentity=enableiamsessionbasedidentity, clienttoken=clienttoken, tags=tags)
+        return ActionResult(result)
+
+    def describe_partner_app(self) -> ActionResult:
+        name = self._get_param("Name")
+        result = self.sagemaker_backend.describe_partner_app(name=name)
+        return ActionResult(result)
+
+    def list_partner_apps(self) -> ActionResult:
+        results = self.sagemaker_backend.list_partner_apps()
+        return ActionResult({"PartnerApps": results})
+
+    def update_partner_app(self) -> ActionResult:
+        name = self._get_param("Name")
+        type = self._get_param("Type")
+        executionrolearn = self._get_param("ExecutionRoleArn")
+        maintenanceconfig = self._get_param("MaintenanceConfig")
+        tier = self._get_param("Tier")
+        applicationconfig = self._get_param("ApplicationConfig")
+        authtype = self._get_param("AuthType")
+        enableiamsessionbasedidentity = self._get_param("EnableIamSessionBasedIdentity")
+        clienttoken = self._get_param("ClientToken")
+        result = self.sagemaker_backend.update_partner_app(name=name, type=type, executionrolearn=executionrolearn, maintenanceconfig=maintenanceconfig, tier=tier, applicationconfig=applicationconfig, authtype=authtype, enableiamsessionbasedidentity=enableiamsessionbasedidentity, clienttoken=clienttoken)
+        return ActionResult(result)
+
+    def delete_partner_app(self) -> ActionResult:
+        name = self._get_param("Name")
+        self.sagemaker_backend.delete_partner_app(name=name)
+        return ActionResult({})
+
+    def create_project(self) -> ActionResult:
+        projectname = self._get_param("ProjectName")
+        projectdescription = self._get_param("ProjectDescription")
+        servicecatalogprovisioningdetails = self._get_param("ServiceCatalogProvisioningDetails")
+        tags = self._get_param("Tags")
+        result = self.sagemaker_backend.create_project(projectname=projectname, projectdescription=projectdescription, servicecatalogprovisioningdetails=servicecatalogprovisioningdetails, tags=tags)
+        return ActionResult(result)
+
+    def describe_project(self) -> ActionResult:
+        name = self._get_param("ProjectName")
+        result = self.sagemaker_backend.describe_project(name=name)
+        return ActionResult(result)
+
+    def list_projects(self) -> ActionResult:
+        results = self.sagemaker_backend.list_projects()
+        return ActionResult({"ProjectSummaryList": results})
+
+    def update_project(self) -> ActionResult:
+        projectname = self._get_param("ProjectName")
+        projectdescription = self._get_param("ProjectDescription")
+        servicecatalogprovisioningdetails = self._get_param("ServiceCatalogProvisioningDetails")
+        result = self.sagemaker_backend.update_project(projectname=projectname, projectdescription=projectdescription, servicecatalogprovisioningdetails=servicecatalogprovisioningdetails)
+        return ActionResult(result)
+
+    def delete_project(self) -> ActionResult:
+        name = self._get_param("ProjectName")
+        self.sagemaker_backend.delete_project(name=name)
+        return ActionResult({})
+
+    def create_space(self) -> ActionResult:
+        spacename = self._get_param("SpaceName")
+        domainid = self._get_param("DomainId")
+        spacesettings = self._get_param("SpaceSettings")
+        spacedisplayname = self._get_param("SpaceDisplayName")
+        ownershipsettings = self._get_param("OwnershipSettings")
+        spacesharingsettings = self._get_param("SpaceSharingSettings")
+        tags = self._get_param("Tags")
+        result = self.sagemaker_backend.create_space(spacename=spacename, domainid=domainid, spacesettings=spacesettings, spacedisplayname=spacedisplayname, ownershipsettings=ownershipsettings, spacesharingsettings=spacesharingsettings, tags=tags)
+        return ActionResult(result)
+
+    def describe_space(self) -> ActionResult:
+        name = self._get_param("SpaceName")
+        result = self.sagemaker_backend.describe_space(name=name)
+        return ActionResult(result)
+
+    def list_spaces(self) -> ActionResult:
+        results = self.sagemaker_backend.list_spaces()
+        return ActionResult({"Spaces": results})
+
+    def update_space(self) -> ActionResult:
+        spacename = self._get_param("SpaceName")
+        domainid = self._get_param("DomainId")
+        spacesettings = self._get_param("SpaceSettings")
+        spacedisplayname = self._get_param("SpaceDisplayName")
+        ownershipsettings = self._get_param("OwnershipSettings")
+        spacesharingsettings = self._get_param("SpaceSharingSettings")
+        result = self.sagemaker_backend.update_space(spacename=spacename, domainid=domainid, spacesettings=spacesettings, spacedisplayname=spacedisplayname, ownershipsettings=ownershipsettings, spacesharingsettings=spacesharingsettings)
+        return ActionResult(result)
+
+    def delete_space(self) -> ActionResult:
+        name = self._get_param("SpaceName")
+        self.sagemaker_backend.delete_space(name=name)
+        return ActionResult({})
+
+    def create_studio_lifecycle_config(self) -> ActionResult:
+        studiolifecycleconfigname = self._get_param("StudioLifecycleConfigName")
+        studiolifecycleconfigcontent = self._get_param("StudioLifecycleConfigContent")
+        studiolifecycleconfigapptype = self._get_param("StudioLifecycleConfigAppType")
+        tags = self._get_param("Tags")
+        result = self.sagemaker_backend.create_studio_lifecycle_config(studiolifecycleconfigname=studiolifecycleconfigname, studiolifecycleconfigcontent=studiolifecycleconfigcontent, studiolifecycleconfigapptype=studiolifecycleconfigapptype, tags=tags)
+        return ActionResult(result)
+
+    def describe_studio_lifecycle_config(self) -> ActionResult:
+        name = self._get_param("StudioLifecycleConfigName")
+        result = self.sagemaker_backend.describe_studio_lifecycle_config(name=name)
+        return ActionResult(result)
+
+    def list_studio_lifecycle_configs(self) -> ActionResult:
+        results = self.sagemaker_backend.list_studio_lifecycle_configs()
+        return ActionResult({"StudioLifecycleConfigs": results})
+
+    def delete_studio_lifecycle_config(self) -> ActionResult:
+        name = self._get_param("StudioLifecycleConfigName")
+        self.sagemaker_backend.delete_studio_lifecycle_config(name=name)
+        return ActionResult({})
+
+    def create_user_profile(self) -> ActionResult:
+        userprofilename = self._get_param("UserProfileName")
+        domainid = self._get_param("DomainId")
+        singlesignonuseridentifier = self._get_param("SingleSignOnUserIdentifier")
+        singlesignonuservalue = self._get_param("SingleSignOnUserValue")
+        usersettings = self._get_param("UserSettings")
+        tags = self._get_param("Tags")
+        result = self.sagemaker_backend.create_user_profile(userprofilename=userprofilename, domainid=domainid, singlesignonuseridentifier=singlesignonuseridentifier, singlesignonuservalue=singlesignonuservalue, usersettings=usersettings, tags=tags)
+        return ActionResult(result)
+
+    def describe_user_profile(self) -> ActionResult:
+        name = self._get_param("UserProfileName")
+        result = self.sagemaker_backend.describe_user_profile(name=name)
+        return ActionResult(result)
+
+    def list_user_profiles(self) -> ActionResult:
+        results = self.sagemaker_backend.list_user_profiles()
+        return ActionResult({"UserProfiles": results})
+
+    def update_user_profile(self) -> ActionResult:
+        userprofilename = self._get_param("UserProfileName")
+        domainid = self._get_param("DomainId")
+        singlesignonuseridentifier = self._get_param("SingleSignOnUserIdentifier")
+        singlesignonuservalue = self._get_param("SingleSignOnUserValue")
+        usersettings = self._get_param("UserSettings")
+        result = self.sagemaker_backend.update_user_profile(userprofilename=userprofilename, domainid=domainid, singlesignonuseridentifier=singlesignonuseridentifier, singlesignonuservalue=singlesignonuservalue, usersettings=usersettings)
+        return ActionResult(result)
+
+    def delete_user_profile(self) -> ActionResult:
+        name = self._get_param("UserProfileName")
+        self.sagemaker_backend.delete_user_profile(name=name)
+        return ActionResult({})
+
+    def create_workforce(self) -> ActionResult:
+        workforcename = self._get_param("WorkforceName")
+        cognitoconfig = self._get_param("CognitoConfig")
+        oidcconfig = self._get_param("OidcConfig")
+        sourceipconfig = self._get_param("SourceIpConfig")
+        workforcevpcconfig = self._get_param("WorkforceVpcConfig")
+        tags = self._get_param("Tags")
+        result = self.sagemaker_backend.create_workforce(workforcename=workforcename, cognitoconfig=cognitoconfig, oidcconfig=oidcconfig, sourceipconfig=sourceipconfig, workforcevpcconfig=workforcevpcconfig, tags=tags)
+        return ActionResult(result)
+
+    def describe_workforce(self) -> ActionResult:
+        name = self._get_param("WorkforceName")
+        result = self.sagemaker_backend.describe_workforce(name=name)
+        return ActionResult(result)
+
+    def list_workforces(self) -> ActionResult:
+        results = self.sagemaker_backend.list_workforces()
+        return ActionResult({"Workforces": results})
+
+    def update_workforce(self) -> ActionResult:
+        workforcename = self._get_param("WorkforceName")
+        cognitoconfig = self._get_param("CognitoConfig")
+        oidcconfig = self._get_param("OidcConfig")
+        sourceipconfig = self._get_param("SourceIpConfig")
+        workforcevpcconfig = self._get_param("WorkforceVpcConfig")
+        result = self.sagemaker_backend.update_workforce(workforcename=workforcename, cognitoconfig=cognitoconfig, oidcconfig=oidcconfig, sourceipconfig=sourceipconfig, workforcevpcconfig=workforcevpcconfig)
+        return ActionResult(result)
+
+    def delete_workforce(self) -> ActionResult:
+        name = self._get_param("WorkforceName")
+        self.sagemaker_backend.delete_workforce(name=name)
+        return ActionResult({})
+
+    def create_workteam(self) -> ActionResult:
+        workteamname = self._get_param("WorkteamName")
+        workforcename = self._get_param("WorkforceName")
+        memberdefinitions = self._get_param("MemberDefinitions")
+        description = self._get_param("Description")
+        notificationconfiguration = self._get_param("NotificationConfiguration")
+        tags = self._get_param("Tags")
+        result = self.sagemaker_backend.create_workteam(workteamname=workteamname, workforcename=workforcename, memberdefinitions=memberdefinitions, description=description, notificationconfiguration=notificationconfiguration, tags=tags)
+        return ActionResult(result)
+
+    def describe_workteam(self) -> ActionResult:
+        name = self._get_param("WorkteamName")
+        result = self.sagemaker_backend.describe_workteam(name=name)
+        return ActionResult(result)
+
+    def list_workteams(self) -> ActionResult:
+        results = self.sagemaker_backend.list_workteams()
+        return ActionResult({"Workteams": results})
+
+    def update_workteam(self) -> ActionResult:
+        workteamname = self._get_param("WorkteamName")
+        workforcename = self._get_param("WorkforceName")
+        memberdefinitions = self._get_param("MemberDefinitions")
+        description = self._get_param("Description")
+        notificationconfiguration = self._get_param("NotificationConfiguration")
+        result = self.sagemaker_backend.update_workteam(workteamname=workteamname, workforcename=workforcename, memberdefinitions=memberdefinitions, description=description, notificationconfiguration=notificationconfiguration)
+        return ActionResult(result)
+
+    def delete_workteam(self) -> ActionResult:
+        name = self._get_param("WorkteamName")
+        self.sagemaker_backend.delete_workteam(name=name)
+        return ActionResult({})
+
+    def add_association(self) -> ActionResult:
+        self._get_param("SourceArn")
+        self._get_param("DestinationArn")
+        self._get_param("AssociationType")
+        return ActionResult({'SourceArn': 'source_arn', 'DestinationArn': 'destination_arn'})
+
+    def attach_cluster_node_volume(self) -> ActionResult:
+        self._get_param("ClusterName")
+        self._get_param("InstanceGroupName")
+        self._get_param("InstanceId")
+        return ActionResult({})
+
+    def batch_add_cluster_nodes(self) -> ActionResult:
+        self._get_param("ClusterName")
+        self._get_param("NodeGroups")
+        return ActionResult({})
+
+    def batch_delete_cluster_nodes(self) -> ActionResult:
+        self._get_param("ClusterName")
+        self._get_param("NodeIds")
+        return ActionResult({})
+
+    def batch_describe_model_package(self) -> ActionResult:
+        self._get_param("ModelPackageArnList")
+        return ActionResult({'ModelPackageSummaries': {}, 'BatchDescribeModelPackageErrorMap': {}})
+
+    def batch_reboot_cluster_nodes(self) -> ActionResult:
+        self._get_param("ClusterName")
+        self._get_param("NodeIds")
+        return ActionResult({})
+
+    def batch_replace_cluster_nodes(self) -> ActionResult:
+        self._get_param("ClusterName")
+        self._get_param("NodeIds")
+        return ActionResult({})
+
+    def create_auto_ml_job(self) -> ActionResult:
+        self._get_param("AutoMLJobName")
+        self._get_param("InputDataConfig")
+        self._get_param("OutputDataConfig")
+        self._get_param("RoleArn")
+        return ActionResult({'AutoMLJobArn': '_arn'})
+
+    def create_cluster_scheduler_config(self) -> ActionResult:
+        self._get_param("Name")
+        self._get_param("ClusterArn")
+        self._get_param("SchedulerConfig")
+        return ActionResult({'ClusterSchedulerConfigArn': '_arn', 'ClusterSchedulerConfigId': 'csc-00000000'})
+
+    def create_compute_quota(self) -> ActionResult:
+        self._get_param("Name")
+        self._get_param("ClusterArn")
+        self._get_param("ComputeQuotaConfig")
+        return ActionResult({'ComputeQuotaArn': '_arn', 'ComputeQuotaId': 'cq-00000000'})
+
+    def create_edge_deployment_stage(self) -> ActionResult:
+        self._get_param("EdgeDeploymentPlanName")
+        self._get_param("Stages")
+        return ActionResult({})
+
+    def create_edge_packaging_job(self) -> ActionResult:
+        self._get_param("EdgePackagingJobName")
+        self._get_param("CompilationJobName")
+        self._get_param("ModelName")
+        self._get_param("ModelVersion")
+        self._get_param("RoleArn")
+        self._get_param("OutputConfig")
+        return ActionResult({})
+
+    def create_hub_content_presigned_urls(self) -> ActionResult:
+        self._get_param("HubName")
+        self._get_param("HubContentName")
+        self._get_param("HubContentType")
+        self._get_param("HubContentVersion")
+        return ActionResult({'AuthorizedUrl': 'https://example.com/presigned'})
+
+    def create_hub_content_reference(self) -> ActionResult:
+        self._get_param("HubName")
+        self._get_param("SageMakerPublicHubContentArn")
+        self._get_param("HubContentName")
+        self._get_param("MinVersion")
+        return ActionResult({'HubArn': '_arn', 'HubContentReferenceArn': '_arn'})
+
+    def create_image_version(self) -> ActionResult:
+        self._get_param("BaseImage")
+        self._get_param("ImageName")
+        self._get_param("ClientToken")
+        return ActionResult({'ImageVersionArn': '_arn'})
+
+    def create_inference_recommendations_job(self) -> ActionResult:
+        self._get_param("JobName")
+        self._get_param("JobType")
+        self._get_param("RoleArn")
+        self._get_param("InputConfig")
+        return ActionResult({'JobArn': '_arn'})
+
+    def create_model_card_export_job(self) -> ActionResult:
+        self._get_param("ModelCardName")
+        self._get_param("ModelCardVersion")
+        self._get_param("ModelCardExportJobName")
+        self._get_param("OutputConfig")
+        return ActionResult({'ModelCardExportJobArn': '_arn'})
+
+    def create_partner_app_presigned_url(self) -> ActionResult:
+        self._get_param("Arn")
+        self._get_param("ExpiresInSeconds")
+        self._get_param("SessionExpirationDurationInSeconds")
+        return ActionResult({'AuthorizedUrl': 'https://example.com/presigned'})
+
+    def create_presigned_domain_url(self) -> ActionResult:
+        self._get_param("DomainId")
+        self._get_param("UserProfileName")
+        self._get_param("SessionExpirationDurationInSeconds")
+        self._get_param("ExpiresInSeconds")
+        self._get_param("SpaceName")
+        self._get_param("LandingUri")
+        return ActionResult({'AuthorizedUrl': 'https://example.com/presigned'})
+
+    def create_presigned_mlflow_app_url(self) -> ActionResult:
+        self._get_param("SpaceName")
+        self._get_param("DomainId")
+        self._get_param("SessionExpirationDurationInSeconds")
+        self._get_param("ExpiresInSeconds")
+        return ActionResult({'AuthorizedUrl': 'https://example.com/presigned'})
+
+    def create_presigned_mlflow_tracking_server_url(self) -> ActionResult:
+        self._get_param("TrackingServerName")
+        self._get_param("ExpiresInSeconds")
+        self._get_param("SessionExpirationDurationInSeconds")
+        return ActionResult({'AuthorizedUrl': 'https://example.com/presigned'})
+
+    def create_presigned_notebook_instance_url(self) -> ActionResult:
+        self._get_param("NotebookInstanceName")
+        self._get_param("SessionExpirationDurationInSeconds")
+        return ActionResult({'AuthorizedUrl': 'https://example.com/presigned'})
+
+    def create_training_plan(self) -> ActionResult:
+        self._get_param("TrainingPlanName")
+        self._get_param("TrainingPlanOfferingId")
+        return ActionResult({'TrainingPlanArn': '_arn'})
+
+    def delete_association(self) -> ActionResult:
+        self._get_param("SourceArn")
+        self._get_param("DestinationArn")
+        return ActionResult({'SourceArn': 'source_arn', 'DestinationArn': 'destination_arn'})
+
+    def delete_cluster_scheduler_config(self) -> ActionResult:
+        self._get_param("ClusterSchedulerConfigId")
+        return ActionResult({})
+
+    def delete_compute_quota(self) -> ActionResult:
+        self._get_param("ComputeQuotaId")
+        return ActionResult({})
+
+    def delete_edge_deployment_stage(self) -> ActionResult:
+        self._get_param("EdgeDeploymentPlanName")
+        self._get_param("StageName")
+        return ActionResult({})
+
+    def delete_feature_group(self) -> ActionResult:
+        self._get_param("FeatureGroupName")
+        return ActionResult({})
+
+    def delete_hub_content(self) -> ActionResult:
+        self._get_param("HubName")
+        self._get_param("HubContentType")
+        self._get_param("HubContentName")
+        self._get_param("HubContentVersion")
+        return ActionResult({})
+
+    def delete_hub_content_reference(self) -> ActionResult:
+        self._get_param("HubName")
+        self._get_param("HubContentType")
+        self._get_param("HubContentName")
+        return ActionResult({})
+
+    def delete_image_version(self) -> ActionResult:
+        self._get_param("ImageName")
+        self._get_param("Version")
+        self._get_param("Alias")
+        return ActionResult({})
+
+    def delete_model_package(self) -> ActionResult:
+        self._get_param("ModelPackageName")
+        return ActionResult({})
+
+    def delete_model_package_group(self) -> ActionResult:
+        self._get_param("ModelPackageGroupName")
+        return ActionResult({})
+
+    def delete_model_package_group_policy(self) -> ActionResult:
+        self._get_param("ModelPackageGroupName")
+        return ActionResult({})
+
+    def delete_processing_job(self) -> ActionResult:
+        self._get_param("ProcessingJobName")
+        return ActionResult({})
+
+    def delete_training_job(self) -> ActionResult:
+        self._get_param("TrainingJobName")
+        return ActionResult({})
+
+    def deregister_devices(self) -> ActionResult:
+        self._get_param("DeviceFleetName")
+        self._get_param("DeviceNames")
+        return ActionResult({})
+
+    def describe_auto_ml_job(self) -> ActionResult:
+        self._get_param("AutoMLJobName")
+        return ActionResult({'AutoMLJobName': 'aml', 'AutoMLJobArn': '_arn', 'InputDataConfig': [], 'OutputDataConfig': {}, 'RoleArn': 'arn:aws:iam::role/r', 'AutoMLJobStatus': 'Completed', 'CreationTime': '2024-01-01T00:00:00Z'})
+
+    def describe_cluster_event(self) -> ActionResult:
+        self._get_param("ClusterName")
+        self._get_param("EventId")
+        return ActionResult({'Event': {'EventType': 'UpdateCompleted', 'Message': 'Cluster updated'}})
+
+    def describe_cluster_scheduler_config(self) -> ActionResult:
+        self._get_param("ClusterSchedulerConfigId")
+        return ActionResult({'ClusterSchedulerConfigId': 'csc-00000000', 'Status': 'Completed'})
+
+    def describe_compute_quota(self) -> ActionResult:
+        self._get_param("ComputeQuotaId")
+        return ActionResult({'ComputeQuotaId': 'cq-00000000', 'Status': 'Completed'})
+
+    def describe_device(self) -> ActionResult:
+        self._get_param("DeviceName")
+        self._get_param("DeviceFleetName")
+        return ActionResult({'DeviceName': 'd', 'DeviceFleetName': 'df', 'RegistrationTime': '2024-01-01T00:00:00Z'})
+
+    def describe_edge_packaging_job(self) -> ActionResult:
+        self._get_param("EdgePackagingJobName")
+        return ActionResult({'EdgePackagingJobArn': '_arn', 'EdgePackagingJobName': 'epj', 'EdgePackagingJobStatus': 'Completed'})
+
+    def describe_feature_metadata(self) -> ActionResult:
+        self._get_param("FeatureGroupName")
+        self._get_param("FeatureName")
+        return ActionResult({'FeatureGroupArn': '_arn', 'FeatureGroupName': 'fg', 'FeatureName': 'f', 'FeatureType': 'String', 'Parameters': []})
+
+    def describe_hub_content(self) -> ActionResult:
+        self._get_param("HubName")
+        self._get_param("HubContentType")
+        self._get_param("HubContentName")
+        self._get_param("HubContentVersion")
+        return ActionResult({'HubContentName': 'hc', 'HubContentArn': '_arn', 'HubContentType': 'Model', 'HubContentStatus': 'Available', 'HubContentDocument': '{}'})
+
+    def describe_image_version(self) -> ActionResult:
+        self._get_param("ImageName")
+        self._get_param("Version")
+        self._get_param("Alias")
+        return ActionResult({'ImageVersionArn': '_arn', 'ImageVersionStatus': 'CREATED', 'Version': 1})
+
+    def describe_inference_recommendations_job(self) -> ActionResult:
+        self._get_param("JobName")
+        return ActionResult({'JobName': 'irj', 'JobArn': '_arn', 'JobType': 'Default', 'Status': 'COMPLETED', 'CreationTime': '2024-01-01T00:00:00Z', 'RoleArn': 'arn:aws:iam::role/r', 'InputConfig': {}})
+
+    def describe_lineage_group(self) -> ActionResult:
+        self._get_param("LineageGroupName")
+        return ActionResult({'LineageGroupName': 'lg', 'LineageGroupArn': '_arn'})
+
+    def describe_model_card_export_job(self) -> ActionResult:
+        self._get_param("ModelCardExportJobArn")
+        return ActionResult({'ModelCardExportJobName': 'mcej', 'ModelCardExportJobArn': '_arn', 'Status': 'Completed', 'ModelCardName': 'mc', 'ModelCardVersion': 1, 'OutputConfig': {}, 'CreatedAt': '2024-01-01T00:00:00Z'})
+
+    def describe_reserved_capacity(self) -> ActionResult:
+        self._get_param("ClusterName")
+        self._get_param("ReservedCapacityId")
+        return ActionResult({'ReservedCapacityArn': '_arn', 'Status': 'Active'})
+
+    def describe_subscribed_workteam(self) -> ActionResult:
+        self._get_param("WorkteamArn")
+        return ActionResult({'SubscribedWorkteam': {'WorkteamArn': '_arn', 'ListingId': 'listing-00000000'}})
+
+    def describe_training_plan(self) -> ActionResult:
+        self._get_param("TrainingPlanName")
+        return ActionResult({'TrainingPlanArn': '_arn', 'TrainingPlanName': 'tp', 'Status': 'Active'})
+
+    def detach_cluster_node_volume(self) -> ActionResult:
+        self._get_param("ClusterName")
+        self._get_param("InstanceGroupName")
+        self._get_param("InstanceId")
+        return ActionResult({})
+
+    def disable_sagemaker_servicecatalog_portfolio(self) -> ActionResult:
+        return ActionResult({})
+
+    def enable_sagemaker_servicecatalog_portfolio(self) -> ActionResult:
+        return ActionResult({})
+
+    def get_device_fleet_report(self) -> ActionResult:
+        self._get_param("DeviceFleetName")
+        return ActionResult({'DeviceFleetArn': '_arn', 'DeviceFleetName': 'df', 'OutputConfig': {}})
+
+    def get_lineage_group_policy(self) -> ActionResult:
+        self._get_param("LineageGroupName")
+        return ActionResult({'LineageGroupArn': '_arn', 'ResourcePolicy': '{}'})
+
+    def get_model_package_group_policy(self) -> ActionResult:
+        self._get_param("ModelPackageGroupName")
+        return ActionResult({'ResourcePolicy': '{}'})
+
+    def get_sagemaker_servicecatalog_portfolio_status(self) -> ActionResult:
+        return ActionResult({'Status': 'Enabled'})
+
+    def get_scaling_configuration_recommendation(self) -> ActionResult:
+        self._get_param("InferenceRecommendationsJobName")
+        self._get_param("RecommendationId")
+        self._get_param("EndpointName")
+        self._get_param("TargetCpuUtilizationPerCore")
+        self._get_param("ScalingPolicyObjective")
+        return ActionResult({})
+
+    def get_search_suggestions(self) -> ActionResult:
+        self._get_param("Resource")
+        self._get_param("SuggestionQuery")
+        return ActionResult({'PropertyNameSuggestions': []})
+
+    def import_hub_content(self) -> ActionResult:
+        self._get_param("HubName")
+        self._get_param("HubContentName")
+        self._get_param("HubContentType")
+        self._get_param("DocumentSchemaVersion")
+        self._get_param("HubContentDisplayName")
+        self._get_param("HubContentDescription")
+        self._get_param("HubContentDocument")
+        return ActionResult({'HubArn': '_arn', 'HubContentArn': '_arn'})
+
+    def list_aliases(self) -> ActionResult:
+        self._get_param("ImageName")
+        return ActionResult({'SageMakerImageVersionAliases': []})
+
+    def list_associations(self) -> ActionResult:
+        return ActionResult({'AssociationSummaries': []})
+
+
+    def list_candidates_for_auto_ml_job(self) -> ActionResult:
+        self._get_param("AutoMLJobName")
+        return ActionResult({'Candidates': []})
+
+    def list_cluster_events(self) -> ActionResult:
+        self._get_param("ClusterName")
+        return ActionResult({'ClusterEvents': []})
+
+    def list_cluster_scheduler_configs(self) -> ActionResult:
+        return ActionResult({'ClusterSchedulerConfigSummaries': []})
+
+    def list_compute_quotas(self) -> ActionResult:
+        return ActionResult({'ComputeQuotaSummaries': []})
+
+    def list_devices(self) -> ActionResult:
+        return ActionResult({'DeviceSummaries': []})
+
+    def list_edge_packaging_jobs(self) -> ActionResult:
+        return ActionResult({'EdgePackagingJobSummaries': []})
+
+    def list_feature_groups(self) -> ActionResult:
+        return ActionResult({'FeatureGroupSummaries': []})
+
+    def list_hub_content_versions(self) -> ActionResult:
+        self._get_param("HubName")
+        self._get_param("HubContentType")
+        self._get_param("HubContentName")
+        return ActionResult({'HubContentSummaries': []})
+
+    def list_hub_contents(self) -> ActionResult:
+        self._get_param("HubName")
+        self._get_param("HubContentType")
+        return ActionResult({'HubContentSummaries': []})
+
+    def list_image_versions(self) -> ActionResult:
+        self._get_param("ImageName")
+        return ActionResult({'ImageVersions': []})
+
+    def list_inference_recommendations_job_steps(self) -> ActionResult:
+        self._get_param("JobName")
+        return ActionResult({'Steps': []})
+
+    def list_inference_recommendations_jobs(self) -> ActionResult:
+        return ActionResult({'InferenceRecommendationsJobs': []})
+
+    def list_labeling_jobs_for_workteam(self) -> ActionResult:
+        self._get_param("WorkteamArn")
+        return ActionResult({'LabelingJobSummaryList': []})
+
+    def list_lineage_groups(self) -> ActionResult:
+        return ActionResult({'LineageGroupSummaries': []})
+
+    def list_model_card_export_jobs(self) -> ActionResult:
+        self._get_param("ModelCardName")
+        return ActionResult({'ModelCardExportJobSummaries': []})
+
+    def list_model_metadata(self) -> ActionResult:
+        return ActionResult({'ModelMetadataSummaries': []})
+
+    def list_monitoring_alert_history(self) -> ActionResult:
+        return ActionResult({'MonitoringAlertHistory': []})
+
+    def list_monitoring_alerts(self) -> ActionResult:
+        self._get_param("MonitoringScheduleName")
+        return ActionResult({'MonitoringAlertSummaries': []})
+
+    def list_monitoring_executions(self) -> ActionResult:
+        return ActionResult({'MonitoringExecutionSummaries': []})
+
+    def list_notebook_instance_lifecycle_configs(self) -> ActionResult:
+        return ActionResult({'NotebookInstanceLifecycleConfigs': []})
+
+    def list_pipeline_execution_steps(self) -> ActionResult:
+        self._get_param("PipelineExecutionArn")
+        return ActionResult({'PipelineExecutionSteps': []})
+
+    def list_pipeline_versions(self) -> ActionResult:
+        self._get_param("PipelineName")
+        return ActionResult({'PipelineVersionSummaries': []})
+
+    def list_resource_catalogs(self) -> ActionResult:
+        return ActionResult({'ResourceCatalogs': []})
+
+    def list_stage_devices(self) -> ActionResult:
+        self._get_param("EdgeDeploymentPlanName")
+        self._get_param("StageName")
+        return ActionResult({'DeviceDeploymentSummaries': []})
+
+    def list_subscribed_workteams(self) -> ActionResult:
+        return ActionResult({'SubscribedWorkteams': []})
+
+    def list_training_jobs_for_hyper_parameter_tuning_job(self) -> ActionResult:
+        self._get_param("HyperParameterTuningJobName")
+        return ActionResult({'TrainingJobSummaries': []})
+
+    def list_training_plans(self) -> ActionResult:
+        return ActionResult({'TrainingPlanSummaries': []})
+
+    def list_ultra_servers_by_reserved_capacity(self) -> ActionResult:
+        self._get_param("ClusterName")
+        self._get_param("ReservedCapacityId")
+        return ActionResult({'UltraServerSummaries': []})
+
+    def put_model_package_group_policy(self) -> ActionResult:
+        self._get_param("ModelPackageGroupName")
+        self._get_param("ResourcePolicy")
+        return ActionResult({'ModelPackageGroupArn': '_arn'})
+
+    def query_lineage(self) -> ActionResult:
+        self._get_param("StartArns")
+        self._get_param("Direction")
+        self._get_param("IncludeEdges")
+        self._get_param("Filters")
+        return ActionResult({'Vertices': [], 'Edges': []})
+
+    def register_devices(self) -> ActionResult:
+        self._get_param("DeviceFleetName")
+        self._get_param("Devices")
+        return ActionResult({})
+
+    def render_ui_template(self) -> ActionResult:
+        self._get_param("UiTemplate")
+        self._get_param("Task")
+        self._get_param("RoleArn")
+        self._get_param("HumanTaskUiArn")
+        return ActionResult({'RenderedContent': '<html></html>', 'Errors': []})
+
+    def retry_pipeline_execution(self) -> ActionResult:
+        self._get_param("PipelineExecutionArn")
+        self._get_param("ClientRequestToken")
+        self._get_param("ParallelismConfiguration")
+        return ActionResult({'PipelineExecutionArn': '_arn'})
+
+    def search_training_plan_offerings(self) -> ActionResult:
+        self._get_param("InstanceType")
+        self._get_param("InstanceCount")
+        return ActionResult({'TrainingPlanOfferings': []})
+
+    def send_pipeline_execution_step_failure(self) -> ActionResult:
+        self._get_param("CallbackToken")
+        self._get_param("FailureReason")
+        self._get_param("ClientRequestToken")
+        return ActionResult({'PipelineExecutionArn': '_arn'})
+
+    def send_pipeline_execution_step_success(self) -> ActionResult:
+        self._get_param("CallbackToken")
+        self._get_param("OutputParameters")
+        self._get_param("ClientRequestToken")
+        return ActionResult({'PipelineExecutionArn': '_arn'})
+
+    def start_edge_deployment_stage(self) -> ActionResult:
+        self._get_param("EdgeDeploymentPlanName")
+        self._get_param("StageName")
+        return ActionResult({})
+
+    def start_inference_experiment(self) -> ActionResult:
+        self._get_param("Name")
+        return ActionResult({'InferenceExperimentArn': '_arn'})
+
+    def start_mlflow_tracking_server(self) -> ActionResult:
+        self._get_param("TrackingServerName")
+        return ActionResult({'TrackingServerArn': '_arn'})
+
+    def start_monitoring_schedule(self) -> ActionResult:
+        self._get_param("MonitoringScheduleName")
+        return ActionResult({})
+
+    def start_session(self) -> ActionResult:
+        self._get_param("ResourceArn")
+        return ActionResult({'StreamUrl': 'https://example.com/session'})
+
+    def stop_compilation_job(self) -> ActionResult:
+        self._get_param("CompilationJobName")
+        return ActionResult({})
+
+    def stop_edge_deployment_stage(self) -> ActionResult:
+        self._get_param("EdgeDeploymentPlanName")
+        self._get_param("StageName")
+        return ActionResult({})
+
+    def stop_edge_packaging_job(self) -> ActionResult:
+        self._get_param("EdgePackagingJobName")
+        return ActionResult({})
+
+    def stop_hyper_parameter_tuning_job(self) -> ActionResult:
+        self._get_param("HyperParameterTuningJobName")
+        return ActionResult({})
+
+    def stop_inference_experiment(self) -> ActionResult:
+        self._get_param("Name")
+        self._get_param("ModelVariantActions")
+        self._get_param("DesiredModelVariants")
+        self._get_param("DesiredState")
+        self._get_param("Reason")
+        return ActionResult({'InferenceExperimentArn': '_arn'})
+
+    def stop_inference_recommendations_job(self) -> ActionResult:
+        self._get_param("JobName")
+        return ActionResult({})
+
+    def stop_mlflow_tracking_server(self) -> ActionResult:
+        self._get_param("TrackingServerName")
+        return ActionResult({'TrackingServerArn': '_arn'})
+
+    def stop_monitoring_schedule(self) -> ActionResult:
+        self._get_param("MonitoringScheduleName")
+        return ActionResult({})
+
+    def stop_pipeline_execution(self) -> ActionResult:
+        self._get_param("PipelineExecutionArn")
+        self._get_param("ClientRequestToken")
+        return ActionResult({'PipelineExecutionArn': '_arn'})
+
+    def stop_processing_job(self) -> ActionResult:
+        self._get_param("ProcessingJobName")
+        return ActionResult({})
+
+    def stop_training_job(self) -> ActionResult:
+        self._get_param("TrainingJobName")
+        return ActionResult({})
+
+    def stop_transform_job(self) -> ActionResult:
+        self._get_param("TransformJobName")
+        return ActionResult({})
+
+    def update_cluster(self) -> ActionResult:
+        self._get_param("ClusterName")
+        self._get_param("InstanceGroups")
+        self._get_param("NodeRecovery")
+        return ActionResult({'ClusterArn': '_arn'})
+
+    def update_cluster_scheduler_config(self) -> ActionResult:
+        self._get_param("ClusterSchedulerConfigId")
+        self._get_param("SchedulerConfig")
+        return ActionResult({'ClusterSchedulerConfigArn': '_arn', 'ClusterSchedulerConfigId': 'csc-00000000'})
+
+    def update_cluster_software(self) -> ActionResult:
+        self._get_param("ClusterName")
+        return ActionResult({'ClusterArn': '_arn'})
+
+    def update_compute_quota(self) -> ActionResult:
+        self._get_param("ComputeQuotaId")
+        self._get_param("ComputeQuotaConfig")
+        return ActionResult({'ComputeQuotaArn': '_arn', 'ComputeQuotaId': 'cq-00000000'})
+
+    def update_devices(self) -> ActionResult:
+        self._get_param("DeviceFleetName")
+        self._get_param("Devices")
+        return ActionResult({})
+
+    def update_domain(self) -> ActionResult:
+        self._get_param("DomainId")
+        self._get_param("DefaultUserSettings")
+        self._get_param("DomainSettingsForUpdate")
+        self._get_param("AppSecurityGroupManagement")
+        self._get_param("DefaultSpaceSettings")
+        self._get_param("SubnetIds")
+        self._get_param("AppNetworkAccessType")
+        self._get_param("TagPropagation")
+        return ActionResult({'DomainArn': '_arn'})
+
+    def update_endpoint(self) -> ActionResult:
+        self._get_param("EndpointName")
+        self._get_param("EndpointConfigName")
+        self._get_param("RetainAllVariantProperties")
+        self._get_param("ExcludeRetainedVariantProperties")
+        self._get_param("DeploymentConfig")
+        self._get_param("RetainDeploymentConfig")
+        return ActionResult({'EndpointArn': '_arn'})
+
+    def update_experiment(self) -> ActionResult:
+        self._get_param("ExperimentName")
+        self._get_param("DisplayName")
+        self._get_param("Description")
+        return ActionResult({'ExperimentArn': '_arn'})
+
+    def update_feature_group(self) -> ActionResult:
+        self._get_param("FeatureGroupName")
+        self._get_param("FeatureAdditions")
+        self._get_param("OnlineStoreConfig")
+        self._get_param("ThroughputConfig")
+        return ActionResult({'FeatureGroupArn': '_arn'})
+
+    def update_feature_metadata(self) -> ActionResult:
+        self._get_param("FeatureGroupName")
+        self._get_param("FeatureName")
+        self._get_param("Description")
+        self._get_param("ParameterAdditions")
+        self._get_param("ParameterRemovals")
+        return ActionResult({})
+
+    def update_hub_content(self) -> ActionResult:
+        self._get_param("HubName")
+        self._get_param("HubContentName")
+        self._get_param("HubContentType")
+        self._get_param("HubContentVersion")
+        return ActionResult({'HubArn': '_arn', 'HubContentArn': '_arn'})
+
+    def update_hub_content_reference(self) -> ActionResult:
+        self._get_param("HubName")
+        self._get_param("HubContentName")
+        self._get_param("HubContentType")
+        self._get_param("MinVersion")
+        return ActionResult({'HubArn': '_arn', 'HubContentReferenceArn': '_arn'})
+
+    def update_image_version(self) -> ActionResult:
+        self._get_param("ImageName")
+        self._get_param("Version")
+        self._get_param("Alias")
+        self._get_param("AliasesToAdd")
+        self._get_param("AliasesToDelete")
+        return ActionResult({'ImageVersionArn': '_arn'})
+
+    def update_monitoring_alert(self) -> ActionResult:
+        self._get_param("MonitoringScheduleName")
+        self._get_param("MonitoringAlertName")
+        self._get_param("DatapointsToAlert")
+        self._get_param("EvaluationPeriod")
+        return ActionResult({'MonitoringScheduleArn': '_arn'})
+
+    def update_notebook_instance(self) -> ActionResult:
+        self._get_param("NotebookInstanceName")
+        self._get_param("InstanceType")
+        self._get_param("RoleArn")
+        self._get_param("LifecycleConfigName")
+        self._get_param("DisassociateLifecycleConfig")
+        self._get_param("VolumeSizeInGB")
+        self._get_param("DefaultCodeRepository")
+        self._get_param("AdditionalCodeRepositories")
+        self._get_param("AcceleratorTypes")
+        self._get_param("DisassociateAcceleratorTypes")
+        self._get_param("DisassociateDefaultCodeRepository")
+        self._get_param("DisassociateAdditionalCodeRepositories")
+        self._get_param("RootAccess")
+        self._get_param("InstanceMetadataServiceConfiguration")
+        return ActionResult({})
+
+    def update_notebook_instance_lifecycle_config(self) -> ActionResult:
+        self._get_param("NotebookInstanceLifecycleConfigName")
+        self._get_param("OnCreate")
+        self._get_param("OnStart")
+        return ActionResult({})
+
+    def update_pipeline_execution(self) -> ActionResult:
+        self._get_param("PipelineExecutionArn")
+        self._get_param("PipelineExecutionDescription")
+        self._get_param("PipelineExecutionDisplayName")
+        self._get_param("ParallelismConfiguration")
+        return ActionResult({'PipelineExecutionArn': '_arn'})
+
+    def update_pipeline_version(self) -> ActionResult:
+        self._get_param("PipelineName")
+        self._get_param("PipelineVersion")
+        return ActionResult({'PipelineArn': '_arn'})
+
+    def update_training_job(self) -> ActionResult:
+        self._get_param("TrainingJobName")
+        self._get_param("ProfilerConfig")
+        self._get_param("ProfilerRuleConfigurations")
+        self._get_param("ResourceConfig")
+        self._get_param("RemoteDebugConfig")
+        return ActionResult({'TrainingJobArn': '_arn'})
+
+    def update_trial(self) -> ActionResult:
+        self._get_param("TrialName")
+        self._get_param("DisplayName")
+        return ActionResult({'TrialArn': '_arn'})
+
+    def update_inference_component_runtime_config(self) -> ActionResult:
+        self._get_param("InferenceComponentName")
+        self._get_param("DesiredRuntimeConfig")
+        return ActionResult({})
+

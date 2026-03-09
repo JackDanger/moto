@@ -2894,6 +2894,33 @@ class SageMakerModelBackend(BaseBackend):
         ] = {}
         self.hyper_parameter_tuning_jobs: dict[str, HyperParameterTuningJob] = {}
         self.model_quality_job_definitions: dict[str, ModelQualityJobDefinition] = {}
+        self.actions: dict[str, Any] = {}
+        self.algorithms: dict[str, Any] = {}
+        self.apps: dict[str, Any] = {}
+        self.app_image_configs: dict[str, Any] = {}
+        self.artifacts: dict[str, Any] = {}
+        self.code_repositories: dict[str, Any] = {}
+        self.contexts: dict[str, Any] = {}
+        self.device_fleets: dict[str, Any] = {}
+        self.edge_deployment_plans: dict[str, Any] = {}
+        self.flow_definitions: dict[str, Any] = {}
+        self.hubs: dict[str, Any] = {}
+        self.human_task_uis: dict[str, Any] = {}
+        self.images: dict[str, Any] = {}
+        self.inference_components: dict[str, Any] = {}
+        self.inference_experiments: dict[str, Any] = {}
+        self.labeling_jobs: dict[str, Any] = {}
+        self.mlflow_apps: dict[str, Any] = {}
+        self.mlflow_tracking_servers: dict[str, Any] = {}
+        self.monitoring_schedules: dict[str, Any] = {}
+        self.optimization_jobs: dict[str, Any] = {}
+        self.partner_apps: dict[str, Any] = {}
+        self.projects: dict[str, Any] = {}
+        self.spaces: dict[str, Any] = {}
+        self.studio_lifecycle_configs: dict[str, Any] = {}
+        self.user_profiles: dict[str, Any] = {}
+        self.workforces: dict[str, Any] = {}
+        self.workteams: dict[str, Any] = {}
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -3033,6 +3060,33 @@ class SageMakerModelBackend(BaseBackend):
             "hyper-parameter-tuning-job": self.hyper_parameter_tuning_jobs,
             "model-quality-job-definition": self.model_quality_job_definitions,
             "model-card": self.model_cards,
+            "action": self.actions,
+            "algorithm": self.algorithms,
+            "app": self.apps,
+            "app-image-config": self.app_image_configs,
+            "artifact": self.artifacts,
+            "code-repository": self.code_repositories,
+            "context": self.contexts,
+            "device-fleet": self.device_fleets,
+            "edge-deployment": self.edge_deployment_plans,
+            "flow-definition": self.flow_definitions,
+            "hub": self.hubs,
+            "human-task-ui": self.human_task_uis,
+            "image": self.images,
+            "inference-component": self.inference_components,
+            "inference-experiment": self.inference_experiments,
+            "labeling-job": self.labeling_jobs,
+            "mlflow-app": self.mlflow_apps,
+            "mlflow-tracking-server": self.mlflow_tracking_servers,
+            "monitoring-schedule": self.monitoring_schedules,
+            "optimization-job": self.optimization_jobs,
+            "partner-app": self.partner_apps,
+            "project": self.projects,
+            "space": self.spaces,
+            "studio-lifecycle-config": self.studio_lifecycle_configs,
+            "user-profile": self.user_profiles,
+            "workforce": self.workforces,
+            "workteam": self.workteams,
         }
         target_resource, target_name = arn.split(":")[-1].split("/")
         try:
@@ -5694,6 +5748,1204 @@ class SageMakerModelBackend(BaseBackend):
             del self.data_quality_job_definitions[job_definition_name]
         else:
             raise ResourceNotFound(f"Job definition {job_definition_name} not found")
+
+
+    def create_action(self, actionname: Any = None, source: Any = None, actiontype: Any = None, description: Any = None, status: Any = None, properties: Any = None, metadataproperties: Any = None, tags: Any = None) -> dict[str, Any]:
+        name = actionname
+        store_key = name
+        arn = arn_formatter("action", store_key, self.account_id, self.region_name)
+        resource = {
+            "ActionName": name,
+            "ActionArn": arn,
+            "Source": source,
+            "ActionType": actiontype,
+            "Description": description,
+            "Status": status,
+            "Properties": properties,
+            "MetadataProperties": metadataproperties,
+            "CreationTime": utcnow().isoformat(),
+            "LastModifiedTime": utcnow().isoformat(),
+            "Tags": tags or [],
+        }
+        self.actions[store_key] = resource
+        return {"ActionArn": arn}
+
+    def describe_action(self, name: Any) -> dict[str, Any]:
+        store_key = name
+        resource = self.actions.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find action {store_key}")
+        return resource
+
+    def list_actions(self) -> list[dict[str, Any]]:
+        return list(self.actions.values())
+
+    def update_action(self, actionname: Any = None, source: Any = None, actiontype: Any = None, description: Any = None, status: Any = None, properties: Any = None, metadataproperties: Any = None) -> dict[str, Any]:
+        store_key = actionname
+        resource = self.actions.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find action {store_key}")
+        if source is not None:
+            resource["Source"] = source
+        if actiontype is not None:
+            resource["ActionType"] = actiontype
+        if description is not None:
+            resource["Description"] = description
+        if status is not None:
+            resource["Status"] = status
+        if properties is not None:
+            resource["Properties"] = properties
+        if metadataproperties is not None:
+            resource["MetadataProperties"] = metadataproperties
+        resource["LastModifiedTime"] = utcnow().isoformat()
+        return {"ActionArn": resource["ActionArn"]}
+
+    def delete_action(self, name: Any) -> None:
+        store_key = name
+        self.actions.pop(store_key, None)
+
+    def create_algorithm(self, algorithmname: Any = None, algorithmdescription: Any = None, trainingspecification: Any = None, inferencespecification: Any = None, validationspecification: Any = None, certifyformarketplace: Any = None, tags: Any = None) -> dict[str, Any]:
+        name = algorithmname
+        store_key = name
+        arn = arn_formatter("algorithm", store_key, self.account_id, self.region_name)
+        resource = {
+            "AlgorithmName": name,
+            "AlgorithmArn": arn,
+            "AlgorithmDescription": algorithmdescription,
+            "TrainingSpecification": trainingspecification,
+            "InferenceSpecification": inferencespecification,
+            "ValidationSpecification": validationspecification,
+            "CertifyForMarketplace": certifyformarketplace,
+            "CreationTime": utcnow().isoformat(),
+            "LastModifiedTime": utcnow().isoformat(),
+            "Tags": tags or [],
+            "AlgorithmStatus": "Completed",
+        }
+        self.algorithms[store_key] = resource
+        return {"AlgorithmArn": arn}
+
+    def describe_algorithm(self, name: Any) -> dict[str, Any]:
+        store_key = name
+        resource = self.algorithms.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find algorithm {store_key}")
+        return resource
+
+    def list_algorithms(self) -> list[dict[str, Any]]:
+        return list(self.algorithms.values())
+
+    def delete_algorithm(self, name: Any) -> None:
+        store_key = name
+        self.algorithms.pop(store_key, None)
+
+    def create_app(self, appname: Any = None, domainid: Any = None, userprofilename: Any = None, spacename: Any = None, apptype: Any = None, resourcespec: Any = None, tags: Any = None) -> dict[str, Any]:
+        name = appname
+        store_key = str(domainid or '') + '/' + str(apptype or '') + '/' + str(appname or '')
+        arn = arn_formatter("app", store_key, self.account_id, self.region_name)
+        resource = {
+            "AppName": name,
+            "AppArn": arn,
+            "DomainId": domainid,
+            "UserProfileName": userprofilename,
+            "SpaceName": spacename,
+            "AppType": apptype,
+            "ResourceSpec": resourcespec,
+            "CreationTime": utcnow().isoformat(),
+            "LastModifiedTime": utcnow().isoformat(),
+            "Tags": tags or [],
+            "Status": "InService",
+        }
+        self.apps[store_key] = resource
+        return {"AppArn": arn}
+
+    def describe_app(self, domainid: Any = None, apptype: Any = None, appname: Any = None) -> dict[str, Any]:
+        store_key = str(domainid or '') + '/' + str(apptype or '') + '/' + str(appname or '')
+        resource = self.apps.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find app {store_key}")
+        return resource
+
+    def list_apps(self) -> list[dict[str, Any]]:
+        return list(self.apps.values())
+
+    def delete_app(self, domainid: Any = None, apptype: Any = None, appname: Any = None) -> None:
+        store_key = str(domainid or '') + '/' + str(apptype or '') + '/' + str(appname or '')
+        self.apps.pop(store_key, None)
+
+    def create_app_image_config(self, appimageconfigname: Any = None, kernelgatewayimageconfig: Any = None, jupyterlabappimageconfig: Any = None, codeeditorappimageconfig: Any = None, tags: Any = None) -> dict[str, Any]:
+        name = appimageconfigname
+        store_key = name
+        arn = arn_formatter("app-image-config", store_key, self.account_id, self.region_name)
+        resource = {
+            "AppImageConfigName": name,
+            "AppImageConfigArn": arn,
+            "KernelGatewayImageConfig": kernelgatewayimageconfig,
+            "JupyterLabAppImageConfig": jupyterlabappimageconfig,
+            "CodeEditorAppImageConfig": codeeditorappimageconfig,
+            "CreationTime": utcnow().isoformat(),
+            "LastModifiedTime": utcnow().isoformat(),
+            "Tags": tags or [],
+        }
+        self.app_image_configs[store_key] = resource
+        return {"AppImageConfigArn": arn}
+
+    def describe_app_image_config(self, name: Any) -> dict[str, Any]:
+        store_key = name
+        resource = self.app_image_configs.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find app image config {store_key}")
+        return resource
+
+    def list_app_image_configs(self) -> list[dict[str, Any]]:
+        return list(self.app_image_configs.values())
+
+    def update_app_image_config(self, appimageconfigname: Any = None, kernelgatewayimageconfig: Any = None, jupyterlabappimageconfig: Any = None, codeeditorappimageconfig: Any = None) -> dict[str, Any]:
+        store_key = appimageconfigname
+        resource = self.app_image_configs.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find app image config {store_key}")
+        if kernelgatewayimageconfig is not None:
+            resource["KernelGatewayImageConfig"] = kernelgatewayimageconfig
+        if jupyterlabappimageconfig is not None:
+            resource["JupyterLabAppImageConfig"] = jupyterlabappimageconfig
+        if codeeditorappimageconfig is not None:
+            resource["CodeEditorAppImageConfig"] = codeeditorappimageconfig
+        resource["LastModifiedTime"] = utcnow().isoformat()
+        return {"AppImageConfigArn": resource["AppImageConfigArn"]}
+
+    def delete_app_image_config(self, name: Any) -> None:
+        store_key = name
+        self.app_image_configs.pop(store_key, None)
+
+    def create_artifact(self, artifactname: Any = None, source: Any = None, artifacttype: Any = None, properties: Any = None, metadataproperties: Any = None, tags: Any = None) -> dict[str, Any]:
+        name = artifactname
+        store_key = name
+        arn = arn_formatter("artifact", store_key, self.account_id, self.region_name)
+        resource = {
+            "ArtifactName": name,
+            "ArtifactArn": arn,
+            "Source": source,
+            "ArtifactType": artifacttype,
+            "Properties": properties,
+            "MetadataProperties": metadataproperties,
+            "CreationTime": utcnow().isoformat(),
+            "LastModifiedTime": utcnow().isoformat(),
+            "Tags": tags or [],
+        }
+        self.artifacts[store_key] = resource
+        return {"ArtifactArn": arn}
+
+    def describe_artifact(self, name: Any) -> dict[str, Any]:
+        store_key = name
+        resource = self.artifacts.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find artifact {store_key}")
+        return resource
+
+    def list_artifacts(self) -> list[dict[str, Any]]:
+        return list(self.artifacts.values())
+
+    def update_artifact(self, artifactname: Any = None, source: Any = None, artifacttype: Any = None, properties: Any = None, metadataproperties: Any = None) -> dict[str, Any]:
+        store_key = artifactname
+        resource = self.artifacts.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find artifact {store_key}")
+        if source is not None:
+            resource["Source"] = source
+        if artifacttype is not None:
+            resource["ArtifactType"] = artifacttype
+        if properties is not None:
+            resource["Properties"] = properties
+        if metadataproperties is not None:
+            resource["MetadataProperties"] = metadataproperties
+        resource["LastModifiedTime"] = utcnow().isoformat()
+        return {"ArtifactArn": resource["ArtifactArn"]}
+
+    def delete_artifact(self, name: Any) -> None:
+        store_key = name
+        self.artifacts.pop(store_key, None)
+
+    def create_code_repository(self, coderepositoryname: Any = None, gitconfig: Any = None, tags: Any = None) -> dict[str, Any]:
+        name = coderepositoryname
+        store_key = name
+        arn = arn_formatter("code-repository", store_key, self.account_id, self.region_name)
+        resource = {
+            "CodeRepositoryName": name,
+            "CodeRepositoryArn": arn,
+            "GitConfig": gitconfig,
+            "CreationTime": utcnow().isoformat(),
+            "LastModifiedTime": utcnow().isoformat(),
+            "Tags": tags or [],
+        }
+        self.code_repositories[store_key] = resource
+        return {"CodeRepositoryArn": arn}
+
+    def describe_code_repository(self, name: Any) -> dict[str, Any]:
+        store_key = name
+        resource = self.code_repositories.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find code repository {store_key}")
+        return resource
+
+    def list_code_repositories(self) -> list[dict[str, Any]]:
+        return list(self.code_repositories.values())
+
+    def update_code_repository(self, coderepositoryname: Any = None, gitconfig: Any = None) -> dict[str, Any]:
+        store_key = coderepositoryname
+        resource = self.code_repositories.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find code repository {store_key}")
+        if gitconfig is not None:
+            resource["GitConfig"] = gitconfig
+        resource["LastModifiedTime"] = utcnow().isoformat()
+        return {"CodeRepositoryArn": resource["CodeRepositoryArn"]}
+
+    def delete_code_repository(self, name: Any) -> None:
+        store_key = name
+        self.code_repositories.pop(store_key, None)
+
+    def create_context(self, contextname: Any = None, source: Any = None, contexttype: Any = None, description: Any = None, properties: Any = None, tags: Any = None) -> dict[str, Any]:
+        name = contextname
+        store_key = name
+        arn = arn_formatter("context", store_key, self.account_id, self.region_name)
+        resource = {
+            "ContextName": name,
+            "ContextArn": arn,
+            "Source": source,
+            "ContextType": contexttype,
+            "Description": description,
+            "Properties": properties,
+            "CreationTime": utcnow().isoformat(),
+            "LastModifiedTime": utcnow().isoformat(),
+            "Tags": tags or [],
+        }
+        self.contexts[store_key] = resource
+        return {"ContextArn": arn}
+
+    def describe_context(self, name: Any) -> dict[str, Any]:
+        store_key = name
+        resource = self.contexts.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find context {store_key}")
+        return resource
+
+    def list_contexts(self) -> list[dict[str, Any]]:
+        return list(self.contexts.values())
+
+    def update_context(self, contextname: Any = None, source: Any = None, contexttype: Any = None, description: Any = None, properties: Any = None) -> dict[str, Any]:
+        store_key = contextname
+        resource = self.contexts.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find context {store_key}")
+        if source is not None:
+            resource["Source"] = source
+        if contexttype is not None:
+            resource["ContextType"] = contexttype
+        if description is not None:
+            resource["Description"] = description
+        if properties is not None:
+            resource["Properties"] = properties
+        resource["LastModifiedTime"] = utcnow().isoformat()
+        return {"ContextArn": resource["ContextArn"]}
+
+    def delete_context(self, name: Any) -> None:
+        store_key = name
+        self.contexts.pop(store_key, None)
+
+    def create_device_fleet(self, devicefleetname: Any = None, rolearn: Any = None, description: Any = None, outputconfig: Any = None, enableiotrolealias: Any = None, tags: Any = None) -> dict[str, Any]:
+        name = devicefleetname
+        store_key = name
+        arn = arn_formatter("device-fleet", store_key, self.account_id, self.region_name)
+        resource = {
+            "DeviceFleetName": name,
+            "DeviceFleetArn": arn,
+            "RoleArn": rolearn,
+            "Description": description,
+            "OutputConfig": outputconfig,
+            "EnableIotRoleAlias": enableiotrolealias,
+            "CreationTime": utcnow().isoformat(),
+            "LastModifiedTime": utcnow().isoformat(),
+            "Tags": tags or [],
+        }
+        self.device_fleets[store_key] = resource
+        return {"DeviceFleetArn": arn}
+
+    def describe_device_fleet(self, name: Any) -> dict[str, Any]:
+        store_key = name
+        resource = self.device_fleets.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find device fleet {store_key}")
+        return resource
+
+    def list_device_fleets(self) -> list[dict[str, Any]]:
+        return list(self.device_fleets.values())
+
+    def update_device_fleet(self, devicefleetname: Any = None, rolearn: Any = None, description: Any = None, outputconfig: Any = None, enableiotrolealias: Any = None) -> dict[str, Any]:
+        store_key = devicefleetname
+        resource = self.device_fleets.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find device fleet {store_key}")
+        if rolearn is not None:
+            resource["RoleArn"] = rolearn
+        if description is not None:
+            resource["Description"] = description
+        if outputconfig is not None:
+            resource["OutputConfig"] = outputconfig
+        if enableiotrolealias is not None:
+            resource["EnableIotRoleAlias"] = enableiotrolealias
+        resource["LastModifiedTime"] = utcnow().isoformat()
+        return {"DeviceFleetArn": resource["DeviceFleetArn"]}
+
+    def delete_device_fleet(self, name: Any) -> None:
+        store_key = name
+        self.device_fleets.pop(store_key, None)
+
+    def create_edge_deployment_plan(self, edgedeploymentplanname: Any = None, modelconfigs: Any = None, devicefleetname: Any = None, stages: Any = None, tags: Any = None) -> dict[str, Any]:
+        name = edgedeploymentplanname
+        store_key = name
+        arn = arn_formatter("edge-deployment", store_key, self.account_id, self.region_name)
+        resource = {
+            "EdgeDeploymentPlanName": name,
+            "EdgeDeploymentPlanArn": arn,
+            "ModelConfigs": modelconfigs,
+            "DeviceFleetName": devicefleetname,
+            "Stages": stages,
+            "CreationTime": utcnow().isoformat(),
+            "LastModifiedTime": utcnow().isoformat(),
+            "Tags": tags or [],
+        }
+        self.edge_deployment_plans[store_key] = resource
+        return {"EdgeDeploymentPlanArn": arn}
+
+    def describe_edge_deployment_plan(self, name: Any) -> dict[str, Any]:
+        store_key = name
+        resource = self.edge_deployment_plans.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find edge deployment plan {store_key}")
+        return resource
+
+    def list_edge_deployment_plans(self) -> list[dict[str, Any]]:
+        return list(self.edge_deployment_plans.values())
+
+    def delete_edge_deployment_plan(self, name: Any) -> None:
+        store_key = name
+        self.edge_deployment_plans.pop(store_key, None)
+
+    def create_flow_definition(self, flowdefinitionname: Any = None, humanloopconfig: Any = None, humanlooprequestsource: Any = None, humanloopactivationconfig: Any = None, outputconfig: Any = None, rolearn: Any = None, tags: Any = None) -> dict[str, Any]:
+        name = flowdefinitionname
+        store_key = name
+        arn = arn_formatter("flow-definition", store_key, self.account_id, self.region_name)
+        resource = {
+            "FlowDefinitionName": name,
+            "FlowDefinitionArn": arn,
+            "HumanLoopConfig": humanloopconfig,
+            "HumanLoopRequestSource": humanlooprequestsource,
+            "HumanLoopActivationConfig": humanloopactivationconfig,
+            "OutputConfig": outputconfig,
+            "RoleArn": rolearn,
+            "CreationTime": utcnow().isoformat(),
+            "LastModifiedTime": utcnow().isoformat(),
+            "Tags": tags or [],
+            "FlowDefinitionStatus": "Active",
+        }
+        self.flow_definitions[store_key] = resource
+        return {"FlowDefinitionArn": arn}
+
+    def describe_flow_definition(self, name: Any) -> dict[str, Any]:
+        store_key = name
+        resource = self.flow_definitions.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find flow definition {store_key}")
+        return resource
+
+    def list_flow_definitions(self) -> list[dict[str, Any]]:
+        return list(self.flow_definitions.values())
+
+    def delete_flow_definition(self, name: Any) -> None:
+        store_key = name
+        self.flow_definitions.pop(store_key, None)
+
+    def create_hub(self, hubname: Any = None, hubdescription: Any = None, hubdisplayname: Any = None, hubsearchkeywords: Any = None, s3storageconfig: Any = None, tags: Any = None) -> dict[str, Any]:
+        name = hubname
+        store_key = name
+        arn = arn_formatter("hub", store_key, self.account_id, self.region_name)
+        resource = {
+            "HubName": name,
+            "HubArn": arn,
+            "HubDescription": hubdescription,
+            "HubDisplayName": hubdisplayname,
+            "HubSearchKeywords": hubsearchkeywords,
+            "S3StorageConfig": s3storageconfig,
+            "CreationTime": utcnow().isoformat(),
+            "LastModifiedTime": utcnow().isoformat(),
+            "Tags": tags or [],
+            "HubStatus": "InService",
+        }
+        self.hubs[store_key] = resource
+        return {"HubArn": arn}
+
+    def describe_hub(self, name: Any) -> dict[str, Any]:
+        store_key = name
+        resource = self.hubs.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find hub {store_key}")
+        return resource
+
+    def list_hubs(self) -> list[dict[str, Any]]:
+        return list(self.hubs.values())
+
+    def update_hub(self, hubname: Any = None, hubdescription: Any = None, hubdisplayname: Any = None, hubsearchkeywords: Any = None, s3storageconfig: Any = None) -> dict[str, Any]:
+        store_key = hubname
+        resource = self.hubs.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find hub {store_key}")
+        if hubdescription is not None:
+            resource["HubDescription"] = hubdescription
+        if hubdisplayname is not None:
+            resource["HubDisplayName"] = hubdisplayname
+        if hubsearchkeywords is not None:
+            resource["HubSearchKeywords"] = hubsearchkeywords
+        if s3storageconfig is not None:
+            resource["S3StorageConfig"] = s3storageconfig
+        resource["LastModifiedTime"] = utcnow().isoformat()
+        return {"HubArn": resource["HubArn"]}
+
+    def delete_hub(self, name: Any) -> None:
+        store_key = name
+        self.hubs.pop(store_key, None)
+
+    def create_human_task_ui(self, humantaskuiname: Any = None, uitemplate: Any = None, tags: Any = None) -> dict[str, Any]:
+        name = humantaskuiname
+        store_key = name
+        arn = arn_formatter("human-task-ui", store_key, self.account_id, self.region_name)
+        resource = {
+            "HumanTaskUiName": name,
+            "HumanTaskUiArn": arn,
+            "UiTemplate": uitemplate,
+            "CreationTime": utcnow().isoformat(),
+            "LastModifiedTime": utcnow().isoformat(),
+            "Tags": tags or [],
+            "HumanTaskUiStatus": "Active",
+        }
+        self.human_task_uis[store_key] = resource
+        return {"HumanTaskUiArn": arn}
+
+    def describe_human_task_ui(self, name: Any) -> dict[str, Any]:
+        store_key = name
+        resource = self.human_task_uis.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find human task ui {store_key}")
+        return resource
+
+    def list_human_task_uis(self) -> list[dict[str, Any]]:
+        return list(self.human_task_uis.values())
+
+    def delete_human_task_ui(self, name: Any) -> None:
+        store_key = name
+        self.human_task_uis.pop(store_key, None)
+
+    def create_image(self, imagename: Any = None, rolearn: Any = None, displayname: Any = None, description: Any = None, tags: Any = None) -> dict[str, Any]:
+        name = imagename
+        store_key = name
+        arn = arn_formatter("image", store_key, self.account_id, self.region_name)
+        resource = {
+            "ImageName": name,
+            "ImageArn": arn,
+            "RoleArn": rolearn,
+            "DisplayName": displayname,
+            "Description": description,
+            "CreationTime": utcnow().isoformat(),
+            "LastModifiedTime": utcnow().isoformat(),
+            "Tags": tags or [],
+            "ImageStatus": "CREATED",
+        }
+        self.images[store_key] = resource
+        return {"ImageArn": arn}
+
+    def describe_image(self, name: Any) -> dict[str, Any]:
+        store_key = name
+        resource = self.images.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find image {store_key}")
+        return resource
+
+    def list_images(self) -> list[dict[str, Any]]:
+        return list(self.images.values())
+
+    def update_image(self, imagename: Any = None, rolearn: Any = None, displayname: Any = None, description: Any = None) -> dict[str, Any]:
+        store_key = imagename
+        resource = self.images.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find image {store_key}")
+        if rolearn is not None:
+            resource["RoleArn"] = rolearn
+        if displayname is not None:
+            resource["DisplayName"] = displayname
+        if description is not None:
+            resource["Description"] = description
+        resource["LastModifiedTime"] = utcnow().isoformat()
+        return {"ImageArn": resource["ImageArn"]}
+
+    def delete_image(self, name: Any) -> None:
+        store_key = name
+        self.images.pop(store_key, None)
+
+    def create_inference_component(self, inferencecomponentname: Any = None, endpointname: Any = None, variantname: Any = None, specification: Any = None, runtimeconfig: Any = None, tags: Any = None) -> dict[str, Any]:
+        name = inferencecomponentname
+        store_key = name
+        arn = arn_formatter("inference-component", store_key, self.account_id, self.region_name)
+        resource = {
+            "InferenceComponentName": name,
+            "InferenceComponentArn": arn,
+            "EndpointName": endpointname,
+            "VariantName": variantname,
+            "Specification": specification,
+            "RuntimeConfig": runtimeconfig,
+            "CreationTime": utcnow().isoformat(),
+            "LastModifiedTime": utcnow().isoformat(),
+            "Tags": tags or [],
+            "InferenceComponentStatus": "InService",
+        }
+        self.inference_components[store_key] = resource
+        return {"InferenceComponentArn": arn}
+
+    def describe_inference_component(self, name: Any) -> dict[str, Any]:
+        store_key = name
+        resource = self.inference_components.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find inference component {store_key}")
+        return resource
+
+    def list_inference_components(self) -> list[dict[str, Any]]:
+        return list(self.inference_components.values())
+
+    def update_inference_component(self, inferencecomponentname: Any = None, endpointname: Any = None, variantname: Any = None, specification: Any = None, runtimeconfig: Any = None) -> dict[str, Any]:
+        store_key = inferencecomponentname
+        resource = self.inference_components.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find inference component {store_key}")
+        if endpointname is not None:
+            resource["EndpointName"] = endpointname
+        if variantname is not None:
+            resource["VariantName"] = variantname
+        if specification is not None:
+            resource["Specification"] = specification
+        if runtimeconfig is not None:
+            resource["RuntimeConfig"] = runtimeconfig
+        resource["LastModifiedTime"] = utcnow().isoformat()
+        return {"InferenceComponentArn": resource["InferenceComponentArn"]}
+
+    def delete_inference_component(self, name: Any) -> None:
+        store_key = name
+        self.inference_components.pop(store_key, None)
+
+    def create_inference_experiment(self, name: Any = None, type: Any = None, endpointname: Any = None, modelvariants: Any = None, description: Any = None, schedule: Any = None, datastorageconfig: Any = None, shadowmodeconfig: Any = None, tags: Any = None) -> dict[str, Any]:
+        name = name
+        store_key = name
+        arn = arn_formatter("inference-experiment", store_key, self.account_id, self.region_name)
+        resource = {
+            "Name": name,
+            "Arn": arn,
+            "Type": type,
+            "EndpointName": endpointname,
+            "ModelVariants": modelvariants,
+            "Description": description,
+            "Schedule": schedule,
+            "DataStorageConfig": datastorageconfig,
+            "ShadowModeConfig": shadowmodeconfig,
+            "CreationTime": utcnow().isoformat(),
+            "LastModifiedTime": utcnow().isoformat(),
+            "Tags": tags or [],
+            "Status": "Created",
+        }
+        self.inference_experiments[store_key] = resource
+        return {"Arn": arn}
+
+    def describe_inference_experiment(self, name: Any) -> dict[str, Any]:
+        store_key = name
+        resource = self.inference_experiments.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find inference experiment {store_key}")
+        return resource
+
+    def list_inference_experiments(self) -> list[dict[str, Any]]:
+        return list(self.inference_experiments.values())
+
+    def update_inference_experiment(self, name: Any = None, type: Any = None, endpointname: Any = None, modelvariants: Any = None, description: Any = None, schedule: Any = None, datastorageconfig: Any = None, shadowmodeconfig: Any = None) -> dict[str, Any]:
+        store_key = name
+        resource = self.inference_experiments.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find inference experiment {store_key}")
+        if type is not None:
+            resource["Type"] = type
+        if endpointname is not None:
+            resource["EndpointName"] = endpointname
+        if modelvariants is not None:
+            resource["ModelVariants"] = modelvariants
+        if description is not None:
+            resource["Description"] = description
+        if schedule is not None:
+            resource["Schedule"] = schedule
+        if datastorageconfig is not None:
+            resource["DataStorageConfig"] = datastorageconfig
+        if shadowmodeconfig is not None:
+            resource["ShadowModeConfig"] = shadowmodeconfig
+        resource["LastModifiedTime"] = utcnow().isoformat()
+        return {"Arn": resource["Arn"]}
+
+    def delete_inference_experiment(self, name: Any) -> None:
+        store_key = name
+        self.inference_experiments.pop(store_key, None)
+
+    def create_labeling_job(self, labelingjobname: Any = None, labelattributename: Any = None, inputconfig: Any = None, outputconfig: Any = None, rolearn: Any = None, labelcategoryconfigs3uri: Any = None, humantaskconfig: Any = None, tags: Any = None) -> dict[str, Any]:
+        name = labelingjobname
+        store_key = name
+        arn = arn_formatter("labeling-job", store_key, self.account_id, self.region_name)
+        resource = {
+            "LabelingJobName": name,
+            "LabelingJobArn": arn,
+            "LabelAttributeName": labelattributename,
+            "InputConfig": inputconfig,
+            "OutputConfig": outputconfig,
+            "RoleArn": rolearn,
+            "LabelCategoryConfigS3Uri": labelcategoryconfigs3uri,
+            "HumanTaskConfig": humantaskconfig,
+            "CreationTime": utcnow().isoformat(),
+            "LastModifiedTime": utcnow().isoformat(),
+            "Tags": tags or [],
+            "LabelingJobStatus": "InProgress",
+        }
+        self.labeling_jobs[store_key] = resource
+        return {"LabelingJobArn": arn}
+
+    def describe_labeling_job(self, name: Any) -> dict[str, Any]:
+        store_key = name
+        resource = self.labeling_jobs.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find labeling job {store_key}")
+        return resource
+
+    def list_labeling_jobs(self) -> list[dict[str, Any]]:
+        return list(self.labeling_jobs.values())
+
+    def stop_labeling_job(self, name: Any) -> None:
+        resource = self.labeling_jobs.get(name)
+        if resource:
+            resource["LabelingJobStatus"] = "Stopped"
+
+    def create_mlflow_app(self, name: Any = None, spacesettingsoverride: Any = None, userprofilename: Any = None, domainid: Any = None, tags: Any = None) -> dict[str, Any]:
+        name = name
+        store_key = name
+        arn = arn_formatter("mlflow-app", store_key, self.account_id, self.region_name)
+        resource = {
+            "Name": name,
+            "Arn": arn,
+            "SpaceSettingsOverride": spacesettingsoverride,
+            "UserProfileName": userprofilename,
+            "DomainId": domainid,
+            "CreationTime": utcnow().isoformat(),
+            "LastModifiedTime": utcnow().isoformat(),
+            "Tags": tags or [],
+            "Status": "Active",
+        }
+        self.mlflow_apps[store_key] = resource
+        return {"Arn": arn}
+
+    def describe_mlflow_app(self, name: Any) -> dict[str, Any]:
+        store_key = name
+        resource = self.mlflow_apps.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find mlflow app {store_key}")
+        return resource
+
+    def list_mlflow_apps(self) -> list[dict[str, Any]]:
+        return list(self.mlflow_apps.values())
+
+    def update_mlflow_app(self, name: Any = None, spacesettingsoverride: Any = None, userprofilename: Any = None, domainid: Any = None) -> dict[str, Any]:
+        store_key = name
+        resource = self.mlflow_apps.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find mlflow app {store_key}")
+        if spacesettingsoverride is not None:
+            resource["SpaceSettingsOverride"] = spacesettingsoverride
+        if userprofilename is not None:
+            resource["UserProfileName"] = userprofilename
+        if domainid is not None:
+            resource["DomainId"] = domainid
+        resource["LastModifiedTime"] = utcnow().isoformat()
+        return {"Arn": resource["Arn"]}
+
+    def delete_mlflow_app(self, name: Any) -> None:
+        store_key = name
+        self.mlflow_apps.pop(store_key, None)
+
+    def create_mlflow_tracking_server(self, trackingservername: Any = None, artifactstoreuri: Any = None, trackingserversize: Any = None, mlflowversion: Any = None, rolearn: Any = None, automaticmodelregistration: Any = None, weeklymaintenancewindowstart: Any = None, tags: Any = None) -> dict[str, Any]:
+        name = trackingservername
+        store_key = name
+        arn = arn_formatter("mlflow-tracking-server", store_key, self.account_id, self.region_name)
+        resource = {
+            "TrackingServerName": name,
+            "TrackingServerArn": arn,
+            "ArtifactStoreUri": artifactstoreuri,
+            "TrackingServerSize": trackingserversize,
+            "MlflowVersion": mlflowversion,
+            "RoleArn": rolearn,
+            "AutomaticModelRegistration": automaticmodelregistration,
+            "WeeklyMaintenanceWindowStart": weeklymaintenancewindowstart,
+            "CreationTime": utcnow().isoformat(),
+            "LastModifiedTime": utcnow().isoformat(),
+            "Tags": tags or [],
+            "TrackingServerStatus": "Created",
+        }
+        self.mlflow_tracking_servers[store_key] = resource
+        return {"TrackingServerArn": arn}
+
+    def describe_mlflow_tracking_server(self, name: Any) -> dict[str, Any]:
+        store_key = name
+        resource = self.mlflow_tracking_servers.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find mlflow tracking server {store_key}")
+        return resource
+
+    def list_mlflow_tracking_servers(self) -> list[dict[str, Any]]:
+        return list(self.mlflow_tracking_servers.values())
+
+    def update_mlflow_tracking_server(self, trackingservername: Any = None, artifactstoreuri: Any = None, trackingserversize: Any = None, mlflowversion: Any = None, rolearn: Any = None, automaticmodelregistration: Any = None, weeklymaintenancewindowstart: Any = None) -> dict[str, Any]:
+        store_key = trackingservername
+        resource = self.mlflow_tracking_servers.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find mlflow tracking server {store_key}")
+        if artifactstoreuri is not None:
+            resource["ArtifactStoreUri"] = artifactstoreuri
+        if trackingserversize is not None:
+            resource["TrackingServerSize"] = trackingserversize
+        if mlflowversion is not None:
+            resource["MlflowVersion"] = mlflowversion
+        if rolearn is not None:
+            resource["RoleArn"] = rolearn
+        if automaticmodelregistration is not None:
+            resource["AutomaticModelRegistration"] = automaticmodelregistration
+        if weeklymaintenancewindowstart is not None:
+            resource["WeeklyMaintenanceWindowStart"] = weeklymaintenancewindowstart
+        resource["LastModifiedTime"] = utcnow().isoformat()
+        return {"TrackingServerArn": resource["TrackingServerArn"]}
+
+    def delete_mlflow_tracking_server(self, name: Any) -> None:
+        store_key = name
+        self.mlflow_tracking_servers.pop(store_key, None)
+
+    def create_monitoring_schedule(self, monitoringschedulename: Any = None, monitoringscheduleconfig: Any = None, tags: Any = None) -> dict[str, Any]:
+        name = monitoringschedulename
+        store_key = name
+        arn = arn_formatter("monitoring-schedule", store_key, self.account_id, self.region_name)
+        resource = {
+            "MonitoringScheduleName": name,
+            "MonitoringScheduleArn": arn,
+            "MonitoringScheduleConfig": monitoringscheduleconfig,
+            "CreationTime": utcnow().isoformat(),
+            "LastModifiedTime": utcnow().isoformat(),
+            "Tags": tags or [],
+            "MonitoringScheduleStatus": "Scheduled",
+        }
+        self.monitoring_schedules[store_key] = resource
+        return {"MonitoringScheduleArn": arn}
+
+    def describe_monitoring_schedule(self, name: Any) -> dict[str, Any]:
+        store_key = name
+        resource = self.monitoring_schedules.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find monitoring schedule {store_key}")
+        return resource
+
+    def list_monitoring_schedules(self) -> list[dict[str, Any]]:
+        return list(self.monitoring_schedules.values())
+
+    def update_monitoring_schedule(self, monitoringschedulename: Any = None, monitoringscheduleconfig: Any = None) -> dict[str, Any]:
+        store_key = monitoringschedulename
+        resource = self.monitoring_schedules.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find monitoring schedule {store_key}")
+        if monitoringscheduleconfig is not None:
+            resource["MonitoringScheduleConfig"] = monitoringscheduleconfig
+        resource["LastModifiedTime"] = utcnow().isoformat()
+        return {"MonitoringScheduleArn": resource["MonitoringScheduleArn"]}
+
+    def delete_monitoring_schedule(self, name: Any) -> None:
+        store_key = name
+        self.monitoring_schedules.pop(store_key, None)
+
+    def create_optimization_job(self, optimizationjobname: Any = None, rolearn: Any = None, modelsource: Any = None, deploymentinstancetype: Any = None, optimizationconfigs: Any = None, outputconfig: Any = None, stoppingcondition: Any = None, tags: Any = None) -> dict[str, Any]:
+        name = optimizationjobname
+        store_key = name
+        arn = arn_formatter("optimization-job", store_key, self.account_id, self.region_name)
+        resource = {
+            "OptimizationJobName": name,
+            "OptimizationJobArn": arn,
+            "RoleArn": rolearn,
+            "ModelSource": modelsource,
+            "DeploymentInstanceType": deploymentinstancetype,
+            "OptimizationConfigs": optimizationconfigs,
+            "OutputConfig": outputconfig,
+            "StoppingCondition": stoppingcondition,
+            "CreationTime": utcnow().isoformat(),
+            "LastModifiedTime": utcnow().isoformat(),
+            "Tags": tags or [],
+            "OptimizationJobStatus": "Completed",
+        }
+        self.optimization_jobs[store_key] = resource
+        return {"OptimizationJobArn": arn}
+
+    def describe_optimization_job(self, name: Any) -> dict[str, Any]:
+        store_key = name
+        resource = self.optimization_jobs.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find optimization job {store_key}")
+        return resource
+
+    def list_optimization_jobs(self) -> list[dict[str, Any]]:
+        return list(self.optimization_jobs.values())
+
+    def delete_optimization_job(self, name: Any) -> None:
+        store_key = name
+        self.optimization_jobs.pop(store_key, None)
+
+    def stop_optimization_job(self, name: Any) -> None:
+        resource = self.optimization_jobs.get(name)
+        if resource:
+            resource["OptimizationJobStatus"] = "Stopped"
+
+    def create_partner_app(self, name: Any = None, type: Any = None, executionrolearn: Any = None, maintenanceconfig: Any = None, tier: Any = None, applicationconfig: Any = None, authtype: Any = None, enableiamsessionbasedidentity: Any = None, clienttoken: Any = None, tags: Any = None) -> dict[str, Any]:
+        name = name
+        store_key = name
+        arn = arn_formatter("partner-app", store_key, self.account_id, self.region_name)
+        resource = {
+            "Name": name,
+            "Arn": arn,
+            "Type": type,
+            "ExecutionRoleArn": executionrolearn,
+            "MaintenanceConfig": maintenanceconfig,
+            "Tier": tier,
+            "ApplicationConfig": applicationconfig,
+            "AuthType": authtype,
+            "EnableIamSessionBasedIdentity": enableiamsessionbasedidentity,
+            "ClientToken": clienttoken,
+            "CreationTime": utcnow().isoformat(),
+            "LastModifiedTime": utcnow().isoformat(),
+            "Tags": tags or [],
+            "Status": "Available",
+        }
+        self.partner_apps[store_key] = resource
+        return {"Arn": arn}
+
+    def describe_partner_app(self, name: Any) -> dict[str, Any]:
+        store_key = name
+        resource = self.partner_apps.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find partner app {store_key}")
+        return resource
+
+    def list_partner_apps(self) -> list[dict[str, Any]]:
+        return list(self.partner_apps.values())
+
+    def update_partner_app(self, name: Any = None, type: Any = None, executionrolearn: Any = None, maintenanceconfig: Any = None, tier: Any = None, applicationconfig: Any = None, authtype: Any = None, enableiamsessionbasedidentity: Any = None, clienttoken: Any = None) -> dict[str, Any]:
+        store_key = name
+        resource = self.partner_apps.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find partner app {store_key}")
+        if type is not None:
+            resource["Type"] = type
+        if executionrolearn is not None:
+            resource["ExecutionRoleArn"] = executionrolearn
+        if maintenanceconfig is not None:
+            resource["MaintenanceConfig"] = maintenanceconfig
+        if tier is not None:
+            resource["Tier"] = tier
+        if applicationconfig is not None:
+            resource["ApplicationConfig"] = applicationconfig
+        if authtype is not None:
+            resource["AuthType"] = authtype
+        if enableiamsessionbasedidentity is not None:
+            resource["EnableIamSessionBasedIdentity"] = enableiamsessionbasedidentity
+        if clienttoken is not None:
+            resource["ClientToken"] = clienttoken
+        resource["LastModifiedTime"] = utcnow().isoformat()
+        return {"Arn": resource["Arn"]}
+
+    def delete_partner_app(self, name: Any) -> None:
+        store_key = name
+        self.partner_apps.pop(store_key, None)
+
+    def create_project(self, projectname: Any = None, projectdescription: Any = None, servicecatalogprovisioningdetails: Any = None, tags: Any = None) -> dict[str, Any]:
+        name = projectname
+        store_key = name
+        arn = arn_formatter("project", store_key, self.account_id, self.region_name)
+        resource = {
+            "ProjectName": name,
+            "ProjectArn": arn,
+            "ProjectDescription": projectdescription,
+            "ServiceCatalogProvisioningDetails": servicecatalogprovisioningdetails,
+            "CreationTime": utcnow().isoformat(),
+            "LastModifiedTime": utcnow().isoformat(),
+            "Tags": tags or [],
+            "ProjectStatus": "CreateCompleted",
+            "ProjectId": "proj-00000000",
+        }
+        self.projects[store_key] = resource
+        return {"ProjectArn": arn}
+
+    def describe_project(self, name: Any) -> dict[str, Any]:
+        store_key = name
+        resource = self.projects.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find project {store_key}")
+        return resource
+
+    def list_projects(self) -> list[dict[str, Any]]:
+        return list(self.projects.values())
+
+    def update_project(self, projectname: Any = None, projectdescription: Any = None, servicecatalogprovisioningdetails: Any = None) -> dict[str, Any]:
+        store_key = projectname
+        resource = self.projects.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find project {store_key}")
+        if projectdescription is not None:
+            resource["ProjectDescription"] = projectdescription
+        if servicecatalogprovisioningdetails is not None:
+            resource["ServiceCatalogProvisioningDetails"] = servicecatalogprovisioningdetails
+        resource["LastModifiedTime"] = utcnow().isoformat()
+        return {"ProjectArn": resource["ProjectArn"]}
+
+    def delete_project(self, name: Any) -> None:
+        store_key = name
+        self.projects.pop(store_key, None)
+
+    def create_space(self, spacename: Any = None, domainid: Any = None, spacesettings: Any = None, spacedisplayname: Any = None, ownershipsettings: Any = None, spacesharingsettings: Any = None, tags: Any = None) -> dict[str, Any]:
+        name = spacename
+        store_key = name
+        arn = arn_formatter("space", store_key, self.account_id, self.region_name)
+        resource = {
+            "SpaceName": name,
+            "SpaceArn": arn,
+            "DomainId": domainid,
+            "SpaceSettings": spacesettings,
+            "SpaceDisplayName": spacedisplayname,
+            "OwnershipSettings": ownershipsettings,
+            "SpaceSharingSettings": spacesharingsettings,
+            "CreationTime": utcnow().isoformat(),
+            "LastModifiedTime": utcnow().isoformat(),
+            "Tags": tags or [],
+            "Status": "InService",
+        }
+        self.spaces[store_key] = resource
+        return {"SpaceArn": arn}
+
+    def describe_space(self, name: Any) -> dict[str, Any]:
+        store_key = name
+        resource = self.spaces.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find space {store_key}")
+        return resource
+
+    def list_spaces(self) -> list[dict[str, Any]]:
+        return list(self.spaces.values())
+
+    def update_space(self, spacename: Any = None, domainid: Any = None, spacesettings: Any = None, spacedisplayname: Any = None, ownershipsettings: Any = None, spacesharingsettings: Any = None) -> dict[str, Any]:
+        store_key = spacename
+        resource = self.spaces.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find space {store_key}")
+        if domainid is not None:
+            resource["DomainId"] = domainid
+        if spacesettings is not None:
+            resource["SpaceSettings"] = spacesettings
+        if spacedisplayname is not None:
+            resource["SpaceDisplayName"] = spacedisplayname
+        if ownershipsettings is not None:
+            resource["OwnershipSettings"] = ownershipsettings
+        if spacesharingsettings is not None:
+            resource["SpaceSharingSettings"] = spacesharingsettings
+        resource["LastModifiedTime"] = utcnow().isoformat()
+        return {"SpaceArn": resource["SpaceArn"]}
+
+    def delete_space(self, name: Any) -> None:
+        store_key = name
+        self.spaces.pop(store_key, None)
+
+    def create_studio_lifecycle_config(self, studiolifecycleconfigname: Any = None, studiolifecycleconfigcontent: Any = None, studiolifecycleconfigapptype: Any = None, tags: Any = None) -> dict[str, Any]:
+        name = studiolifecycleconfigname
+        store_key = name
+        arn = arn_formatter("studio-lifecycle-config", store_key, self.account_id, self.region_name)
+        resource = {
+            "StudioLifecycleConfigName": name,
+            "StudioLifecycleConfigArn": arn,
+            "StudioLifecycleConfigContent": studiolifecycleconfigcontent,
+            "StudioLifecycleConfigAppType": studiolifecycleconfigapptype,
+            "CreationTime": utcnow().isoformat(),
+            "LastModifiedTime": utcnow().isoformat(),
+            "Tags": tags or [],
+        }
+        self.studio_lifecycle_configs[store_key] = resource
+        return {"StudioLifecycleConfigArn": arn}
+
+    def describe_studio_lifecycle_config(self, name: Any) -> dict[str, Any]:
+        store_key = name
+        resource = self.studio_lifecycle_configs.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find studio lifecycle config {store_key}")
+        return resource
+
+    def list_studio_lifecycle_configs(self) -> list[dict[str, Any]]:
+        return list(self.studio_lifecycle_configs.values())
+
+    def delete_studio_lifecycle_config(self, name: Any) -> None:
+        store_key = name
+        self.studio_lifecycle_configs.pop(store_key, None)
+
+    def create_user_profile(self, userprofilename: Any = None, domainid: Any = None, singlesignonuseridentifier: Any = None, singlesignonuservalue: Any = None, usersettings: Any = None, tags: Any = None) -> dict[str, Any]:
+        name = userprofilename
+        store_key = name
+        arn = arn_formatter("user-profile", store_key, self.account_id, self.region_name)
+        resource = {
+            "UserProfileName": name,
+            "UserProfileArn": arn,
+            "DomainId": domainid,
+            "SingleSignOnUserIdentifier": singlesignonuseridentifier,
+            "SingleSignOnUserValue": singlesignonuservalue,
+            "UserSettings": usersettings,
+            "CreationTime": utcnow().isoformat(),
+            "LastModifiedTime": utcnow().isoformat(),
+            "Tags": tags or [],
+            "Status": "InService",
+        }
+        self.user_profiles[store_key] = resource
+        return {"UserProfileArn": arn}
+
+    def describe_user_profile(self, name: Any) -> dict[str, Any]:
+        store_key = name
+        resource = self.user_profiles.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find user profile {store_key}")
+        return resource
+
+    def list_user_profiles(self) -> list[dict[str, Any]]:
+        return list(self.user_profiles.values())
+
+    def update_user_profile(self, userprofilename: Any = None, domainid: Any = None, singlesignonuseridentifier: Any = None, singlesignonuservalue: Any = None, usersettings: Any = None) -> dict[str, Any]:
+        store_key = userprofilename
+        resource = self.user_profiles.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find user profile {store_key}")
+        if domainid is not None:
+            resource["DomainId"] = domainid
+        if singlesignonuseridentifier is not None:
+            resource["SingleSignOnUserIdentifier"] = singlesignonuseridentifier
+        if singlesignonuservalue is not None:
+            resource["SingleSignOnUserValue"] = singlesignonuservalue
+        if usersettings is not None:
+            resource["UserSettings"] = usersettings
+        resource["LastModifiedTime"] = utcnow().isoformat()
+        return {"UserProfileArn": resource["UserProfileArn"]}
+
+    def delete_user_profile(self, name: Any) -> None:
+        store_key = name
+        self.user_profiles.pop(store_key, None)
+
+    def create_workforce(self, workforcename: Any = None, cognitoconfig: Any = None, oidcconfig: Any = None, sourceipconfig: Any = None, workforcevpcconfig: Any = None, tags: Any = None) -> dict[str, Any]:
+        name = workforcename
+        store_key = name
+        arn = arn_formatter("workforce", store_key, self.account_id, self.region_name)
+        resource = {
+            "WorkforceName": name,
+            "WorkforceArn": arn,
+            "CognitoConfig": cognitoconfig,
+            "OidcConfig": oidcconfig,
+            "SourceIpConfig": sourceipconfig,
+            "WorkforceVpcConfig": workforcevpcconfig,
+            "CreationTime": utcnow().isoformat(),
+            "LastModifiedTime": utcnow().isoformat(),
+            "Tags": tags or [],
+        }
+        self.workforces[store_key] = resource
+        return {"WorkforceArn": arn}
+
+    def describe_workforce(self, name: Any) -> dict[str, Any]:
+        store_key = name
+        resource = self.workforces.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find workforce {store_key}")
+        return resource
+
+    def list_workforces(self) -> list[dict[str, Any]]:
+        return list(self.workforces.values())
+
+    def update_workforce(self, workforcename: Any = None, cognitoconfig: Any = None, oidcconfig: Any = None, sourceipconfig: Any = None, workforcevpcconfig: Any = None) -> dict[str, Any]:
+        store_key = workforcename
+        resource = self.workforces.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find workforce {store_key}")
+        if cognitoconfig is not None:
+            resource["CognitoConfig"] = cognitoconfig
+        if oidcconfig is not None:
+            resource["OidcConfig"] = oidcconfig
+        if sourceipconfig is not None:
+            resource["SourceIpConfig"] = sourceipconfig
+        if workforcevpcconfig is not None:
+            resource["WorkforceVpcConfig"] = workforcevpcconfig
+        resource["LastModifiedTime"] = utcnow().isoformat()
+        return {"WorkforceArn": resource["WorkforceArn"]}
+
+    def delete_workforce(self, name: Any) -> None:
+        store_key = name
+        self.workforces.pop(store_key, None)
+
+    def create_workteam(self, workteamname: Any = None, workforcename: Any = None, memberdefinitions: Any = None, description: Any = None, notificationconfiguration: Any = None, tags: Any = None) -> dict[str, Any]:
+        name = workteamname
+        store_key = name
+        arn = arn_formatter("workteam", store_key, self.account_id, self.region_name)
+        resource = {
+            "WorkteamName": name,
+            "WorkteamArn": arn,
+            "WorkforceName": workforcename,
+            "MemberDefinitions": memberdefinitions,
+            "Description": description,
+            "NotificationConfiguration": notificationconfiguration,
+            "CreationTime": utcnow().isoformat(),
+            "LastModifiedTime": utcnow().isoformat(),
+            "Tags": tags or [],
+        }
+        self.workteams[store_key] = resource
+        return {"WorkteamArn": arn}
+
+    def describe_workteam(self, name: Any) -> dict[str, Any]:
+        store_key = name
+        resource = self.workteams.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find workteam {store_key}")
+        return resource
+
+    def list_workteams(self) -> list[dict[str, Any]]:
+        return list(self.workteams.values())
+
+    def update_workteam(self, workteamname: Any = None, workforcename: Any = None, memberdefinitions: Any = None, description: Any = None, notificationconfiguration: Any = None) -> dict[str, Any]:
+        store_key = workteamname
+        resource = self.workteams.get(store_key)
+        if not resource:
+            raise ValidationError(message=f"Could not find workteam {store_key}")
+        if workforcename is not None:
+            resource["WorkforceName"] = workforcename
+        if memberdefinitions is not None:
+            resource["MemberDefinitions"] = memberdefinitions
+        if description is not None:
+            resource["Description"] = description
+        if notificationconfiguration is not None:
+            resource["NotificationConfiguration"] = notificationconfiguration
+        resource["LastModifiedTime"] = utcnow().isoformat()
+        return {"WorkteamArn": resource["WorkteamArn"]}
+
+    def delete_workteam(self, name: Any) -> None:
+        store_key = name
+        self.workteams.pop(store_key, None)
+
 
 
 class FakeDataQualityJobDefinition(BaseObject):
