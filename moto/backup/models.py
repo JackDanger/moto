@@ -712,6 +712,39 @@ SUPPORTED_RESOURCE_TYPES = [
 ]
 
 
+class LogicallyAirGappedVault(BaseModel):
+    def __init__(
+        self,
+        backup_vault_name: str,
+        backend: "BackupBackend",
+        max_retention_days: int = 36500,
+        min_retention_days: int = 7,
+        vault_type: str = "LOGICALLY_AIR_GAPPED_BACKUP_VAULT",
+    ):
+        self.backup_vault_name = backup_vault_name
+        partition = get_partition(backend.region_name)
+        self.backup_vault_arn = (
+            f"arn:{partition}:backup:{backend.region_name}"
+            f":{backend.account_id}:backup-vault:{backup_vault_name}"
+        )
+        self.creation_date = unix_time()
+        self.max_retention_days = max_retention_days
+        self.min_retention_days = min_retention_days
+        self.vault_state = "AVAILABLE"
+        self.vault_type = vault_type
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "BackupVaultArn": self.backup_vault_arn,
+            "BackupVaultName": self.backup_vault_name,
+            "CreationDate": self.creation_date,
+            "MaxRetentionDays": self.max_retention_days,
+            "MinRetentionDays": self.min_retention_days,
+            "VaultState": self.vault_state,
+            "VaultType": self.vault_type,
+        }
+
+
 class BackupBackend(BaseBackend):
     """Implementation of Backup APIs."""
 
@@ -755,6 +788,7 @@ class BackupBackend(BaseBackend):
             "Timestream": True,
         }
         self.tagger = TaggingService()
+        self.logically_air_gapped_vaults: dict[str, LogicallyAirGappedVault] = {}
 
     def create_backup_plan(
         self,
@@ -1869,6 +1903,136 @@ class BackupBackend(BaseBackend):
         job.validation_status = validation_status
         if validation_status_message is not None:
             job.validation_status_message = validation_status_message
+
+    # --- Update Report Plan ---
+
+    def update_report_plan(
+        self,
+        report_plan_name: str,
+        report_plan_description: Optional[str] = None,
+        report_delivery_channel: Optional[dict[str, Any]] = None,
+        report_setting: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any]:
+        if report_plan_name not in self.report_plans:
+            raise ResourceNotFoundException(
+                msg=f"Report plan {report_plan_name} not found"
+            )
+        rp = self.report_plans[report_plan_name]
+        if report_plan_description is not None:
+            rp.report_plan_description = report_plan_description
+        if report_delivery_channel is not None:
+            rp.report_delivery_channel = report_delivery_channel
+        if report_setting is not None:
+            rp.report_setting = report_setting
+        return {
+            "CreationTime": rp.creation_time,
+            "ReportPlanArn": rp.report_plan_arn,
+            "ReportPlanName": rp.report_plan_name,
+        }
+
+    # --- Update Restore Testing Plan ---
+
+    def update_restore_testing_plan(
+        self,
+        restore_testing_plan_name: str,
+        schedule_expression: Optional[str] = None,
+        recovery_point_selection: Optional[dict[str, Any]] = None,
+        schedule_expression_timezone: Optional[str] = None,
+        start_window_hours: Optional[int] = None,
+    ) -> RestoreTestingPlan:
+        if restore_testing_plan_name not in self.restore_testing_plans:
+            raise ResourceNotFoundException(
+                msg=f"Restore testing plan {restore_testing_plan_name} not found"
+            )
+        plan = self.restore_testing_plans[restore_testing_plan_name]
+        if schedule_expression is not None:
+            plan.schedule_expression = schedule_expression
+        if recovery_point_selection is not None:
+            plan.recovery_point_selection = recovery_point_selection
+        if schedule_expression_timezone is not None:
+            plan.schedule_expression_timezone = schedule_expression_timezone
+        if start_window_hours is not None:
+            plan.start_window_hours = start_window_hours
+        plan.last_updated_time = unix_time()
+        return plan
+
+    # --- Update Restore Testing Selection ---
+
+    def update_restore_testing_selection(
+        self,
+        restore_testing_plan_name: str,
+        restore_testing_selection_name: str,
+        iam_role_arn: Optional[str] = None,
+        protected_resource_arns: Optional[list[str]] = None,
+        protected_resource_conditions: Optional[dict[str, Any]] = None,
+        restore_metadata_overrides: Optional[dict[str, str]] = None,
+        validation_window_hours: Optional[int] = None,
+    ) -> RestoreTestingSelection:
+        if restore_testing_plan_name not in self.restore_testing_selections:
+            raise ResourceNotFoundException(
+                msg=f"Restore testing plan {restore_testing_plan_name} not found"
+            )
+        sels = self.restore_testing_selections[restore_testing_plan_name]
+        if restore_testing_selection_name not in sels:
+            raise ResourceNotFoundException(
+                msg=f"Restore testing selection {restore_testing_selection_name} not found"
+            )
+        sel = sels[restore_testing_selection_name]
+        if iam_role_arn is not None:
+            sel.iam_role_arn = iam_role_arn
+        if protected_resource_arns is not None:
+            sel.protected_resource_arns = protected_resource_arns
+        if protected_resource_conditions is not None:
+            sel.protected_resource_conditions = protected_resource_conditions
+        if restore_metadata_overrides is not None:
+            sel.restore_metadata_overrides = restore_metadata_overrides
+        if validation_window_hours is not None:
+            sel.validation_window_hours = validation_window_hours
+        return sel
+
+    # --- Logically Air-Gapped Vaults ---
+
+    def create_logically_air_gapped_backup_vault(
+        self,
+        backup_vault_name: str,
+        max_retention_days: int = 36500,
+        min_retention_days: int = 7,
+    ) -> LogicallyAirGappedVault:
+        if backup_vault_name in self.logically_air_gapped_vaults:
+            raise AlreadyExistsException(
+                f"Logically air-gapped vault {backup_vault_name} already exists"
+            )
+        vault = LogicallyAirGappedVault(
+            backup_vault_name=backup_vault_name,
+            backend=self,
+            max_retention_days=max_retention_days,
+            min_retention_days=min_retention_days,
+        )
+        self.logically_air_gapped_vaults[backup_vault_name] = vault
+        return vault
+
+    def describe_logically_air_gapped_backup_vault(
+        self, backup_vault_name: str
+    ) -> LogicallyAirGappedVault:
+        if backup_vault_name not in self.logically_air_gapped_vaults:
+            raise ResourceNotFoundException(
+                msg=f"Logically air-gapped vault {backup_vault_name} not found"
+            )
+        return self.logically_air_gapped_vaults[backup_vault_name]
+
+    def list_logically_air_gapped_backup_vaults(
+        self,
+    ) -> list[LogicallyAirGappedVault]:
+        return list(self.logically_air_gapped_vaults.values())
+
+    def delete_logically_air_gapped_backup_vault(
+        self, backup_vault_name: str
+    ) -> None:
+        if backup_vault_name not in self.logically_air_gapped_vaults:
+            raise ResourceNotFoundException(
+                msg=f"Logically air-gapped vault {backup_vault_name} not found"
+            )
+        del self.logically_air_gapped_vaults[backup_vault_name]
 
 
 backup_backends = BackendDict(BackupBackend, "backup")

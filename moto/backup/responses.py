@@ -851,3 +851,105 @@ class BackupResponse(BaseResponse):
                 ]
             }
         )
+
+    # --- Update Report Plan ---
+
+    def update_report_plan(self) -> ActionResult:
+        report_plan_name = self.path.split("/report-plans/")[-1].rstrip("/")
+        params = json.loads(self.body) if self.body else {}
+        result = self.backup_backend.update_report_plan(
+            report_plan_name=report_plan_name,
+            report_plan_description=params.get("ReportPlanDescription"),
+            report_delivery_channel=params.get("ReportDeliveryChannel"),
+            report_setting=params.get("ReportSetting"),
+        )
+        return ActionResult(result=result)
+
+    # --- Update Restore Testing Plan ---
+
+    def update_restore_testing_plan(self) -> str:
+        plan_name = self.path.split("/restore-testing/plans/")[1].rstrip("/")
+        params = json.loads(self.body) if self.body else {}
+        rtp = params.get("RestoreTestingPlan", {})
+        plan = self.backup_backend.update_restore_testing_plan(
+            restore_testing_plan_name=plan_name,
+            schedule_expression=rtp.get("ScheduleExpression"),
+            recovery_point_selection=rtp.get("RecoveryPointSelection"),
+            schedule_expression_timezone=rtp.get("ScheduleExpressionTimezone"),
+            start_window_hours=rtp.get("StartWindowHours"),
+        )
+        return json.dumps(
+            {
+                "CreationTime": plan.creation_time,
+                "RestoreTestingPlanArn": plan.restore_testing_plan_arn,
+                "RestoreTestingPlanName": plan.restore_testing_plan_name,
+                "UpdateTime": plan.last_updated_time,
+            }
+        )
+
+    # --- Update Restore Testing Selection ---
+
+    def update_restore_testing_selection(self) -> str:
+        parts = self.path.split("/")
+        plan_idx = parts.index("plans")
+        plan_name = parts[plan_idx + 1]
+        sel_idx = parts.index("selections")
+        sel_name = parts[sel_idx + 1].rstrip("/")
+        params = json.loads(self.body) if self.body else {}
+        rts = params.get("RestoreTestingSelection", {})
+        selection = self.backup_backend.update_restore_testing_selection(
+            restore_testing_plan_name=plan_name,
+            restore_testing_selection_name=sel_name,
+            iam_role_arn=rts.get("IamRoleArn"),
+            protected_resource_arns=rts.get("ProtectedResourceArns"),
+            protected_resource_conditions=rts.get("ProtectedResourceConditions"),
+            restore_metadata_overrides=rts.get("RestoreMetadataOverrides"),
+            validation_window_hours=rts.get("ValidationWindowHours"),
+        )
+        return json.dumps(
+            {
+                "CreationTime": selection.creation_time,
+                "RestoreTestingPlanArn": self.backup_backend.restore_testing_plans[
+                    plan_name
+                ].restore_testing_plan_arn,
+                "RestoreTestingPlanName": plan_name,
+                "RestoreTestingSelectionName": selection.restore_testing_selection_name,
+                "UpdateTime": selection.creation_time,
+            }
+        )
+
+    # --- Logically Air-Gapped Vaults ---
+
+    def create_logically_air_gapped_backup_vault(self) -> str:
+        backup_vault_name = self.path.split("/")[-1].rstrip("/")
+        params = json.loads(self.body) if self.body else {}
+        vault = self.backup_backend.create_logically_air_gapped_backup_vault(
+            backup_vault_name=backup_vault_name,
+            max_retention_days=params.get("MaxRetentionDays", 36500),
+            min_retention_days=params.get("MinRetentionDays", 7),
+        )
+        return json.dumps(vault.to_dict())
+
+    def describe_logically_air_gapped_backup_vault(self) -> str:
+        backup_vault_name = self.path.split("/")[-1].rstrip("/")
+        vault = self.backup_backend.describe_logically_air_gapped_backup_vault(
+            backup_vault_name=backup_vault_name,
+        )
+        return json.dumps(vault.to_dict())
+
+    def list_logically_air_gapped_backup_vaults(self) -> str:
+        vaults = self.backup_backend.list_logically_air_gapped_backup_vaults()
+        return json.dumps(
+            {
+                "LogicallyAirGappedBackupVaults": [
+                    v.to_dict() for v in vaults
+                ]
+            }
+        )
+
+    def delete_logically_air_gapped_backup_vault(self) -> EmptyResult:
+        backup_vault_name = self.path.split("/")[-1].rstrip("/")
+        self.backup_backend.delete_logically_air_gapped_backup_vault(
+            backup_vault_name=backup_vault_name,
+        )
+        return EmptyResult()
