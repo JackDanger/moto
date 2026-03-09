@@ -150,7 +150,7 @@ class Protection(BaseModel):
         self.protection_id = str(mock_random.uuid4())
         # value is returned in associate_health_check method.
         self.health_check_ids: list[str] = []
-        # value is returned in enable_application_layer_automatic_response and disable_application_layer_automatic_response methods.
+        # value is returned in enable/disable application_layer_automatic_response methods.
         self.application_layer_automatic_response_configuration: dict[str, Any] = {}
         self.protection_arn = (
             f"arn:aws:shield::{account_id}:protection/{self.protection_id}"
@@ -183,14 +183,52 @@ class Protection(BaseModel):
         return {k: v for k, v in dct.items() if v}
 
 
+class ProtectionGroup(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        protection_group_id: str,
+        aggregation: str,
+        pattern: str,
+        resource_type: Optional[str],
+        members: list[str],
+    ):
+        self.protection_group_id = protection_group_id
+        self.aggregation = aggregation
+        self.pattern = pattern
+        self.resource_type = resource_type
+        self.members = members or []
+        self.protection_group_arn = (
+            f"arn:aws:shield::{account_id}:protection-group/{protection_group_id}"
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        dct: dict[str, Any] = {
+            "ProtectionGroupId": self.protection_group_id,
+            "Aggregation": self.aggregation,
+            "Pattern": self.pattern,
+            "Members": self.members,
+            "ProtectionGroupArn": self.protection_group_arn,
+        }
+        if self.resource_type:
+            dct["ResourceType"] = self.resource_type
+        return dct
+
+
 class ShieldBackend(BaseBackend):
     """Implementation of Shield APIs."""
 
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.protections: dict[str, Protection] = {}
+        self.protection_groups: dict[str, ProtectionGroup] = {}
         self.subscription: Optional[Subscription] = None
         self.tagger = TaggingService()
+        # DRT (DDoS Response Team) access
+        self.drt_role_arn: Optional[str] = None
+        self.drt_log_buckets: list[str] = []
+        # Emergency contacts
+        self.emergency_contacts: list[dict[str, str]] = []
 
     def validate_resource_arn(self, resource_arn: str) -> None:
         """Raise exception if the resource arn is invalid."""
@@ -332,6 +370,261 @@ class ShieldBackend(BaseBackend):
         if self.subscription is None:
             raise ResourceNotFoundException("The subscription does not exist.")
         return self.subscription
+
+    def delete_subscription(self) -> None:
+        self.subscription = None
+
+    def update_subscription(self, auto_renew: Optional[str]) -> None:
+        if self.subscription is None:
+            raise ResourceNotFoundException("The subscription does not exist.")
+        if auto_renew:
+            self.subscription.auto_renew = auto_renew
+
+    def get_subscription_state(self) -> str:
+        if self.subscription is not None:
+            return "ACTIVE"
+        return "INACTIVE"
+
+    # Protection Group operations
+
+    def create_protection_group(
+        self,
+        protection_group_id: str,
+        aggregation: str,
+        pattern: str,
+        resource_type: Optional[str],
+        members: list[str],
+        tags: list[dict[str, str]],
+    ) -> None:
+        if protection_group_id in self.protection_groups:
+            raise ResourceAlreadyExistsException(
+                "The referenced protection group already exists."
+            )
+        pg = ProtectionGroup(
+            account_id=self.account_id,
+            protection_group_id=protection_group_id,
+            aggregation=aggregation,
+            pattern=pattern,
+            resource_type=resource_type,
+            members=members,
+        )
+        self.protection_groups[protection_group_id] = pg
+        if tags:
+            self.tag_resource(pg.protection_group_arn, tags)
+
+    def describe_protection_group(
+        self, protection_group_id: str
+    ) -> ProtectionGroup:
+        if protection_group_id not in self.protection_groups:
+            raise ResourceNotFoundException(
+                "The referenced protection group does not exist."
+            )
+        return self.protection_groups[protection_group_id]
+
+    def update_protection_group(
+        self,
+        protection_group_id: str,
+        aggregation: str,
+        pattern: str,
+        resource_type: Optional[str],
+        members: list[str],
+    ) -> None:
+        if protection_group_id not in self.protection_groups:
+            raise ResourceNotFoundException(
+                "The referenced protection group does not exist."
+            )
+        pg = self.protection_groups[protection_group_id]
+        pg.aggregation = aggregation
+        pg.pattern = pattern
+        pg.resource_type = resource_type
+        if members is not None:
+            pg.members = members
+
+    def delete_protection_group(self, protection_group_id: str) -> None:
+        if protection_group_id not in self.protection_groups:
+            raise ResourceNotFoundException(
+                "The referenced protection group does not exist."
+            )
+        del self.protection_groups[protection_group_id]
+
+    def list_protection_groups(
+        self, inclusion_filters: Optional[dict[str, Any]]
+    ) -> list[ProtectionGroup]:
+        """Pagination has not yet been implemented."""
+        groups = list(self.protection_groups.values())
+        if inclusion_filters:
+            pg_ids = inclusion_filters.get("ProtectionGroupIds")
+            if pg_ids:
+                groups = [g for g in groups if g.protection_group_id in pg_ids]
+            patterns = inclusion_filters.get("Patterns")
+            if patterns:
+                groups = [g for g in groups if g.pattern in patterns]
+            resource_types = inclusion_filters.get("ResourceTypes")
+            if resource_types:
+                groups = [
+                    g for g in groups if g.resource_type in resource_types
+                ]
+            aggregations = inclusion_filters.get("Aggregations")
+            if aggregations:
+                groups = [g for g in groups if g.aggregation in aggregations]
+        return groups
+
+    def list_resources_in_protection_group(
+        self, protection_group_id: str
+    ) -> list[str]:
+        if protection_group_id not in self.protection_groups:
+            raise ResourceNotFoundException(
+                "The referenced protection group does not exist."
+            )
+        return self.protection_groups[protection_group_id].members
+
+    # Health check association
+
+    def associate_health_check(
+        self, protection_id: str, health_check_arn: str
+    ) -> None:
+        if protection_id not in self.protections:
+            raise ResourceNotFoundException(
+                "The referenced protection does not exist."
+            )
+        protection = self.protections[protection_id]
+        # Extract health check ID from ARN
+        hc_id = health_check_arn.split("/")[-1] if "/" in health_check_arn else health_check_arn
+        if hc_id not in protection.health_check_ids:
+            protection.health_check_ids.append(hc_id)
+
+    def disassociate_health_check(
+        self, protection_id: str, health_check_arn: str
+    ) -> None:
+        if protection_id not in self.protections:
+            raise ResourceNotFoundException(
+                "The referenced protection does not exist."
+            )
+        protection = self.protections[protection_id]
+        hc_id = health_check_arn.split("/")[-1] if "/" in health_check_arn else health_check_arn
+        if hc_id in protection.health_check_ids:
+            protection.health_check_ids.remove(hc_id)
+
+    # Application layer automatic response
+
+    def enable_application_layer_automatic_response(
+        self, resource_arn: str, action: dict[str, Any]
+    ) -> None:
+        # Find the protection for this resource
+        protection = None
+        for p in self.protections.values():
+            if p.resource_arn == resource_arn:
+                protection = p
+                break
+        if protection is None:
+            raise ResourceNotFoundException(
+                "The referenced protection does not exist."
+            )
+        protection.application_layer_automatic_response_configuration = {
+            "Status": "ENABLED",
+            "Action": action,
+        }
+
+    def disable_application_layer_automatic_response(
+        self, resource_arn: str
+    ) -> None:
+        protection = None
+        for p in self.protections.values():
+            if p.resource_arn == resource_arn:
+                protection = p
+                break
+        if protection is None:
+            raise ResourceNotFoundException(
+                "The referenced protection does not exist."
+            )
+        protection.application_layer_automatic_response_configuration = {}
+
+    def update_application_layer_automatic_response(
+        self, resource_arn: str, action: dict[str, Any]
+    ) -> None:
+        protection = None
+        for p in self.protections.values():
+            if p.resource_arn == resource_arn:
+                protection = p
+                break
+        if protection is None:
+            raise ResourceNotFoundException(
+                "The referenced protection does not exist."
+            )
+        protection.application_layer_automatic_response_configuration = {
+            "Status": "ENABLED",
+            "Action": action,
+        }
+
+    # DRT (DDoS Response Team) access
+
+    def associate_drt_role(self, role_arn: str) -> None:
+        self.drt_role_arn = role_arn
+
+    def disassociate_drt_role(self) -> None:
+        self.drt_role_arn = None
+
+    def associate_drt_log_bucket(self, log_bucket: str) -> None:
+        if log_bucket not in self.drt_log_buckets:
+            self.drt_log_buckets.append(log_bucket)
+
+    def disassociate_drt_log_bucket(self, log_bucket: str) -> None:
+        if log_bucket in self.drt_log_buckets:
+            self.drt_log_buckets.remove(log_bucket)
+
+    def describe_drt_access(self) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        if self.drt_role_arn:
+            result["RoleArn"] = self.drt_role_arn
+        if self.drt_log_buckets:
+            result["LogBucketList"] = self.drt_log_buckets
+        return result
+
+    # Emergency contacts
+
+    def update_emergency_contact_settings(
+        self, emergency_contact_list: list[dict[str, str]]
+    ) -> None:
+        self.emergency_contacts = emergency_contact_list or []
+
+    def describe_emergency_contact_settings(self) -> list[dict[str, str]]:
+        return self.emergency_contacts
+
+    def associate_proactive_engagement_details(
+        self, emergency_contact_list: list[dict[str, str]]
+    ) -> None:
+        self.emergency_contacts = emergency_contact_list or []
+
+    # Proactive engagement
+
+    def enable_proactive_engagement(self) -> None:
+        if self.subscription is None:
+            raise ResourceNotFoundException("The subscription does not exist.")
+        self.subscription.proactive_engagement_status = "ENABLED"
+
+    def disable_proactive_engagement(self) -> None:
+        if self.subscription is None:
+            raise ResourceNotFoundException("The subscription does not exist.")
+        self.subscription.proactive_engagement_status = "DISABLED"
+
+    # Attacks (mock - always empty since we don't simulate DDoS)
+
+    def describe_attack(self, attack_id: str) -> dict[str, Any]:
+        # No real attacks in mock - return not found
+        raise ResourceNotFoundException("The referenced attack does not exist.")
+
+    def list_attacks(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_attack_statistics(self) -> dict[str, Any]:
+        now = datetime.now()
+        return {
+            "TimeRange": {
+                "FromInclusive": (now - timedelta(days=30)).timestamp(),
+                "ToExclusive": now.timestamp(),
+            },
+            "DataItems": [],
+        }
 
 
 shield_backends = BackendDict(

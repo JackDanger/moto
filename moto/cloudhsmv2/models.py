@@ -10,6 +10,40 @@ from moto.utilities.paginator import paginate
 from .exceptions import ResourceNotFoundException
 
 
+class Hsm:
+    def __init__(
+        self,
+        cluster_id: str,
+        availability_zone: str,
+        ip_address: Optional[str] = None,
+        hsm_type: str = "hsm1.medium",
+        subnet_id: str = "",
+    ):
+        self.hsm_id = "hsm-" + str(uuid.uuid4())[:17]
+        self.cluster_id = cluster_id
+        self.availability_zone = availability_zone
+        self.ip_address = ip_address or "10.0.0.1"
+        self.hsm_type = hsm_type
+        self.state = "ACTIVE"
+        self.state_message = "HSM created."
+        self.subnet_id = subnet_id
+        self.eni_id = "eni-" + str(uuid.uuid4())[:8]
+        self.eni_ip = self.ip_address
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "AvailabilityZone": self.availability_zone,
+            "ClusterId": self.cluster_id,
+            "SubnetId": self.subnet_id,
+            "EniId": self.eni_id,
+            "EniIp": self.eni_ip,
+            "HsmId": self.hsm_id,
+            "HsmType": self.hsm_type,
+            "State": self.state,
+            "StateMessage": self.state_message,
+        }
+
+
 class Cluster:
     def __init__(
         self,
@@ -26,7 +60,7 @@ class Cluster:
         self.backup_policy = "DEFAULT"
         self.backup_retention_policy = backup_retention_policy
         self.create_timestamp = utcnow()
-        self.hsms: list[dict[str, Any]] = []
+        self.hsms: list[Hsm] = []
         self.hsm_type = hsm_type
         self.source_backup_id = source_backup_id
         self.state = "ACTIVE"
@@ -53,7 +87,7 @@ class Cluster:
             "BackupRetentionPolicy": self.backup_retention_policy,
             "ClusterId": self.cluster_id,
             "CreateTimestamp": self.create_timestamp,
-            "Hsms": self.hsms,
+            "Hsms": [h.to_dict() for h in self.hsms],
             "HsmType": self.hsm_type,
             "SourceBackupId": self.source_backup_id,
             "State": self.state,
@@ -288,6 +322,150 @@ class CloudHSMV2Backend(BaseBackend):
     def put_resource_policy(self, resource_arn: str, policy: str) -> dict[str, str]:
         self.resource_policies[resource_arn] = policy
         return {"ResourceArn": resource_arn, "Policy": policy}
+
+    def delete_resource_policy(self, resource_arn: str) -> dict[str, Any]:
+        policy = self.resource_policies.pop(resource_arn, None)
+        result: dict[str, Any] = {}
+        if resource_arn:
+            result["ResourceArn"] = resource_arn
+        if policy:
+            result["Policy"] = policy
+        return result
+
+    def create_hsm(
+        self,
+        cluster_id: str,
+        availability_zone: str,
+        ip_address: Optional[str],
+    ) -> dict[str, Any]:
+        if cluster_id not in self.clusters:
+            raise ResourceNotFoundException(f"Cluster {cluster_id} not found")
+
+        cluster = self.clusters[cluster_id]
+        subnet_id = next(iter(cluster.subnet_mapping.values()), "")
+
+        hsm = Hsm(
+            cluster_id=cluster_id,
+            availability_zone=availability_zone,
+            ip_address=ip_address,
+            hsm_type=cluster.hsm_type,
+            subnet_id=subnet_id,
+        )
+        cluster.hsms.append(hsm)
+        return hsm.to_dict()
+
+    def delete_hsm(
+        self,
+        cluster_id: str,
+        hsm_id: Optional[str],
+        eni_id: Optional[str],
+        eni_ip: Optional[str],
+    ) -> Optional[str]:
+        if cluster_id not in self.clusters:
+            raise ResourceNotFoundException(f"Cluster {cluster_id} not found")
+
+        cluster = self.clusters[cluster_id]
+
+        for i, hsm in enumerate(cluster.hsms):
+            if hsm_id and hsm.hsm_id == hsm_id:
+                cluster.hsms.pop(i)
+                return hsm.hsm_id
+            if eni_id and hsm.eni_id == eni_id:
+                cluster.hsms.pop(i)
+                return hsm.hsm_id
+            if eni_ip and hsm.eni_ip == eni_ip:
+                cluster.hsms.pop(i)
+                return hsm.hsm_id
+
+        # If no specific identifier given, delete first HSM
+        if not hsm_id and not eni_id and not eni_ip and cluster.hsms:
+            hsm = cluster.hsms.pop(0)
+            return hsm.hsm_id
+
+        raise ResourceNotFoundException("HSM not found")
+
+    def delete_backup(self, backup_id: str) -> Backup:
+        if backup_id not in self.backups:
+            raise ResourceNotFoundException(f"Backup {backup_id} not found")
+
+        backup = self.backups[backup_id]
+        backup.backup_state = "PENDING_DELETION"
+        backup.delete_timestamp = utcnow()
+        return backup
+
+    def copy_backup_to_region(
+        self,
+        destination_region: str,
+        backup_id: str,
+        tag_list: Optional[list[dict[str, str]]],
+    ) -> dict[str, Any]:
+        if backup_id not in self.backups:
+            raise ResourceNotFoundException(f"Backup {backup_id} not found")
+
+        source_backup = self.backups[backup_id]
+        return {
+            "DestinationBackup": {
+                "CreateTimestamp": utcnow().isoformat(),
+                "SourceRegion": self.region_name,
+                "SourceBackup": backup_id,
+                "SourceCluster": source_backup.cluster_id,
+            }
+        }
+
+    def initialize_cluster(
+        self,
+        cluster_id: str,
+        signed_cert: str,
+        trust_anchor: str,
+    ) -> dict[str, Any]:
+        if cluster_id not in self.clusters:
+            raise ResourceNotFoundException(f"Cluster {cluster_id} not found")
+
+        cluster = self.clusters[cluster_id]
+        cluster.state = "INITIALIZE_IN_PROGRESS"
+        cluster.state_message = "Cluster is initializing. State will change to INITIALIZED upon completion."
+        cluster.certificates["ClusterCertificate"] = signed_cert
+        return {
+            "State": cluster.state,
+            "StateMessage": cluster.state_message,
+        }
+
+    def modify_backup_attributes(
+        self,
+        backup_id: str,
+        never_expires: bool,
+    ) -> Backup:
+        if backup_id not in self.backups:
+            raise ResourceNotFoundException(f"Backup {backup_id} not found")
+
+        backup = self.backups[backup_id]
+        backup.never_expires = never_expires
+        return backup
+
+    def modify_cluster(
+        self,
+        cluster_id: str,
+        backup_retention_policy: Optional[dict[str, str]],
+        hsm_type: Optional[str],
+    ) -> dict[str, Any]:
+        if cluster_id not in self.clusters:
+            raise ResourceNotFoundException(f"Cluster {cluster_id} not found")
+
+        cluster = self.clusters[cluster_id]
+        if backup_retention_policy is not None:
+            cluster.backup_retention_policy = backup_retention_policy
+        if hsm_type is not None:
+            cluster.hsm_type = hsm_type
+        return cluster.to_dict()
+
+    def restore_backup(self, backup_id: str) -> Backup:
+        if backup_id not in self.backups:
+            raise ResourceNotFoundException(f"Backup {backup_id} not found")
+
+        backup = self.backups[backup_id]
+        backup.backup_state = "READY"
+        backup.delete_timestamp = None
+        return backup
 
 
 cloudhsmv2_backends = BackendDict(CloudHSMV2Backend, "cloudhsmv2")
