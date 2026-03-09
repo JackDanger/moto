@@ -54,3 +54,38 @@ class DeploymentGroupDoesNotExistException(CodeDeployException):
 
     def __init__(self, message: str):
         super().__init__("DeploymentGroupDoesNotExistException", message)
+
+
+class DeploymentConfigAlreadyExistsException(CodeDeployException):
+    code = 400
+
+    def __init__(self, message: str):
+        super().__init__("DeploymentConfigAlreadyExistsException", message)
+
+
+class DeploymentConfigDoesNotExistException(CodeDeployException):
+    code = 400
+
+    def __init__(self, message: str):
+        super().__init__("DeploymentConfigDoesNotExistException", message)
+
+
+class DeploymentConfigInUseException(CodeDeployException):
+    code = 400
+
+    def __init__(self, message: str):
+        super().__init__("DeploymentConfigInUseException", message)
+
+
+class InstanceNameRequiredException(CodeDeployException):
+    code = 400
+
+    def __init__(self, message: str):
+        super().__init__("InstanceNameRequiredException", message)
+
+
+class InstanceNotRegisteredException(CodeDeployException):
+    code = 400
+
+    def __init__(self, message: str):
+        super().__init__("InstanceNotRegisteredException", message)
