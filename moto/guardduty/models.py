@@ -20,6 +20,7 @@ class GuardDutyBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.admin_account_ids: list[str] = []
         self.detectors: dict[str, Detector] = {}
+        self.malware_protection_plans: dict[str, MalwareProtectionPlan] = {}
         self.admin_accounts: dict[
             str, Detector
         ] = {}  # Store admin accounts by detector_id
@@ -319,15 +320,11 @@ class GuardDutyBackend(BaseBackend):
                 results.append(detector.findings[fid])
         return results
 
-    def list_findings(
-        self, detector_id: str
-    ) -> list[str]:
+    def list_findings(self, detector_id: str) -> list[str]:
         detector = self.get_detector(detector_id)
         return list(detector.findings.keys())
 
-    def get_findings_statistics(
-        self, detector_id: str
-    ) -> dict[str, Any]:
+    def get_findings_statistics(self, detector_id: str) -> dict[str, Any]:
         detector = self.get_detector(detector_id)
         count_by_severity: dict[str, int] = {}
         for finding in detector.findings.values():
@@ -336,9 +333,7 @@ class GuardDutyBackend(BaseBackend):
         return {"countBySeverity": count_by_severity}
 
     # Organization / admin operations
-    def describe_organization_configuration(
-        self, detector_id: str
-    ) -> dict[str, Any]:
+    def describe_organization_configuration(self, detector_id: str) -> dict[str, Any]:
         self.get_detector(detector_id)
         return {
             "autoEnable": False,
@@ -347,9 +342,7 @@ class GuardDutyBackend(BaseBackend):
                 "s3Logs": {"autoEnable": False},
                 "kubernetes": {"auditLogs": {"autoEnable": False}},
                 "malwareProtection": {
-                    "scanEc2InstanceWithFindings": {
-                        "ebsVolumes": {"autoEnable": False}
-                    }
+                    "scanEc2InstanceWithFindings": {"ebsVolumes": {"autoEnable": False}}
                 },
             },
             "autoEnableOrganizationMembers": "NONE",
@@ -374,22 +367,24 @@ class GuardDutyBackend(BaseBackend):
         members = []
         unprocessed = []
         for acct_id in account_ids or []:
-            members.append({
-                "accountId": acct_id,
-                "dataSources": {
-                    "cloudTrail": {"status": "DISABLED"},
-                    "dnsLogs": {"status": "DISABLED"},
-                    "flowLogs": {"status": "DISABLED"},
-                    "s3Logs": {"status": "DISABLED"},
-                    "kubernetes": {"auditLogs": {"status": "DISABLED"}},
-                    "malwareProtection": {
-                        "scanEc2InstanceWithFindings": {
-                            "ebsVolumes": {"status": "DISABLED"}
+            members.append(
+                {
+                    "accountId": acct_id,
+                    "dataSources": {
+                        "cloudTrail": {"status": "DISABLED"},
+                        "dnsLogs": {"status": "DISABLED"},
+                        "flowLogs": {"status": "DISABLED"},
+                        "s3Logs": {"status": "DISABLED"},
+                        "kubernetes": {"auditLogs": {"status": "DISABLED"}},
+                        "malwareProtection": {
+                            "scanEc2InstanceWithFindings": {
+                                "ebsVolumes": {"status": "DISABLED"}
+                            },
                         },
                     },
-                },
-                "features": [],
-            })
+                    "features": [],
+                }
+            )
         return members, unprocessed
 
     def get_remaining_free_trial_days(
@@ -399,27 +394,27 @@ class GuardDutyBackend(BaseBackend):
         accounts = []
         target_ids = account_ids if account_ids else [self.account_id]
         for acct_id in target_ids:
-            accounts.append({
-                "accountId": acct_id,
-                "dataSources": {
-                    "cloudTrail": {"freeTrialDaysRemaining": 0},
-                    "dnsLogs": {"freeTrialDaysRemaining": 0},
-                    "flowLogs": {"freeTrialDaysRemaining": 0},
-                    "s3Logs": {"freeTrialDaysRemaining": 0},
-                    "kubernetes": {"auditLogs": {"freeTrialDaysRemaining": 0}},
-                    "malwareProtection": {
-                        "scanEc2InstanceWithFindings": {
-                            "ebsVolumes": {"freeTrialDaysRemaining": 0}
+            accounts.append(
+                {
+                    "accountId": acct_id,
+                    "dataSources": {
+                        "cloudTrail": {"freeTrialDaysRemaining": 0},
+                        "dnsLogs": {"freeTrialDaysRemaining": 0},
+                        "flowLogs": {"freeTrialDaysRemaining": 0},
+                        "s3Logs": {"freeTrialDaysRemaining": 0},
+                        "kubernetes": {"auditLogs": {"freeTrialDaysRemaining": 0}},
+                        "malwareProtection": {
+                            "scanEc2InstanceWithFindings": {
+                                "ebsVolumes": {"freeTrialDaysRemaining": 0}
+                            },
                         },
                     },
-                },
-                "features": [],
-            })
+                    "features": [],
+                }
+            )
         return accounts
 
-    def get_usage_statistics(
-        self, detector_id: str
-    ) -> dict[str, Any]:
+    def get_usage_statistics(self, detector_id: str) -> dict[str, Any]:
         self.get_detector(detector_id)
         return {
             "usageStatistics": {
@@ -436,15 +431,11 @@ class GuardDutyBackend(BaseBackend):
         return []
 
     # Malware scan operations
-    def describe_malware_scans(
-        self, detector_id: str
-    ) -> list[dict[str, Any]]:
+    def describe_malware_scans(self, detector_id: str) -> list[dict[str, Any]]:
         self.get_detector(detector_id)
         return []
 
-    def get_malware_scan_settings(
-        self, detector_id: str
-    ) -> dict[str, Any]:
+    def get_malware_scan_settings(self, detector_id: str) -> dict[str, Any]:
         self.get_detector(detector_id)
         return {
             "scanResourceCriteria": {
@@ -484,9 +475,7 @@ class GuardDutyBackend(BaseBackend):
             )
         return detector.publishing_destinations[destination_id]
 
-    def list_publishing_destinations(
-        self, detector_id: str
-    ) -> list[dict[str, Any]]:
+    def list_publishing_destinations(self, detector_id: str) -> list[dict[str, Any]]:
         detector = self.get_detector(detector_id)
         return [
             {
@@ -554,10 +543,12 @@ class GuardDutyBackend(BaseBackend):
             if acct_id in detector.members:
                 members.append(detector.members[acct_id])
             else:
-                unprocessed.append({
-                    "accountId": acct_id,
-                    "result": "Account not found as a member",
-                })
+                unprocessed.append(
+                    {
+                        "accountId": acct_id,
+                        "result": "Account not found as a member",
+                    }
+                )
         return members, unprocessed
 
     def list_members(self, detector_id: str) -> list[dict[str, Any]]:
@@ -575,10 +566,12 @@ class GuardDutyBackend(BaseBackend):
             if acct_id in detector.members:
                 del detector.members[acct_id]
             else:
-                unprocessed.append({
-                    "accountId": acct_id,
-                    "result": "Account not found as a member",
-                })
+                unprocessed.append(
+                    {
+                        "accountId": acct_id,
+                        "result": "Account not found as a member",
+                    }
+                )
         return [], unprocessed
 
     def start_monitoring_members(
@@ -592,10 +585,12 @@ class GuardDutyBackend(BaseBackend):
             if acct_id in detector.members:
                 detector.members[acct_id]["relationshipStatus"] = "ENABLED"
             else:
-                unprocessed.append({
-                    "accountId": acct_id,
-                    "result": "Account not found as a member",
-                })
+                unprocessed.append(
+                    {
+                        "accountId": acct_id,
+                        "result": "Account not found as a member",
+                    }
+                )
         return unprocessed
 
     def stop_monitoring_members(
@@ -609,10 +604,12 @@ class GuardDutyBackend(BaseBackend):
             if acct_id in detector.members:
                 detector.members[acct_id]["relationshipStatus"] = "DISABLED"
             else:
-                unprocessed.append({
-                    "accountId": acct_id,
-                    "result": "Account not found as a member",
-                })
+                unprocessed.append(
+                    {
+                        "accountId": acct_id,
+                        "result": "Account not found as a member",
+                    }
+                )
         return unprocessed
 
     # Organization admin operations
@@ -626,9 +623,7 @@ class GuardDutyBackend(BaseBackend):
         detector.administrator_id = administrator_id
         detector.invitation_id = invitation_id
 
-    def disable_organization_admin_account(
-        self, admin_account_id: str
-    ) -> None:
+    def disable_organization_admin_account(self, admin_account_id: str) -> None:
         if admin_account_id in self.admin_account_ids:
             self.admin_account_ids.remove(admin_account_id)
 
@@ -643,9 +638,7 @@ class GuardDutyBackend(BaseBackend):
         self.get_detector(detector_id)
 
     # Coverage statistics
-    def get_coverage_statistics(
-        self, detector_id: str
-    ) -> dict[str, Any]:
+    def get_coverage_statistics(self, detector_id: str) -> dict[str, Any]:
         self.get_detector(detector_id)
         return {
             "coverageStatistics": {
@@ -653,6 +646,341 @@ class GuardDutyBackend(BaseBackend):
                 "countByCoverageStatus": {},
             }
         }
+
+    def list_coverage(self, detector_id: str) -> list[dict[str, Any]]:
+        self.get_detector(detector_id)
+        return []
+
+    # Archive / Unarchive findings
+    def archive_findings(self, detector_id: str, finding_ids: list[str]) -> None:
+        detector = self.get_detector(detector_id)
+        for fid in finding_ids or []:
+            if fid in detector.findings:
+                detector.findings[fid]["service"]["archived"] = True
+
+    def unarchive_findings(self, detector_id: str, finding_ids: list[str]) -> None:
+        detector = self.get_detector(detector_id)
+        for fid in finding_ids or []:
+            if fid in detector.findings:
+                detector.findings[fid]["service"]["archived"] = False
+
+    def update_findings_feedback(
+        self, detector_id: str, finding_ids: list[str], feedback: str
+    ) -> None:
+        detector = self.get_detector(detector_id)
+        for fid in finding_ids or []:
+            if fid in detector.findings:
+                detector.findings[fid]["service"]["userFeedback"] = feedback
+
+    # Invitation operations
+    def accept_invitation(
+        self, detector_id: str, master_id: str, invitation_id: str
+    ) -> None:
+        detector = self.get_detector(detector_id)
+        detector.administrator_id = master_id
+        detector.invitation_id = invitation_id
+
+    def invite_members(
+        self, detector_id: str, account_ids: list[str]
+    ) -> list[dict[str, Any]]:
+        detector = self.get_detector(detector_id)
+        unprocessed: list[dict[str, Any]] = []
+        for acct_id in account_ids or []:
+            if acct_id in detector.members:
+                detector.members[acct_id]["relationshipStatus"] = "INVITED"
+            else:
+                unprocessed.append(
+                    {
+                        "accountId": acct_id,
+                        "result": "Account not found as a member",
+                    }
+                )
+        return unprocessed
+
+    def disassociate_members(
+        self, detector_id: str, account_ids: list[str]
+    ) -> list[dict[str, Any]]:
+        detector = self.get_detector(detector_id)
+        unprocessed: list[dict[str, Any]] = []
+        for acct_id in account_ids or []:
+            if acct_id in detector.members:
+                detector.members[acct_id]["relationshipStatus"] = "REMOVED"
+            else:
+                unprocessed.append(
+                    {
+                        "accountId": acct_id,
+                        "result": "Account not found as a member",
+                    }
+                )
+        return unprocessed
+
+    def disassociate_from_administrator_account(self, detector_id: str) -> None:
+        detector = self.get_detector(detector_id)
+        detector.administrator_id = None
+        detector.invitation_id = None
+
+    def disassociate_from_master_account(self, detector_id: str) -> None:
+        self.disassociate_from_administrator_account(detector_id)
+
+    def decline_invitations(self, account_ids: list[str]) -> list[dict[str, Any]]:
+        # In a mock, we just accept this
+        return []
+
+    def delete_invitations(self, account_ids: list[str]) -> list[dict[str, Any]]:
+        return []
+
+    def get_invitations_count(self) -> int:
+        return 0
+
+    def update_member_detectors(
+        self,
+        detector_id: str,
+        account_ids: list[str],
+        data_sources: Optional[dict[str, Any]] = None,
+        features: Optional[list[dict[str, Any]]] = None,
+    ) -> list[dict[str, Any]]:
+        self.get_detector(detector_id)
+        return []
+
+    def get_organization_statistics(self) -> dict[str, Any]:
+        return {
+            "organizationDetails": {
+                "updatedAt": datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                "organizationStatistics": {
+                    "totalAccountsCount": 0,
+                    "memberAccountsCount": 0,
+                    "activeAccountsCount": 0,
+                    "enabledAccountsCount": 0,
+                    "countByFeature": [],
+                },
+            }
+        }
+
+    # MalwareProtectionPlan operations
+    def create_malware_protection_plan(
+        self,
+        role: str,
+        protected_resource: Optional[dict[str, Any]] = None,
+        actions: Optional[dict[str, Any]] = None,
+        tags: Optional[dict[str, str]] = None,
+    ) -> str:
+        plan = MalwareProtectionPlan(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            role=role,
+            protected_resource=protected_resource,
+            actions=actions,
+            tags=tags,
+        )
+        self.malware_protection_plans[plan.id] = plan
+        return plan.id
+
+    def get_malware_protection_plan(self, plan_id: str) -> "MalwareProtectionPlan":
+        if plan_id not in self.malware_protection_plans:
+            raise ResourceNotFoundException(
+                f"arn:{get_partition(self.region_name)}:guardduty:"
+                f"{self.region_name}:{self.account_id}:"
+                f"malware-protection-plan/{plan_id}"
+            )
+        return self.malware_protection_plans[plan_id]
+
+    def delete_malware_protection_plan(self, plan_id: str) -> None:
+        if plan_id not in self.malware_protection_plans:
+            raise ResourceNotFoundException(
+                f"arn:{get_partition(self.region_name)}:guardduty:"
+                f"{self.region_name}:{self.account_id}:"
+                f"malware-protection-plan/{plan_id}"
+            )
+        del self.malware_protection_plans[plan_id]
+
+    def list_malware_protection_plans(self) -> list[dict[str, Any]]:
+        return [
+            {"malwareProtectionPlanId": pid} for pid in self.malware_protection_plans
+        ]
+
+    def update_malware_protection_plan(
+        self,
+        plan_id: str,
+        role: Optional[str] = None,
+        actions: Optional[dict[str, Any]] = None,
+        protected_resource: Optional[dict[str, Any]] = None,
+    ) -> None:
+        plan = self.get_malware_protection_plan(plan_id)
+        if role is not None:
+            plan.role = role
+        if actions is not None:
+            plan.actions = actions
+        if protected_resource is not None:
+            plan.protected_resource = protected_resource
+
+    # Malware scan additional operations
+    def get_malware_scan(self, scan_id: str) -> dict[str, Any]:
+        return {
+            "scanId": scan_id,
+            "status": "COMPLETED",
+            "scanStartTime": datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            "scanEndTime": datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            "triggerDetails": {},
+            "resourceDetails": {},
+            "scanResultDetails": {"scanResult": "CLEAN"},
+            "totalBytes": 0,
+            "fileCount": 0,
+        }
+
+    def list_malware_scans(self) -> list[dict[str, Any]]:
+        return []
+
+    def start_malware_scan(self, resource_arn: str) -> str:
+        scan_id = mock_random.get_random_hex(length=32)
+        return scan_id
+
+    def send_object_malware_scan(self, object_key: str, bucket_name: str) -> str:
+        scan_id = mock_random.get_random_hex(length=32)
+        return scan_id
+
+    def update_malware_scan_settings(
+        self,
+        detector_id: str,
+        scan_resource_criteria: Optional[dict[str, Any]] = None,
+        ebs_snapshot_preservation: Optional[str] = None,
+    ) -> None:
+        self.get_detector(detector_id)
+
+    # ThreatEntitySet operations
+    def create_threat_entity_set(
+        self,
+        detector_id: str,
+        name: str,
+        entity_type: str,
+        location: str,
+        activate: bool,
+        tags: Optional[dict[str, str]] = None,
+    ) -> str:
+        detector = self.get_detector(detector_id)
+        tes = ThreatEntitySet(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            detector_id=detector_id,
+            name=name,
+            entity_type=entity_type,
+            location=location,
+            activate=activate,
+            tags=tags,
+        )
+        detector.threat_entity_sets[tes.id] = tes
+        return tes.id
+
+    def get_threat_entity_set(
+        self, detector_id: str, threat_entity_set_id: str
+    ) -> "ThreatEntitySet":
+        detector = self.get_detector(detector_id)
+        if threat_entity_set_id not in detector.threat_entity_sets:
+            raise ResourceNotFoundException(
+                f"arn:{get_partition(self.region_name)}:guardduty:"
+                f"{self.region_name}:{self.account_id}:"
+                f"detector/{detector_id}/threatentityset/{threat_entity_set_id}"
+            )
+        return detector.threat_entity_sets[threat_entity_set_id]
+
+    def delete_threat_entity_set(
+        self, detector_id: str, threat_entity_set_id: str
+    ) -> None:
+        detector = self.get_detector(detector_id)
+        if threat_entity_set_id not in detector.threat_entity_sets:
+            raise ResourceNotFoundException(
+                f"arn:{get_partition(self.region_name)}:guardduty:"
+                f"{self.region_name}:{self.account_id}:"
+                f"detector/{detector_id}/threatentityset/{threat_entity_set_id}"
+            )
+        del detector.threat_entity_sets[threat_entity_set_id]
+
+    def list_threat_entity_sets(self, detector_id: str) -> list[str]:
+        detector = self.get_detector(detector_id)
+        return list(detector.threat_entity_sets.keys())
+
+    def update_threat_entity_set(
+        self,
+        detector_id: str,
+        threat_entity_set_id: str,
+        name: Optional[str] = None,
+        location: Optional[str] = None,
+        activate: Optional[bool] = None,
+    ) -> None:
+        tes = self.get_threat_entity_set(detector_id, threat_entity_set_id)
+        if name is not None:
+            tes.name = name
+        if location is not None:
+            tes.location = location
+        if activate is not None:
+            tes.status = "ACTIVE" if activate else "INACTIVE"
+
+    # TrustedEntitySet operations
+    def create_trusted_entity_set(
+        self,
+        detector_id: str,
+        name: str,
+        entity_type: str,
+        location: str,
+        activate: bool,
+        tags: Optional[dict[str, str]] = None,
+    ) -> str:
+        detector = self.get_detector(detector_id)
+        tes = TrustedEntitySet(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            detector_id=detector_id,
+            name=name,
+            entity_type=entity_type,
+            location=location,
+            activate=activate,
+            tags=tags,
+        )
+        detector.trusted_entity_sets[tes.id] = tes
+        return tes.id
+
+    def get_trusted_entity_set(
+        self, detector_id: str, trusted_entity_set_id: str
+    ) -> "TrustedEntitySet":
+        detector = self.get_detector(detector_id)
+        if trusted_entity_set_id not in detector.trusted_entity_sets:
+            raise ResourceNotFoundException(
+                f"arn:{get_partition(self.region_name)}:guardduty:"
+                f"{self.region_name}:{self.account_id}:"
+                f"detector/{detector_id}/trustedentityset/{trusted_entity_set_id}"
+            )
+        return detector.trusted_entity_sets[trusted_entity_set_id]
+
+    def delete_trusted_entity_set(
+        self, detector_id: str, trusted_entity_set_id: str
+    ) -> None:
+        detector = self.get_detector(detector_id)
+        if trusted_entity_set_id not in detector.trusted_entity_sets:
+            raise ResourceNotFoundException(
+                f"arn:{get_partition(self.region_name)}:guardduty:"
+                f"{self.region_name}:{self.account_id}:"
+                f"detector/{detector_id}/trustedentityset/{trusted_entity_set_id}"
+            )
+        del detector.trusted_entity_sets[trusted_entity_set_id]
+
+    def list_trusted_entity_sets(self, detector_id: str) -> list[str]:
+        detector = self.get_detector(detector_id)
+        return list(detector.trusted_entity_sets.keys())
+
+    def update_trusted_entity_set(
+        self,
+        detector_id: str,
+        trusted_entity_set_id: str,
+        name: Optional[str] = None,
+        location: Optional[str] = None,
+        activate: Optional[bool] = None,
+    ) -> None:
+        tes = self.get_trusted_entity_set(detector_id, trusted_entity_set_id)
+        if name is not None:
+            tes.name = name
+        if location is not None:
+            tes.location = location
+        if activate is not None:
+            tes.status = "ACTIVE" if activate else "INACTIVE"
 
     def _get_resource_by_arn(self, resource_arn: str) -> Any:
         """Find a resource (detector, ipset, threatintelset) by its ARN."""
@@ -800,7 +1128,9 @@ class Detector(BaseModel):
             f"arn:{partition}:iam::{account_id}:role/aws-service-role"
             f"/guardduty.amazonaws.com/AWSServiceRoleForAmazonGuardDuty"
         )
-        self.arn = f"arn:{partition}:guardduty:{region_name}:{account_id}:detector/{self.id}"
+        self.arn = (
+            f"arn:{partition}:guardduty:{region_name}:{account_id}:detector/{self.id}"
+        )
         self.enabled = enabled
         self.updated_at = created_at
         self.datasources = datasources or {}
@@ -812,6 +1142,8 @@ class Detector(BaseModel):
         self.filters: dict[str, Filter] = {}
         self.ip_sets: dict[str, IPSet] = {}
         self.threat_intel_sets: dict[str, ThreatIntelSet] = {}
+        self.threat_entity_sets: dict[str, ThreatEntitySet] = {}
+        self.trusted_entity_sets: dict[str, TrustedEntitySet] = {}
         self.findings: dict[str, dict[str, Any]] = {}
         self.publishing_destinations: dict[str, dict[str, Any]] = {}
         self.members: dict[str, dict[str, Any]] = {}
@@ -890,6 +1222,110 @@ class Detector(BaseModel):
             "dataSources": data_sources,
             "tags": self.tags,
             "features": self.features,
+        }
+
+
+class MalwareProtectionPlan(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        role: str,
+        protected_resource: Optional[dict[str, Any]] = None,
+        actions: Optional[dict[str, Any]] = None,
+        tags: Optional[dict[str, str]] = None,
+    ):
+        self.id = mock_random.get_random_hex(length=32)
+        self.role = role
+        self.protected_resource = protected_resource or {}
+        self.actions = actions or {}
+        self.tags: dict[str, str] = tags or {}
+        self.status = "ACTIVE"
+        self.created_at = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        partition = get_partition(region_name)
+        self.arn = (
+            f"arn:{partition}:guardduty:{region_name}:{account_id}"
+            f":malware-protection-plan/{self.id}"
+        )
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "malwareProtectionPlanId": self.id,
+            "arn": self.arn,
+            "role": self.role,
+            "protectedResource": self.protected_resource,
+            "actions": self.actions,
+            "tags": self.tags,
+            "status": self.status,
+            "createdAt": self.created_at,
+        }
+
+
+class ThreatEntitySet(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        detector_id: str,
+        name: str,
+        entity_type: str,
+        location: str,
+        activate: bool,
+        tags: Optional[dict[str, str]] = None,
+    ):
+        self.id = mock_random.get_random_hex(length=32)
+        self.name = name
+        self.entity_type = entity_type
+        self.location = location
+        self.status = "ACTIVE" if activate else "INACTIVE"
+        self.tags: dict[str, str] = tags or {}
+        partition = get_partition(region_name)
+        self.arn = (
+            f"arn:{partition}:guardduty:{region_name}:{account_id}"
+            f":detector/{detector_id}/threatentityset/{self.id}"
+        )
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "format": self.entity_type,
+            "location": self.location,
+            "status": self.status,
+            "tags": self.tags,
+        }
+
+
+class TrustedEntitySet(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        detector_id: str,
+        name: str,
+        entity_type: str,
+        location: str,
+        activate: bool,
+        tags: Optional[dict[str, str]] = None,
+    ):
+        self.id = mock_random.get_random_hex(length=32)
+        self.name = name
+        self.entity_type = entity_type
+        self.location = location
+        self.status = "ACTIVE" if activate else "INACTIVE"
+        self.tags: dict[str, str] = tags or {}
+        partition = get_partition(region_name)
+        self.arn = (
+            f"arn:{partition}:guardduty:{region_name}:{account_id}"
+            f":detector/{detector_id}/trustedentityset/{self.id}"
+        )
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "format": self.entity_type,
+            "location": self.location,
+            "status": self.status,
+            "tags": self.tags,
         }
 
 

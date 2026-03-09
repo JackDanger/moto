@@ -220,9 +220,7 @@ class GuardDutyResponse(BaseResponse):
     def delete_threat_intel_set(self) -> str:
         detector_id = self.path.split("/")[-3]
         threat_intel_set_id = self.path.split("/")[-1]
-        self.guardduty_backend.delete_threat_intel_set(
-            detector_id, threat_intel_set_id
-        )
+        self.guardduty_backend.delete_threat_intel_set(detector_id, threat_intel_set_id)
         return "{}"
 
     def list_threat_intel_sets(self) -> str:
@@ -290,10 +288,12 @@ class GuardDutyResponse(BaseResponse):
         members, unprocessed = self.guardduty_backend.get_member_detectors(
             detector_id, account_ids or []
         )
-        return json.dumps({
-            "members": members,
-            "unprocessedAccounts": unprocessed,
-        })
+        return json.dumps(
+            {
+                "members": members,
+                "unprocessedAccounts": unprocessed,
+            }
+        )
 
     def get_remaining_free_trial_days(self) -> str:
         detector_id = self.path.split("/")[-3]
@@ -378,10 +378,12 @@ class GuardDutyResponse(BaseResponse):
         members, unprocessed = self.guardduty_backend.get_members(
             detector_id, account_ids or []
         )
-        return json.dumps({
-            "members": members,
-            "unprocessedAccounts": unprocessed,
-        })
+        return json.dumps(
+            {
+                "members": members,
+                "unprocessedAccounts": unprocessed,
+            }
+        )
 
     def list_members(self) -> str:
         detector_id = self.path.split("/")[-2]
@@ -448,9 +450,274 @@ class GuardDutyResponse(BaseResponse):
         result = self.guardduty_backend.get_coverage_statistics(detector_id)
         return json.dumps(result)
 
+    def list_coverage(self) -> str:
+        detector_id = self.path.split("/")[-2]
+        resources = self.guardduty_backend.list_coverage(detector_id)
+        return json.dumps({"resources": resources})
+
+    # Archive / Unarchive findings
+    def archive_findings(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        finding_ids = self._get_param("findingIds")
+        self.guardduty_backend.archive_findings(detector_id, finding_ids or [])
+        return "{}"
+
+    def unarchive_findings(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        finding_ids = self._get_param("findingIds")
+        self.guardduty_backend.unarchive_findings(detector_id, finding_ids or [])
+        return "{}"
+
+    def update_findings_feedback(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        finding_ids = self._get_param("findingIds")
+        feedback = self._get_param("feedback")
+        self.guardduty_backend.update_findings_feedback(
+            detector_id, finding_ids or [], feedback
+        )
+        return "{}"
+
+    # Invitation operations
+    def accept_invitation(self) -> str:
+        detector_id = self.path.split("/")[-2]
+        master_id = self._get_param("masterId")
+        invitation_id = self._get_param("invitationId")
+        self.guardduty_backend.accept_invitation(detector_id, master_id, invitation_id)
+        return "{}"
+
+    def invite_members(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        account_ids = self._get_param("accountIds")
+        unprocessed = self.guardduty_backend.invite_members(
+            detector_id, account_ids or []
+        )
+        return json.dumps({"unprocessedAccounts": unprocessed})
+
+    def disassociate_members(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        account_ids = self._get_param("accountIds")
+        unprocessed = self.guardduty_backend.disassociate_members(
+            detector_id, account_ids or []
+        )
+        return json.dumps({"unprocessedAccounts": unprocessed})
+
+    def disassociate_from_administrator_account(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        self.guardduty_backend.disassociate_from_administrator_account(detector_id)
+        return "{}"
+
+    def disassociate_from_master_account(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        self.guardduty_backend.disassociate_from_master_account(detector_id)
+        return "{}"
+
+    def decline_invitations(self) -> str:
+        account_ids = self._get_param("accountIds")
+        unprocessed = self.guardduty_backend.decline_invitations(account_ids or [])
+        return json.dumps({"unprocessedAccounts": unprocessed})
+
+    def delete_invitations(self) -> str:
+        account_ids = self._get_param("accountIds")
+        unprocessed = self.guardduty_backend.delete_invitations(account_ids or [])
+        return json.dumps({"unprocessedAccounts": unprocessed})
+
+    def get_invitations_count(self) -> str:
+        count = self.guardduty_backend.get_invitations_count()
+        return json.dumps({"invitationsCount": count})
+
+    def update_member_detectors(self) -> str:
+        detector_id = self.path.split("/")[-4]
+        account_ids = self._get_param("accountIds")
+        data_sources = self._get_param("dataSources")
+        features = self._get_param("features")
+        unprocessed = self.guardduty_backend.update_member_detectors(
+            detector_id,
+            account_ids or [],
+            data_sources=data_sources,
+            features=features,
+        )
+        return json.dumps({"unprocessedAccounts": unprocessed})
+
+    def get_organization_statistics(self) -> str:
+        result = self.guardduty_backend.get_organization_statistics()
+        return json.dumps(result)
+
+    # MalwareProtectionPlan operations
+    def create_malware_protection_plan(self) -> str:
+        role = self._get_param("role")
+        protected_resource = self._get_param("protectedResource")
+        actions = self._get_param("actions")
+        tags = self._get_param("tags")
+        plan_id = self.guardduty_backend.create_malware_protection_plan(
+            role=role,
+            protected_resource=protected_resource,
+            actions=actions,
+            tags=tags,
+        )
+        return json.dumps({"malwareProtectionPlanId": plan_id})
+
+    def get_malware_protection_plan(self) -> str:
+        plan_id = self.path.split("/")[-1]
+        plan = self.guardduty_backend.get_malware_protection_plan(plan_id)
+        return json.dumps(plan.to_json())
+
+    def delete_malware_protection_plan(self) -> str:
+        plan_id = self.path.split("/")[-1]
+        self.guardduty_backend.delete_malware_protection_plan(plan_id)
+        return "{}"
+
+    def list_malware_protection_plans(self) -> str:
+        plans = self.guardduty_backend.list_malware_protection_plans()
+        return json.dumps({"malwareProtectionPlans": plans})
+
+    def update_malware_protection_plan(self) -> str:
+        plan_id = self.path.split("/")[-1]
+        role = self._get_param("role")
+        actions = self._get_param("actions")
+        protected_resource = self._get_param("protectedResource")
+        self.guardduty_backend.update_malware_protection_plan(
+            plan_id,
+            role=role,
+            actions=actions,
+            protected_resource=protected_resource,
+        )
+        return "{}"
+
+    # Malware scan additional operations
+    def get_malware_scan(self) -> str:
+        scan_id = self.path.split("/")[-1]
+        result = self.guardduty_backend.get_malware_scan(scan_id)
+        return json.dumps({"scan": result})
+
+    def list_malware_scans(self) -> str:
+        scans = self.guardduty_backend.list_malware_scans()
+        return json.dumps({"scans": scans})
+
+    def start_malware_scan(self) -> str:
+        resource_arn = self._get_param("resourceArn")
+        scan_id = self.guardduty_backend.start_malware_scan(resource_arn)
+        return json.dumps({"scanId": scan_id})
+
+    def send_object_malware_scan(self) -> str:
+        object_key = self._get_param("objectKey")
+        bucket_name = self._get_param("bucketName")
+        scan_id = self.guardduty_backend.send_object_malware_scan(
+            object_key, bucket_name
+        )
+        return json.dumps({"scanId": scan_id})
+
+    def update_malware_scan_settings(self) -> str:
+        detector_id = self.path.split("/")[-2]
+        scan_resource_criteria = self._get_param("scanResourceCriteria")
+        ebs_snapshot_preservation = self._get_param("ebsSnapshotPreservation")
+        self.guardduty_backend.update_malware_scan_settings(
+            detector_id, scan_resource_criteria, ebs_snapshot_preservation
+        )
+        return "{}"
+
+    # ThreatEntitySet operations
+    def create_threat_entity_set(self) -> str:
+        detector_id = self.path.split("/")[-2]
+        name = self._get_param("name")
+        entity_type = self._get_param("format")
+        location = self._get_param("location")
+        activate = self._get_param("activate")
+        tags = self._get_param("tags")
+        tes_id = self.guardduty_backend.create_threat_entity_set(
+            detector_id=detector_id,
+            name=name,
+            entity_type=entity_type,
+            location=location,
+            activate=activate,
+            tags=tags,
+        )
+        return json.dumps({"threatEntitySetId": tes_id})
+
+    def get_threat_entity_set(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        tes_id = self.path.split("/")[-1]
+        tes = self.guardduty_backend.get_threat_entity_set(detector_id, tes_id)
+        return json.dumps(tes.to_json())
+
+    def delete_threat_entity_set(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        tes_id = self.path.split("/")[-1]
+        self.guardduty_backend.delete_threat_entity_set(detector_id, tes_id)
+        return "{}"
+
+    def list_threat_entity_sets(self) -> str:
+        detector_id = self.path.split("/")[-2]
+        tes_ids = self.guardduty_backend.list_threat_entity_sets(detector_id)
+        return json.dumps({"threatEntitySetIds": tes_ids})
+
+    def update_threat_entity_set(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        tes_id = self.path.split("/")[-1]
+        name = self._get_param("name")
+        location = self._get_param("location")
+        activate = self._get_param("activate")
+        self.guardduty_backend.update_threat_entity_set(
+            detector_id=detector_id,
+            threat_entity_set_id=tes_id,
+            name=name,
+            location=location,
+            activate=activate,
+        )
+        return "{}"
+
+    # TrustedEntitySet operations
+    def create_trusted_entity_set(self) -> str:
+        detector_id = self.path.split("/")[-2]
+        name = self._get_param("name")
+        entity_type = self._get_param("format")
+        location = self._get_param("location")
+        activate = self._get_param("activate")
+        tags = self._get_param("tags")
+        tes_id = self.guardduty_backend.create_trusted_entity_set(
+            detector_id=detector_id,
+            name=name,
+            entity_type=entity_type,
+            location=location,
+            activate=activate,
+            tags=tags,
+        )
+        return json.dumps({"trustedEntitySetId": tes_id})
+
+    def get_trusted_entity_set(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        tes_id = self.path.split("/")[-1]
+        tes = self.guardduty_backend.get_trusted_entity_set(detector_id, tes_id)
+        return json.dumps(tes.to_json())
+
+    def delete_trusted_entity_set(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        tes_id = self.path.split("/")[-1]
+        self.guardduty_backend.delete_trusted_entity_set(detector_id, tes_id)
+        return "{}"
+
+    def list_trusted_entity_sets(self) -> str:
+        detector_id = self.path.split("/")[-2]
+        tes_ids = self.guardduty_backend.list_trusted_entity_sets(detector_id)
+        return json.dumps({"trustedEntitySetIds": tes_ids})
+
+    def update_trusted_entity_set(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        tes_id = self.path.split("/")[-1]
+        name = self._get_param("name")
+        location = self._get_param("location")
+        activate = self._get_param("activate")
+        self.guardduty_backend.update_trusted_entity_set(
+            detector_id=detector_id,
+            trusted_entity_set_id=tes_id,
+            name=name,
+            location=location,
+            activate=activate,
+        )
+        return "{}"
+
     def _get_resource_arn_from_path(self) -> str:
         path = unquote(self.path)
         idx = path.find("/tags/")
         if idx >= 0:
-            return path[idx + 6:]
+            return path[idx + 6 :]
         return ""
