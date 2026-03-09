@@ -34,7 +34,7 @@ class BackupResponse(BaseResponse):
     def get_backup_plan(self) -> str:
         params = self._get_params()
         backup_plan_id = self.path.split("/plans/")[-1]
-        backup_plan_id = backup_plan_id.replace("/", "")  # replace any trailing slash
+        backup_plan_id = backup_plan_id.replace("/", "")
         version_id = params.get("versionId")
         plan = self.backup_backend.get_backup_plan(
             backup_plan_id=backup_plan_id, version_id=version_id
@@ -67,8 +67,22 @@ class BackupResponse(BaseResponse):
             include_deleted=include_deleted
         )
         return json.dumps(
-            {"BackupPlansList": [p.to_list_dict() for p in backup_plans_list]}
+            {
+                "BackupPlansList": [
+                    p.to_list_dict() for p in backup_plans_list
+                ]
+            }
         )
+
+    def update_backup_plan(self) -> str:
+        backup_plan_id = self.path.split("/")[-1]
+        params = json.loads(self.body)
+        backup_plan = params.get("BackupPlan")
+        plan = self.backup_backend.update_backup_plan(
+            backup_plan_id=backup_plan_id,
+            backup_plan=backup_plan,
+        )
+        return json.dumps(dict(plan.to_dict()))
 
     def create_backup_vault(self) -> str:
         params = json.loads(self.body)
@@ -97,7 +111,11 @@ class BackupResponse(BaseResponse):
     def list_backup_vaults(self) -> str:
         backup_vault_list = self.backup_backend.list_backup_vaults()
         return json.dumps(
-            {"BackupVaultList": [v.to_list_dict() for v in backup_vault_list]}
+            {
+                "BackupVaultList": [
+                    v.to_list_dict() for v in backup_vault_list
+                ]
+            }
         )
 
     def list_tags(self) -> str:
@@ -127,6 +145,155 @@ class BackupResponse(BaseResponse):
         )
         return "{}"
 
+    # --- Backup Selections ---
+
+    def create_backup_selection(self) -> str:
+        parts = self.path.split("/")
+        plan_idx = parts.index("plans")
+        backup_plan_id = parts[plan_idx + 1]
+        params = json.loads(self.body)
+        backup_selection = params.get("BackupSelection")
+        creator_request_id = params.get("CreatorRequestId")
+        selection = self.backup_backend.create_backup_selection(
+            backup_plan_id=backup_plan_id,
+            backup_selection=backup_selection,
+            creator_request_id=creator_request_id,
+        )
+        return json.dumps(dict(selection.to_dict()))
+
+    def get_backup_selection(self) -> str:
+        parts = self.path.split("/")
+        plan_idx = parts.index("plans")
+        backup_plan_id = parts[plan_idx + 1]
+        sel_idx = parts.index("selections")
+        selection_id = parts[sel_idx + 1].rstrip("/")
+        selection = self.backup_backend.get_backup_selection(
+            backup_plan_id=backup_plan_id,
+            selection_id=selection_id,
+        )
+        return json.dumps(dict(selection.to_get_dict()))
+
+    def delete_backup_selection(self) -> EmptyResult:
+        parts = self.path.split("/")
+        plan_idx = parts.index("plans")
+        backup_plan_id = parts[plan_idx + 1]
+        sel_idx = parts.index("selections")
+        selection_id = parts[sel_idx + 1].rstrip("/")
+        self.backup_backend.delete_backup_selection(
+            backup_plan_id=backup_plan_id,
+            selection_id=selection_id,
+        )
+        return EmptyResult()
+
+    def list_backup_selections(self) -> str:
+        parts = self.path.split("/")
+        plan_idx = parts.index("plans")
+        backup_plan_id = parts[plan_idx + 1]
+        selections = self.backup_backend.list_backup_selections(
+            backup_plan_id=backup_plan_id,
+        )
+        return json.dumps(
+            {
+                "BackupSelectionsList": [
+                    s.to_list_dict() for s in selections
+                ]
+            }
+        )
+
+    # --- Backup Jobs ---
+
+    def start_backup_job(self) -> str:
+        params = json.loads(self.body)
+        job = self.backup_backend.start_backup_job(
+            backup_vault_name=params.get("BackupVaultName"),
+            resource_arn=params.get("ResourceArn"),
+            iam_role_arn=params.get("IamRoleArn"),
+            idempotency_token=params.get("IdempotencyToken"),
+            start_window_minutes=params.get("StartWindowMinutes"),
+            complete_window_minutes=params.get("CompleteWindowMinutes"),
+            lifecycle=params.get("Lifecycle"),
+            recovery_point_tags=params.get("RecoveryPointTags"),
+            backup_options=params.get("BackupOptions"),
+        )
+        return json.dumps(
+            {
+                "BackupJobId": job.backup_job_id,
+                "RecoveryPointArn": job.recovery_point_arn,
+                "CreationDate": job.creation_date,
+            }
+        )
+
+    def describe_backup_job(self) -> str:
+        backup_job_id = self.path.split("/")[-1].rstrip("/")
+        job = self.backup_backend.describe_backup_job(
+            backup_job_id=backup_job_id
+        )
+        return json.dumps(dict(job.to_dict()))
+
+    def list_backup_jobs(self) -> str:
+        params = self._get_params()
+        jobs = self.backup_backend.list_backup_jobs(
+            by_backup_vault_name=params.get("backupVaultName"),
+            by_state=params.get("state"),
+            by_resource_arn=params.get("resourceArn"),
+            by_resource_type=params.get("resourceType"),
+            by_account_id=params.get("accountId"),
+        )
+        return json.dumps(
+            {"BackupJobs": [j.to_list_dict() for j in jobs]}
+        )
+
+    def stop_backup_job(self) -> EmptyResult:
+        backup_job_id = self.path.split("/")[-1].rstrip("/")
+        self.backup_backend.stop_backup_job(backup_job_id=backup_job_id)
+        return EmptyResult()
+
+    # --- Frameworks ---
+
+    def create_framework(self) -> str:
+        params = json.loads(self.body)
+        framework = self.backup_backend.create_framework(
+            framework_name=params.get("FrameworkName"),
+            framework_description=params.get("FrameworkDescription"),
+            framework_controls=params.get("FrameworkControls", []),
+            idempotency_token=params.get("IdempotencyToken"),
+            framework_tags=params.get("FrameworkTags"),
+        )
+        return json.dumps(dict(framework.to_dict()))
+
+    def describe_framework(self) -> str:
+        framework_name = self.path.split("/")[-1].rstrip("/")
+        framework = self.backup_backend.describe_framework(
+            framework_name=framework_name,
+        )
+        return json.dumps(dict(framework.to_describe_dict()))
+
+    def delete_framework(self) -> EmptyResult:
+        framework_name = self.path.split("/")[-1].rstrip("/")
+        self.backup_backend.delete_framework(
+            framework_name=framework_name
+        )
+        return EmptyResult()
+
+    def list_frameworks(self) -> str:
+        frameworks = self.backup_backend.list_frameworks()
+        return json.dumps(
+            {"Frameworks": [f.to_list_dict() for f in frameworks]}
+        )
+
+    def update_framework(self) -> str:
+        framework_name = self.path.split("/")[-1].rstrip("/")
+        params = json.loads(self.body)
+        framework = self.backup_backend.update_framework(
+            framework_name=framework_name,
+            framework_description=params.get("FrameworkDescription"),
+            framework_controls=params.get("FrameworkControls"),
+            idempotency_token=params.get("IdempotencyToken"),
+        )
+        return json.dumps(dict(framework.to_dict()))
+
+    # --- Vault Lock ---
+
     def put_backup_vault_lock_configuration(self) -> str:
         backup_vault_name = self.path.split("/")[-2]
         params = json.loads(self.body) if self.body else {}
@@ -151,6 +318,8 @@ class BackupResponse(BaseResponse):
         )
 
         return "{}"
+
+    # --- Report Plans ---
 
     def list_report_plans(self) -> ActionResult:
         report_plans = self.backup_backend.list_report_plans()
@@ -178,6 +347,8 @@ class BackupResponse(BaseResponse):
 
     def delete_report_plan(self) -> EmptyResult:
         report_plan_name = self.path.split("/report-plans/")[-1]
-        plan_name = report_plan_name.replace("/", "")  # replace any trailing slash
-        self.backup_backend.delete_report_plan(report_plan_name=plan_name)
+        plan_name = report_plan_name.replace("/", "")
+        self.backup_backend.delete_report_plan(
+            report_plan_name=plan_name
+        )
         return EmptyResult()
