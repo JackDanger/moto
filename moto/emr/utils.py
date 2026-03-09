@@ -25,6 +25,14 @@ def random_instance_group_id() -> str:
     return f"i-{random_id()}"
 
 
+def random_studio_id() -> str:
+    return f"es-{random_id()}"
+
+
+def random_notebook_execution_id() -> str:
+    return f"ex-{random_id()}"
+
+
 class ReleaseLabel:
     version_re = re.compile(r"^emr-(\d+)\.(\d+)\.(\d+)$")
 
