@@ -11,16 +11,22 @@ from moto.ec2 import ec2_backends
 from moto.utilities.tagging_service import TaggingService
 
 from .exceptions import (
+    ACLAlreadyExistsFault,
+    ACLNotFoundFault,
     ClusterAlreadyExistsFault,
     ClusterNotFoundFault,
     InvalidParameterValueException,
     InvalidSubnetError,
+    ParameterGroupAlreadyExistsFault,
+    ParameterGroupNotFoundFault,
     SnapshotAlreadyExistsFault,
     SnapshotNotFoundFault,
     SubnetGroupAlreadyExistsFault,
     SubnetGroupInUseFault,
     SubnetGroupNotFoundFault,
     TagNotFoundFault,
+    UserAlreadyExistsFault,
+    UserNotFoundFault,
 )
 
 
@@ -336,6 +342,63 @@ class MemoryDBSnapshot(BaseModel):
         return dct
 
 
+class MemoryDBACL(BaseModel):
+    def __init__(self, region_name: str, account_id: str, acl_name: str, user_names: list[str]):
+        self.name = acl_name
+        self.user_names = user_names or []
+        self.status = "active"
+        self.arn = f"arn:aws:memorydb:{region_name}:{account_id}:acl/{acl_name}"
+        self.minimum_engine_version = "6.2"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "Name": self.name,
+            "Status": self.status,
+            "UserNames": self.user_names,
+            "MinimumEngineVersion": self.minimum_engine_version,
+            "ARN": self.arn,
+            "Clusters": [],
+        }
+
+
+class MemoryDBUser(BaseModel):
+    def __init__(self, region_name: str, account_id: str, user_name: str, access_string: str, authentication_mode: Optional[dict[str, Any]]):
+        self.name = user_name
+        self.access_string = access_string or "on ~* +@all"
+        self.authentication_mode = authentication_mode or {"Type": "no-password"}
+        self.status = "active"
+        self.arn = f"arn:aws:memorydb:{region_name}:{account_id}:user/{user_name}"
+        self.minimum_engine_version = "6.2"
+        self.acl_names: list[str] = []
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "Name": self.name,
+            "Status": self.status,
+            "AccessString": self.access_string,
+            "ACLNames": self.acl_names,
+            "MinimumEngineVersion": self.minimum_engine_version,
+            "Authentication": {"Type": self.authentication_mode.get("Type", "no-password")},
+            "ARN": self.arn,
+        }
+
+
+class MemoryDBParameterGroup(BaseModel):
+    def __init__(self, region_name: str, account_id: str, name: str, family: str, description: str):
+        self.name = name
+        self.family = family
+        self.description = description
+        self.arn = f"arn:aws:memorydb:{region_name}:{account_id}:parametergroup/{name}"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "Name": self.name,
+            "Family": self.family,
+            "Description": self.description,
+            "ARN": self.arn,
+        }
+
+
 class MemoryDBBackend(BaseBackend):
     """Implementation of MemoryDB APIs."""
 
@@ -344,6 +407,15 @@ class MemoryDBBackend(BaseBackend):
 
         self.ec2_backend = ec2_backends[account_id][region_name]
         self.clusters: dict[str, MemoryDBCluster] = {}
+        self.acls: dict[str, MemoryDBACL] = {
+            "open-access": MemoryDBACL(region_name, account_id, "open-access", []),
+        }
+        self.users: dict[str, MemoryDBUser] = {
+            "default": MemoryDBUser(region_name, account_id, "default", "on ~* +@all", {"Type": "no-password"}),
+        }
+        self.parameter_groups: dict[str, MemoryDBParameterGroup] = {
+            "default.memorydb-redis7": MemoryDBParameterGroup(region_name, account_id, "default.memorydb-redis7", "memorydb_redis7", "Default parameter group for memorydb-redis7"),
+        }
         self.subnet_groups: dict[str, MemoryDBSubnetGroup] = {
             "default": MemoryDBSubnetGroup(
                 region_name,
@@ -682,6 +754,124 @@ class MemoryDBBackend(BaseBackend):
         raise SubnetGroupNotFoundFault(
             msg=f"Subnet group {subnet_group_name} not found."
         )
+
+
+    # ACL operations
+    def create_acl(self, acl_name: str, user_names: list[str], tags: list[dict[str, str]]) -> MemoryDBACL:
+        if acl_name in self.acls:
+            raise ACLAlreadyExistsFault(msg=f"ACL {acl_name} already exists.")
+        acl = MemoryDBACL(self.region_name, self.account_id, acl_name, user_names)
+        self.acls[acl_name] = acl
+        if tags:
+            self.tagger.tag_resource(acl.arn, tags)
+        return acl
+
+    def describe_acls(self, acl_name: Optional[str] = None) -> list[MemoryDBACL]:
+        if acl_name:
+            if acl_name not in self.acls:
+                raise ACLNotFoundFault(msg=f"ACL {acl_name} not found.")
+            return [self.acls[acl_name]]
+        return list(self.acls.values())
+
+    def delete_acl(self, acl_name: str) -> MemoryDBACL:
+        if acl_name not in self.acls:
+            raise ACLNotFoundFault(msg=f"ACL {acl_name} not found.")
+        acl = self.acls.pop(acl_name)
+        acl.status = "deleting"
+        return acl
+
+    def update_acl(self, acl_name: str, user_names_to_add: Optional[list[str]] = None, user_names_to_remove: Optional[list[str]] = None) -> MemoryDBACL:
+        if acl_name not in self.acls:
+            raise ACLNotFoundFault(msg=f"ACL {acl_name} not found.")
+        acl = self.acls[acl_name]
+        if user_names_to_add:
+            acl.user_names.extend(user_names_to_add)
+        if user_names_to_remove:
+            acl.user_names = [u for u in acl.user_names if u not in user_names_to_remove]
+        return acl
+
+    # User operations
+    def create_user(self, user_name: str, access_string: str, authentication_mode: Optional[dict[str, Any]], tags: list[dict[str, str]]) -> MemoryDBUser:
+        if user_name in self.users:
+            raise UserAlreadyExistsFault(msg=f"User {user_name} already exists.")
+        user = MemoryDBUser(self.region_name, self.account_id, user_name, access_string, authentication_mode)
+        self.users[user_name] = user
+        if tags:
+            self.tagger.tag_resource(user.arn, tags)
+        return user
+
+    def describe_users(self, user_name: Optional[str] = None) -> list[MemoryDBUser]:
+        if user_name:
+            if user_name not in self.users:
+                raise UserNotFoundFault(msg=f"User {user_name} not found.")
+            return [self.users[user_name]]
+        return list(self.users.values())
+
+    def delete_user(self, user_name: str) -> MemoryDBUser:
+        if user_name not in self.users:
+            raise UserNotFoundFault(msg=f"User {user_name} not found.")
+        user = self.users.pop(user_name)
+        user.status = "deleting"
+        return user
+
+    def update_user(self, user_name: str, access_string: Optional[str] = None, authentication_mode: Optional[dict[str, Any]] = None) -> MemoryDBUser:
+        if user_name not in self.users:
+            raise UserNotFoundFault(msg=f"User {user_name} not found.")
+        user = self.users[user_name]
+        if access_string:
+            user.access_string = access_string
+        if authentication_mode:
+            user.authentication_mode = authentication_mode
+        return user
+
+    # Parameter Group operations
+    def create_parameter_group(self, name: str, family: str, description: str, tags: list[dict[str, str]]) -> MemoryDBParameterGroup:
+        if name in self.parameter_groups:
+            raise ParameterGroupAlreadyExistsFault(msg=f"Parameter group {name} already exists.")
+        pg = MemoryDBParameterGroup(self.region_name, self.account_id, name, family, description)
+        self.parameter_groups[name] = pg
+        if tags:
+            self.tagger.tag_resource(pg.arn, tags)
+        return pg
+
+    def describe_parameter_groups(self, name: Optional[str] = None) -> list[MemoryDBParameterGroup]:
+        if name:
+            if name not in self.parameter_groups:
+                raise ParameterGroupNotFoundFault(msg=f"Parameter group {name} not found.")
+            return [self.parameter_groups[name]]
+        return list(self.parameter_groups.values())
+
+    def delete_parameter_group(self, name: str) -> MemoryDBParameterGroup:
+        if name not in self.parameter_groups:
+            raise ParameterGroupNotFoundFault(msg=f"Parameter group {name} not found.")
+        return self.parameter_groups.pop(name)
+
+    def update_parameter_group(self, name: str, parameter_name_values: list[dict[str, str]]) -> MemoryDBParameterGroup:
+        if name not in self.parameter_groups:
+            raise ParameterGroupNotFoundFault(msg=f"Parameter group {name} not found.")
+        return self.parameter_groups[name]
+
+    # Service updates
+    def describe_service_updates(self) -> list[dict[str, Any]]:
+        return []
+
+    # Events
+    def describe_events(self) -> list[dict[str, Any]]:
+        return []
+
+    # Engine versions
+    def describe_engine_versions(self) -> list[dict[str, Any]]:
+        return [
+            {"EngineVersion": "7.0", "EnginePatchVersion": "7.0.7", "ParameterGroupFamily": "memorydb_redis7"},
+            {"EngineVersion": "6.2", "EnginePatchVersion": "6.2.6", "ParameterGroupFamily": "memorydb_redis6"},
+        ]
+
+    # Reserved nodes
+    def describe_reserved_nodes(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_reserved_nodes_offerings(self) -> list[dict[str, Any]]:
+        return []
 
 
 memorydb_backends = BackendDict(MemoryDBBackend, "memorydb")
