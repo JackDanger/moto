@@ -1122,9 +1122,12 @@ class ConnectResponse(BaseResponse):
 
     def create_traffic_distribution_group(self) -> str:
         params = json.loads(self.body) if self.body else {}
+        instance_id = params.get("InstanceId", "")
+        # Build an instance ARN from the InstanceId
+        instance_arn = f"arn:aws:connect:{self.region}:{self.current_account}:instance/{instance_id}"
         result = self.connect_backend.create_traffic_distribution_group(
             name=str(params["Name"]),
-            instance_arn=str(params["InstanceArn"]),
+            instance_arn=instance_arn,
             description=params.get("Description", ""),
             tags=params.get("Tags"),
         )
