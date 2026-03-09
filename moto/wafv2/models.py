@@ -1039,5 +1039,130 @@ class WAFV2Backend(BaseBackend):
             "SnsTopicArn": f"arn:aws:sns:us-east-1:123456789012:managed-rule-group-{name}",
         }
 
+    def list_available_managed_rule_groups(
+        self, scope: str
+    ) -> list[dict[str, Any]]:
+        """Return a static list of well-known AWS managed rule groups."""
+        return [
+            {
+                "VendorName": "AWS",
+                "Name": "AWSManagedRulesCommonRuleSet",
+                "Description": (
+                    "Contains rules that are generally applicable to web applications."
+                ),
+            },
+            {
+                "VendorName": "AWS",
+                "Name": "AWSManagedRulesAdminProtectionRuleSet",
+                "Description": (
+                    "Contains rules that allow you to block external access"
+                    " to exposed admin pages."
+                ),
+            },
+            {
+                "VendorName": "AWS",
+                "Name": "AWSManagedRulesKnownBadInputsRuleSet",
+                "Description": (
+                    "Contains rules to block request patterns"
+                    " that are known to be invalid."
+                ),
+            },
+            {
+                "VendorName": "AWS",
+                "Name": "AWSManagedRulesSQLiRuleSet",
+                "Description": (
+                    "Contains rules that allow you to block request patterns"
+                    " associated with SQL injection."
+                ),
+            },
+            {
+                "VendorName": "AWS",
+                "Name": "AWSManagedRulesLinuxRuleSet",
+                "Description": (
+                    "Contains rules that block request patterns associated with"
+                    " exploitation of vulnerabilities specific to Linux."
+                ),
+            },
+            {
+                "VendorName": "AWS",
+                "Name": "AWSManagedRulesUnixRuleSet",
+                "Description": (
+                    "Contains rules that block request patterns"
+                    " associated with POSIX/POSIX-like OS."
+                ),
+            },
+            {
+                "VendorName": "AWS",
+                "Name": "AWSManagedRulesWindowsRuleSet",
+                "Description": (
+                    "Contains rules that block request patterns associated with"
+                    " exploitation of vulnerabilities specific to Windows."
+                ),
+            },
+            {
+                "VendorName": "AWS",
+                "Name": "AWSManagedRulesPHPRuleSet",
+                "Description": (
+                    "Contains rules that block request patterns"
+                    " associated with PHP."
+                ),
+            },
+            {
+                "VendorName": "AWS",
+                "Name": "AWSManagedRulesWordPressRuleSet",
+                "Description": (
+                    "Contains rules that block request patterns"
+                    " associated with WordPress."
+                ),
+            },
+            {
+                "VendorName": "AWS",
+                "Name": "AWSManagedRulesAmazonIpReputationList",
+                "Description": (
+                    "This group contains rules that are based on"
+                    " Amazon internal threat intelligence."
+                ),
+            },
+            {
+                "VendorName": "AWS",
+                "Name": "AWSManagedRulesAnonymousIpList",
+                "Description": (
+                    "This group contains rules to block requests from services"
+                    " that allow obfuscation of viewer identity."
+                ),
+            },
+            {
+                "VendorName": "AWS",
+                "Name": "AWSManagedRulesBotControlRuleSet",
+                "Description": "Contains rules for managing bot traffic.",
+            },
+            {
+                "VendorName": "AWS",
+                "Name": "AWSManagedRulesATPRuleSet",
+                "Description": (
+                    "Contains rules for managing account takeover prevention."
+                ),
+            },
+        ]
+
+    def list_available_managed_rule_group_versions(
+        self, vendor_name: str, name: str, scope: str
+    ) -> list[dict[str, Any]]:
+        """Return a static list of versions for a managed rule group."""
+        return [
+            {
+                "Name": "Version_1.0",
+                "LastUpdateTimestamp": "2021-03-01T00:00:00Z",
+            },
+            {
+                "Name": "Version_1.1",
+                "LastUpdateTimestamp": "2021-06-01T00:00:00Z",
+            },
+            {
+                "Name": "Version_2.0",
+                "LastUpdateTimestamp": "2022-01-01T00:00:00Z",
+            },
+        ]
+
 
 wafv2_backends = BackendDict(WAFV2Backend, "wafv2", additional_regions=PARTITION_NAMES)
