@@ -102,3 +102,75 @@ class DataPipelineResponse(BaseResponse):
         pipeline_id = self._get_param("pipelineId")
         self.datapipeline_backend.activate_pipeline(pipeline_id)
         return json.dumps({})
+
+    def deactivate_pipeline(self) -> str:
+        pipeline_id = self._get_param("pipelineId")
+        self.datapipeline_backend.deactivate_pipeline(pipeline_id)
+        return json.dumps({})
+
+    def add_tags(self) -> str:
+        pipeline_id = self._get_param("pipelineId")
+        tags = self._get_param("tags", [])
+        self.datapipeline_backend.add_tags(pipeline_id, tags)
+        return json.dumps({})
+
+    def remove_tags(self) -> str:
+        pipeline_id = self._get_param("pipelineId")
+        tag_keys = self._get_param("tagKeys", [])
+        self.datapipeline_backend.remove_tags(pipeline_id, tag_keys)
+        return json.dumps({})
+
+    def validate_pipeline_definition(self) -> str:
+        pipeline_id = self._get_param("pipelineId")
+        pipeline_objects = self._get_param("pipelineObjects")
+        result = self.datapipeline_backend.validate_pipeline_definition(
+            pipeline_id, pipeline_objects
+        )
+        return json.dumps(result)
+
+    def query_objects(self) -> str:
+        pipeline_id = self._get_param("pipelineId")
+        sphere = self._get_param("sphere")
+        ids = self.datapipeline_backend.query_objects(pipeline_id, sphere)
+        return json.dumps(
+            {"hasMoreResults": False, "ids": ids, "marker": None}
+        )
+
+    def evaluate_expression(self) -> str:
+        pipeline_id = self._get_param("pipelineId")
+        object_id = self._get_param("objectId")
+        expression = self._get_param("expression")
+        result = self.datapipeline_backend.evaluate_expression(
+            pipeline_id, object_id, expression
+        )
+        return json.dumps({"evaluatedExpression": result})
+
+    def set_status(self) -> str:
+        pipeline_id = self._get_param("pipelineId")
+        object_ids = self._get_param("objectIds", [])
+        status = self._get_param("status")
+        self.datapipeline_backend.set_status(pipeline_id, object_ids, status)
+        return json.dumps({})
+
+    def set_task_status(self) -> str:
+        task_id = self._get_param("taskId")
+        task_status = self._get_param("taskStatus")
+        self.datapipeline_backend.set_task_status(task_id, task_status)
+        return json.dumps({})
+
+    def report_task_progress(self) -> str:
+        task_id = self._get_param("taskId")
+        canceled = self.datapipeline_backend.report_task_progress(task_id)
+        return json.dumps({"canceled": canceled})
+
+    def report_task_runner_heartbeat(self) -> str:
+        taskrunner_id = self._get_param("taskrunnerId")
+        terminate = self.datapipeline_backend.report_task_runner_heartbeat(
+            taskrunner_id
+        )
+        return json.dumps({"terminate": terminate})
+
+    def poll_for_task(self) -> str:
+        worker_group = self._get_param("workerGroup")
+        task_object = self.datapipeline_backend.poll_for_task(worker_group)
+        return json.dumps({"taskObject": task_object})
