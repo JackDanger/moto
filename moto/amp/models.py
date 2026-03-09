@@ -145,10 +145,7 @@ class AnomalyDetector(BaseModel):
         self.alias = alias or ""
         self.arn = f"arn:{get_partition(region)}:aps:{region}:{account_id}:workspace/{workspace_id}/anomalydetector/{self.anomaly_detector_id}"
         self.evaluation_interval_in_seconds = evaluation_interval_in_seconds or 300
-        self.missing_data_action = missing_data_action or {
-            "markAsAnomaly": False,
-            "skip": True,
-        }
+        self.missing_data_action = missing_data_action or {"skip": {}}
         self.configuration = configuration or {}
         self.labels = labels or {}
         self.tags = tags or {}
