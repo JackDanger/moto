@@ -189,10 +189,151 @@ class CloudTrailResponse(BaseResponse):
 
     def get_insight_selectors(self) -> str:
         trail_name = self._get_param("TrailName")
+        # Support both trail-based and event-data-store-based insight selectors
+        event_data_store = self._get_param("EventDataStore")
+        if event_data_store:
+            eds_arn, insight_selectors = (
+                self.cloudtrail_backend.get_insight_selectors_for_event_data_store(
+                    event_data_store=event_data_store
+                )
+            )
+            resp: dict[str, Any] = {"EventDataStoreArn": eds_arn}
+            if insight_selectors:
+                resp["InsightSelectors"] = insight_selectors
+            return json.dumps(resp)
+
         trail_arn, insight_selectors = self.cloudtrail_backend.get_insight_selectors(
             trail_name=trail_name
         )
-        resp: dict[str, Any] = {"TrailARN": trail_arn}
+        resp = {"TrailARN": trail_arn}
         if insight_selectors:
             resp["InsightSelectors"] = insight_selectors
         return json.dumps(resp)
+
+    # Event Data Store operations
+
+    def create_event_data_store(self) -> str:
+        name = self._get_param("Name")
+        advanced_event_selectors = self._get_param("AdvancedEventSelectors")
+        multi_region_enabled = self._get_bool_param("MultiRegionEnabled", True)
+        organization_enabled = self._get_bool_param("OrganizationEnabled", False)
+        retention_period = self._get_int_param("RetentionPeriod", 2557)
+        termination_protection_enabled = self._get_bool_param(
+            "TerminationProtectionEnabled", True
+        )
+        kms_key_id = self._get_param("KmsKeyId")
+        billing_mode = self._get_param("BillingMode") or "EXTENDABLE_RETENTION_PRICING"
+        tags_list = self._get_param("TagsList", [])
+        eds = self.cloudtrail_backend.create_event_data_store(
+            name=name,
+            advanced_event_selectors=advanced_event_selectors,
+            multi_region_enabled=multi_region_enabled,
+            organization_enabled=organization_enabled,
+            retention_period=retention_period,
+            termination_protection_enabled=termination_protection_enabled,
+            kms_key_id=kms_key_id,
+            billing_mode=billing_mode,
+            tags_list=tags_list,
+        )
+        return json.dumps(eds.description())
+
+    def get_event_data_store(self) -> str:
+        event_data_store = self._get_param("EventDataStore")
+        eds = self.cloudtrail_backend.get_event_data_store(event_data_store)
+        return json.dumps(eds.description())
+
+    def list_event_data_stores(self) -> str:
+        stores = self.cloudtrail_backend.list_event_data_stores()
+        return json.dumps(
+            {"EventDataStores": [eds.description() for eds in stores]}
+        )
+
+    # Channel operations
+
+    def create_channel(self) -> str:
+        name = self._get_param("Name")
+        source = self._get_param("Source")
+        destinations = self._get_param("Destinations")
+        tags_list = self._get_param("Tags", [])
+        channel = self.cloudtrail_backend.create_channel(
+            name=name,
+            source=source,
+            destinations=destinations,
+            tags_list=tags_list,
+        )
+        return json.dumps(channel.description())
+
+    def get_channel(self) -> str:
+        channel_arn = self._get_param("Channel")
+        channel = self.cloudtrail_backend.get_channel(channel_arn)
+        return json.dumps(channel.description())
+
+    def list_channels(self) -> str:
+        channels = self.cloudtrail_backend.list_channels()
+        return json.dumps(
+            {"Channels": [{"ChannelArn": ch.arn, "Name": ch.name} for ch in channels]}
+        )
+
+    # Query operations
+
+    def start_query(self) -> str:
+        query_statement = self._get_param("QueryStatement")
+        event_data_store_arn = self._get_param("EventDataStoreArn")
+        query = self.cloudtrail_backend.start_query(
+            query_statement=query_statement,
+            event_data_store_arn=event_data_store_arn,
+        )
+        return json.dumps({"QueryId": query.query_id})
+
+    def describe_query(self) -> str:
+        query_id = self._get_param("QueryId")
+        query = self.cloudtrail_backend.describe_query(query_id)
+        return json.dumps(query.description())
+
+    def get_query_results(self) -> str:
+        query_id = self._get_param("QueryId")
+        query_status, query_results, query_statistics = (
+            self.cloudtrail_backend.get_query_results(query_id)
+        )
+        resp: dict[str, Any] = {
+            "QueryStatus": query_status,
+            "QueryStatistics": {
+                "ResultsCount": len(query_results),
+                "TotalResultsCount": len(query_results),
+                "BytesScanned": query_statistics.get("BytesScanned", 0),
+            },
+            "QueryResultRows": query_results,
+        }
+        return json.dumps(resp)
+
+    # Resource Policy operations
+
+    def put_resource_policy(self) -> str:
+        resource_arn = self._get_param("ResourceArn")
+        resource_policy = self._get_param("ResourcePolicy")
+        arn, policy = self.cloudtrail_backend.put_resource_policy(
+            resource_arn=resource_arn,
+            resource_policy=resource_policy,
+        )
+        return json.dumps({"ResourceArn": arn, "ResourcePolicy": policy})
+
+    def get_resource_policy(self) -> str:
+        resource_arn = self._get_param("ResourceArn")
+        arn, policy = self.cloudtrail_backend.get_resource_policy(
+            resource_arn=resource_arn
+        )
+        return json.dumps({"ResourceArn": arn, "ResourcePolicy": policy})
+
+    # Dashboard operations
+
+    def get_dashboard(self) -> str:
+        dashboard_id = self._get_param("DashboardId")
+        dashboard = self.cloudtrail_backend.get_dashboard(dashboard_id)
+        return json.dumps(dashboard)
+
+    # Event Configuration operations
+
+    def get_event_configuration(self) -> str:
+        config = self.cloudtrail_backend.get_event_configuration()
+        return json.dumps(config)
+

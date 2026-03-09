@@ -1,3 +1,4 @@
+import json
 import uuid
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -17,15 +18,88 @@ from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import PARTITION_NAMES, get_partition
 
 from .exceptions import (
+    AccessGrantNotFound,
+    AccessGrantsInstanceNotFound,
+    AccessGrantsLocationNotFound,
     AccessPointNotFound,
     AccessPointPolicyNotFound,
     InvalidRequestException,
+    JobNotFound,
     MultiRegionAccessPointNotFound,
     MultiRegionAccessPointOperationNotFound,
     MultiRegionAccessPointPolicyNotFound,
     NoSuchPublicAccessBlockConfiguration,
     StorageLensConfigurationNotFound,
 )
+
+class AccessGrantsInstance(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        identity_center_arn: Optional[str] = None,
+    ):
+        self.instance_id = mock_random.get_random_hex(16)
+        self.instance_arn = f"arn:{get_partition(region_name)}:s3:{region_name}:{account_id}:access-grants/default"
+        self.created_at = datetime.now(timezone.utc)
+        self.identity_center_arn = identity_center_arn or ""
+
+
+class AccessGrantsLocation(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        location_scope: str,
+        iam_role_arn: str,
+    ):
+        self.location_id = f"default-{mock_random.get_random_hex(16)}"
+        self.location_scope = location_scope
+        self.iam_role_arn = iam_role_arn
+        self.location_arn = f"arn:{get_partition(region_name)}:s3:{region_name}:{account_id}:access-grants/default/location/{self.location_id}"
+        self.created_at = datetime.now(timezone.utc)
+
+
+class AccessGrant(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        location_id: str,
+        grantee: dict[str, Any],
+        permission: str,
+        location_scope: str,
+        application_arn: Optional[str] = None,
+    ):
+        self.grant_id = mock_random.get_random_hex(16)
+        self.grant_arn = f"arn:{get_partition(region_name)}:s3:{region_name}:{account_id}:access-grants/default/grant/{self.grant_id}"
+        self.created_at = datetime.now(timezone.utc)
+        self.location_id = location_id
+        self.grantee = grantee
+        self.permission = permission
+        self.location_scope = location_scope
+        self.application_arn = application_arn or ""
+
+
+class S3Job(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+    ):
+        self.job_id = str(uuid.uuid4())
+        self.status = "Complete"
+        self.created_at = datetime.now(timezone.utc)
+        self.account_id = account_id
+        self.region_name = region_name
+        self.description = ""
+        self.operation = {}
+        self.priority = 0
+        self.progress = {"NumberOfTasksSucceeded": 0, "NumberOfTasksFailed": 0, "TotalNumberOfTasks": 0}
+        self.termination_date = None
+        self.role_arn = ""
+        self.manifest = {}
+
 
 PAGINATION_MODEL = {
     "list_storage_lens_configurations": {
@@ -44,6 +118,30 @@ PAGINATION_MODEL = {
         "limit_key": "max_results",
         "limit_default": 100,
         "unique_attribute": "name",
+    },
+    "list_access_grants": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "grant_id",
+    },
+    "list_access_grants_instances": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "instance_id",
+    },
+    "list_access_grants_locations": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "location_id",
+    },
+    "list_jobs": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 1000,
+        "unique_attribute": "job_id",
     },
 }
 
@@ -213,6 +311,11 @@ class S3ControlBackend(BaseBackend):
         )
         self.storage_lens_configs: dict[str, StorageLensConfiguration] = {}
         self.tagger = TaggingService()
+        self.access_grants_instances: dict[str, AccessGrantsInstance] = {}
+        self.access_grants_locations: dict[str, AccessGrantsLocation] = {}
+        self.access_grants: dict[str, AccessGrant] = {}
+        self.jobs: dict[str, S3Job] = {}
+        self.resource_policy: Optional[str] = None
 
     def get_public_access_block(self, account_id: str) -> PublicAccessBlock:
         if account_id != self.account_id:
@@ -540,6 +643,218 @@ class S3ControlBackend(BaseBackend):
     def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         backend: S3Backend = s3_backends[self.account_id][self.partition]
         backend.tagger.untag_resource_using_names(resource_arn, tag_names=tag_keys)
+
+    # Access Grants Instance operations
+
+    def create_access_grants_instance(
+        self,
+        account_id: str,
+        identity_center_arn: Optional[str] = None,
+    ) -> AccessGrantsInstance:
+        instance = AccessGrantsInstance(
+            account_id=account_id,
+            region_name=self.region_name,
+            identity_center_arn=identity_center_arn,
+        )
+        self.access_grants_instances[account_id] = instance
+        return instance
+
+    def get_access_grants_instance(
+        self,
+        account_id: str,
+    ) -> AccessGrantsInstance:
+        if account_id not in self.access_grants_instances:
+            raise AccessGrantsInstanceNotFound()
+        return self.access_grants_instances[account_id]
+
+    def get_access_grants_instance_for_prefix(
+        self,
+        account_id: str,
+        s3_prefix: str,
+    ) -> AccessGrantsInstance:
+        if account_id not in self.access_grants_instances:
+            raise AccessGrantsInstanceNotFound()
+        return self.access_grants_instances[account_id]
+
+    def get_access_grants_instance_resource_policy(
+        self,
+        account_id: str,
+    ) -> str:
+        if account_id not in self.access_grants_instances:
+            raise AccessGrantsInstanceNotFound()
+        return self.resource_policy or ""
+
+    def put_access_grants_instance_resource_policy(
+        self,
+        account_id: str,
+        policy: str,
+    ) -> str:
+        if account_id not in self.access_grants_instances:
+            raise AccessGrantsInstanceNotFound()
+        self.resource_policy = policy
+        return policy
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_access_grants_instances(
+        self,
+        account_id: str,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> list[AccessGrantsInstance]:
+        return list(self.access_grants_instances.values())
+
+    # Access Grants Location operations
+
+    def create_access_grants_location(
+        self,
+        account_id: str,
+        location_scope: str,
+        iam_role_arn: str,
+    ) -> AccessGrantsLocation:
+        location = AccessGrantsLocation(
+            account_id=account_id,
+            region_name=self.region_name,
+            location_scope=location_scope,
+            iam_role_arn=iam_role_arn,
+        )
+        self.access_grants_locations[location.location_id] = location
+        return location
+
+    def get_access_grants_location(
+        self,
+        location_id: str,
+    ) -> AccessGrantsLocation:
+        if location_id not in self.access_grants_locations:
+            raise AccessGrantsLocationNotFound(location_id)
+        return self.access_grants_locations[location_id]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_access_grants_locations(
+        self,
+        account_id: str,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> list[AccessGrantsLocation]:
+        return list(self.access_grants_locations.values())
+
+    # Access Grant operations
+
+    def create_access_grant(
+        self,
+        account_id: str,
+        location_id: str,
+        grantee: dict[str, Any],
+        permission: str,
+        location_scope: str,
+        application_arn: Optional[str] = None,
+    ) -> AccessGrant:
+        grant = AccessGrant(
+            account_id=account_id,
+            region_name=self.region_name,
+            location_id=location_id,
+            grantee=grantee,
+            permission=permission,
+            location_scope=location_scope,
+            application_arn=application_arn,
+        )
+        self.access_grants[grant.grant_id] = grant
+        return grant
+
+    def get_access_grant(
+        self,
+        grant_id: str,
+    ) -> AccessGrant:
+        if grant_id not in self.access_grants:
+            raise AccessGrantNotFound(grant_id)
+        return self.access_grants[grant_id]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_access_grants(
+        self,
+        account_id: str,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> list[AccessGrant]:
+        return list(self.access_grants.values())
+
+    # S3 Batch Operations (Jobs)
+
+    def describe_job(
+        self,
+        account_id: str,
+        job_id: str,
+    ) -> S3Job:
+        if job_id not in self.jobs:
+            raise JobNotFound(job_id)
+        return self.jobs[job_id]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_jobs(
+        self,
+        account_id: str,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> list[S3Job]:
+        return list(self.jobs.values())
+
+    # Bucket-level operations (delegating to S3 backend)
+
+    def get_bucket_lifecycle_configuration(
+        self,
+        account_id: str,
+        bucket: str,
+    ) -> Optional[list[dict[str, Any]]]:
+        backend: S3Backend = s3_backends[self.account_id][self.partition]
+        bucket_obj = backend.get_bucket(bucket)
+        rules = []
+        if hasattr(bucket_obj, "rules") and bucket_obj.rules:
+            for rule in bucket_obj.rules:
+                rules.append(rule.to_config_dict() if hasattr(rule, "to_config_dict") else {})
+        return rules
+
+    def get_bucket_policy(
+        self,
+        account_id: str,
+        bucket: str,
+    ) -> Optional[str]:
+        backend: S3Backend = s3_backends[self.account_id][self.partition]
+        try:
+            return backend.get_bucket_policy(bucket)
+        except Exception:
+            return None
+
+    def get_bucket_replication(
+        self,
+        account_id: str,
+        bucket: str,
+    ) -> Optional[dict[str, Any]]:
+        backend: S3Backend = s3_backends[self.account_id][self.partition]
+        bucket_obj = backend.get_bucket(bucket)
+        if hasattr(bucket_obj, "replication") and bucket_obj.replication:
+            return bucket_obj.replication
+        return None
+
+    def get_bucket_tagging(
+        self,
+        account_id: str,
+        bucket: str,
+    ) -> list[dict[str, str]]:
+        backend: S3Backend = s3_backends[self.account_id][self.partition]
+        try:
+            return backend.get_bucket_tagging(bucket)
+        except Exception:
+            return []
+
+    def get_bucket_versioning(
+        self,
+        account_id: str,
+        bucket: str,
+    ) -> Optional[str]:
+        backend: S3Backend = s3_backends[self.account_id][self.partition]
+        bucket_obj = backend.get_bucket(bucket)
+        if hasattr(bucket_obj, "versioning_status"):
+            return bucket_obj.versioning_status
+        return None
 
 
 s3control_backends = BackendDict(

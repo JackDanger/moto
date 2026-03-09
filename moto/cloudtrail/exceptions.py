@@ -70,3 +70,43 @@ class TrailNameInvalidChars(InvalidTrailNameException):
         super().__init__(
             "Trail name or ARN can only contain uppercase letters, lowercase letters, numbers, periods (.), hyphens (-), and underscores (_)."
         )
+
+
+class EventDataStoreNotFoundException(JsonRESTError):
+    code = 400
+
+    def __init__(self, arn: str):
+        super().__init__(
+            "EventDataStoreNotFoundException",
+            f"The event data store {arn} was not found.",
+        )
+
+
+class ChannelNotFoundException(JsonRESTError):
+    code = 400
+
+    def __init__(self, arn: str):
+        super().__init__(
+            "ChannelNotFoundException",
+            f"The channel {arn} was not found.",
+        )
+
+
+class ResourceNotFoundException(JsonRESTError):
+    code = 400
+
+    def __init__(self, resource_arn: str):
+        super().__init__(
+            "ResourceNotFoundException",
+            f"The resource with ARN {resource_arn} was not found.",
+        )
+
+
+class QueryIdNotFoundException(JsonRESTError):
+    code = 400
+
+    def __init__(self, query_id: str):
+        super().__init__(
+            "QueryIdNotFoundException",
+            f"The query ID {query_id} was not found.",
+        )

@@ -376,6 +376,207 @@ class S3ControlResponse(BaseResponse):
         self.backend.untag_resource(resource_arn, tag_keys=tag_keys)
         return EmptyResult()
 
+    # Access Grants Instance operations
+
+    def create_access_grants_instance(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        params = xmltodict.parse(self.body) if self.body else {}
+        identity_center_arn = None
+        if "CreateAccessGrantsInstanceRequest" in params:
+            identity_center_arn = params["CreateAccessGrantsInstanceRequest"].get(
+                "IdentityCenterArn"
+            )
+        instance = self.backend.create_access_grants_instance(
+            account_id=account_id,
+            identity_center_arn=identity_center_arn,
+        )
+        template = self.response_template(CREATE_ACCESS_GRANTS_INSTANCE_TEMPLATE)
+        return template.render(instance=instance)
+
+    def get_access_grants_instance(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        instance = self.backend.get_access_grants_instance(account_id=account_id)
+        template = self.response_template(GET_ACCESS_GRANTS_INSTANCE_TEMPLATE)
+        return template.render(instance=instance)
+
+    def get_access_grants_instance_for_prefix(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        s3_prefix = self._get_params().get("s3prefix", "")
+        instance = self.backend.get_access_grants_instance_for_prefix(
+            account_id=account_id,
+            s3_prefix=s3_prefix,
+        )
+        template = self.response_template(GET_ACCESS_GRANTS_INSTANCE_FOR_PREFIX_TEMPLATE)
+        return template.render(instance=instance)
+
+    def get_access_grants_instance_resource_policy(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        policy = self.backend.get_access_grants_instance_resource_policy(
+            account_id=account_id,
+        )
+        template = self.response_template(
+            GET_ACCESS_GRANTS_INSTANCE_RESOURCE_POLICY_TEMPLATE
+        )
+        return template.render(policy=policy)
+
+    def list_access_grants_instances(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        params = self._get_params()
+        max_results = params.get("maxResults")
+        if max_results:
+            max_results = int(max_results)
+        instances, next_token = self.backend.list_access_grants_instances(
+            account_id=account_id,
+            max_results=max_results,
+            next_token=params.get("nextToken"),
+        )
+        template = self.response_template(LIST_ACCESS_GRANTS_INSTANCES_TEMPLATE)
+        return template.render(instances=instances, next_token=next_token)
+
+    # Access Grants Location operations
+
+    def create_access_grants_location(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        params = xmltodict.parse(self.body)["CreateAccessGrantsLocationRequest"]
+        location_scope = params.get("LocationScope", "")
+        iam_role_arn = params.get("IAMRoleArn", "")
+        location = self.backend.create_access_grants_location(
+            account_id=account_id,
+            location_scope=location_scope,
+            iam_role_arn=iam_role_arn,
+        )
+        template = self.response_template(CREATE_ACCESS_GRANTS_LOCATION_TEMPLATE)
+        return template.render(location=location)
+
+    def get_access_grants_location(self) -> str:
+        location_id = self.path.split("/")[-1]
+        location = self.backend.get_access_grants_location(location_id=location_id)
+        template = self.response_template(GET_ACCESS_GRANTS_LOCATION_TEMPLATE)
+        return template.render(location=location)
+
+    def list_access_grants_locations(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        params = self._get_params()
+        max_results = params.get("maxResults")
+        if max_results:
+            max_results = int(max_results)
+        locations, next_token = self.backend.list_access_grants_locations(
+            account_id=account_id,
+            max_results=max_results,
+            next_token=params.get("nextToken"),
+        )
+        template = self.response_template(LIST_ACCESS_GRANTS_LOCATIONS_TEMPLATE)
+        return template.render(locations=locations, next_token=next_token)
+
+    # Access Grant operations
+
+    def create_access_grant(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        params = xmltodict.parse(self.body)["CreateAccessGrantRequest"]
+        location_id = params.get("AccessGrantsLocationId", "")
+        grantee = params.get("Grantee", {})
+        permission = params.get("Permission", "")
+        location_scope = params.get("AccessGrantsLocationConfiguration", {}).get(
+            "S3SubPrefix", ""
+        )
+        application_arn = params.get("ApplicationArn")
+        grant = self.backend.create_access_grant(
+            account_id=account_id,
+            location_id=location_id,
+            grantee=grantee,
+            permission=permission,
+            location_scope=location_scope,
+            application_arn=application_arn,
+        )
+        template = self.response_template(CREATE_ACCESS_GRANT_TEMPLATE)
+        return template.render(grant=grant)
+
+    def get_access_grant(self) -> str:
+        grant_id = self.path.split("/")[-1]
+        grant = self.backend.get_access_grant(grant_id=grant_id)
+        template = self.response_template(GET_ACCESS_GRANT_TEMPLATE)
+        return template.render(grant=grant)
+
+    def list_access_grants(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        params = self._get_params()
+        max_results = params.get("maxResults")
+        if max_results:
+            max_results = int(max_results)
+        grants, next_token = self.backend.list_access_grants(
+            account_id=account_id,
+            max_results=max_results,
+            next_token=params.get("nextToken"),
+        )
+        template = self.response_template(LIST_ACCESS_GRANTS_TEMPLATE)
+        return template.render(grants=grants, next_token=next_token)
+
+    # S3 Batch Operations (Jobs)
+
+    def describe_job(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        job_id = self.path.split("/")[-1]
+        job = self.backend.describe_job(account_id=account_id, job_id=job_id)
+        template = self.response_template(DESCRIBE_JOB_TEMPLATE)
+        return template.render(job=job)
+
+    def list_jobs(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        params = self._get_params()
+        max_results = params.get("maxResults")
+        if max_results:
+            max_results = int(max_results)
+        jobs, next_token = self.backend.list_jobs(
+            account_id=account_id,
+            max_results=max_results,
+            next_token=params.get("nextToken"),
+        )
+        template = self.response_template(LIST_JOBS_TEMPLATE)
+        return template.render(jobs=jobs, next_token=next_token)
+
+    # Bucket-level operations
+
+    def get_bucket_lifecycle_configuration(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        bucket = self.path.split("/")[-2]
+        rules = self.backend.get_bucket_lifecycle_configuration(
+            account_id=account_id, bucket=bucket
+        )
+        template = self.response_template(GET_BUCKET_LIFECYCLE_CONFIGURATION_TEMPLATE)
+        return template.render(rules=rules or [])
+
+    def get_bucket_policy(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        bucket = self.path.split("/")[-2]
+        policy = self.backend.get_bucket_policy(account_id=account_id, bucket=bucket)
+        template = self.response_template(GET_BUCKET_POLICY_TEMPLATE)
+        return template.render(policy=policy or "")
+
+    def get_bucket_replication(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        bucket = self.path.split("/")[-2]
+        replication = self.backend.get_bucket_replication(
+            account_id=account_id, bucket=bucket
+        )
+        template = self.response_template(GET_BUCKET_REPLICATION_TEMPLATE)
+        return template.render(replication=replication)
+
+    def get_bucket_tagging(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        bucket = self.path.split("/")[-2]
+        tags = self.backend.get_bucket_tagging(account_id=account_id, bucket=bucket)
+        template = self.response_template(GET_BUCKET_TAGGING_TEMPLATE)
+        return template.render(tags=tags)
+
+    def get_bucket_versioning(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        bucket = self.path.split("/")[-2]
+        status = self.backend.get_bucket_versioning(
+            account_id=account_id, bucket=bucket
+        )
+        template = self.response_template(GET_BUCKET_VERSIONING_TEMPLATE)
+        return template.render(status=status or "")
+
 
 CREATE_ACCESS_POINT_TEMPLATE = """<CreateAccessPointResult>
   <ResponseMetadata>
@@ -717,3 +918,216 @@ LIST_ACCESS_POINTS_TEMPLATE = """<ListAccessPointsResult>
   <NextToken>{{ next_token }}</NextToken>
   {% endif %}
 </ListAccessPointsResult>"""
+
+# Access Grants Instance templates
+
+CREATE_ACCESS_GRANTS_INSTANCE_TEMPLATE = f"""<CreateAccessGrantsInstanceResult {XMLNS}>
+  <AccessGrantsInstanceId>{{{{ instance.instance_id }}}}</AccessGrantsInstanceId>
+  <AccessGrantsInstanceArn>{{{{ instance.instance_arn }}}}</AccessGrantsInstanceArn>
+  <CreatedAt>{{{{ instance.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ") }}}}</CreatedAt>
+  {{% if instance.identity_center_arn %}}
+  <IdentityCenterArn>{{{{ instance.identity_center_arn }}}}</IdentityCenterArn>
+  {{% endif %}}
+</CreateAccessGrantsInstanceResult>
+"""
+
+GET_ACCESS_GRANTS_INSTANCE_TEMPLATE = f"""<GetAccessGrantsInstanceResult {XMLNS}>
+  <AccessGrantsInstanceId>{{{{ instance.instance_id }}}}</AccessGrantsInstanceId>
+  <AccessGrantsInstanceArn>{{{{ instance.instance_arn }}}}</AccessGrantsInstanceArn>
+  <CreatedAt>{{{{ instance.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ") }}}}</CreatedAt>
+  {{% if instance.identity_center_arn %}}
+  <IdentityCenterArn>{{{{ instance.identity_center_arn }}}}</IdentityCenterArn>
+  {{% endif %}}
+</GetAccessGrantsInstanceResult>
+"""
+
+GET_ACCESS_GRANTS_INSTANCE_FOR_PREFIX_TEMPLATE = f"""<GetAccessGrantsInstanceForPrefixResult {XMLNS}>
+  <AccessGrantsInstanceId>{{{{ instance.instance_id }}}}</AccessGrantsInstanceId>
+  <AccessGrantsInstanceArn>{{{{ instance.instance_arn }}}}</AccessGrantsInstanceArn>
+</GetAccessGrantsInstanceForPrefixResult>
+"""
+
+GET_ACCESS_GRANTS_INSTANCE_RESOURCE_POLICY_TEMPLATE = f"""<GetAccessGrantsInstanceResourcePolicyResult {XMLNS}>
+  <Policy>{{{{ policy }}}}</Policy>
+</GetAccessGrantsInstanceResourcePolicyResult>
+"""
+
+LIST_ACCESS_GRANTS_INSTANCES_TEMPLATE = f"""<ListAccessGrantsInstancesResult {XMLNS}>
+  <AccessGrantsInstancesList>
+    {{% for instance in instances %}}
+    <AccessGrantsInstance>
+      <AccessGrantsInstanceId>{{{{ instance.instance_id }}}}</AccessGrantsInstanceId>
+      <AccessGrantsInstanceArn>{{{{ instance.instance_arn }}}}</AccessGrantsInstanceArn>
+      <CreatedAt>{{{{ instance.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ") }}}}</CreatedAt>
+    </AccessGrantsInstance>
+    {{% endfor %}}
+  </AccessGrantsInstancesList>
+  {{% if next_token %}}
+  <NextToken>{{{{ next_token }}}}</NextToken>
+  {{% endif %}}
+</ListAccessGrantsInstancesResult>
+"""
+
+# Access Grants Location templates
+
+CREATE_ACCESS_GRANTS_LOCATION_TEMPLATE = f"""<CreateAccessGrantsLocationResult {XMLNS}>
+  <AccessGrantsLocationId>{{{{ location.location_id }}}}</AccessGrantsLocationId>
+  <AccessGrantsLocationArn>{{{{ location.location_arn }}}}</AccessGrantsLocationArn>
+  <LocationScope>{{{{ location.location_scope }}}}</LocationScope>
+  <IAMRoleArn>{{{{ location.iam_role_arn }}}}</IAMRoleArn>
+  <CreatedAt>{{{{ location.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ") }}}}</CreatedAt>
+</CreateAccessGrantsLocationResult>
+"""
+
+GET_ACCESS_GRANTS_LOCATION_TEMPLATE = f"""<GetAccessGrantsLocationResult {XMLNS}>
+  <AccessGrantsLocationId>{{{{ location.location_id }}}}</AccessGrantsLocationId>
+  <AccessGrantsLocationArn>{{{{ location.location_arn }}}}</AccessGrantsLocationArn>
+  <LocationScope>{{{{ location.location_scope }}}}</LocationScope>
+  <IAMRoleArn>{{{{ location.iam_role_arn }}}}</IAMRoleArn>
+  <CreatedAt>{{{{ location.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ") }}}}</CreatedAt>
+</GetAccessGrantsLocationResult>
+"""
+
+LIST_ACCESS_GRANTS_LOCATIONS_TEMPLATE = f"""<ListAccessGrantsLocationsResult {XMLNS}>
+  <AccessGrantsLocationsList>
+    {{% for location in locations %}}
+    <AccessGrantsLocation>
+      <AccessGrantsLocationId>{{{{ location.location_id }}}}</AccessGrantsLocationId>
+      <AccessGrantsLocationArn>{{{{ location.location_arn }}}}</AccessGrantsLocationArn>
+      <LocationScope>{{{{ location.location_scope }}}}</LocationScope>
+      <IAMRoleArn>{{{{ location.iam_role_arn }}}}</IAMRoleArn>
+      <CreatedAt>{{{{ location.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ") }}}}</CreatedAt>
+    </AccessGrantsLocation>
+    {{% endfor %}}
+  </AccessGrantsLocationsList>
+  {{% if next_token %}}
+  <NextToken>{{{{ next_token }}}}</NextToken>
+  {{% endif %}}
+</ListAccessGrantsLocationsResult>
+"""
+
+# Access Grant templates
+
+CREATE_ACCESS_GRANT_TEMPLATE = f"""<CreateAccessGrantResult {XMLNS}>
+  <AccessGrantId>{{{{ grant.grant_id }}}}</AccessGrantId>
+  <AccessGrantArn>{{{{ grant.grant_arn }}}}</AccessGrantArn>
+  <AccessGrantsLocationId>{{{{ grant.location_id }}}}</AccessGrantsLocationId>
+  <Permission>{{{{ grant.permission }}}}</Permission>
+  <CreatedAt>{{{{ grant.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ") }}}}</CreatedAt>
+  <Grantee>
+    {{% if grant.grantee.get("GranteeType") %}}<GranteeType>{{{{ grant.grantee["GranteeType"] }}}}</GranteeType>{{% endif %}}
+    {{% if grant.grantee.get("GranteeIdentifier") %}}<GranteeIdentifier>{{{{ grant.grantee["GranteeIdentifier"] }}}}</GranteeIdentifier>{{% endif %}}
+  </Grantee>
+</CreateAccessGrantResult>
+"""
+
+GET_ACCESS_GRANT_TEMPLATE = f"""<GetAccessGrantResult {XMLNS}>
+  <AccessGrantId>{{{{ grant.grant_id }}}}</AccessGrantId>
+  <AccessGrantArn>{{{{ grant.grant_arn }}}}</AccessGrantArn>
+  <AccessGrantsLocationId>{{{{ grant.location_id }}}}</AccessGrantsLocationId>
+  <Permission>{{{{ grant.permission }}}}</Permission>
+  <CreatedAt>{{{{ grant.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ") }}}}</CreatedAt>
+  <Grantee>
+    {{% if grant.grantee.get("GranteeType") %}}<GranteeType>{{{{ grant.grantee["GranteeType"] }}}}</GranteeType>{{% endif %}}
+    {{% if grant.grantee.get("GranteeIdentifier") %}}<GranteeIdentifier>{{{{ grant.grantee["GranteeIdentifier"] }}}}</GranteeIdentifier>{{% endif %}}
+  </Grantee>
+  <AccessGrantsLocationConfiguration>
+    <S3SubPrefix>{{{{ grant.location_scope }}}}</S3SubPrefix>
+  </AccessGrantsLocationConfiguration>
+</GetAccessGrantResult>
+"""
+
+LIST_ACCESS_GRANTS_TEMPLATE = f"""<ListAccessGrantsResult {XMLNS}>
+  <AccessGrantsList>
+    {{% for grant in grants %}}
+    <AccessGrant>
+      <AccessGrantId>{{{{ grant.grant_id }}}}</AccessGrantId>
+      <AccessGrantArn>{{{{ grant.grant_arn }}}}</AccessGrantArn>
+      <AccessGrantsLocationId>{{{{ grant.location_id }}}}</AccessGrantsLocationId>
+      <Permission>{{{{ grant.permission }}}}</Permission>
+      <CreatedAt>{{{{ grant.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ") }}}}</CreatedAt>
+    </AccessGrant>
+    {{% endfor %}}
+  </AccessGrantsList>
+  {{% if next_token %}}
+  <NextToken>{{{{ next_token }}}}</NextToken>
+  {{% endif %}}
+</ListAccessGrantsResult>
+"""
+
+# S3 Batch Operations (Jobs) templates
+
+DESCRIBE_JOB_TEMPLATE = f"""<DescribeJobResult {XMLNS}>
+  <Job>
+    <JobId>{{{{ job.job_id }}}}</JobId>
+    <Status>{{{{ job.status }}}}</Status>
+    <Description>{{{{ job.description }}}}</Description>
+    <Priority>{{{{ job.priority }}}}</Priority>
+    <RoleArn>{{{{ job.role_arn }}}}</RoleArn>
+    <CreationTime>{{{{ job.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ") }}}}</CreationTime>
+    <ProgressSummary>
+      <NumberOfTasksSucceeded>{{{{ job.progress["NumberOfTasksSucceeded"] }}}}</NumberOfTasksSucceeded>
+      <NumberOfTasksFailed>{{{{ job.progress["NumberOfTasksFailed"] }}}}</NumberOfTasksFailed>
+      <TotalNumberOfTasks>{{{{ job.progress["TotalNumberOfTasks"] }}}}</TotalNumberOfTasks>
+    </ProgressSummary>
+  </Job>
+</DescribeJobResult>
+"""
+
+LIST_JOBS_TEMPLATE = f"""<ListJobsResult {XMLNS}>
+  <Jobs>
+    {{% for job in jobs %}}
+    <member>
+      <JobId>{{{{ job.job_id }}}}</JobId>
+      <Status>{{{{ job.status }}}}</Status>
+      <Description>{{{{ job.description }}}}</Description>
+      <Priority>{{{{ job.priority }}}}</Priority>
+      <CreationTime>{{{{ job.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ") }}}}</CreationTime>
+    </member>
+    {{% endfor %}}
+  </Jobs>
+  {{% if next_token %}}
+  <NextToken>{{{{ next_token }}}}</NextToken>
+  {{% endif %}}
+</ListJobsResult>
+"""
+
+# Bucket-level operation templates
+
+GET_BUCKET_LIFECYCLE_CONFIGURATION_TEMPLATE = f"""<GetBucketLifecycleConfigurationResult {XMLNS}>
+  <Rules>
+    {{% for rule in rules %}}
+    <Rule/>
+    {{% endfor %}}
+  </Rules>
+</GetBucketLifecycleConfigurationResult>
+"""
+
+GET_BUCKET_POLICY_TEMPLATE = f"""<GetBucketPolicyResult {XMLNS}>
+  <Policy>{{{{ policy }}}}</Policy>
+</GetBucketPolicyResult>
+"""
+
+GET_BUCKET_REPLICATION_TEMPLATE = f"""<GetBucketReplicationResult {XMLNS}>
+  {{% if replication %}}
+  <ReplicationConfiguration/>
+  {{% endif %}}
+</GetBucketReplicationResult>
+"""
+
+GET_BUCKET_TAGGING_TEMPLATE = f"""<GetBucketTaggingResult {XMLNS}>
+  <TagSet>
+    {{% for tag in tags %}}
+    <Tag>
+      <Key>{{{{ tag.Key }}}}</Key>
+      <Value>{{{{ tag.Value }}}}</Value>
+    </Tag>
+    {{% endfor %}}
+  </TagSet>
+</GetBucketTaggingResult>
+"""
+
+GET_BUCKET_VERSIONING_TEMPLATE = f"""<GetBucketVersioningResult {XMLNS}>
+  <Status>{{{{ status }}}}</Status>
+</GetBucketVersioningResult>
+"""
