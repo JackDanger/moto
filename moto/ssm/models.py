@@ -1263,6 +1263,325 @@ class FakePatchGroup:
         self.default_associations = latest_patch_baselines[self.region_name]
 
 
+class FakeAssociation:
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        partition: str,
+        name: str,
+        instance_id: Optional[str] = None,
+        targets: Optional[list[dict[str, Any]]] = None,
+        parameters: Optional[dict[str, list[str]]] = None,
+        schedule_expression: Optional[str] = None,
+        output_location: Optional[dict[str, Any]] = None,
+        association_name: Optional[str] = None,
+        document_version: Optional[str] = None,
+        max_errors: Optional[str] = None,
+        max_concurrency: Optional[str] = None,
+        compliance_severity: Optional[str] = None,
+        apply_only_at_cron_interval: bool = False,
+    ):
+        self.association_id = str(random.uuid4())
+        self.name = name  # Document name
+        self.instance_id = instance_id
+        self.targets = targets or []
+        self.parameters = parameters or {}
+        self.schedule_expression = schedule_expression
+        self.output_location = output_location
+        self.association_name = association_name
+        self.document_version = document_version or "$DEFAULT"
+        self.max_errors = max_errors
+        self.max_concurrency = max_concurrency
+        self.compliance_severity = compliance_severity or "UNSPECIFIED"
+        self.apply_only_at_cron_interval = apply_only_at_cron_interval
+        self.association_version = "1"
+        now = utcnow()
+        self.date = now
+        self.last_update_association_date = now
+        self.last_execution_date = now
+        self.status = "Success"
+        self.overview = {"Status": "Success", "AssociationStatusAggregatedCount": {"Success": 1}}
+        self.account_id = account_id
+        self.region_name = region_name
+        self.partition = partition
+
+    def to_json(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "AssociationId": self.association_id,
+            "Name": self.name,
+            "AssociationVersion": self.association_version,
+            "DocumentVersion": self.document_version,
+            "Targets": self.targets,
+            "LastExecutionDate": self.last_execution_date.isoformat(),
+            "Overview": self.overview,
+            "ScheduleExpression": self.schedule_expression,
+        }
+        if self.association_name:
+            result["AssociationName"] = self.association_name
+        if self.instance_id:
+            result["InstanceId"] = self.instance_id
+        return result
+
+    def describe(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "AssociationId": self.association_id,
+            "Name": self.name,
+            "AssociationVersion": self.association_version,
+            "DocumentVersion": self.document_version,
+            "Targets": self.targets,
+            "Parameters": self.parameters,
+            "LastExecutionDate": self.last_execution_date.isoformat(),
+            "Date": self.date.isoformat(),
+            "LastUpdateAssociationDate": self.last_update_association_date.isoformat(),
+            "Overview": self.overview,
+            "Status": {
+                "Date": self.date.isoformat(),
+                "Name": self.status,
+                "Message": "Associated with " + self.name,
+                "AdditionalInfo": "",
+            },
+            "ComplianceSeverity": self.compliance_severity,
+            "ApplyOnlyAtCronInterval": self.apply_only_at_cron_interval,
+        }
+        if self.schedule_expression:
+            result["ScheduleExpression"] = self.schedule_expression
+        if self.output_location:
+            result["OutputLocation"] = self.output_location
+        if self.association_name:
+            result["AssociationName"] = self.association_name
+        if self.instance_id:
+            result["InstanceId"] = self.instance_id
+        if self.max_errors:
+            result["MaxErrors"] = self.max_errors
+        if self.max_concurrency:
+            result["MaxConcurrency"] = self.max_concurrency
+        return result
+
+
+class FakeOpsItem:
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        partition: str,
+        title: str,
+        source: str,
+        description: Optional[str] = None,
+        priority: Optional[int] = None,
+        category: Optional[str] = None,
+        severity: Optional[str] = None,
+        operational_data: Optional[dict[str, Any]] = None,
+        notifications: Optional[list[dict[str, Any]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+    ):
+        self.ops_item_id = f"oi-{str(random.uuid4()).replace('-', '')[:12]}"
+        self.title = title
+        self.description = description or ""
+        self.source = source
+        self.status = "Open"
+        self.priority = priority
+        self.category = category
+        self.severity = severity
+        self.operational_data = operational_data or {}
+        self.notifications = notifications or []
+        self.tags = tags or []
+        self.account_id = account_id
+        self.region_name = region_name
+        self.partition = partition
+        now = utcnow()
+        self.created_time = now
+        self.last_modified_time = now
+        self.created_by = f"arn:{partition}:iam::{account_id}:root"
+        self.last_modified_by = self.created_by
+        self.version = "1"
+
+    @property
+    def arn(self) -> str:
+        return f"arn:{self.partition}:ssm:{self.region_name}:{self.account_id}:opsitem/{self.ops_item_id}"
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "OpsItemId": self.ops_item_id,
+            "Title": self.title,
+            "Description": self.description,
+            "Source": self.source,
+            "Status": self.status,
+            "Priority": self.priority,
+            "Category": self.category,
+            "Severity": self.severity,
+            "OperationalData": self.operational_data,
+            "Notifications": self.notifications,
+            "CreatedTime": self.created_time.isoformat(),
+            "LastModifiedTime": self.last_modified_time.isoformat(),
+            "CreatedBy": self.created_by,
+            "LastModifiedBy": self.last_modified_by,
+            "Version": self.version,
+        }
+
+    def summary(self) -> dict[str, Any]:
+        return {
+            "OpsItemId": self.ops_item_id,
+            "Title": self.title,
+            "Source": self.source,
+            "Status": self.status,
+            "Priority": self.priority,
+            "Category": self.category,
+            "Severity": self.severity,
+            "CreatedTime": self.created_time.isoformat(),
+            "LastModifiedTime": self.last_modified_time.isoformat(),
+            "CreatedBy": self.created_by,
+            "LastModifiedBy": self.last_modified_by,
+        }
+
+
+class FakeActivation:
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        partition: str,
+        iam_role: str,
+        description: Optional[str] = None,
+        default_instance_name: Optional[str] = None,
+        registration_limit: int = 1,
+        expiration_date: Optional[str] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+    ):
+        self.activation_id = f"act-{str(random.uuid4()).replace('-', '')[:17]}"
+        self.iam_role = iam_role
+        self.description = description or ""
+        self.default_instance_name = default_instance_name or ""
+        self.registration_limit = registration_limit
+        self.registrations_count = 0
+        self.expired = False
+        self.tags = tags or []
+        self.account_id = account_id
+        self.region_name = region_name
+        self.partition = partition
+        now = utcnow()
+        self.created_date = now
+        if expiration_date:
+            self.expiration_date = expiration_date
+        else:
+            self.expiration_date = (now + datetime.timedelta(hours=24)).isoformat()
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "ActivationId": self.activation_id,
+            "Description": self.description,
+            "DefaultInstanceName": self.default_instance_name,
+            "IamRole": self.iam_role,
+            "RegistrationLimit": self.registration_limit,
+            "RegistrationsCount": self.registrations_count,
+            "ExpirationDate": self.expiration_date,
+            "Expired": self.expired,
+            "CreatedDate": self.created_date.isoformat(),
+            "Tags": self.tags,
+        }
+
+
+class FakeResourceDataSync:
+    def __init__(
+        self,
+        sync_name: str,
+        s3_destination: Optional[dict[str, Any]] = None,
+        sync_type: Optional[str] = None,
+        sync_source: Optional[dict[str, Any]] = None,
+    ):
+        self.sync_name = sync_name
+        self.s3_destination = s3_destination
+        self.sync_type = sync_type or "SyncToDestination"
+        self.sync_source = sync_source
+        now = utcnow()
+        self.sync_created_time = now
+        self.last_sync_time = now
+        self.last_successful_sync_time = now
+        self.sync_last_modified_time = now
+        self.last_status = "Successful"
+
+    def to_json(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "SyncName": self.sync_name,
+            "SyncType": self.sync_type,
+            "SyncCreatedTime": self.sync_created_time.isoformat(),
+            "LastSyncTime": self.last_sync_time.isoformat(),
+            "LastSuccessfulSyncTime": self.last_successful_sync_time.isoformat(),
+            "SyncLastModifiedTime": self.sync_last_modified_time.isoformat(),
+            "LastStatus": self.last_status,
+        }
+        if self.s3_destination:
+            result["S3Destination"] = self.s3_destination
+        if self.sync_source:
+            result["SyncSource"] = self.sync_source
+        return result
+
+
+class FakeAutomationExecution:
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        partition: str,
+        document_name: str,
+        document_version: Optional[str] = None,
+        parameters: Optional[dict[str, list[str]]] = None,
+        target_parameter_name: Optional[str] = None,
+        targets: Optional[list[dict[str, Any]]] = None,
+        mode: Optional[str] = None,
+        max_concurrency: Optional[str] = None,
+        max_errors: Optional[str] = None,
+    ):
+        self.automation_execution_id = str(random.uuid4())
+        self.document_name = document_name
+        self.document_version = document_version or "1"
+        self.parameters = parameters or {}
+        self.target_parameter_name = target_parameter_name
+        self.targets = targets or []
+        self.mode = mode or "Auto"
+        self.max_concurrency = max_concurrency
+        self.max_errors = max_errors
+        self.automation_execution_status = "InProgress"
+        self.account_id = account_id
+        self.region_name = region_name
+        self.partition = partition
+        now = utcnow()
+        self.execution_start_time = now
+        self.execution_end_time: Optional[datetime.datetime] = None
+        self.executed_by = f"arn:{partition}:iam::{account_id}:root"
+        self.outputs: dict[str, list[str]] = {}
+        self.failure_message: Optional[str] = None
+
+    def to_json(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "AutomationExecutionId": self.automation_execution_id,
+            "DocumentName": self.document_name,
+            "DocumentVersion": self.document_version,
+            "AutomationExecutionStatus": self.automation_execution_status,
+            "ExecutionStartTime": self.execution_start_time.isoformat(),
+            "ExecutedBy": self.executed_by,
+            "Mode": self.mode,
+            "Outputs": self.outputs,
+            "Parameters": self.parameters,
+            "Targets": self.targets,
+        }
+        if self.execution_end_time:
+            result["ExecutionEndTime"] = self.execution_end_time.isoformat()
+        if self.max_concurrency:
+            result["MaxConcurrency"] = self.max_concurrency
+        if self.max_errors:
+            result["MaxErrors"] = self.max_errors
+        if self.failure_message:
+            result["FailureMessage"] = self.failure_message
+        return result
+
+    def get_execution(self) -> dict[str, Any]:
+        result = self.to_json()
+        if self.target_parameter_name:
+            result["TargetParameterName"] = self.target_parameter_name
+        return result
+
+
 class SimpleSystemManagerBackend(BaseBackend):
     """
     Moto supports the following default parameters out of the box:
@@ -1293,6 +1612,11 @@ class SimpleSystemManagerBackend(BaseBackend):
             f"arn:{self.partition}:ssm:{self.region_name}:{self.account_id}:parameter"
         )
         self.default_parameter_tier = "Standard"
+        self.associations: dict[str, FakeAssociation] = {}
+        self.ops_items: dict[str, FakeOpsItem] = {}
+        self.activations: dict[str, FakeActivation] = {}
+        self.resource_data_syncs: dict[str, FakeResourceDataSync] = {}
+        self.automation_executions: dict[str, FakeAutomationExecution] = {}
 
     def _generate_document_information(
         self, ssm_document: Document, document_format: str
@@ -2715,11 +3039,100 @@ class SimpleSystemManagerBackend(BaseBackend):
         return baseline_id, patch_group
 
 
-    def delete_association(self, name: Optional[str] = None, association_id: Optional[str] = None) -> None:
-        pass
+    def create_association(
+        self,
+        name: str,
+        instance_id: Optional[str] = None,
+        targets: Optional[list[dict[str, Any]]] = None,
+        parameters: Optional[dict[str, list[str]]] = None,
+        schedule_expression: Optional[str] = None,
+        output_location: Optional[dict[str, Any]] = None,
+        association_name: Optional[str] = None,
+        document_version: Optional[str] = None,
+        max_errors: Optional[str] = None,
+        max_concurrency: Optional[str] = None,
+        compliance_severity: Optional[str] = None,
+        apply_only_at_cron_interval: bool = False,
+    ) -> FakeAssociation:
+        association = FakeAssociation(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            partition=self.partition,
+            name=name,
+            instance_id=instance_id,
+            targets=targets,
+            parameters=parameters,
+            schedule_expression=schedule_expression,
+            output_location=output_location,
+            association_name=association_name,
+            document_version=document_version,
+            max_errors=max_errors,
+            max_concurrency=max_concurrency,
+            compliance_severity=compliance_severity,
+            apply_only_at_cron_interval=apply_only_at_cron_interval,
+        )
+        self.associations[association.association_id] = association
+        return association
 
-    def describe_activations(self) -> list[Any]:
-        return []
+    def update_association(
+        self,
+        association_id: str,
+        parameters: Optional[dict[str, list[str]]] = None,
+        schedule_expression: Optional[str] = None,
+        output_location: Optional[dict[str, Any]] = None,
+        association_name: Optional[str] = None,
+        document_version: Optional[str] = None,
+        max_errors: Optional[str] = None,
+        max_concurrency: Optional[str] = None,
+        compliance_severity: Optional[str] = None,
+        apply_only_at_cron_interval: Optional[bool] = None,
+        name: Optional[str] = None,
+        targets: Optional[list[dict[str, Any]]] = None,
+    ) -> FakeAssociation:
+        if association_id not in self.associations:
+            raise DoesNotExistException(association_id)
+        association = self.associations[association_id]
+        if parameters is not None:
+            association.parameters = parameters
+        if schedule_expression is not None:
+            association.schedule_expression = schedule_expression
+        if output_location is not None:
+            association.output_location = output_location
+        if association_name is not None:
+            association.association_name = association_name
+        if document_version is not None:
+            association.document_version = document_version
+        if max_errors is not None:
+            association.max_errors = max_errors
+        if max_concurrency is not None:
+            association.max_concurrency = max_concurrency
+        if compliance_severity is not None:
+            association.compliance_severity = compliance_severity
+        if apply_only_at_cron_interval is not None:
+            association.apply_only_at_cron_interval = apply_only_at_cron_interval
+        if name is not None:
+            association.name = name
+        if targets is not None:
+            association.targets = targets
+        association.association_version = str(int(association.association_version) + 1)
+        association.last_update_association_date = utcnow()
+        return association
+
+    def delete_association(self, name: Optional[str] = None, association_id: Optional[str] = None) -> None:
+        if association_id:
+            if association_id not in self.associations:
+                raise DoesNotExistException(association_id)
+            del self.associations[association_id]
+            return
+        if name:
+            for aid, assoc in list(self.associations.items()):
+                if assoc.name == name:
+                    del self.associations[aid]
+                    return
+            raise DoesNotExistException(name)
+
+    def describe_activations(self) -> list[dict[str, Any]]:
+        return [act.to_json() for act in self.activations.values()]
 
     def describe_association(
         self,
@@ -2728,10 +3141,20 @@ class SimpleSystemManagerBackend(BaseBackend):
         association_id: Optional[str] = None,
         association_version: Optional[str] = None,
     ) -> dict[str, Any]:
-        return {}
+        if association_id:
+            if association_id in self.associations:
+                return self.associations[association_id].describe()
+            raise DoesNotExistException(association_id)
+        if name:
+            for assoc in self.associations.values():
+                if assoc.name == name:
+                    if instance_id and assoc.instance_id != instance_id:
+                        continue
+                    return assoc.describe()
+        raise DoesNotExistException(name or "")
 
-    def describe_automation_executions(self) -> list[Any]:
-        return []
+    def describe_automation_executions(self) -> list[dict[str, Any]]:
+        return [exe.to_json() for exe in self.automation_executions.values()]
 
     def describe_available_patches(self) -> list[Any]:
         return []
@@ -2748,8 +3171,8 @@ class SimpleSystemManagerBackend(BaseBackend):
     def describe_maintenance_window_schedule(self) -> list[Any]:
         return []
 
-    def describe_ops_items(self) -> list[Any]:
-        return []
+    def describe_ops_items(self) -> list[dict[str, Any]]:
+        return [item.summary() for item in self.ops_items.values()]
 
     def describe_patch_groups(self) -> list[Any]:
         return []
@@ -2767,8 +3190,19 @@ class SimpleSystemManagerBackend(BaseBackend):
     def get_inventory_schema(self) -> list[Any]:
         return []
 
-    def get_ops_summary(self) -> list[Any]:
-        return []
+    def get_ops_summary(self) -> list[dict[str, Any]]:
+        return [
+            {
+                "Id": item.ops_item_id,
+                "Data": {
+                    "AWS:OpsItem": {
+                        "Content": [item.summary()],
+                        "Count": 1,
+                    }
+                },
+            }
+            for item in self.ops_items.values()
+        ]
 
     def get_service_setting(self, setting_id: str) -> dict[str, Any]:
         return {
@@ -2782,8 +3216,8 @@ class SimpleSystemManagerBackend(BaseBackend):
             }
         }
 
-    def list_associations(self) -> list[Any]:
-        return []
+    def list_associations(self) -> list[dict[str, Any]]:
+        return [assoc.to_json() for assoc in self.associations.values()]
 
     def list_command_invocations(self) -> list[Any]:
         return []
@@ -2809,8 +3243,171 @@ class SimpleSystemManagerBackend(BaseBackend):
     def list_resource_compliance_summaries(self) -> list[Any]:
         return []
 
-    def list_resource_data_sync(self) -> list[Any]:
-        return []
+    def list_resource_data_sync(self) -> list[dict[str, Any]]:
+        return [sync.to_json() for sync in self.resource_data_syncs.values()]
+
+    def create_ops_item(
+        self,
+        title: str,
+        source: str,
+        description: Optional[str] = None,
+        priority: Optional[int] = None,
+        category: Optional[str] = None,
+        severity: Optional[str] = None,
+        operational_data: Optional[dict[str, Any]] = None,
+        notifications: Optional[list[dict[str, Any]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> FakeOpsItem:
+        ops_item = FakeOpsItem(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            partition=self.partition,
+            title=title,
+            source=source,
+            description=description,
+            priority=priority,
+            category=category,
+            severity=severity,
+            operational_data=operational_data,
+            notifications=notifications,
+            tags=tags,
+        )
+        self.ops_items[ops_item.ops_item_id] = ops_item
+        return ops_item
+
+    def get_ops_item(self, ops_item_id: str) -> FakeOpsItem:
+        if ops_item_id not in self.ops_items:
+            raise DoesNotExistException(ops_item_id)
+        return self.ops_items[ops_item_id]
+
+    def update_ops_item(
+        self,
+        ops_item_id: str,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
+        status: Optional[str] = None,
+        priority: Optional[int] = None,
+        category: Optional[str] = None,
+        severity: Optional[str] = None,
+        operational_data: Optional[dict[str, Any]] = None,
+        notifications: Optional[list[dict[str, Any]]] = None,
+    ) -> None:
+        if ops_item_id not in self.ops_items:
+            raise DoesNotExistException(ops_item_id)
+        item = self.ops_items[ops_item_id]
+        if title is not None:
+            item.title = title
+        if description is not None:
+            item.description = description
+        if status is not None:
+            item.status = status
+        if priority is not None:
+            item.priority = priority
+        if category is not None:
+            item.category = category
+        if severity is not None:
+            item.severity = severity
+        if operational_data is not None:
+            item.operational_data = operational_data
+        if notifications is not None:
+            item.notifications = notifications
+        item.last_modified_time = utcnow()
+        item.version = str(int(item.version) + 1)
+
+    def create_activation(
+        self,
+        iam_role: str,
+        description: Optional[str] = None,
+        default_instance_name: Optional[str] = None,
+        registration_limit: int = 1,
+        expiration_date: Optional[str] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> FakeActivation:
+        activation = FakeActivation(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            partition=self.partition,
+            iam_role=iam_role,
+            description=description,
+            default_instance_name=default_instance_name,
+            registration_limit=registration_limit,
+            expiration_date=expiration_date,
+            tags=tags,
+        )
+        self.activations[activation.activation_id] = activation
+        return activation
+
+    def delete_activation(self, activation_id: str) -> None:
+        if activation_id not in self.activations:
+            raise DoesNotExistException(activation_id)
+        del self.activations[activation_id]
+
+    def create_resource_data_sync(
+        self,
+        sync_name: str,
+        s3_destination: Optional[dict[str, Any]] = None,
+        sync_type: Optional[str] = None,
+        sync_source: Optional[dict[str, Any]] = None,
+    ) -> FakeResourceDataSync:
+        if sync_name in self.resource_data_syncs:
+            raise ValidationException(
+                f"A sync with the name {sync_name} already exists."
+            )
+        sync = FakeResourceDataSync(
+            sync_name=sync_name,
+            s3_destination=s3_destination,
+            sync_type=sync_type,
+            sync_source=sync_source,
+        )
+        self.resource_data_syncs[sync_name] = sync
+        return sync
+
+    def delete_resource_data_sync(self, sync_name: str) -> None:
+        if sync_name not in self.resource_data_syncs:
+            raise DoesNotExistException(sync_name)
+        del self.resource_data_syncs[sync_name]
+
+    def start_automation_execution(
+        self,
+        document_name: str,
+        document_version: Optional[str] = None,
+        parameters: Optional[dict[str, list[str]]] = None,
+        target_parameter_name: Optional[str] = None,
+        targets: Optional[list[dict[str, Any]]] = None,
+        mode: Optional[str] = None,
+        max_concurrency: Optional[str] = None,
+        max_errors: Optional[str] = None,
+    ) -> FakeAutomationExecution:
+        execution = FakeAutomationExecution(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            partition=self.partition,
+            document_name=document_name,
+            document_version=document_version,
+            parameters=parameters,
+            target_parameter_name=target_parameter_name,
+            targets=targets,
+            mode=mode,
+            max_concurrency=max_concurrency,
+            max_errors=max_errors,
+        )
+        self.automation_executions[execution.automation_execution_id] = execution
+        return execution
+
+    def get_automation_execution(self, automation_execution_id: str) -> FakeAutomationExecution:
+        if automation_execution_id not in self.automation_executions:
+            raise DoesNotExistException(automation_execution_id)
+        return self.automation_executions[automation_execution_id]
+
+    def stop_automation_execution(self, automation_execution_id: str, type_: Optional[str] = None) -> None:
+        if automation_execution_id not in self.automation_executions:
+            raise DoesNotExistException(automation_execution_id)
+        execution = self.automation_executions[automation_execution_id]
+        if type_ == "Cancel":
+            execution.automation_execution_status = "Cancelled"
+        else:
+            execution.automation_execution_status = "Cancelled"
+        execution.execution_end_time = utcnow()
 
 
 ssm_backends = BackendDict(SimpleSystemManagerBackend, "ssm")
