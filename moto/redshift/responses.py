@@ -459,7 +459,10 @@ class RedshiftResponse(BaseResponse):
         return ActionResult({"AccountAttributes": attributes})
 
     def describe_authentication_profiles(self) -> ActionResult:
-        profiles = self.redshift_backend.describe_authentication_profiles()
+        profile_name = self._get_param("AuthenticationProfileName")
+        profiles = self.redshift_backend.describe_authentication_profiles(
+            authentication_profile_name=profile_name,
+        )
         return ActionResult({"AuthenticationProfiles": profiles})
 
     def describe_cluster_db_revisions(self) -> ActionResult:
@@ -495,7 +498,14 @@ class RedshiftResponse(BaseResponse):
         return ActionResult({"EndpointAccessList": endpoints})
 
     def describe_endpoint_authorization(self) -> ActionResult:
-        authorizations = self.redshift_backend.describe_endpoint_authorization()
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        account = self._get_param("Account")
+        grantee = self._get_param("Grantee")
+        authorizations = self.redshift_backend.describe_endpoint_authorization(
+            cluster_identifier=cluster_identifier,
+            account=account,
+            grantee=grantee,
+        )
         return ActionResult({"EndpointAuthorizationList": authorizations})
 
     def describe_event_categories(self) -> ActionResult:
@@ -547,7 +557,10 @@ class RedshiftResponse(BaseResponse):
         return ActionResult({"ReservedNodes": nodes})
 
     def describe_scheduled_actions(self) -> ActionResult:
-        actions = self.redshift_backend.describe_scheduled_actions()
+        scheduled_action_name = self._get_param("ScheduledActionName")
+        actions = self.redshift_backend.describe_scheduled_actions(
+            scheduled_action_name=scheduled_action_name,
+        )
         return ActionResult({"ScheduledActions": actions})
 
     def describe_storage(self) -> ActionResult:
@@ -559,7 +572,14 @@ class RedshiftResponse(BaseResponse):
         return ActionResult({"TableRestoreStatusDetails": statuses})
 
     def describe_usage_limits(self) -> ActionResult:
-        limits = self.redshift_backend.describe_usage_limits()
+        usage_limit_id = self._get_param("UsageLimitId")
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        feature_type = self._get_param("FeatureType")
+        limits = self.redshift_backend.describe_usage_limits(
+            usage_limit_id=usage_limit_id,
+            cluster_identifier=cluster_identifier,
+            feature_type=feature_type,
+        )
         return ActionResult({"UsageLimits": limits})
 
     def get_cluster_credentials_with_iam(self) -> ActionResult:
@@ -578,5 +598,217 @@ class RedshiftResponse(BaseResponse):
         return ActionResult({"Recommendations": recommendations})
 
     def revoke_endpoint_access(self) -> ActionResult:
-        result = self.redshift_backend.revoke_endpoint_access()
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        account = self._get_param("Account")
+        force = self._get_bool_param("Force", False)
+        if cluster_identifier and account:
+            result = self.redshift_backend.revoke_endpoint_access_for_cluster(
+                cluster_identifier=cluster_identifier,
+                account=account,
+                force=force,
+            )
+        else:
+            result = self.redshift_backend.revoke_endpoint_access()
+        return ActionResult(result)
+
+    def copy_cluster_snapshot(self) -> ActionResult:
+        source_snapshot_identifier = self._get_param("SourceSnapshotIdentifier")
+        target_snapshot_identifier = self._get_param("TargetSnapshotIdentifier")
+        snapshot = self.redshift_backend.copy_cluster_snapshot(
+            source_snapshot_identifier=source_snapshot_identifier,
+            target_snapshot_identifier=target_snapshot_identifier,
+        )
+        return ActionResult({"Snapshot": snapshot})
+
+    def authorize_snapshot_access(self) -> ActionResult:
+        snapshot_identifier = self._get_param("SnapshotIdentifier")
+        account_with_restore_access = self._get_param("AccountWithRestoreAccess")
+        snapshot = self.redshift_backend.authorize_snapshot_access(
+            snapshot_identifier=snapshot_identifier,
+            account_with_restore_access=account_with_restore_access,
+        )
+        return ActionResult({"Snapshot": snapshot})
+
+    def revoke_snapshot_access(self) -> ActionResult:
+        snapshot_identifier = self._get_param("SnapshotIdentifier")
+        account_with_restore_access = self._get_param("AccountWithRestoreAccess")
+        snapshot = self.redshift_backend.revoke_snapshot_access(
+            snapshot_identifier=snapshot_identifier,
+            account_with_restore_access=account_with_restore_access,
+        )
+        return ActionResult({"Snapshot": snapshot})
+
+    def create_scheduled_action(self) -> ActionResult:
+        scheduled_action_name = self._get_param("ScheduledActionName")
+        target_action = self._get_param("TargetAction", {})
+        schedule = self._get_param("Schedule")
+        iam_role = self._get_param("IamRole")
+        description = self._get_param("ScheduledActionDescription", "")
+        start_time = self._get_param("StartTime")
+        end_time = self._get_param("EndTime")
+        enable = self._get_bool_param("Enable", True)
+        result = self.redshift_backend.create_scheduled_action(
+            scheduled_action_name=scheduled_action_name,
+            target_action=target_action,
+            schedule=schedule,
+            iam_role=iam_role,
+            scheduled_action_description=description,
+            start_time=start_time,
+            end_time=end_time,
+            enable=enable,
+        )
+        return ActionResult(result)
+
+    def delete_scheduled_action(self) -> ActionResult:
+        scheduled_action_name = self._get_param("ScheduledActionName")
+        self.redshift_backend.delete_scheduled_action(scheduled_action_name)
+        return EmptyResult()
+
+    def modify_scheduled_action(self) -> ActionResult:
+        scheduled_action_name = self._get_param("ScheduledActionName")
+        target_action = self._get_param("TargetAction")
+        schedule = self._get_param("Schedule")
+        iam_role = self._get_param("IamRole")
+        description = self._get_param("ScheduledActionDescription")
+        start_time = self._get_param("StartTime")
+        end_time = self._get_param("EndTime")
+        enable = self._get_bool_param("Enable")
+        result = self.redshift_backend.modify_scheduled_action(
+            scheduled_action_name=scheduled_action_name,
+            target_action=target_action,
+            schedule=schedule,
+            iam_role=iam_role,
+            scheduled_action_description=description,
+            start_time=start_time,
+            end_time=end_time,
+            enable=enable,
+        )
+        return ActionResult(result)
+
+    def modify_cluster_iam_roles(self) -> ActionResult:
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        add_iam_roles = self._get_param("AddIamRoles", [])
+        remove_iam_roles = self._get_param("RemoveIamRoles", [])
+        cluster = self.redshift_backend.modify_cluster_iam_roles(
+            cluster_identifier=cluster_identifier,
+            add_iam_roles=add_iam_roles,
+            remove_iam_roles=remove_iam_roles,
+        )
+        return ActionResult({"Cluster": cluster})
+
+    def create_authentication_profile(self) -> ActionResult:
+        profile_name = self._get_param("AuthenticationProfileName")
+        profile_content = self._get_param("AuthenticationProfileContent")
+        result = self.redshift_backend.create_authentication_profile(
+            authentication_profile_name=profile_name,
+            authentication_profile_content=profile_content,
+        )
+        return ActionResult(result)
+
+    def delete_authentication_profile(self) -> ActionResult:
+        profile_name = self._get_param("AuthenticationProfileName")
+        result = self.redshift_backend.delete_authentication_profile(
+            authentication_profile_name=profile_name,
+        )
+        return ActionResult(result)
+
+    def modify_authentication_profile(self) -> ActionResult:
+        profile_name = self._get_param("AuthenticationProfileName")
+        profile_content = self._get_param("AuthenticationProfileContent")
+        result = self.redshift_backend.modify_authentication_profile(
+            authentication_profile_name=profile_name,
+            authentication_profile_content=profile_content,
+        )
+        return ActionResult(result)
+
+    def batch_delete_cluster_snapshots(self) -> ActionResult:
+        identifiers_raw = self._get_param("Identifiers", [])
+        identifiers = []
+        for item in identifiers_raw:
+            if isinstance(item, dict):
+                identifiers.append(item.get("SnapshotIdentifier", ""))
+            else:
+                identifiers.append(str(item))
+        deleted, errors = self.redshift_backend.batch_delete_cluster_snapshots(
+            identifiers=identifiers,
+        )
+        result: dict = {"Resources": deleted}
+        if errors:
+            result["Errors"] = errors
+        return ActionResult(result)
+
+    def batch_modify_cluster_snapshots(self) -> ActionResult:
+        snapshot_identifier_list = self._get_param("SnapshotIdentifierList", [])
+        retention = self._get_int_param("ManualSnapshotRetentionPeriod")
+        force = self._get_bool_param("Force", False)
+        modified, errors = self.redshift_backend.batch_modify_cluster_snapshots(
+            snapshot_identifier_list=snapshot_identifier_list,
+            manual_snapshot_retention_period=retention,
+            force=force,
+        )
+        result: dict = {"Resources": modified}
+        if errors:
+            result["Errors"] = errors
+        return ActionResult(result)
+
+    def get_reserved_node_exchange_offerings(self) -> ActionResult:
+        reserved_node_id = self._get_param("ReservedNodeId")
+        offerings = self.redshift_backend.get_reserved_node_exchange_offerings(
+            reserved_node_id=reserved_node_id,
+        )
+        return ActionResult({"ReservedNodeOfferings": offerings})
+
+    def accept_reserved_node_exchange(self) -> ActionResult:
+        reserved_node_id = self._get_param("ReservedNodeId")
+        target_offering_id = self._get_param("TargetReservedNodeOfferingId")
+        result = self.redshift_backend.accept_reserved_node_exchange(
+            reserved_node_id=reserved_node_id,
+            target_reserved_node_offering_id=target_offering_id,
+        )
+        return ActionResult(result)
+
+    def create_usage_limit(self) -> ActionResult:
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        feature_type = self._get_param("FeatureType")
+        limit_type = self._get_param("LimitType")
+        amount = self._get_int_param("Amount")
+        period = self._get_param("Period", "monthly")
+        breach_action = self._get_param("BreachAction", "log")
+        tags = self._get_param("Tags", [])
+        result = self.redshift_backend.create_usage_limit(
+            cluster_identifier=cluster_identifier,
+            feature_type=feature_type,
+            limit_type=limit_type,
+            amount=amount,
+            period=period,
+            breach_action=breach_action,
+            tags=tags,
+        )
+        return ActionResult(result)
+
+    def delete_usage_limit(self) -> ActionResult:
+        usage_limit_id = self._get_param("UsageLimitId")
+        self.redshift_backend.delete_usage_limit(usage_limit_id)
+        return EmptyResult()
+
+    def modify_usage_limit(self) -> ActionResult:
+        usage_limit_id = self._get_param("UsageLimitId")
+        amount = self._get_int_param("Amount")
+        breach_action = self._get_param("BreachAction")
+        result = self.redshift_backend.modify_usage_limit(
+            usage_limit_id=usage_limit_id,
+            amount=amount,
+            breach_action=breach_action,
+        )
+        return ActionResult(result)
+
+    def authorize_endpoint_access(self) -> ActionResult:
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        account = self._get_param("Account")
+        vpc_ids = self._get_param("VpcIds", [])
+        result = self.redshift_backend.authorize_endpoint_access(
+            cluster_identifier=cluster_identifier,
+            account=account,
+            vpc_ids=vpc_ids if vpc_ids else None,
+        )
         return ActionResult(result)

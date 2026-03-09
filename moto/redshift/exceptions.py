@@ -141,3 +141,62 @@ class InvalidClusterSnapshotStateFaultError(RedshiftClientError):
             "InvalidClusterSnapshotState",
             f"Cannot delete the snapshot {snapshot_identifier} because only manual snapshots may be deleted",
         )
+
+
+class ScheduledActionAlreadyExistsError(RedshiftClientError):
+    def __init__(self, action_name: str):
+        super().__init__(
+            "ScheduledActionAlreadyExists",
+            f"Scheduled Action {action_name} already exists.",
+        )
+
+
+class ScheduledActionNotFoundError(RedshiftClientError):
+    def __init__(self, action_name: str):
+        super().__init__(
+            "ScheduledActionNotFoundFault",
+            f"Scheduled Action {action_name} not found.",
+        )
+
+
+class AuthenticationProfileAlreadyExistsError(RedshiftClientError):
+    def __init__(self, profile_name: str):
+        super().__init__(
+            "AuthenticationProfileAlreadyExistsFault",
+            f"Authentication profile {profile_name} already exists.",
+        )
+
+
+class AuthenticationProfileNotFoundError(RedshiftClientError):
+    def __init__(self, profile_name: str):
+        super().__init__(
+            "AuthenticationProfileNotFoundFault",
+            f"Authentication profile {profile_name} not found.",
+        )
+
+
+class UsageLimitNotFoundError(RedshiftClientError):
+    def __init__(self, usage_limit_id: str):
+        super().__init__(
+            "UsageLimitNotFound",
+            f"Usage limit {usage_limit_id} not found.",
+        )
+
+
+class EndpointAuthorizationAlreadyExistsError(RedshiftClientError):
+    def __init__(self, cluster_identifier: str, account: str):
+        super().__init__(
+            "EndpointAuthorizationAlreadyExists",
+            f"Endpoint authorization already exists for cluster {cluster_identifier} "
+            f"and account {account}.",
+        )
+
+
+class EndpointAuthorizationNotFoundError(RedshiftClientError):
+    def __init__(self, cluster_identifier: str, account: str):
+        super().__init__(
+            "EndpointAuthorizationNotFound",
+            f"Endpoint authorization not found for cluster {cluster_identifier} "
+            f"and account {account}.",
+        )
+
