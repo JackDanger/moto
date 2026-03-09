@@ -250,6 +250,103 @@ class GuardDutyResponse(BaseResponse):
         tags = self.guardduty_backend.list_tags_for_resource(resource_arn)
         return json.dumps({"tags": tags})
 
+    # Findings operations
+    def get_findings(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        finding_ids = self._get_param("findingIds")
+        findings = self.guardduty_backend.get_findings(detector_id, finding_ids or [])
+        return json.dumps({"findings": findings})
+
+    def list_findings(self) -> str:
+        detector_id = self.path.split("/")[-2]
+        finding_ids = self.guardduty_backend.list_findings(detector_id)
+        return json.dumps({"findingIds": finding_ids})
+
+    def get_findings_statistics(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        stats = self.guardduty_backend.get_findings_statistics(detector_id)
+        return json.dumps({"findingStatistics": stats})
+
+    def create_sample_findings(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        finding_types = self._get_param("findingTypes")
+        self.guardduty_backend.create_sample_findings(detector_id, finding_types or [])
+        return "{}"
+
+    # Organization / admin
+    def describe_organization_configuration(self) -> str:
+        detector_id = self.path.split("/")[-2]
+        result = self.guardduty_backend.describe_organization_configuration(detector_id)
+        return json.dumps(result)
+
+    def get_master_account(self) -> str:
+        detector_id = self.path.split("/")[-2]
+        result = self.guardduty_backend.get_master_account(detector_id)
+        return json.dumps(result)
+
+    def get_member_detectors(self) -> str:
+        detector_id = self.path.split("/")[-4]
+        account_ids = self._get_param("accountIds")
+        members, unprocessed = self.guardduty_backend.get_member_detectors(
+            detector_id, account_ids or []
+        )
+        return json.dumps({
+            "members": members,
+            "unprocessedAccounts": unprocessed,
+        })
+
+    def get_remaining_free_trial_days(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        account_ids = self._get_param("accountIds")
+        accounts = self.guardduty_backend.get_remaining_free_trial_days(
+            detector_id, account_ids or []
+        )
+        return json.dumps({"accounts": accounts, "unprocessedAccounts": []})
+
+    def get_usage_statistics(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        result = self.guardduty_backend.get_usage_statistics(detector_id)
+        return json.dumps(result)
+
+    def list_invitations(self) -> str:
+        invitations = self.guardduty_backend.list_invitations()
+        return json.dumps({"invitations": invitations})
+
+    # Malware scan operations
+    def describe_malware_scans(self) -> str:
+        detector_id = self.path.split("/")[-2]
+        scans = self.guardduty_backend.describe_malware_scans(detector_id)
+        return json.dumps({"scans": scans})
+
+    def get_malware_scan_settings(self) -> str:
+        detector_id = self.path.split("/")[-2]
+        settings = self.guardduty_backend.get_malware_scan_settings(detector_id)
+        return json.dumps(settings)
+
+    # Publishing destinations
+    def create_publishing_destination(self) -> str:
+        detector_id = self.path.split("/")[-2]
+        destination_type = self._get_param("destinationType")
+        destination_properties = self._get_param("destinationProperties")
+        dest_id = self.guardduty_backend.create_publishing_destination(
+            detector_id, destination_type, destination_properties or {}
+        )
+        return json.dumps({"destinationId": dest_id})
+
+    def describe_publishing_destination(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        destination_id = self.path.split("/")[-1]
+        result = self.guardduty_backend.describe_publishing_destination(
+            detector_id, destination_id
+        )
+        return json.dumps(result)
+
+    # Coverage statistics
+    def get_coverage_statistics(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        result = self.guardduty_backend.get_coverage_statistics(detector_id)
+        return json.dumps(result)
+
     def _get_resource_arn_from_path(self) -> str:
         path = unquote(self.path)
         idx = path.find("/tags/")

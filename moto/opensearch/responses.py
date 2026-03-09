@@ -250,3 +250,47 @@ class OpenSearchServiceResponse(BaseResponse):
     def list_vpc_endpoints(self) -> str:
         endpoints = self.opensearch_backend.list_vpc_endpoints()
         return json.dumps({"VpcEndpointsSummaryList": endpoints})
+
+    def describe_domain_auto_tunes(self) -> str:
+        domain_name = self.path.split("/")[-2]
+        auto_tunes = self.opensearch_backend.describe_domain_auto_tunes(domain_name)
+        return json.dumps({"AutoTunes": auto_tunes})
+
+    def describe_domain_change_progress(self) -> str:
+        domain_name = self.path.split("/")[-2]
+        result = self.opensearch_backend.describe_domain_change_progress(domain_name)
+        return json.dumps(result)
+
+    def describe_domain_health(self) -> str:
+        domain_name = self.path.split("/")[-2]
+        health = self.opensearch_backend.describe_domain_health(domain_name)
+        return json.dumps(health)
+
+    def describe_domain_nodes(self) -> str:
+        domain_name = self.path.split("/")[-2]
+        nodes = self.opensearch_backend.describe_domain_nodes(domain_name)
+        return json.dumps({"DomainNodesStatusList": nodes})
+
+    def describe_dry_run_progress(self) -> str:
+        domain_name = self.path.split("/")[-2]
+        result = self.opensearch_backend.describe_dry_run_progress(domain_name)
+        return json.dumps(result)
+
+    def describe_instance_type_limits(self) -> str:
+        parts = self.path.rstrip("/").split("/")
+        instance_type = parts[-1]
+        engine_version = parts[-2]
+        result = self.opensearch_backend.describe_instance_type_limits(
+            instance_type, engine_version
+        )
+        return json.dumps(result)
+
+    def describe_vpc_endpoints(self) -> str:
+        vpc_endpoint_ids = self._get_param("VpcEndpointIds")
+        endpoints, errors = self.opensearch_backend.describe_vpc_endpoints(
+            vpc_endpoint_ids or []
+        )
+        return json.dumps({
+            "VpcEndpoints": endpoints,
+            "VpcEndpointErrors": errors,
+        })

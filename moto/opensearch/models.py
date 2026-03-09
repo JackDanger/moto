@@ -530,5 +530,152 @@ class OpenSearchServiceBackend(BaseBackend):
         # VPC endpoints are not yet modeled; return empty list
         return []
 
+    def describe_domain_auto_tunes(self, domain_name: str) -> list[dict[str, Any]]:
+        if domain_name not in self.domains:
+            raise ResourceNotFoundException(domain_name)
+        return []
+
+    def describe_domain_change_progress(
+        self, domain_name: str
+    ) -> Optional[dict[str, Any]]:
+        if domain_name not in self.domains:
+            raise ResourceNotFoundException(domain_name)
+        return {
+            "ChangeProgressStatus": {
+                "ChangeId": "change-id-placeholder",
+                "StartTime": unix_time(datetime.datetime.now()),
+                "Status": "COMPLETED",
+                "PendingProperties": [],
+                "CompletedProperties": [],
+                "TotalNumberOfStages": 1,
+                "ChangeProgressStages": [
+                    {
+                        "Name": "Update",
+                        "Status": "COMPLETED",
+                        "Description": "Completed",
+                    }
+                ],
+                "ConfigChangeStatus": "Completed",
+                "LastUpdatedTime": unix_time(datetime.datetime.now()),
+                "InitiatedBy": "CUSTOMER",
+            }
+        }
+
+    def describe_domain_health(self, domain_name: str) -> dict[str, Any]:
+        if domain_name not in self.domains:
+            raise ResourceNotFoundException(domain_name)
+        domain = self.domains[domain_name]
+        instance_count = domain.cluster_config.get("InstanceCount", 1)
+        return {
+            "DomainState": "Active",
+            "AvailabilityZoneCount": "1",
+            "ActiveAvailabilityZoneCount": "1",
+            "StandByAvailabilityZoneCount": "0",
+            "DataNodeCount": str(instance_count),
+            "DedicatedMaster": domain.cluster_config.get(
+                "DedicatedMasterEnabled", False
+            ),
+            "MasterEligibleNodeCount": "0",
+            "WarmNodeCount": "0",
+            "MasterNode": None,
+            "ClusterHealth": "Green",
+            "TotalShards": "1",
+            "TotalUnAssignedShards": "0",
+            "EnvironmentInformation": [],
+        }
+
+    def describe_domain_nodes(self, domain_name: str) -> list[dict[str, Any]]:
+        if domain_name not in self.domains:
+            raise ResourceNotFoundException(domain_name)
+        domain = self.domains[domain_name]
+        instance_count = domain.cluster_config.get("InstanceCount", 1)
+        instance_type = domain.cluster_config.get("InstanceType", "t3.small.search")
+        nodes = []
+        for i in range(instance_count):
+            nodes.append({
+                "NodeId": f"node-{i}",
+                "NodeType": "Data",
+                "AvailabilityZone": f"{self.region_name}a",
+                "InstanceType": instance_type,
+                "NodeStatus": "Active",
+                "StorageType": "EBS",
+                "StorageVolumeType": "gp2",
+                "StorageSize": "10",
+            })
+        return nodes
+
+    def describe_dry_run_progress(self, domain_name: str) -> dict[str, Any]:
+        if domain_name not in self.domains:
+            raise ResourceNotFoundException(domain_name)
+        return {
+            "DryRunProgressStatus": {
+                "DryRunId": "dry-run-id-placeholder",
+                "DryRunStatus": "SUCCEEDED",
+                "CreationDate": str(unix_time(datetime.datetime.now())),
+                "UpdateDate": str(unix_time(datetime.datetime.now())),
+                "ValidationFailures": [],
+            },
+            "DryRunConfig": self.domains[domain_name].to_dict(),
+            "DryRunResults": {
+                "DeploymentType": "Blue/Green",
+                "Message": "This change will cause a Blue/Green deployment.",
+            },
+        }
+
+    def describe_instance_type_limits(
+        self, instance_type: str, engine_version: str
+    ) -> dict[str, Any]:
+        return {
+            "LimitsByRole": {
+                "data": {
+                    "StorageTypes": [
+                        {
+                            "StorageTypeName": "ebs",
+                            "StorageSubTypeName": "gp2",
+                            "StorageTypeLimits": [
+                                {
+                                    "LimitName": "MinimumVolumeSize",
+                                    "LimitValues": ["10"],
+                                },
+                                {
+                                    "LimitName": "MaximumVolumeSize",
+                                    "LimitValues": ["16384"],
+                                },
+                            ],
+                        }
+                    ],
+                    "InstanceLimits": {
+                        "InstanceCountLimits": {
+                            "MinimumInstanceCount": 1,
+                            "MaximumInstanceCount": 80,
+                        }
+                    },
+                    "AdditionalLimits": [
+                        {
+                            "LimitName": "MaximumNumberOfDataNodesSupported",
+                            "LimitValues": ["80"],
+                        },
+                        {
+                            "LimitName": "MaximumNumberOfDataNodesWithoutMasterNode",
+                            "LimitValues": ["10"],
+                        },
+                    ],
+                }
+            }
+        }
+
+    def describe_vpc_endpoints(
+        self, vpc_endpoint_ids: list[str]
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        endpoints: list[dict[str, Any]] = []
+        errors: list[dict[str, Any]] = []
+        for eid in vpc_endpoint_ids or []:
+            errors.append({
+                "VpcEndpointId": eid,
+                "ErrorCode": "ENDPOINT_NOT_FOUND",
+                "ErrorMessage": f"VPC Endpoint {eid} not found",
+            })
+        return endpoints, errors
+
 
 opensearch_backends = BackendDict(OpenSearchServiceBackend, "opensearch")

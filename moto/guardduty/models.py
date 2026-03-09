@@ -276,6 +276,217 @@ class GuardDutyBackend(BaseBackend):
         resource = self._get_resource_by_arn(resource_arn)
         return dict(resource.tags)
 
+    # Findings operations
+    def create_sample_findings(
+        self, detector_id: str, finding_types: list[str]
+    ) -> None:
+        detector = self.get_detector(detector_id)
+        for ft in finding_types or []:
+            finding_id = mock_random.get_random_hex(length=32)
+            detector.findings[finding_id] = {
+                "accountId": self.account_id,
+                "arn": (
+                    f"arn:{get_partition(self.region_name)}:guardduty:"
+                    f"{self.region_name}:{self.account_id}:"
+                    f"detector/{detector_id}/finding/{finding_id}"
+                ),
+                "id": finding_id,
+                "region": self.region_name,
+                "type": ft,
+                "severity": 5.0,
+                "createdAt": datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                "updatedAt": datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                "resource": {},
+                "service": {"serviceName": "guardduty"},
+            }
+
+    def get_findings(
+        self, detector_id: str, finding_ids: list[str]
+    ) -> list[dict[str, Any]]:
+        detector = self.get_detector(detector_id)
+        results = []
+        for fid in finding_ids or []:
+            if fid in detector.findings:
+                results.append(detector.findings[fid])
+        return results
+
+    def list_findings(
+        self, detector_id: str
+    ) -> list[str]:
+        detector = self.get_detector(detector_id)
+        return list(detector.findings.keys())
+
+    def get_findings_statistics(
+        self, detector_id: str
+    ) -> dict[str, Any]:
+        detector = self.get_detector(detector_id)
+        count_by_severity: dict[str, int] = {}
+        for finding in detector.findings.values():
+            sev = str(finding.get("severity", 0))
+            count_by_severity[sev] = count_by_severity.get(sev, 0) + 1
+        return {"countBySeverity": count_by_severity}
+
+    # Organization / admin operations
+    def describe_organization_configuration(
+        self, detector_id: str
+    ) -> dict[str, Any]:
+        self.get_detector(detector_id)
+        return {
+            "autoEnable": False,
+            "memberAccountLimitReached": False,
+            "dataSources": {
+                "s3Logs": {"autoEnable": False},
+                "kubernetes": {"auditLogs": {"autoEnable": False}},
+                "malwareProtection": {
+                    "scanEc2InstanceWithFindings": {
+                        "ebsVolumes": {"autoEnable": False}
+                    }
+                },
+            },
+            "autoEnableOrganizationMembers": "NONE",
+            "features": [],
+        }
+
+    def get_master_account(self, detector_id: str) -> dict[str, Any]:
+        self.get_detector(detector_id)
+        if not self.admin_account_ids:
+            return {}
+        return {
+            "master": {
+                "accountId": self.admin_account_ids[0],
+                "relationshipStatus": "ENABLED",
+            }
+        }
+
+    def get_member_detectors(
+        self, detector_id: str, account_ids: list[str]
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        self.get_detector(detector_id)
+        members = []
+        unprocessed = []
+        for acct_id in account_ids or []:
+            members.append({
+                "accountId": acct_id,
+                "dataSources": {
+                    "cloudTrail": {"status": "DISABLED"},
+                    "dnsLogs": {"status": "DISABLED"},
+                    "flowLogs": {"status": "DISABLED"},
+                    "s3Logs": {"status": "DISABLED"},
+                    "kubernetes": {"auditLogs": {"status": "DISABLED"}},
+                    "malwareProtection": {
+                        "scanEc2InstanceWithFindings": {
+                            "ebsVolumes": {"status": "DISABLED"}
+                        },
+                    },
+                },
+                "features": [],
+            })
+        return members, unprocessed
+
+    def get_remaining_free_trial_days(
+        self, detector_id: str, account_ids: list[str]
+    ) -> list[dict[str, Any]]:
+        self.get_detector(detector_id)
+        accounts = []
+        target_ids = account_ids if account_ids else [self.account_id]
+        for acct_id in target_ids:
+            accounts.append({
+                "accountId": acct_id,
+                "dataSources": {
+                    "cloudTrail": {"freeTrialDaysRemaining": 0},
+                    "dnsLogs": {"freeTrialDaysRemaining": 0},
+                    "flowLogs": {"freeTrialDaysRemaining": 0},
+                    "s3Logs": {"freeTrialDaysRemaining": 0},
+                    "kubernetes": {"auditLogs": {"freeTrialDaysRemaining": 0}},
+                    "malwareProtection": {
+                        "scanEc2InstanceWithFindings": {
+                            "ebsVolumes": {"freeTrialDaysRemaining": 0}
+                        },
+                    },
+                },
+                "features": [],
+            })
+        return accounts
+
+    def get_usage_statistics(
+        self, detector_id: str
+    ) -> dict[str, Any]:
+        self.get_detector(detector_id)
+        return {
+            "usageStatistics": {
+                "sumByAccount": [],
+                "sumByDataSource": [],
+                "sumByResource": [],
+                "sumByFeature": [],
+                "topResources": [],
+            }
+        }
+
+    # Invitations
+    def list_invitations(self) -> list[dict[str, Any]]:
+        return []
+
+    # Malware scan operations
+    def describe_malware_scans(
+        self, detector_id: str
+    ) -> list[dict[str, Any]]:
+        self.get_detector(detector_id)
+        return []
+
+    def get_malware_scan_settings(
+        self, detector_id: str
+    ) -> dict[str, Any]:
+        self.get_detector(detector_id)
+        return {
+            "scanResourceCriteria": {
+                "include": {},
+                "exclude": {},
+            },
+            "ebsSnapshotPreservation": "NO_RETENTION",
+        }
+
+    # Publishing destinations
+    def create_publishing_destination(
+        self,
+        detector_id: str,
+        destination_type: str,
+        destination_properties: dict[str, str],
+    ) -> str:
+        detector = self.get_detector(detector_id)
+        dest_id = mock_random.get_random_hex(length=32)
+        detector.publishing_destinations[dest_id] = {
+            "destinationId": dest_id,
+            "destinationType": destination_type,
+            "destinationProperties": destination_properties or {},
+            "publishingFailureStartTimestamp": 0,
+            "status": "PUBLISHING",
+        }
+        return dest_id
+
+    def describe_publishing_destination(
+        self, detector_id: str, destination_id: str
+    ) -> dict[str, Any]:
+        detector = self.get_detector(detector_id)
+        if destination_id not in detector.publishing_destinations:
+            raise ResourceNotFoundException(
+                f"arn:{get_partition(self.region_name)}:guardduty:"
+                f"{self.region_name}:{self.account_id}:"
+                f"detector/{detector_id}/publishingDestination/{destination_id}"
+            )
+        return detector.publishing_destinations[destination_id]
+
+    # Coverage statistics
+    def get_coverage_statistics(
+        self, detector_id: str
+    ) -> dict[str, Any]:
+        self.get_detector(detector_id)
+        return {
+            "coverageStatistics": {
+                "countByResourceType": {},
+                "countByCoverageStatus": {},
+            }
+        }
+
     def _get_resource_by_arn(self, resource_arn: str) -> Any:
         """Find a resource (detector, ipset, threatintelset) by its ARN."""
         # Try detectors
@@ -434,6 +645,8 @@ class Detector(BaseModel):
         self.filters: dict[str, Filter] = {}
         self.ip_sets: dict[str, IPSet] = {}
         self.threat_intel_sets: dict[str, ThreatIntelSet] = {}
+        self.findings: dict[str, dict[str, Any]] = {}
+        self.publishing_destinations: dict[str, dict[str, Any]] = {}
 
     def add_filter(self, _filter: Filter) -> None:
         self.filters[_filter.name] = _filter
