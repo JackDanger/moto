@@ -35,6 +35,7 @@ url_paths = {
     "{0}/usageplans/(?P<usage_plan_id>[^/]+)/?$": APIGatewayResponse.dispatch,
     "{0}/usageplans/(?P<usage_plan_id>[^/]+)/keys$": APIGatewayResponse.dispatch,
     "{0}/usageplans/(?P<usage_plan_id>[^/]+)/keys/(?P<api_key_id>[^/]+)/?$": APIGatewayResponse.dispatch,
+    "{0}/usageplans/(?P<usage_plan_id>[^/]+)/usage$": APIGatewayResponse.dispatch,
     "{0}/restapis/(?P<function_id>[^/]+)/requestvalidators$": APIGatewayResponse.dispatch,
     "{0}/restapis/(?P<api_id>[^/]+)/requestvalidators/(?P<validator_id>[^/]+)/?$": APIGatewayResponse.dispatch,
     "{0}/restapis/(?P<api_id>[^/]+)/gatewayresponses/?$": APIGatewayResponse.dispatch,

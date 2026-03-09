@@ -62,6 +62,7 @@ from .exceptions import (
     NoIntegrationDefined,
     NoIntegrationResponseDefined,
     NoMethodDefined,
+    NotFoundException,
     RequestValidatorNotFound,
     ResourceIdNotFoundException,
     RestAPINotFound,
@@ -2797,9 +2798,7 @@ class APIGatewayBackend(BaseBackend):
         api = self.get_rest_api(rest_api_id)
         return api.update_documentation_part(doc_part_id, patch_operations)
 
-    def delete_documentation_part(
-        self, rest_api_id: str, doc_part_id: str
-    ) -> None:
+    def delete_documentation_part(self, rest_api_id: str, doc_part_id: str) -> None:
         api = self.get_rest_api(rest_api_id)
         api.delete_documentation_part(doc_part_id)
 
@@ -2845,6 +2844,253 @@ class APIGatewayBackend(BaseBackend):
         if cert is None:
             raise ClientCertificateNotFoundException()
         return cert
+
+    def delete_client_certificate(self, cert_id: str) -> None:
+        if cert_id not in self.client_certificates:
+            raise ClientCertificateNotFoundException()
+        del self.client_certificates[cert_id]
+
+    def update_client_certificate(
+        self, cert_id: str, patch_operations: list[dict[str, Any]]
+    ) -> ClientCertificate:
+        cert = self.get_client_certificate(cert_id)
+        for op in patch_operations or []:
+            path = op.get("path", "")
+            value = op.get("value", "")
+            if op.get("op") == "replace" and "/description" in path:
+                cert.description = value
+        return cert
+
+    def delete_documentation_version(self, rest_api_id: str, version: str) -> None:
+        api = self.get_rest_api(rest_api_id)
+        if version not in api.documentation_versions:
+            raise DocumentationVersionNotFoundException()
+        del api.documentation_versions[version]
+
+    def update_documentation_version(
+        self,
+        rest_api_id: str,
+        version: str,
+        patch_operations: list[dict[str, Any]],
+    ) -> DocumentationVersion:
+        api = self.get_rest_api(rest_api_id)
+        doc_version = api.get_documentation_version(version)
+        for op in patch_operations or []:
+            path = op.get("path", "")
+            value = op.get("value", "")
+            if op.get("op") == "replace" and "/description" in path:
+                doc_version.description = value
+        return doc_version
+
+    def update_gateway_response(
+        self,
+        rest_api_id: str,
+        response_type: str,
+        patch_operations: list[dict[str, Any]],
+    ) -> GatewayResponse:
+        api = self.get_rest_api(rest_api_id)
+        response = api.get_gateway_response(response_type)
+        for op in patch_operations or []:
+            path = op.get("path", "")
+            value = op.get("value", "")
+            oper = op.get("op", "")
+            if oper == "replace":
+                if "/statusCode" in path:
+                    response.status_code = value
+                elif "/responseParameters/" in path:
+                    param_key = path.split("/responseParameters/")[-1]
+                    if response.response_parameters is None:
+                        response.response_parameters = {}
+                    response.response_parameters[param_key] = value
+                elif "/responseTemplates/" in path:
+                    tmpl_key = path.split("/responseTemplates/")[-1]
+                    if response.response_templates is None:
+                        response.response_templates = {}
+                    response.response_templates[tmpl_key] = value
+        return response
+
+    def update_method(
+        self,
+        function_id: str,
+        resource_id: str,
+        method_type: str,
+        patch_operations: list[dict[str, Any]],
+    ) -> Method:
+        method = self.get_method(function_id, resource_id, method_type)
+        for op in patch_operations or []:
+            path = op.get("path", "")
+            value = op.get("value", "")
+            oper = op.get("op", "")
+            if oper == "replace":
+                if "/authorizationType" in path:
+                    method.authorization_type = value
+                elif "/authorizerId" in path:
+                    method.authorizer_id = value
+                elif "/apiKeyRequired" in path:
+                    method.api_key_required = (
+                        value.lower() == "true"
+                        if isinstance(value, str)
+                        else bool(value)
+                    )
+                elif "/operationName" in path:
+                    method.operation_name = value
+                elif "/requestValidatorId" in path:
+                    method.request_validator_id = value
+                elif "/requestParameters/" in path:
+                    param_key = path.split("/requestParameters/")[-1]
+                    if method.request_parameters is None:
+                        method.request_parameters = {}
+                    method.request_parameters[param_key] = (
+                        value.lower() == "true"
+                        if isinstance(value, str)
+                        else bool(value)
+                    )
+            elif oper == "add" and "/requestParameters/" in path:
+                param_key = path.split("/requestParameters/")[-1]
+                if method.request_parameters is None:
+                    method.request_parameters = {}
+                method.request_parameters[param_key] = (
+                    value.lower() == "true" if isinstance(value, str) else bool(value)
+                )
+            elif oper == "remove" and "/requestParameters/" in path:
+                param_key = path.split("/requestParameters/")[-1]
+                if method.request_parameters:
+                    method.request_parameters.pop(param_key, None)
+        return method
+
+    def update_integration(
+        self,
+        function_id: str,
+        resource_id: str,
+        method_type: str,
+        patch_operations: list[dict[str, Any]],
+    ) -> Integration:
+        integration = self.get_integration(function_id, resource_id, method_type)
+        for op in patch_operations or []:
+            path = op.get("path", "")
+            value = op.get("value", "")
+            oper = op.get("op", "")
+            if oper == "replace":
+                if "/uri" in path and "/uri/" not in path:
+                    integration.uri = value
+                elif "/httpMethod" in path:
+                    integration.http_method = value
+                elif "/type" in path:
+                    integration.integration_type = value
+                elif "/contentHandling" in path:
+                    integration.content_handling = value
+                elif "/timeoutInMillis" in path:
+                    integration.timeout_in_millis = value
+                elif "/passthroughBehavior" in path:
+                    integration.passthrough_behavior = value
+                elif "/cacheNamespace" in path:
+                    integration.cache_namespace = value
+                elif "/requestParameters/" in path:
+                    param_key = path.split("/requestParameters/")[-1]
+                    if integration.request_parameters is None:
+                        integration.request_parameters = {}
+                    integration.request_parameters[param_key] = value
+                elif "/requestTemplates/" in path:
+                    tmpl_key = path.split("/requestTemplates/")[-1]
+                    if integration.request_templates is None:
+                        integration.request_templates = {}
+                    integration.request_templates[tmpl_key] = value
+        return integration
+
+    def update_method_response(
+        self,
+        function_id: str,
+        resource_id: str,
+        method_type: str,
+        response_code: str,
+        patch_operations: list[dict[str, Any]],
+    ) -> MethodResponse:
+        method = self.get_method(function_id, resource_id, method_type)
+        method_response = method.get_response(response_code)
+        if method_response is None:
+            raise NotFoundException("Invalid Response status code specified")
+        for op in patch_operations or []:
+            path = op.get("path", "")
+            value = op.get("value", "")
+            oper = op.get("op", "")
+            if oper == "replace":
+                if "/statusCode" in path:
+                    method_response.status_code = value
+                elif "/responseParameters/" in path:
+                    param_key = path.split("/responseParameters/")[-1]
+                    if method_response.response_parameters is None:
+                        method_response.response_parameters = {}
+                    method_response.response_parameters[param_key] = (
+                        value.lower() == "true"
+                        if isinstance(value, str)
+                        else bool(value)
+                    )
+                elif "/responseModels/" in path:
+                    model_key = path.split("/responseModels/")[-1]
+                    if method_response.response_models is None:
+                        method_response.response_models = {}
+                    method_response.response_models[model_key] = value
+            elif oper == "add" and "/responseParameters/" in path:
+                param_key = path.split("/responseParameters/")[-1]
+                if method_response.response_parameters is None:
+                    method_response.response_parameters = {}
+                method_response.response_parameters[param_key] = (
+                    value.lower() == "true" if isinstance(value, str) else bool(value)
+                )
+            elif oper == "remove" and "/responseParameters/" in path:
+                param_key = path.split("/responseParameters/")[-1]
+                if method_response.response_parameters:
+                    method_response.response_parameters.pop(param_key, None)
+        return method_response
+
+    def update_integration_response(
+        self,
+        function_id: str,
+        resource_id: str,
+        method_type: str,
+        status_code: str,
+        patch_operations: list[dict[str, Any]],
+    ) -> IntegrationResponse:
+        integration = self.get_integration(function_id, resource_id, method_type)
+        integration_response = integration.get_integration_response(status_code)
+        for op in patch_operations or []:
+            path = op.get("path", "")
+            value = op.get("value", "")
+            oper = op.get("op", "")
+            if oper == "replace":
+                if "/selectionPattern" in path:
+                    integration_response.selection_pattern = value
+                elif "/responseTemplates/" in path:
+                    tmpl_key = path.split("/responseTemplates/")[-1]
+                    if integration_response.response_templates is None:
+                        integration_response.response_templates = {}
+                    integration_response.response_templates[tmpl_key] = value
+                elif "/responseParameters/" in path:
+                    param_key = path.split("/responseParameters/")[-1]
+                    if integration_response.response_parameters is None:
+                        integration_response.response_parameters = {}
+                    integration_response.response_parameters[param_key] = value
+                elif "/contentHandling" in path:
+                    integration_response.content_handling = value
+        return integration_response
+
+    def get_usage(self, usage_plan_id: str) -> dict[str, Any]:
+        self.get_usage_plan(usage_plan_id)
+        import time
+
+        today = time.strftime("%Y-%m-%d")
+        return {
+            "usagePlanId": usage_plan_id,
+            "startDate": today,
+            "endDate": today,
+            "position": None,
+            "items": {},
+        }
+
+    def update_usage(
+        self, usage_plan_id: str, patch_operations: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        return self.get_usage(usage_plan_id)
 
     def update_account(self, patch_operations: list[dict[str, Any]]) -> Account:
         account = self.account.apply_patch_operations(patch_operations)

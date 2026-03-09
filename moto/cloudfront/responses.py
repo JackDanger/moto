@@ -4,7 +4,6 @@ from urllib.parse import unquote
 import xmltodict
 
 from moto.core.responses import TYPE_RESPONSE, BaseResponse
-
 from moto.core.utils import iso_8601_datetime_with_milliseconds
 
 from .models import CloudFrontBackend, cloudfront_backends, random_id
@@ -283,8 +282,7 @@ class CloudFrontResponse(BaseResponse):
         headers = {
             "ETag": func.etag,
             "Location": (
-                "https://cloudfront.amazonaws.com/2020-05-31"
-                f"/function/{func.name}"
+                f"https://cloudfront.amazonaws.com/2020-05-31/function/{func.name}"
             ),
             "status": 201,
         }
@@ -345,8 +343,7 @@ class CloudFrontResponse(BaseResponse):
         headers = {
             "ETag": policy.etag,
             "Location": (
-                "https://cloudfront.amazonaws.com/2020-05-31"
-                f"/cache-policy/{policy.id}"
+                f"https://cloudfront.amazonaws.com/2020-05-31/cache-policy/{policy.id}"
             ),
             "status": 201,
         }
@@ -527,7 +524,11 @@ class CloudFrontResponse(BaseResponse):
         config.pop("@xmlns", None)
         policy = self.backend.create_origin_request_policy(config)
         template = self.response_template(ORIGIN_REQUEST_POLICY_TEMPLATE)
-        headers = {"ETag": policy.etag, "Location": f"https://cloudfront.amazonaws.com/2020-05-31/origin-request-policy/{policy.id}", "status": 201}
+        headers = {
+            "ETag": policy.etag,
+            "Location": f"https://cloudfront.amazonaws.com/2020-05-31/origin-request-policy/{policy.id}",
+            "status": 201,
+        }
         return 201, headers, template.render(policy=policy)
 
     def get_origin_request_policy(self) -> TYPE_RESPONSE:
@@ -566,7 +567,11 @@ class CloudFrontResponse(BaseResponse):
         config.pop("@xmlns", None)
         fle = self.backend.create_field_level_encryption_config(config)
         template = self.response_template(FIELD_LEVEL_ENCRYPTION_TEMPLATE)
-        headers = {"ETag": fle.etag, "Location": f"https://cloudfront.amazonaws.com/2020-05-31/field-level-encryption/{fle.id}", "status": 201}
+        headers = {
+            "ETag": fle.etag,
+            "Location": f"https://cloudfront.amazonaws.com/2020-05-31/field-level-encryption/{fle.id}",
+            "status": 201,
+        }
         return 201, headers, template.render(fle=fle)
 
     def get_field_level_encryption(self) -> TYPE_RESPONSE:
@@ -605,7 +610,11 @@ class CloudFrontResponse(BaseResponse):
         config.pop("@xmlns", None)
         profile = self.backend.create_field_level_encryption_profile(config)
         template = self.response_template(FLE_PROFILE_TEMPLATE)
-        headers = {"ETag": profile.etag, "Location": f"https://cloudfront.amazonaws.com/2020-05-31/field-level-encryption-profile/{profile.id}", "status": 201}
+        headers = {
+            "ETag": profile.etag,
+            "Location": f"https://cloudfront.amazonaws.com/2020-05-31/field-level-encryption-profile/{profile.id}",
+            "status": 201,
+        }
         return 201, headers, template.render(profile=profile)
 
     def get_field_level_encryption_profile(self) -> TYPE_RESPONSE:
@@ -644,7 +653,11 @@ class CloudFrontResponse(BaseResponse):
         config.pop("@xmlns", None)
         policy = self.backend.create_continuous_deployment_policy(config)
         template = self.response_template(CDP_TEMPLATE)
-        headers = {"ETag": policy.etag, "Location": f"https://cloudfront.amazonaws.com/2020-05-31/continuous-deployment-policy/{policy.id}", "status": 201}
+        headers = {
+            "ETag": policy.etag,
+            "Location": f"https://cloudfront.amazonaws.com/2020-05-31/continuous-deployment-policy/{policy.id}",
+            "status": 201,
+        }
         return 201, headers, template.render(policy=policy)
 
     def get_continuous_deployment_policy(self) -> TYPE_RESPONSE:
@@ -704,8 +717,12 @@ class CloudFrontResponse(BaseResponse):
         """Parse body as XML (botocore sends XML for CloudFront rest-xml protocol)."""
         body = self._get_xml_body()
         # Unwrap the request wrapper element if present
-        for key in ("CreateRealtimeLogConfigRequest", "UpdateRealtimeLogConfigRequest",
-                    "GetRealtimeLogConfigRequest", "DeleteRealtimeLogConfigRequest"):
+        for key in (
+            "CreateRealtimeLogConfigRequest",
+            "UpdateRealtimeLogConfigRequest",
+            "GetRealtimeLogConfigRequest",
+            "DeleteRealtimeLogConfigRequest",
+        ):
             if key in body:
                 body = body[key] or {}
                 break
@@ -745,14 +762,19 @@ class CloudFrontResponse(BaseResponse):
         end_points = self._extract_endpoints(body)
         fields = self._extract_fields(body)
         config = self.backend.create_realtime_log_config(
-            name=name, sampling_rate=sampling_rate, end_points=end_points, fields=fields,
+            name=name,
+            sampling_rate=sampling_rate,
+            end_points=end_points,
+            fields=fields,
         )
         template = self.response_template(CREATE_REALTIME_LOG_CONFIG_RESULT)
         return 201, {"status": 201}, template.render(config=config)
 
     def get_realtime_log_config(self) -> TYPE_RESPONSE:
         body = self._parse_realtime_body() if self.body else {}
-        config = self.backend.get_realtime_log_config(name=body.get("Name"), arn=body.get("ARN"))
+        config = self.backend.get_realtime_log_config(
+            name=body.get("Name"), arn=body.get("ARN")
+        )
         template = self.response_template(GET_REALTIME_LOG_CONFIG_RESULT)
         return 200, {}, template.render(config=config)
 
@@ -762,16 +784,20 @@ class CloudFrontResponse(BaseResponse):
         end_points = self._extract_endpoints(body) if "EndPoints" in body else None
         fields = self._extract_fields(body) if "Fields" in body else None
         config = self.backend.update_realtime_log_config(
-            name=body.get("Name"), arn=body.get("ARN"),
+            name=body.get("Name"),
+            arn=body.get("ARN"),
             sampling_rate=int(sr) if sr is not None else None,
-            end_points=end_points, fields=fields,
+            end_points=end_points,
+            fields=fields,
         )
         template = self.response_template(UPDATE_REALTIME_LOG_CONFIG_RESULT)
         return 200, {}, template.render(config=config)
 
     def delete_realtime_log_config(self) -> TYPE_RESPONSE:
         body = self._parse_realtime_body() if self.body else {}
-        self.backend.delete_realtime_log_config(name=body.get("Name"), arn=body.get("ARN"))
+        self.backend.delete_realtime_log_config(
+            name=body.get("Name"), arn=body.get("ARN")
+        )
         return 204, {"status": 204}, ""
 
     def list_realtime_log_configs(self) -> TYPE_RESPONSE:
@@ -797,13 +823,17 @@ class CloudFrontResponse(BaseResponse):
 
     def list_distributions_by_origin_request_policy_id(self) -> TYPE_RESPONSE:
         policy_id = self.path.split("/")[-1]
-        dist_ids = self.backend.list_distributions_by_origin_request_policy_id(policy_id)
+        dist_ids = self.backend.list_distributions_by_origin_request_policy_id(
+            policy_id
+        )
         template = self.response_template(DISTRIBUTION_ID_LIST_TEMPLATE)
         return 200, {}, template.render(dist_ids=dist_ids)
 
     def list_distributions_by_response_headers_policy_id(self) -> TYPE_RESPONSE:
         policy_id = self.path.split("/")[-1]
-        dist_ids = self.backend.list_distributions_by_response_headers_policy_id(policy_id)
+        dist_ids = self.backend.list_distributions_by_response_headers_policy_id(
+            policy_id
+        )
         template = self.response_template(DISTRIBUTION_ID_LIST_TEMPLATE)
         return 200, {}, template.render(dist_ids=dist_ids)
 
@@ -815,7 +845,9 @@ class CloudFrontResponse(BaseResponse):
 
     def list_distributions_by_realtime_log_config(self) -> TYPE_RESPONSE:
         body = self._parse_realtime_body() if self.body else {}
-        distributions = self.backend.list_distributions_by_realtime_log_config(body.get("RealtimeLogConfigArn", ""))
+        distributions = self.backend.list_distributions_by_realtime_log_config(
+            body.get("RealtimeLogConfigArn", "")
+        )
         template = self.response_template(LIST_TEMPLATE)
         return 200, {}, template.render(distributions=distributions)
 
@@ -899,82 +931,183 @@ class CloudFrontResponse(BaseResponse):
     def disassociate_distribution_tenant_web_acl(self) -> TYPE_RESPONSE:
         return 200, {}, ""
 
-    disassociate_distribution_tenant_web_a_c_l = disassociate_distribution_tenant_web_acl
+    disassociate_distribution_tenant_web_a_c_l = (
+        disassociate_distribution_tenant_web_acl
+    )
 
     def create_key_value_store(self) -> TYPE_RESPONSE:
         body = self._get_xml_body()
-        # Unwrap request element
         req = body.get("CreateKeyValueStoreRequest") or body
         if isinstance(req, dict):
             req.pop("@xmlns", None)
         else:
             req = {}
         name = req.get("Name", "")
-        kvs_id = random_id(length=14)
-        etag = random_id(length=14)
+        comment = req.get("Comment", "")
+        kvs = self.backend.create_key_value_store(name=name, comment=comment)
         template = self.response_template(KEY_VALUE_STORE_TEMPLATE)
         response = template.render(
-            name=name, kvs_id=kvs_id, comment=req.get("Comment", ""),
-            arn=f"arn:aws:cloudfront::{self.backend.account_id}:key-value-store/{name}",
-            status="READY", last_modified=iso_8601_datetime_with_milliseconds(),
+            name=kvs.name,
+            kvs_id=kvs.id,
+            comment=kvs.comment,
+            arn=kvs.arn,
+            status=kvs.status,
+            last_modified=kvs.last_modified_time,
         )
-        return 201, {"status": 201, "ETag": etag, "Location": f"https://cloudfront.amazonaws.com/2020-05-31/key-value-store/{name}"}, response
+        return (
+            201,
+            {
+                "status": 201,
+                "ETag": kvs.etag,
+                "Location": f"https://cloudfront.amazonaws.com/2020-05-31/key-value-store/{name}",
+            },
+            response,
+        )
 
     def describe_key_value_store(self) -> TYPE_RESPONSE:
         name = self.path.split("/")[-1]
-        kvs_id = random_id(length=14)
-        etag = random_id(length=14)
+        kvs = self.backend.describe_key_value_store(name)
         template = self.response_template(KEY_VALUE_STORE_TEMPLATE)
         response = template.render(
-            name=name, kvs_id=kvs_id, comment="",
-            arn=f"arn:aws:cloudfront::{self.backend.account_id}:key-value-store/{name}",
-            status="READY", last_modified=iso_8601_datetime_with_milliseconds(),
+            name=kvs.name,
+            kvs_id=kvs.id,
+            comment=kvs.comment,
+            arn=kvs.arn,
+            status=kvs.status,
+            last_modified=kvs.last_modified_time,
         )
-        return 200, {"ETag": etag}, response
+        return 200, {"ETag": kvs.etag}, response
 
     def delete_key_value_store(self) -> TYPE_RESPONSE:
+        name = self.path.split("/")[-1]
+        self.backend.delete_key_value_store(name)
         return 204, {"status": 204}, ""
 
     def update_key_value_store(self) -> TYPE_RESPONSE:
-        return self.describe_key_value_store()
+        name = self.path.split("/")[-1]
+        body = self._get_xml_body()
+        req = body.get("UpdateKeyValueStoreRequest") or body
+        if isinstance(req, dict):
+            req.pop("@xmlns", None)
+        else:
+            req = {}
+        comment = req.get("Comment", "")
+        kvs = self.backend.update_key_value_store(name=name, comment=comment)
+        template = self.response_template(KEY_VALUE_STORE_TEMPLATE)
+        response = template.render(
+            name=kvs.name,
+            kvs_id=kvs.id,
+            comment=kvs.comment,
+            arn=kvs.arn,
+            status=kvs.status,
+            last_modified=kvs.last_modified_time,
+        )
+        return 200, {"ETag": kvs.etag}, response
 
     def list_key_value_stores(self) -> TYPE_RESPONSE:
+        stores = self.backend.list_key_value_stores()
         template = self.response_template(LIST_KEY_VALUE_STORES_TEMPLATE)
-        return 200, {}, template.render()
+        return 200, {}, template.render(stores=stores)
 
     def create_vpc_origin(self) -> TYPE_RESPONSE:
         import json
+
         body = json.loads(self.body) if self.body else {}
-        result = {"Id": random_id(length=14), "Arn": f"arn:aws:cloudfront::{self.backend.account_id}:vpcorigin/{random_id(length=14)}", "Status": "Deployed", "CreatedTime": iso_8601_datetime_with_milliseconds(), "LastModifiedTime": iso_8601_datetime_with_milliseconds(), "VpcOriginEndpointConfig": body.get("VpcOriginEndpointConfig", {})}
-        return 201, {"status": 201, "ETag": random_id(length=14)}, json.dumps(result)
+        config = body.get("VpcOriginEndpointConfig", {})
+        vo = self.backend.create_vpc_origin(config)
+        result = {
+            "Id": vo.id,
+            "Arn": vo.arn,
+            "Status": vo.status,
+            "CreatedTime": vo.created_time,
+            "LastModifiedTime": vo.last_modified_time,
+            "VpcOriginEndpointConfig": vo.vpc_origin_endpoint_config,
+        }
+        return 201, {"status": 201, "ETag": vo.etag}, json.dumps(result)
 
     def get_vpc_origin(self) -> TYPE_RESPONSE:
         import json
+
         vpc_id = self.path.split("/")[-1]
-        result = {"Id": vpc_id, "Arn": f"arn:aws:cloudfront::{self.backend.account_id}:vpcorigin/{vpc_id}", "Status": "Deployed", "CreatedTime": iso_8601_datetime_with_milliseconds(), "LastModifiedTime": iso_8601_datetime_with_milliseconds(), "VpcOriginEndpointConfig": {}}
-        return 200, {"ETag": random_id(length=14)}, json.dumps(result)
+        vo = self.backend.get_vpc_origin(vpc_id)
+        result = {
+            "Id": vo.id,
+            "Arn": vo.arn,
+            "Status": vo.status,
+            "CreatedTime": vo.created_time,
+            "LastModifiedTime": vo.last_modified_time,
+            "VpcOriginEndpointConfig": vo.vpc_origin_endpoint_config,
+        }
+        return 200, {"ETag": vo.etag}, json.dumps(result)
 
     def delete_vpc_origin(self) -> TYPE_RESPONSE:
+        vpc_id = self.path.split("/")[-1]
+        self.backend.delete_vpc_origin(vpc_id)
         return 202, {"status": 202}, ""
 
     def update_vpc_origin(self) -> TYPE_RESPONSE:
-        return self.get_vpc_origin()
+        import json
+
+        vpc_id = self.path.split("/")[-1]
+        body = json.loads(self.body) if self.body else {}
+        config = body.get("VpcOriginEndpointConfig", {})
+        vo = self.backend.update_vpc_origin(vpc_id, config)
+        result = {
+            "Id": vo.id,
+            "Arn": vo.arn,
+            "Status": vo.status,
+            "CreatedTime": vo.created_time,
+            "LastModifiedTime": vo.last_modified_time,
+            "VpcOriginEndpointConfig": vo.vpc_origin_endpoint_config,
+        }
+        return 200, {"ETag": vo.etag}, json.dumps(result)
 
     def list_vpc_origins(self) -> TYPE_RESPONSE:
         import json
-        return 200, {}, json.dumps({"VpcOriginList": {"Quantity": 0, "Items": []}})
+
+        origins = self.backend.list_vpc_origins()
+        items = [
+            {
+                "Id": vo.id,
+                "Arn": vo.arn,
+                "Status": vo.status,
+                "CreatedTime": vo.created_time,
+                "LastModifiedTime": vo.last_modified_time,
+                "VpcOriginEndpointConfig": vo.vpc_origin_endpoint_config,
+            }
+            for vo in origins
+        ]
+        return (
+            200,
+            {},
+            json.dumps({"VpcOriginList": {"Quantity": len(items), "Items": items}}),
+        )
 
     def create_trust_store(self) -> TYPE_RESPONSE:
         import json
+
         body = json.loads(self.body) if self.body else {}
         name = body.get("Name", "")
-        result = {"Name": name, "Id": random_id(length=14), "Status": "DEPLOYED", "ARN": f"arn:aws:cloudfront::{self.backend.account_id}:trust-store/{name}", "LastModifiedTime": iso_8601_datetime_with_milliseconds()}
+        result = {
+            "Name": name,
+            "Id": random_id(length=14),
+            "Status": "DEPLOYED",
+            "ARN": f"arn:aws:cloudfront::{self.backend.account_id}:trust-store/{name}",
+            "LastModifiedTime": iso_8601_datetime_with_milliseconds(),
+        }
         return 201, {"status": 201, "ETag": random_id(length=14)}, json.dumps(result)
 
     def get_trust_store(self) -> TYPE_RESPONSE:
         import json
+
         store_id = self.path.split("/")[-1]
-        result = {"Name": store_id, "Id": store_id, "Status": "DEPLOYED", "ARN": f"arn:aws:cloudfront::{self.backend.account_id}:trust-store/{store_id}", "LastModifiedTime": iso_8601_datetime_with_milliseconds()}
+        result = {
+            "Name": store_id,
+            "Id": store_id,
+            "Status": "DEPLOYED",
+            "ARN": f"arn:aws:cloudfront::{self.backend.account_id}:trust-store/{store_id}",
+            "LastModifiedTime": iso_8601_datetime_with_milliseconds(),
+        }
         return 200, {"ETag": random_id(length=14)}, json.dumps(result)
 
     def delete_trust_store(self) -> TYPE_RESPONSE:
@@ -985,14 +1118,23 @@ class CloudFrontResponse(BaseResponse):
 
     def list_trust_stores(self) -> TYPE_RESPONSE:
         import json
-        return 200, {}, json.dumps({"TrustStoreList": {"MaxItems": 100, "Quantity": 0, "Items": []}})
+
+        return (
+            200,
+            {},
+            json.dumps(
+                {"TrustStoreList": {"MaxItems": 100, "Quantity": 0, "Items": []}}
+            ),
+        )
 
     def get_resource_policy(self) -> TYPE_RESPONSE:
         import json
+
         return 200, {"ETag": random_id(length=14)}, json.dumps({"ResourcePolicy": ""})
 
     def put_resource_policy(self) -> TYPE_RESPONSE:
         import json
+
         return 200, {"ETag": random_id(length=14)}, json.dumps({"ResourcePolicy": ""})
 
     def delete_resource_policy(self) -> TYPE_RESPONSE:
@@ -1000,18 +1142,40 @@ class CloudFrontResponse(BaseResponse):
 
     def create_anycast_ip_list(self) -> TYPE_RESPONSE:
         import json
+
         body = json.loads(self.body) if self.body else {}
         name = body.get("Name", "")
-        result = {"Id": random_id(length=14), "Name": name, "Status": "Deployed", "Arn": f"arn:aws:cloudfront::{self.backend.account_id}:anycast-ip-list/{name}", "AnycastIps": [], "IpCount": 0, "LastModifiedTime": iso_8601_datetime_with_milliseconds()}
-        return 201, {"status": 201, "ETag": random_id(length=14)}, json.dumps(result)
+        aip = self.backend.create_anycast_ip_list(name)
+        result = {
+            "Id": aip.id,
+            "Name": aip.name,
+            "Status": aip.status,
+            "Arn": aip.arn,
+            "AnycastIps": aip.anycast_ips,
+            "IpCount": aip.ip_count,
+            "LastModifiedTime": aip.last_modified_time,
+        }
+        return 201, {"status": 201, "ETag": aip.etag}, json.dumps(result)
 
     def get_anycast_ip_list(self) -> TYPE_RESPONSE:
         import json
+
         list_id = self.path.split("/")[-1]
-        result = {"Id": list_id, "Name": list_id, "Status": "Deployed", "Arn": f"arn:aws:cloudfront::{self.backend.account_id}:anycast-ip-list/{list_id}", "AnycastIps": [], "IpCount": 0, "LastModifiedTime": iso_8601_datetime_with_milliseconds()}
-        return 200, {"ETag": random_id(length=14)}, json.dumps(result)
+        aip = self.backend.get_anycast_ip_list(list_id)
+        result = {
+            "Id": aip.id,
+            "Name": aip.name,
+            "Status": aip.status,
+            "Arn": aip.arn,
+            "AnycastIps": aip.anycast_ips,
+            "IpCount": aip.ip_count,
+            "LastModifiedTime": aip.last_modified_time,
+        }
+        return 200, {"ETag": aip.etag}, json.dumps(result)
 
     def delete_anycast_ip_list(self) -> TYPE_RESPONSE:
+        list_id = self.path.split("/")[-1]
+        self.backend.delete_anycast_ip_list(list_id)
         return 204, {"status": 204}, ""
 
     def update_anycast_ip_list(self) -> TYPE_RESPONSE:
@@ -1019,19 +1183,60 @@ class CloudFrontResponse(BaseResponse):
 
     def list_anycast_ip_lists(self) -> TYPE_RESPONSE:
         import json
-        return 200, {}, json.dumps({"AnycastIpLists": {"MaxItems": 100, "Quantity": 0, "Items": []}})
+
+        lists = self.backend.list_anycast_ip_lists()
+        items = [
+            {
+                "Id": a.id,
+                "Name": a.name,
+                "Status": a.status,
+                "Arn": a.arn,
+                "IpCount": a.ip_count,
+                "LastModifiedTime": a.last_modified_time,
+            }
+            for a in lists
+        ]
+        return (
+            200,
+            {},
+            json.dumps(
+                {
+                    "AnycastIpLists": {
+                        "MaxItems": 100,
+                        "Quantity": len(items),
+                        "Items": items,
+                    }
+                }
+            ),
+        )
 
     def create_connection_group(self) -> TYPE_RESPONSE:
         import json
+
         body = json.loads(self.body) if self.body else {}
         cg_id = random_id(length=14)
-        result = {"Id": cg_id, "Name": body.get("Name", ""), "Arn": f"arn:aws:cloudfront::{self.backend.account_id}:connection-group/{cg_id}", "Status": "Deployed", "CreatedTime": iso_8601_datetime_with_milliseconds(), "LastModifiedTime": iso_8601_datetime_with_milliseconds()}
+        result = {
+            "Id": cg_id,
+            "Name": body.get("Name", ""),
+            "Arn": f"arn:aws:cloudfront::{self.backend.account_id}:connection-group/{cg_id}",
+            "Status": "Deployed",
+            "CreatedTime": iso_8601_datetime_with_milliseconds(),
+            "LastModifiedTime": iso_8601_datetime_with_milliseconds(),
+        }
         return 201, {"status": 201, "ETag": random_id(length=14)}, json.dumps(result)
 
     def get_connection_group(self) -> TYPE_RESPONSE:
         import json
+
         cg_id = self.path.split("/")[-1]
-        result = {"Id": cg_id, "Name": cg_id, "Arn": f"arn:aws:cloudfront::{self.backend.account_id}:connection-group/{cg_id}", "Status": "Deployed", "CreatedTime": iso_8601_datetime_with_milliseconds(), "LastModifiedTime": iso_8601_datetime_with_milliseconds()}
+        result = {
+            "Id": cg_id,
+            "Name": cg_id,
+            "Arn": f"arn:aws:cloudfront::{self.backend.account_id}:connection-group/{cg_id}",
+            "Status": "Deployed",
+            "CreatedTime": iso_8601_datetime_with_milliseconds(),
+            "LastModifiedTime": iso_8601_datetime_with_milliseconds(),
+        }
         return 200, {"ETag": random_id(length=14)}, json.dumps(result)
 
     def delete_connection_group(self) -> TYPE_RESPONSE:
@@ -1042,23 +1247,48 @@ class CloudFrontResponse(BaseResponse):
 
     def list_connection_groups(self) -> TYPE_RESPONSE:
         import json
-        return 200, {}, json.dumps({"ConnectionGroupList": {"MaxItems": 100, "Quantity": 0, "Items": []}})
+
+        return (
+            200,
+            {},
+            json.dumps(
+                {"ConnectionGroupList": {"MaxItems": 100, "Quantity": 0, "Items": []}}
+            ),
+        )
 
     def get_connection_group_by_routing_endpoint(self) -> TYPE_RESPONSE:
         import json
+
         return 404, {}, json.dumps({"message": "Not found"})
 
     def create_distribution_tenant(self) -> TYPE_RESPONSE:
         import json
+
         body = json.loads(self.body) if self.body else {}
         dt_id = random_id(length=14)
-        result = {"Id": dt_id, "DistributionId": body.get("DistributionId", ""), "Name": body.get("Name", ""), "Arn": f"arn:aws:cloudfront::{self.backend.account_id}:distribution-tenant/{dt_id}", "Status": "Deployed", "CreatedTime": iso_8601_datetime_with_milliseconds(), "LastModifiedTime": iso_8601_datetime_with_milliseconds()}
+        result = {
+            "Id": dt_id,
+            "DistributionId": body.get("DistributionId", ""),
+            "Name": body.get("Name", ""),
+            "Arn": f"arn:aws:cloudfront::{self.backend.account_id}:distribution-tenant/{dt_id}",
+            "Status": "Deployed",
+            "CreatedTime": iso_8601_datetime_with_milliseconds(),
+            "LastModifiedTime": iso_8601_datetime_with_milliseconds(),
+        }
         return 201, {"status": 201, "ETag": random_id(length=14)}, json.dumps(result)
 
     def get_distribution_tenant(self) -> TYPE_RESPONSE:
         import json
+
         dt_id = self.path.split("/")[-1]
-        result = {"Id": dt_id, "Name": dt_id, "Status": "Deployed", "Arn": f"arn:aws:cloudfront::{self.backend.account_id}:distribution-tenant/{dt_id}", "CreatedTime": iso_8601_datetime_with_milliseconds(), "LastModifiedTime": iso_8601_datetime_with_milliseconds()}
+        result = {
+            "Id": dt_id,
+            "Name": dt_id,
+            "Status": "Deployed",
+            "Arn": f"arn:aws:cloudfront::{self.backend.account_id}:distribution-tenant/{dt_id}",
+            "CreatedTime": iso_8601_datetime_with_milliseconds(),
+            "LastModifiedTime": iso_8601_datetime_with_milliseconds(),
+        }
         return 200, {"ETag": random_id(length=14)}, json.dumps(result)
 
     def delete_distribution_tenant(self) -> TYPE_RESPONSE:
@@ -1069,40 +1299,101 @@ class CloudFrontResponse(BaseResponse):
 
     def list_distribution_tenants(self) -> TYPE_RESPONSE:
         import json
-        return 200, {}, json.dumps({"DistributionTenantList": {"MaxItems": 100, "Quantity": 0, "Items": []}})
+
+        return (
+            200,
+            {},
+            json.dumps(
+                {
+                    "DistributionTenantList": {
+                        "MaxItems": 100,
+                        "Quantity": 0,
+                        "Items": [],
+                    }
+                }
+            ),
+        )
 
     def get_distribution_tenant_by_domain(self) -> TYPE_RESPONSE:
         import json
+
         return 404, {}, json.dumps({"message": "Not found"})
 
     def list_distribution_tenants_by_customization(self) -> TYPE_RESPONSE:
         import json
-        return 200, {}, json.dumps({"DistributionTenantList": {"MaxItems": 100, "Quantity": 0, "Items": []}})
+
+        return (
+            200,
+            {},
+            json.dumps(
+                {
+                    "DistributionTenantList": {
+                        "MaxItems": 100,
+                        "Quantity": 0,
+                        "Items": [],
+                    }
+                }
+            ),
+        )
 
     def create_invalidation_for_distribution_tenant(self) -> TYPE_RESPONSE:
         import json
-        return 201, {"status": 201}, json.dumps({"Id": random_id(), "Status": "COMPLETED"})
+
+        return (
+            201,
+            {"status": 201},
+            json.dumps({"Id": random_id(), "Status": "COMPLETED"}),
+        )
 
     def get_invalidation_for_distribution_tenant(self) -> TYPE_RESPONSE:
         import json
+
         inv_id = self.path.split("/")[-1]
         return 200, {}, json.dumps({"Id": inv_id, "Status": "COMPLETED"})
 
     def list_invalidations_for_distribution_tenant(self) -> TYPE_RESPONSE:
         import json
-        return 200, {}, json.dumps({"InvalidationList": {"MaxItems": 100, "Quantity": 0, "Items": [], "IsTruncated": False}})
+
+        return (
+            200,
+            {},
+            json.dumps(
+                {
+                    "InvalidationList": {
+                        "MaxItems": 100,
+                        "Quantity": 0,
+                        "Items": [],
+                        "IsTruncated": False,
+                    }
+                }
+            ),
+        )
 
     def create_connection_function(self) -> TYPE_RESPONSE:
         import json
+
         body = json.loads(self.body) if self.body else {}
         name = body.get("Name", "")
-        result = {"Name": name, "FunctionArn": f"arn:aws:cloudfront::{self.backend.account_id}:connection-function/{name}", "Stage": "DEVELOPMENT", "CreatedTime": iso_8601_datetime_with_milliseconds(), "LastModifiedTime": iso_8601_datetime_with_milliseconds()}
+        result = {
+            "Name": name,
+            "FunctionArn": f"arn:aws:cloudfront::{self.backend.account_id}:connection-function/{name}",
+            "Stage": "DEVELOPMENT",
+            "CreatedTime": iso_8601_datetime_with_milliseconds(),
+            "LastModifiedTime": iso_8601_datetime_with_milliseconds(),
+        }
         return 201, {"status": 201, "ETag": random_id(length=14)}, json.dumps(result)
 
     def get_connection_function(self) -> TYPE_RESPONSE:
         import json
+
         name = self.path.split("/")[-1]
-        result = {"Name": name, "FunctionArn": f"arn:aws:cloudfront::{self.backend.account_id}:connection-function/{name}", "Stage": "DEVELOPMENT", "CreatedTime": iso_8601_datetime_with_milliseconds(), "LastModifiedTime": iso_8601_datetime_with_milliseconds()}
+        result = {
+            "Name": name,
+            "FunctionArn": f"arn:aws:cloudfront::{self.backend.account_id}:connection-function/{name}",
+            "Stage": "DEVELOPMENT",
+            "CreatedTime": iso_8601_datetime_with_milliseconds(),
+            "LastModifiedTime": iso_8601_datetime_with_milliseconds(),
+        }
         return 200, {"ETag": random_id(length=14)}, json.dumps(result)
 
     def describe_connection_function(self) -> TYPE_RESPONSE:
@@ -1119,11 +1410,29 @@ class CloudFrontResponse(BaseResponse):
 
     def test_connection_function(self) -> TYPE_RESPONSE:
         import json
-        return 200, {}, json.dumps({"FunctionOutput": '{"response":{"statusCode":200}}'})
+
+        return (
+            200,
+            {},
+            json.dumps({"FunctionOutput": '{"response":{"statusCode":200}}'}),
+        )
 
     def list_connection_functions(self) -> TYPE_RESPONSE:
         import json
-        return 200, {}, json.dumps({"ConnectionFunctionList": {"MaxItems": 100, "Quantity": 0, "Items": []}})
+
+        return (
+            200,
+            {},
+            json.dumps(
+                {
+                    "ConnectionFunctionList": {
+                        "MaxItems": 100,
+                        "Quantity": 0,
+                        "Items": [],
+                    }
+                }
+            ),
+        )
 
     def copy_distribution(self) -> TYPE_RESPONSE:
         return self.get_distribution()
@@ -1154,7 +1463,14 @@ class CloudFrontResponse(BaseResponse):
 
     def list_domain_conflicts(self) -> TYPE_RESPONSE:
         import json
-        return 200, {}, json.dumps({"DomainConflictList": {"MaxItems": 100, "Quantity": 0, "Items": []}})
+
+        return (
+            200,
+            {},
+            json.dumps(
+                {"DomainConflictList": {"MaxItems": 100, "Quantity": 0, "Items": []}}
+            ),
+        )
 
     def update_distribution_with_staging_config(self) -> TYPE_RESPONSE:
         dist_id = self.path.split("/")[-2]
@@ -1168,12 +1484,17 @@ class CloudFrontResponse(BaseResponse):
 
     def get_managed_certificate_details(self) -> TYPE_RESPONSE:
         import json
-        return 200, {}, json.dumps({"ManagedCertificateDetails": {"CertificateStatus": "ISSUED"}})
+
+        return (
+            200,
+            {},
+            json.dumps({"ManagedCertificateDetails": {"CertificateStatus": "ISSUED"}}),
+        )
 
     def verify_dns_configuration(self) -> TYPE_RESPONSE:
         import json
-        return 200, {}, json.dumps({"DnsConfigurationList": []})
 
+        return 200, {}, json.dumps({"DnsConfigurationList": []})
 
 
 DIST_META_TEMPLATE = """
@@ -2015,7 +2336,8 @@ STREAMING_DIST_CONFIG_INNER = """
   <Enabled>{{ dist.streaming_distribution_config.enabled }}</Enabled>
 """
 
-STREAMING_DIST_TEMPLATE = """<?xml version="1.0"?>
+STREAMING_DIST_TEMPLATE = (
+    """<?xml version="1.0"?>
 <StreamingDistribution>
   <Id>{{ dist.streaming_distribution_id }}</Id>
   <ARN>{{ dist.arn }}</ARN>
@@ -2024,18 +2346,26 @@ STREAMING_DIST_TEMPLATE = """<?xml version="1.0"?>
   <DomainName>{{ dist.domain_name }}</DomainName>
   <ActiveTrustedSigners><Enabled>false</Enabled><Quantity>0</Quantity></ActiveTrustedSigners>
   <StreamingDistributionConfig>
-""" + STREAMING_DIST_CONFIG_INNER + """
+"""
+    + STREAMING_DIST_CONFIG_INNER
+    + """
   </StreamingDistributionConfig>
 </StreamingDistribution>
 """
+)
 
-STREAMING_DIST_CONFIG_TEMPLATE = """<?xml version="1.0"?>
+STREAMING_DIST_CONFIG_TEMPLATE = (
+    """<?xml version="1.0"?>
 <StreamingDistributionConfig>
-""" + STREAMING_DIST_CONFIG_INNER + """
+"""
+    + STREAMING_DIST_CONFIG_INNER
+    + """
 </StreamingDistributionConfig>
 """
+)
 
-LIST_STREAMING_DISTS_TEMPLATE = """<?xml version="1.0"?>
+LIST_STREAMING_DISTS_TEMPLATE = (
+    """<?xml version="1.0"?>
 <StreamingDistributionList>
   <Marker></Marker>
   <MaxItems>100</MaxItems>
@@ -2050,13 +2380,16 @@ LIST_STREAMING_DISTS_TEMPLATE = """<?xml version="1.0"?>
       <Status>{{ dist.status }}</Status>
       <LastModifiedTime>{{ dist.last_modified_time }}</LastModifiedTime>
       <DomainName>{{ dist.domain_name }}</DomainName>
-""" + STREAMING_DIST_CONFIG_INNER + """
+"""
+    + STREAMING_DIST_CONFIG_INNER
+    + """
     </StreamingDistributionSummary>
     {% endfor %}
   </Items>
   {% endif %}
 </StreamingDistributionList>
 """
+)
 
 
 ORIGIN_REQUEST_POLICY_TEMPLATE = """<?xml version="1.0"?>
@@ -2411,6 +2744,20 @@ KEY_VALUE_STORE_TEMPLATE = """<?xml version="1.0"?>
 LIST_KEY_VALUE_STORES_TEMPLATE = """<?xml version="1.0"?>
 <KeyValueStoreList>
   <MaxItems>100</MaxItems>
-  <Quantity>0</Quantity>
+  <Quantity>{{ stores|length }}</Quantity>
+  {% if stores %}
+  <Items>
+    {% for s in stores %}
+    <KeyValueStore>
+      <Name>{{ s.name }}</Name>
+      <Id>{{ s.id }}</Id>
+      <Comment>{{ s.comment }}</Comment>
+      <ARN>{{ s.arn }}</ARN>
+      <Status>{{ s.status }}</Status>
+      <LastModifiedTime>{{ s.last_modified_time }}</LastModifiedTime>
+    </KeyValueStore>
+    {% endfor %}
+  </Items>
+  {% endif %}
 </KeyValueStoreList>
 """
