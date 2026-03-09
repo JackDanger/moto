@@ -1,7 +1,9 @@
 import datetime
+import json
 from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
+from moto.core.exceptions import JsonRESTError
 from moto.moto_api._internal import mock_random as random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.utilities.utils import load_resource
@@ -60,11 +62,22 @@ class SupportCase(ManagedState):
         return str(datetime.datetime.now().isoformat())
 
 
+class Attachment:
+    def __init__(self, file_name: str, data: str):
+        self.attachment_id = "".join(
+            random.choice("0123456789abcdef") for _ in range(32)
+        )
+        self.file_name = file_name
+        self.data = data  # base64-encoded
+
+
 class SupportBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.check_status: dict[str, str] = {}
         self.cases: dict[str, SupportCase] = {}
+        self.attachment_sets: dict[str, list[Attachment]] = {}
+        self.attachments: dict[str, Attachment] = {}
 
     def describe_trusted_advisor_checks(self) -> list[dict[str, Any]]:
         """
@@ -220,6 +233,105 @@ class SupportBackend(BaseBackend):
 
             cases.append(formatted_case)
         return {"cases": cases, "nextToken": next_token}
+
+    def add_attachments_to_set(
+        self,
+        attachment_set_id: Optional[str],
+        attachments: list[dict[str, str]],
+    ) -> dict[str, Any]:
+        if not attachment_set_id:
+            attachment_set_id = "".join(
+                random.choice("0123456789abcdef") for _ in range(32)
+            )
+
+        if attachment_set_id not in self.attachment_sets:
+            self.attachment_sets[attachment_set_id] = []
+
+        for att in attachments:
+            file_name = att.get("fileName", "unknown")
+            data = att.get("data", "")
+            attachment = Attachment(file_name=file_name, data=data)
+            self.attachment_sets[attachment_set_id].append(attachment)
+            self.attachments[attachment.attachment_id] = attachment
+
+        return {
+            "attachmentSetId": attachment_set_id,
+            "expiryTime": str(
+                (datetime.datetime.now() + datetime.timedelta(hours=1)).isoformat()
+            ),
+        }
+
+    def describe_attachment(self, attachment_id: str) -> dict[str, Any]:
+        if attachment_id not in self.attachments:
+            raise JsonRESTError(
+                "AttachmentIdNotFound",
+                f"Attachment ID not found: {attachment_id}",
+            )
+        att = self.attachments[attachment_id]
+        return {
+            "attachment": {
+                "fileName": att.file_name,
+                "data": att.data,
+            }
+        }
+
+    def describe_create_case_options(
+        self,
+        issue_type: str,
+        service_code: str,
+        language: str,
+        category_code: str,
+    ) -> dict[str, Any]:
+        return {
+            "languageAvailability": json.dumps(
+                {"availability": [{"language": language or "en"}]}
+            ),
+            "communicationTypeOptions": [
+                {
+                    "type": "web",
+                    "supportedHours": [
+                        {
+                            "startTime": "06:00",
+                            "endTime": "22:00",
+                        }
+                    ],
+                    "datesWithoutSupport": [],
+                }
+            ],
+        }
+
+    def describe_supported_languages(
+        self,
+        issue_type: str,
+        service_code: str,
+        category_code: str,
+    ) -> dict[str, Any]:
+        return {
+            "supportedLanguages": [
+                {"code": "en", "language": "English", "display": "English"},
+                {"code": "ja", "language": "Japanese", "display": "日本語"},
+                {"code": "zh", "language": "Chinese", "display": "中文"},
+                {"code": "ko", "language": "Korean", "display": "한국어"},
+            ]
+        }
+
+    def describe_trusted_advisor_check_refresh_statuses(
+        self,
+        check_ids: list[str],
+    ) -> dict[str, Any]:
+        statuses = []
+        for check_id in check_ids:
+            status = self.check_status.get(check_id, "none")
+            statuses.append(
+                {
+                    "checkId": check_id,
+                    "status": status,
+                    "millisUntilNextRefreshable": (
+                        0 if status in ("none", "success", "abandoned") else 60000
+                    ),
+                }
+            )
+        return {"statuses": statuses}
 
 
 support_backends = BackendDict(
