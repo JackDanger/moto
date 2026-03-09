@@ -994,12 +994,12 @@ EC2_DESCRIBE_PRINCIPAL_ID_FORMAT = """<DescribePrincipalIdFormatResponse xmlns="
 
 EC2_DESCRIBE_PUBLIC_IPV4_POOLS = """<DescribePublicIpv4PoolsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>{{ request_id }}</requestId>
-    <publicIpv4PoolsSet/>
+    <publicIpv4PoolSet/>
 </DescribePublicIpv4PoolsResponse>"""
 
 EC2_DESCRIBE_REPLACE_ROOT_VOLUME_TASKS = """<DescribeReplaceRootVolumeTasksResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>{{ request_id }}</requestId>
-    <replaceRootVolumeTasksSet/>
+    <replaceRootVolumeTaskSet/>
 </DescribeReplaceRootVolumeTasksResponse>"""
 
 EC2_DESCRIBE_RESERVED_INSTANCES_MODIFICATIONS = """<DescribeReservedInstancesModificationsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
@@ -1024,7 +1024,7 @@ EC2_DESCRIBE_ROUTE_SERVERS = """<DescribeRouteServersResponse xmlns="http://ec2.
 
 EC2_DESCRIBE_SCHEDULED_INSTANCES = """<DescribeScheduledInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>{{ request_id }}</requestId>
-    <scheduledInstancesSet/>
+    <scheduledInstanceSet/>
 </DescribeScheduledInstancesResponse>"""
 
 EC2_DESCRIBE_SECONDARY_INTERFACES = """<DescribeSecondaryInterfacesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
@@ -1059,7 +1059,7 @@ EC2_DESCRIBE_SNAPSHOT_TIER_STATUS = """<DescribeSnapshotTierStatusResponse xmlns
 
 EC2_DESCRIBE_STORE_IMAGE_TASKS = """<DescribeStoreImageTasksResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>{{ request_id }}</requestId>
-    <storeImageTasksSet/>
+    <storeImageTaskResultSet/>
 </DescribeStoreImageTasksResponse>"""
 
 EC2_DESCRIBE_TRAFFIC_MIRROR_FILTER_RULES = """<DescribeTrafficMirrorFilterRulesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
@@ -1114,32 +1114,32 @@ EC2_DESCRIBE_TRANSIT_GATEWAY_ROUTE_TABLE_ANNOUNCEMENTS = """<DescribeTransitGate
 
 EC2_DESCRIBE_TRUNK_INTERFACE_ASSOCIATIONS = """<DescribeTrunkInterfaceAssociationsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>{{ request_id }}</requestId>
-    <trunkInterfaceAssociationsSet/>
+    <interfaceAssociationSet/>
 </DescribeTrunkInterfaceAssociationsResponse>"""
 
 EC2_DESCRIBE_VERIFIED_ACCESS_ENDPOINTS = """<DescribeVerifiedAccessEndpointsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>{{ request_id }}</requestId>
-    <verifiedAccessEndpointsSet/>
+    <verifiedAccessEndpointSet/>
 </DescribeVerifiedAccessEndpointsResponse>"""
 
 EC2_DESCRIBE_VERIFIED_ACCESS_GROUPS = """<DescribeVerifiedAccessGroupsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>{{ request_id }}</requestId>
-    <verifiedAccessGroupsSet/>
+    <verifiedAccessGroupSet/>
 </DescribeVerifiedAccessGroupsResponse>"""
 
 EC2_DESCRIBE_VERIFIED_ACCESS_INSTANCE_LOGGING_CONFIGURATIONS = """<DescribeVerifiedAccessInstanceLoggingConfigurationsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>{{ request_id }}</requestId>
-    <verifiedAccessInstanceLoggingConfigurationsSet/>
+    <loggingConfigurationSet/>
 </DescribeVerifiedAccessInstanceLoggingConfigurationsResponse>"""
 
 EC2_DESCRIBE_VERIFIED_ACCESS_INSTANCES = """<DescribeVerifiedAccessInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>{{ request_id }}</requestId>
-    <verifiedAccessInstancesSet/>
+    <verifiedAccessInstanceSet/>
 </DescribeVerifiedAccessInstancesResponse>"""
 
 EC2_DESCRIBE_VERIFIED_ACCESS_TRUST_PROVIDERS = """<DescribeVerifiedAccessTrustProvidersResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>{{ request_id }}</requestId>
-    <verifiedAccessTrustProvidersSet/>
+    <verifiedAccessTrustProviderSet/>
 </DescribeVerifiedAccessTrustProvidersResponse>"""
 
 EC2_DESCRIBE_VPC_BLOCK_PUBLIC_ACCESS_EXCLUSIONS = """<DescribeVpcBlockPublicAccessExclusionsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
