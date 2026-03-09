@@ -403,6 +403,7 @@ class LogGroup(CloudFormationModel):
         self.subscription_filters: dict[str, SubscriptionFilter] = {}
         self.data_protection_policy: Optional[dict[str, Any]] = None
         self.transformer: Optional[dict[str, Any]] = None
+        self.deletion_protection: bool = False
 
         # The Amazon Resource Name (ARN) of the CMK to use when encrypting log data. It is optional.
         # Docs:
@@ -1029,6 +1030,51 @@ class IndexPolicy(BaseModel):
         }
 
 
+class ScheduledQuery(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region: str,
+        name: str,
+        query_string: str,
+        log_group_names: list[str],
+        schedule_expression: str,
+        target_configuration: Optional[dict[str, Any]] = None,
+    ):
+        self.name = name
+        self.scheduled_query_id = mock_random.get_random_hex(16)
+        self.arn = (
+            f"arn:{get_partition(region)}:logs:{region}:{account_id}"
+            f":scheduled-query:{self.scheduled_query_id}"
+        )
+        self.query_string = query_string
+        self.log_group_names = log_group_names
+        self.schedule_expression = schedule_expression
+        self.target_configuration = target_configuration or {}
+        self.status = "ACTIVE"
+        self.creation_time = int(unix_time_millis())
+        self.last_modified_time = int(unix_time_millis())
+        self.run_status: Optional[dict[str, Any]] = None
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "name": self.name,
+            "scheduledQueryId": self.scheduled_query_id,
+            "arn": self.arn,
+            "queryString": self.query_string,
+            "logGroupNames": self.log_group_names,
+            "scheduleExpression": self.schedule_expression,
+            "status": self.status,
+            "creationTime": self.creation_time,
+            "lastModifiedTime": self.last_modified_time,
+        }
+        if self.target_configuration:
+            result["targetConfiguration"] = self.target_configuration
+        if self.run_status:
+            result["runStatus"] = self.run_status
+        return result
+
+
 class LogsBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -1046,6 +1092,7 @@ class LogsBackend(BaseBackend):
         self.account_policies: dict[str, dict[str, AccountPolicy]] = {}
         self.anomaly_detectors: dict[str, LogAnomalyDetector] = {}
         self.index_policies: dict[str, IndexPolicy] = {}
+        self.scheduled_queries: dict[str, ScheduledQuery] = {}
 
     def create_log_group(
         self, log_group_name: str, tags: dict[str, str], **kwargs: Any
@@ -2209,8 +2256,119 @@ class LogsBackend(BaseBackend):
         )
 
     def list_scheduled_queries(self) -> list[dict[str, Any]]:
-        # Scheduled queries are not yet modeled; return empty list
+        return [sq.to_dict() for sq in self.scheduled_queries.values()]
+
+    def create_scheduled_query(
+        self,
+        name: str,
+        query_string: str,
+        log_group_names: list[str],
+        schedule_expression: str,
+        target_configuration: Optional[dict[str, Any]] = None,
+    ) -> ScheduledQuery:
+        # Check for duplicate name
+        for sq in self.scheduled_queries.values():
+            if sq.name == name:
+                raise ConflictException(
+                    f"A scheduled query with name [{name}] already exists."
+                )
+        sq = ScheduledQuery(
+            account_id=self.account_id,
+            region=self.region_name,
+            name=name,
+            query_string=query_string,
+            log_group_names=log_group_names,
+            schedule_expression=schedule_expression,
+            target_configuration=target_configuration,
+        )
+        self.scheduled_queries[sq.arn] = sq
+        return sq
+
+    def get_scheduled_query(self, arn: str) -> ScheduledQuery:
+        sq = self.scheduled_queries.get(arn)
+        if not sq:
+            raise ResourceNotFoundException(
+                msg=f"Scheduled query [{arn}] does not exist."
+            )
+        return sq
+
+    def update_scheduled_query(
+        self,
+        arn: str,
+        query_string: Optional[str] = None,
+        schedule_expression: Optional[str] = None,
+        log_group_names: Optional[list[str]] = None,
+        target_configuration: Optional[dict[str, Any]] = None,
+        enabled: Optional[bool] = None,
+    ) -> ScheduledQuery:
+        sq = self.get_scheduled_query(arn)
+        if query_string is not None:
+            sq.query_string = query_string
+        if schedule_expression is not None:
+            sq.schedule_expression = schedule_expression
+        if log_group_names is not None:
+            sq.log_group_names = log_group_names
+        if target_configuration is not None:
+            sq.target_configuration = target_configuration
+        if enabled is not None:
+            sq.status = "ACTIVE" if enabled else "DISABLED"
+        sq.last_modified_time = int(unix_time_millis())
+        return sq
+
+    def delete_scheduled_query(self, arn: str) -> None:
+        if arn not in self.scheduled_queries:
+            raise ResourceNotFoundException(
+                msg=f"Scheduled query [{arn}] does not exist."
+            )
+        del self.scheduled_queries[arn]
+
+    def get_scheduled_query_history(
+        self,
+        arn: str,
+    ) -> list[dict[str, Any]]:
+        # Validate the scheduled query exists
+        self.get_scheduled_query(arn)
+        # No actual runs in the emulator, return empty history
         return []
+
+    def put_log_group_deletion_protection(
+        self,
+        log_group_name: str,
+        deletion_protection_enabled: bool,
+    ) -> None:
+        log_group = self._find_log_group(log_group_name=log_group_name)
+        log_group.deletion_protection = deletion_protection_enabled
+
+    def update_anomaly(
+        self,
+        anomaly_id: Optional[str] = None,
+        pattern_id: Optional[str] = None,
+        anomaly_detector_arn: Optional[str] = None,
+        suppression: Optional[dict[str, Any]] = None,
+        baseline: Optional[bool] = None,
+    ) -> None:
+        # Validate anomaly detector exists if provided
+        if anomaly_detector_arn:
+            if anomaly_detector_arn not in self.anomaly_detectors:
+                raise ResourceNotFoundException(
+                    msg=f"Anomaly detector [{anomaly_detector_arn}] does not exist."
+                )
+        # Stub: accept params and return success (anomalies are not modeled)
+
+    def update_delivery_configuration(
+        self,
+        delivery_id: str,
+        record_fields: Optional[list[str]] = None,
+        field_delimiter: Optional[str] = None,
+        s3_delivery_configuration: Optional[dict[str, Any]] = None,
+    ) -> None:
+        delivery = self.get_delivery(id=delivery_id)
+        if record_fields is not None:
+            delivery.record_fields = record_fields
+        if field_delimiter is not None:
+            delivery.field_delimiter = field_delimiter
+        if s3_delivery_configuration is not None:
+            delivery.s3_delivery_configuration = s3_delivery_configuration
 
     def list_aggregate_log_group_summaries(
         self,
