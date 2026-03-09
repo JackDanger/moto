@@ -58,6 +58,7 @@ from .exceptions import (
     DBSubnetGroupNotFoundError,
     ExportTaskAlreadyExistsError,
     ExportTaskNotFoundError,
+    GlobalClusterNotFoundError,
     InvalidBlueGreenDeploymentStateFault,
     InvalidDBClusterSnapshotStateFault,
     InvalidDBClusterStateFault,
@@ -2635,6 +2636,8 @@ class RDSBackend(BaseBackend):
 
     def promote_read_replica(self, db_kwargs: dict[str, Any]) -> DBInstance:
         database_id = db_kwargs["db_instance_identifier"]
+        if database_id not in self.databases:
+            raise DBInstanceNotFoundError(database_id)
         database = self.databases[database_id]
         if database.is_replica:
             database.is_replica = False
@@ -2762,6 +2765,8 @@ class RDSBackend(BaseBackend):
     def restore_db_instance_from_db_snapshot(
         self, from_snapshot_id: str, overrides: dict[str, Any]
     ) -> DBInstance:
+        if not from_snapshot_id:
+            raise DBSnapshotNotFoundFault("")
         if from_snapshot_id.startswith("arn:aws:rds:"):
             from_snapshot_id = self.extract_snapshot_name_from_arn(from_snapshot_id)
 
@@ -2769,6 +2774,10 @@ class RDSBackend(BaseBackend):
             db_instance_identifier=None, db_snapshot_identifier=from_snapshot_id
         )[0]
         original_database = snapshot.database
+        if original_database is None:
+            raise InvalidParameterValue(
+                f"The source snapshot {from_snapshot_id} is missing the original database information."
+            )
 
         if overrides["db_instance_identifier"] in self.databases:
             raise DBInstanceAlreadyExists()
@@ -2807,6 +2816,8 @@ class RDSBackend(BaseBackend):
         target_db_identifier: str,
         overrides: dict[str, Any],
     ) -> DBInstance:
+        if not source_db_identifier:
+            raise DBInstanceNotFoundError(source_db_identifier or "")
         db_instance = self.describe_db_instances(
             db_instance_identifier=source_db_identifier
         )[0]
@@ -3074,6 +3085,11 @@ class RDSBackend(BaseBackend):
         subnets: list[Any],
         tags: list[dict[str, str]],
     ) -> DBSubnetGroup:
+        if not subnets:
+            raise InvalidParameterValue(
+                "The DB subnet group doesn't meet Availability Zone (AZ) coverage requirement. "
+                "Add subnets to cover at least 2 Availability Zones."
+            )
         subnet_group = DBSubnetGroup(self, subnet_name, description, subnets, tags)
         self.subnet_groups[subnet_name] = subnet_group
         return subnet_group
@@ -3089,9 +3105,9 @@ class RDSBackend(BaseBackend):
     def modify_db_subnet_group(
         self, subnet_name: str, description: str, subnets: list[Subnet]
     ) -> DBSubnetGroup:
-        subnet_group = self.subnet_groups.pop(subnet_name)
-        if not subnet_group:
+        if subnet_name not in self.subnet_groups:
             raise DBSubnetGroupNotFoundError(subnet_name)
+        subnet_group = self.subnet_groups.pop(subnet_name)
         subnet_group.name = subnet_name
         subnet_group.subnets = subnets  # type: ignore[assignment]
         if description is not None:
@@ -3181,11 +3197,12 @@ class RDSBackend(BaseBackend):
     def describe_option_groups(
         self, option_group_kwargs: dict[str, Any]
     ) -> list[OptionGroup]:
+        option_group_name = option_group_kwargs.get("option_group_name") or option_group_kwargs.get("OptionGroupName")
         option_group_list = []
         for option_group in self.option_groups.values():
             if (
-                option_group_kwargs["option_group_name"]
-                and option_group.name != option_group_kwargs["option_group_name"]
+                option_group_name
+                and option_group.name != option_group_name
             ):
                 continue
             elif option_group_kwargs.get(
@@ -3200,10 +3217,8 @@ class RDSBackend(BaseBackend):
                 continue
             else:
                 option_group_list.append(option_group)
-        if not len(option_group_list):
-            raise OptionGroupNotFoundFaultError(
-                option_group_kwargs["option_group_name"]
-            )
+        if not len(option_group_list) and option_group_name:
+            raise OptionGroupNotFoundFaultError(option_group_name)
         return option_group_list
 
     @staticmethod
@@ -3455,6 +3470,8 @@ class RDSBackend(BaseBackend):
     def modify_db_cluster(self, kwargs: dict[str, Any]) -> DBCluster:
         cluster_id = kwargs["db_cluster_identifier"]
 
+        if cluster_id not in self.clusters:
+            raise DBClusterNotFoundError(cluster_id)
         cluster = self.clusters[cluster_id]
         del self.clusters[cluster_id]
 
@@ -3508,6 +3525,8 @@ class RDSBackend(BaseBackend):
         return initial_state
 
     def promote_read_replica_db_cluster(self, db_cluster_identifier: str) -> DBCluster:
+        if db_cluster_identifier not in self.clusters:
+            raise DBClusterNotFoundError(db_cluster_identifier)
         cluster = self.clusters[db_cluster_identifier]
         source_cluster = find_cluster(cluster.replication_source_identifier)  # type: ignore
         source_cluster.read_replica_identifiers.remove(cluster.db_cluster_arn)
@@ -3705,13 +3724,16 @@ class RDSBackend(BaseBackend):
 
         if export_task_id in self.export_tasks:
             raise ExportTaskAlreadyExistsError(export_task_id)
-        if snapshot_type == "snapshot" and snapshot_id not in self.database_snapshots:
-            raise DBSnapshotNotFoundFault(snapshot_id)
-        elif (
-            snapshot_type == "cluster-snapshot"
-            and snapshot_id not in self.cluster_snapshots
-        ):
-            raise DBClusterSnapshotNotFoundError(snapshot_id)
+        if snapshot_type == "snapshot":
+            if snapshot_id not in self.database_snapshots:
+                raise DBSnapshotNotFoundFault(snapshot_id)
+        elif snapshot_type == "cluster-snapshot":
+            if snapshot_id not in self.cluster_snapshots:
+                raise DBClusterSnapshotNotFoundError(snapshot_id)
+        else:
+            raise InvalidParameterValue(
+                f"Invalid source ARN: {source_arn}. ARN must refer to a snapshot or cluster-snapshot."
+            )
 
         if snapshot_type == "snapshot":
             snapshot: Union[DBSnapshot, DBClusterSnapshot] = self.database_snapshots[
@@ -3971,6 +3993,8 @@ class RDSBackend(BaseBackend):
         return list(self.global_clusters.values())
 
     def delete_global_cluster(self, global_cluster_identifier: str) -> GlobalCluster:
+        if global_cluster_identifier not in self.global_clusters:
+            raise GlobalClusterNotFoundError(global_cluster_identifier)
         global_cluster = self.global_clusters[global_cluster_identifier]
         if global_cluster.members:
             raise InvalidGlobalClusterStateFault(global_cluster.global_cluster_arn)
@@ -4138,9 +4162,13 @@ class RDSBackend(BaseBackend):
         return new_targets
 
     def delete_db_proxy(self, proxy_name: str) -> DBProxy:
+        if proxy_name not in self.db_proxies:
+            raise DBProxyNotFoundFault(proxy_name)
         return self.db_proxies.pop(proxy_name)
 
     def describe_db_proxy_targets(self, proxy_name: str) -> list[DBProxyTarget]:
+        if proxy_name not in self.db_proxies:
+            raise DBProxyNotFoundFault(proxy_name)
         proxy = self.db_proxies[proxy_name]
         target_group = proxy.proxy_target_groups["default"]
         return target_group.targets
@@ -4148,6 +4176,8 @@ class RDSBackend(BaseBackend):
     def describe_db_proxy_target_groups(
         self, proxy_name: str
     ) -> list[DBProxyTargetGroup]:
+        if proxy_name not in self.db_proxies:
+            raise DBProxyNotFoundFault(proxy_name)
         proxy = self.db_proxies[proxy_name]
         return list(proxy.proxy_target_groups.values())
 

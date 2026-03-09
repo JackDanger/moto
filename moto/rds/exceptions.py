@@ -239,6 +239,14 @@ class SubscriptionNotFoundError(RDSClientError):
         )
 
 
+class GlobalClusterNotFoundError(RDSClientError):
+    def __init__(self, global_cluster_identifier: str):
+        super().__init__(
+            "GlobalClusterNotFoundFault",
+            f"Global Cluster {global_cluster_identifier} not found.",
+        )
+
+
 class InvalidGlobalClusterStateFault(RDSClientError):
     def __init__(self, arn: str):
         super().__init__(
