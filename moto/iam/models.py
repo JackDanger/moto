@@ -133,6 +133,7 @@ class VirtualMfaDevice:
         self.enable_date: Optional[datetime] = None
         self.user_attribute: Optional[dict[str, Any]] = None
         self.user: Optional[User] = None
+        self.tags: list[dict[str, str]] = []
 
 
 class Policy(CloudFormationModel):
@@ -217,6 +218,7 @@ class SAMLProvider(BaseModel):
         region_name: str,
         name: str,
         saml_metadata_document: Optional[str] = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ):
         self.account_id = account_id
         self.create_date = utcnow()
@@ -224,6 +226,7 @@ class SAMLProvider(BaseModel):
         self.name = name
         self.saml_metadata_document = saml_metadata_document
         self.valid_until = datetime(2032, 5, 9, 16, 27, 11)
+        self.tags: list[dict[str, str]] = tags or []
 
     @property
     def arn(self) -> str:
@@ -1079,6 +1082,7 @@ class Certificate(BaseModel):
         self.private_key = private_key
         self.path = path if path else "/"
         self.cert_chain = cert_chain
+        self.tags: list[dict[str, str]] = []
 
     @property
     def physical_resource_id(self) -> str:
@@ -3367,10 +3371,13 @@ class IAMBackend(BaseBackend):
     def create_service_linked_role(
         self, service_name: str, description: str, suffix: str
     ) -> Role:
+        if not service_name:
+            raise ValidationError("AWSServiceName is required")
         # service.amazonaws.com -> Service
         # some-thing.service.amazonaws.com -> Service_SomeThing
-        service = service_name.split(".")[-3]
-        prefix = service_name.split(".")[0]
+        parts = service_name.split(".")
+        service = parts[-3] if len(parts) >= 3 else parts[0]
+        prefix = parts[0]
         if service != prefix:
             prefix = "".join([x.capitalize() for x in prefix.split("-")])
             service = SERVICE_NAME_CONVERSION.get(service, service) + "_" + prefix
@@ -3426,6 +3433,175 @@ class IAMBackend(BaseBackend):
     ) -> None:
         profile = self.get_instance_profile(profile_name=instance_profile_name)
         profile.tags = [tag for tag in profile.tags if tag["Key"] not in tagKeys]
+
+    def list_instance_profile_tags(
+        self, instance_profile_name: str
+    ) -> list[dict[str, str]]:
+        profile = self.get_instance_profile(profile_name=instance_profile_name)
+        return profile.tags
+
+    def add_client_id_to_open_id_connect_provider(
+        self, arn: str, client_id: str
+    ) -> None:
+        open_id_provider = self.get_open_id_connect_provider(arn)
+        if client_id not in open_id_provider.client_id_list:
+            open_id_provider.client_id_list.append(client_id)
+
+    def remove_client_id_from_open_id_connect_provider(
+        self, arn: str, client_id: str
+    ) -> None:
+        open_id_provider = self.get_open_id_connect_provider(arn)
+        open_id_provider.client_id_list = [
+            cid for cid in open_id_provider.client_id_list if cid != client_id
+        ]
+
+    def tag_server_certificate(
+        self, server_certificate_name: str, tags: list[dict[str, str]]
+    ) -> None:
+        cert = self.get_server_certificate(server_certificate_name)
+        new_keys = [tag["Key"] for tag in tags]
+        cert.tags = [tag for tag in cert.tags if tag["Key"] not in new_keys]
+        cert.tags.extend(tags)
+
+    def untag_server_certificate(
+        self, server_certificate_name: str, tag_keys: list[str]
+    ) -> None:
+        cert = self.get_server_certificate(server_certificate_name)
+        cert.tags = [tag for tag in cert.tags if tag["Key"] not in tag_keys]
+
+    def list_server_certificate_tags(
+        self, server_certificate_name: str
+    ) -> list[dict[str, str]]:
+        cert = self.get_server_certificate(server_certificate_name)
+        return cert.tags
+
+    def tag_saml_provider(
+        self, saml_provider_arn: str, tags: list[dict[str, str]]
+    ) -> None:
+        provider = self.get_saml_provider(saml_provider_arn)
+        new_keys = [tag["Key"] for tag in tags]
+        provider.tags = [tag for tag in provider.tags if tag["Key"] not in new_keys]
+        provider.tags.extend(tags)
+
+    def untag_saml_provider(
+        self, saml_provider_arn: str, tag_keys: list[str]
+    ) -> None:
+        provider = self.get_saml_provider(saml_provider_arn)
+        provider.tags = [tag for tag in provider.tags if tag["Key"] not in tag_keys]
+
+    def list_saml_provider_tags(
+        self, saml_provider_arn: str
+    ) -> list[dict[str, str]]:
+        provider = self.get_saml_provider(saml_provider_arn)
+        return provider.tags
+
+    def tag_mfa_device(
+        self, serial_number: str, tags: list[dict[str, str]]
+    ) -> None:
+        device = self._get_virtual_mfa_device(serial_number)
+        new_keys = [tag["Key"] for tag in tags]
+        device.tags = [tag for tag in device.tags if tag["Key"] not in new_keys]
+        device.tags.extend(tags)
+
+    def untag_mfa_device(
+        self, serial_number: str, tag_keys: list[str]
+    ) -> None:
+        device = self._get_virtual_mfa_device(serial_number)
+        device.tags = [tag for tag in device.tags if tag["Key"] not in tag_keys]
+
+    def list_mfa_device_tags(
+        self, serial_number: str
+    ) -> list[dict[str, str]]:
+        device = self._get_virtual_mfa_device(serial_number)
+        return device.tags
+
+    def _get_virtual_mfa_device(self, serial_number: str) -> VirtualMfaDevice:
+        device = self.virtual_mfa_devices.get(serial_number)
+        if not device:
+            raise NotFoundException(f"VirtualMFADevice {serial_number} not found")
+        return device
+
+    def update_server_certificate(
+        self,
+        server_certificate_name: str,
+        new_server_certificate_name: Optional[str] = None,
+        new_path: Optional[str] = None,
+    ) -> None:
+        cert = self.get_server_certificate(server_certificate_name)
+        if new_server_certificate_name:
+            cert.cert_name = new_server_certificate_name
+        if new_path:
+            cert.path = new_path
+
+    def set_security_token_service_preferences(
+        self, global_endpoint_token_version: str
+    ) -> None:
+        self.sts_global_endpoint_token_version = global_endpoint_token_version
+
+    def get_mfa_device(self, serial_number: str) -> VirtualMfaDevice:
+        return self._get_virtual_mfa_device(serial_number)
+
+    def resync_mfa_device(
+        self,
+        user_name: str,
+        serial_number: str,
+        authentication_code_1: str,
+        authentication_code_2: str,
+    ) -> None:
+        self.get_user(user_name)
+
+    def generate_service_last_accessed_details(self, arn: str) -> str:
+        job_id = str(random.uuid4())
+        return job_id
+
+    def get_context_keys_for_custom_policy(
+        self, policy_input_list: list[str]
+    ) -> list[str]:
+        context_keys: set[str] = set()
+        for policy_json in policy_input_list:
+            try:
+                policy = json.loads(policy_json)
+            except (json.JSONDecodeError, TypeError):
+                continue
+            statements = policy.get("Statement", [])
+            if isinstance(statements, dict):
+                statements = [statements]
+            for statement in statements:
+                condition = statement.get("Condition", {})
+                for operator_block in condition.values():
+                    if isinstance(operator_block, dict):
+                        context_keys.update(operator_block.keys())
+        return sorted(context_keys)
+
+    def get_context_keys_for_principal_policy(
+        self, policy_source_arn: str, policy_input_list: Optional[list[str]] = None
+    ) -> list[str]:
+        all_policies: list[str] = []
+        if policy_input_list:
+            all_policies.extend(policy_input_list)
+        return self.get_context_keys_for_custom_policy(all_policies)
+
+    def create_service_specific_credential(
+        self, user_name: str, service_name: str
+    ) -> dict[str, Any]:
+        self.get_user(user_name)
+        credential_id = "ACCA" + "".join(
+            random.choice(string.ascii_uppercase + string.digits) for _ in range(16)
+        )
+        generated_password = "".join(
+            random.choice(string.ascii_letters + string.digits + "+/=")
+            for _ in range(40)
+        )
+        credential = {
+            "CreateDate": utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "ServiceName": service_name,
+            "ServiceUserName": f"{user_name}-at-{self.account_id}",
+            "ServicePassword": generated_password,
+            "ServiceSpecificCredentialId": credential_id,
+            "UserName": user_name,
+            "Status": "Active",
+        }
+        return credential
 
 
 iam_backends = BackendDict(

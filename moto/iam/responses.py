@@ -1283,3 +1283,166 @@ class IamResponse(BaseResponse):
             "ServiceSpecificCredentials": [],
         }
         return ActionResult(result)
+
+    def add_client_id_to_open_id_connect_provider(self) -> ActionResult:
+        open_id_provider_arn = self._get_param("OpenIDConnectProviderArn")
+        client_id = self._get_param("ClientID")
+        self.backend.add_client_id_to_open_id_connect_provider(
+            open_id_provider_arn, client_id
+        )
+        return EmptyResult()
+
+    def remove_client_id_from_open_id_connect_provider(self) -> ActionResult:
+        open_id_provider_arn = self._get_param("OpenIDConnectProviderArn")
+        client_id = self._get_param("ClientID")
+        self.backend.remove_client_id_from_open_id_connect_provider(
+            open_id_provider_arn, client_id
+        )
+        return EmptyResult()
+
+    def tag_server_certificate(self) -> ActionResult:
+        server_certificate_name = self._get_param("ServerCertificateName")
+        tags = self._get_param("Tags", [])
+        self.backend.tag_server_certificate(server_certificate_name, tags)
+        return EmptyResult()
+
+    def untag_server_certificate(self) -> ActionResult:
+        server_certificate_name = self._get_param("ServerCertificateName")
+        tag_keys = self._get_param("TagKeys", [])
+        self.backend.untag_server_certificate(server_certificate_name, tag_keys)
+        return EmptyResult()
+
+    def list_server_certificate_tags(self) -> ActionResult:
+        server_certificate_name = self._get_param("ServerCertificateName")
+        tags = self.backend.list_server_certificate_tags(server_certificate_name)
+        result = {"Tags": tags, "IsTruncated": False}
+        return ActionResult(result)
+
+    def tag_saml_provider(self) -> ActionResult:
+        saml_provider_arn = self._get_param("SAMLProviderArn")
+        tags = self._get_param("Tags", [])
+        self.backend.tag_saml_provider(saml_provider_arn, tags)
+        return EmptyResult()
+
+    def untag_saml_provider(self) -> ActionResult:
+        saml_provider_arn = self._get_param("SAMLProviderArn")
+        tag_keys = self._get_param("TagKeys", [])
+        self.backend.untag_saml_provider(saml_provider_arn, tag_keys)
+        return EmptyResult()
+
+    def list_saml_provider_tags(self) -> ActionResult:
+        saml_provider_arn = self._get_param("SAMLProviderArn")
+        tags = self.backend.list_saml_provider_tags(saml_provider_arn)
+        result = {"Tags": tags, "IsTruncated": False}
+        return ActionResult(result)
+
+    def tag_mfa_device(self) -> ActionResult:
+        serial_number = self._get_param("SerialNumber")
+        tags = self._get_param("Tags", [])
+        self.backend.tag_mfa_device(serial_number, tags)
+        return EmptyResult()
+
+    def untag_mfa_device(self) -> ActionResult:
+        serial_number = self._get_param("SerialNumber")
+        tag_keys = self._get_param("TagKeys", [])
+        self.backend.untag_mfa_device(serial_number, tag_keys)
+        return EmptyResult()
+
+    def list_mfa_device_tags(self) -> ActionResult:
+        serial_number = self._get_param("SerialNumber")
+        tags = self.backend.list_mfa_device_tags(serial_number)
+        result = {"Tags": tags, "IsTruncated": False}
+        return ActionResult(result)
+
+    def list_instance_profile_tags(self) -> ActionResult:
+        instance_profile_name = self._get_param("InstanceProfileName")
+        tags = self.backend.list_instance_profile_tags(instance_profile_name)
+        result = {"Tags": tags, "IsTruncated": False}
+        return ActionResult(result)
+
+    def update_server_certificate(self) -> ActionResult:
+        server_certificate_name = self._get_param("ServerCertificateName")
+        new_server_certificate_name = self._get_param("NewServerCertificateName")
+        new_path = self._get_param("NewPath")
+        self.backend.update_server_certificate(
+            server_certificate_name, new_server_certificate_name, new_path
+        )
+        return EmptyResult()
+
+    def set_security_token_service_preferences(self) -> ActionResult:
+        global_endpoint_token_version = self._get_param("GlobalEndpointTokenVersion")
+        self.backend.set_security_token_service_preferences(
+            global_endpoint_token_version
+        )
+        return EmptyResult()
+
+    def get_mfa_device(self) -> ActionResult:
+        serial_number = self._get_param("SerialNumber")
+        device = self.backend.get_mfa_device(serial_number)
+        result = {
+            "SerialNumber": device.serial_number,
+            "EnableDate": device.enable_date,
+        }
+        return ActionResult(result)
+
+    def resync_mfa_device(self) -> ActionResult:
+        user_name = self._get_param("UserName")
+        serial_number = self._get_param("SerialNumber")
+        authentication_code_1 = self._get_param("AuthenticationCode1")
+        authentication_code_2 = self._get_param("AuthenticationCode2")
+        self.backend.resync_mfa_device(
+            user_name, serial_number, authentication_code_1, authentication_code_2
+        )
+        return EmptyResult()
+
+    def generate_service_last_accessed_details(self) -> ActionResult:
+        arn = self._get_param("Arn")
+        job_id = self.backend.generate_service_last_accessed_details(arn)
+        result = {"JobId": job_id}
+        return ActionResult(result)
+
+    def get_service_last_accessed_details(self) -> ActionResult:
+        result = {
+            "JobStatus": "COMPLETED",
+            "JobCreationDate": "2024-01-01T00:00:00Z",
+            "ServicesLastAccessed": [],
+            "JobCompletionDate": "2024-01-01T00:00:00Z",
+            "IsTruncated": False,
+        }
+        return ActionResult(result)
+
+    def get_service_last_accessed_details_with_entities(self) -> ActionResult:
+        result = {
+            "JobStatus": "COMPLETED",
+            "JobCreationDate": "2024-01-01T00:00:00Z",
+            "EntityDetailsList": [],
+            "JobCompletionDate": "2024-01-01T00:00:00Z",
+            "IsTruncated": False,
+        }
+        return ActionResult(result)
+
+    def get_context_keys_for_custom_policy(self) -> ActionResult:
+        policy_input_list = self._get_param("PolicyInputList", [])
+        context_keys = self.backend.get_context_keys_for_custom_policy(
+            policy_input_list
+        )
+        result = {"ContextKeyNames": context_keys}
+        return ActionResult(result)
+
+    def get_context_keys_for_principal_policy(self) -> ActionResult:
+        policy_source_arn = self._get_param("PolicySourceArn")
+        policy_input_list = self._get_param("PolicyInputList", [])
+        context_keys = self.backend.get_context_keys_for_principal_policy(
+            policy_source_arn, policy_input_list
+        )
+        result = {"ContextKeyNames": context_keys}
+        return ActionResult(result)
+
+    def create_service_specific_credential(self) -> ActionResult:
+        user_name = self._get_param("UserName")
+        service_name = self._get_param("ServiceName")
+        credential = self.backend.create_service_specific_credential(
+            user_name, service_name
+        )
+        result = {"ServiceSpecificCredential": credential}
+        return ActionResult(result)
