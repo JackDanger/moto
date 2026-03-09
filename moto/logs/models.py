@@ -927,6 +927,106 @@ class Delivery(BaseModel):
         return dct_items
 
 
+class AccountPolicy(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        policy_name: str,
+        policy_document: str,
+        policy_type: str,
+        scope: Optional[str],
+        selection_criteria: Optional[str],
+    ):
+        self.account_id = account_id
+        self.policy_name = policy_name
+        self.policy_document = policy_document
+        self.policy_type = policy_type
+        self.scope = scope or "ALL"
+        self.selection_criteria = selection_criteria
+        self.last_updated_time = int(unix_time_millis())
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "accountId": self.account_id,
+            "policyName": self.policy_name,
+            "policyDocument": self.policy_document,
+            "policyType": self.policy_type,
+            "scope": self.scope,
+            "lastUpdatedTime": self.last_updated_time,
+        }
+        if self.selection_criteria:
+            result["selectionCriteria"] = self.selection_criteria
+        return result
+
+
+class LogAnomalyDetector(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region: str,
+        detector_name: str,
+        log_group_arn_list: list[str],
+        evaluation_frequency: Optional[str],
+        filter_pattern: Optional[str],
+        kms_key_id: Optional[str],
+        anomaly_visibility_time: Optional[int],
+        tags: Optional[dict[str, str]],
+    ):
+        self.detector_name = detector_name
+        self.anomaly_detector_arn = f"arn:{get_partition(region)}:logs:{region}:{account_id}:anomaly-detector:{mock_random.get_random_hex(8)}"
+        self.log_group_arn_list = log_group_arn_list
+        self.evaluation_frequency = evaluation_frequency or "FIVE_MIN"
+        self.filter_pattern = filter_pattern or ""
+        self.kms_key_id = kms_key_id
+        self.anomaly_visibility_time = anomaly_visibility_time or 7
+        self.tags = tags or {}
+        self.anomaly_detector_status = "TRAINING"
+        self.creation_time_stamp = int(unix_time_millis())
+        self.last_modified_time_stamp = int(unix_time_millis())
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "detectorName": self.detector_name,
+            "anomalyDetectorArn": self.anomaly_detector_arn,
+            "logGroupArnList": self.log_group_arn_list,
+            "evaluationFrequency": self.evaluation_frequency,
+            "filterPattern": self.filter_pattern,
+            "anomalyDetectorStatus": self.anomaly_detector_status,
+            "anomalyVisibilityTime": self.anomaly_visibility_time,
+            "creationTimeStamp": self.creation_time_stamp,
+            "lastModifiedTimeStamp": self.last_modified_time_stamp,
+        }
+        if self.kms_key_id:
+            result["kmsKeyId"] = self.kms_key_id
+        return result
+
+
+class IndexPolicy(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        log_group_identifier: str,
+        policy_document: str,
+        log_group_name: str,
+    ):
+        self.policy_name = "default"
+        self.policy_document = policy_document
+        self.log_group_identifier = log_group_identifier
+        self.source = account_id
+        self.last_update_time = int(unix_time_millis())
+        # Store the log group name for lookup
+        self.log_group_name = log_group_name
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "policyName": self.policy_name,
+            "policyDocument": self.policy_document,
+            "logGroupIdentifier": self.log_group_identifier,
+            "source": self.source,
+            "lastUpdateTime": self.last_update_time,
+        }
+
+
 class LogsBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -941,6 +1041,9 @@ class LogsBackend(BaseBackend):
         self.delivery_sources: dict[str, DeliverySource] = {}
         self.deliveries: dict[str, Delivery] = {}
         self.query_definitions: dict[str, dict[str, Any]] = {}
+        self.account_policies: dict[str, dict[str, AccountPolicy]] = {}
+        self.anomaly_detectors: dict[str, LogAnomalyDetector] = {}
+        self.index_policies: dict[str, IndexPolicy] = {}
 
     def create_log_group(
         self, log_group_name: str, tags: dict[str, str], **kwargs: Any
@@ -1849,19 +1952,231 @@ class LogsBackend(BaseBackend):
         # Import tasks are not yet modeled; return empty list
         return []
 
+    def put_account_policy(
+        self,
+        policy_name: str,
+        policy_document: str,
+        policy_type: str,
+        scope: Optional[str],
+        selection_criteria: Optional[str],
+    ) -> AccountPolicy:
+        valid_types = [
+            "DATA_PROTECTION_POLICY",
+            "SUBSCRIPTION_FILTER_POLICY",
+        ]
+        if policy_type not in valid_types:
+            raise InvalidParameterException(
+                constraint=f"Member must satisfy enum value set: {valid_types}",
+                parameter="policyType",
+                value=policy_type,
+            )
+        if policy_type not in self.account_policies:
+            self.account_policies[policy_type] = {}
+        policy = AccountPolicy(
+            account_id=self.account_id,
+            policy_name=policy_name,
+            policy_document=policy_document,
+            policy_type=policy_type,
+            scope=scope,
+            selection_criteria=selection_criteria,
+        )
+        self.account_policies[policy_type][policy_name] = policy
+        return policy
+
+    def describe_account_policies(
+        self,
+        policy_type: str,
+        policy_name: Optional[str] = None,
+    ) -> list[AccountPolicy]:
+        valid_types = [
+            "DATA_PROTECTION_POLICY",
+            "SUBSCRIPTION_FILTER_POLICY",
+        ]
+        if policy_type not in valid_types:
+            raise InvalidParameterException(
+                constraint=f"Member must satisfy enum value set: {valid_types}",
+                parameter="policyType",
+                value=policy_type,
+            )
+        policies = list(self.account_policies.get(policy_type, {}).values())
+        if policy_name:
+            policies = [p for p in policies if p.policy_name == policy_name]
+        return policies
+
+    def delete_account_policy(
+        self,
+        policy_name: str,
+        policy_type: str,
+    ) -> None:
+        valid_types = [
+            "DATA_PROTECTION_POLICY",
+            "SUBSCRIPTION_FILTER_POLICY",
+        ]
+        if policy_type not in valid_types:
+            raise InvalidParameterException(
+                constraint=f"Member must satisfy enum value set: {valid_types}",
+                parameter="policyType",
+                value=policy_type,
+            )
+        policies = self.account_policies.get(policy_type, {})
+        if policy_name not in policies:
+            raise ResourceNotFoundException(
+                msg=f"Policy with name [{policy_name}] does not exist"
+            )
+        del policies[policy_name]
+
+    def create_log_anomaly_detector(
+        self,
+        log_group_arn_list: list[str],
+        detector_name: Optional[str],
+        evaluation_frequency: Optional[str],
+        filter_pattern: Optional[str],
+        kms_key_id: Optional[str],
+        anomaly_visibility_time: Optional[int],
+        tags: Optional[dict[str, str]],
+    ) -> str:
+        if evaluation_frequency and evaluation_frequency not in [
+            "ONE_MIN",
+            "FIVE_MIN",
+            "TEN_MIN",
+            "FIFTEEN_MIN",
+            "THIRTY_MIN",
+            "ONE_HOUR",
+        ]:
+            raise InvalidParameterException(
+                constraint="Member must satisfy enum value set: [ONE_MIN, FIVE_MIN, TEN_MIN, FIFTEEN_MIN, THIRTY_MIN, ONE_HOUR]",
+                parameter="evaluationFrequency",
+                value=evaluation_frequency,
+            )
+        detector = LogAnomalyDetector(
+            account_id=self.account_id,
+            region=self.region_name,
+            detector_name=detector_name or "",
+            log_group_arn_list=log_group_arn_list,
+            evaluation_frequency=evaluation_frequency,
+            filter_pattern=filter_pattern,
+            kms_key_id=kms_key_id,
+            anomaly_visibility_time=anomaly_visibility_time,
+            tags=tags,
+        )
+        self.anomaly_detectors[detector.anomaly_detector_arn] = detector
+        if tags:
+            self.tag_resource(detector.anomaly_detector_arn, tags)
+        return detector.anomaly_detector_arn
+
+    def get_log_anomaly_detector(self, anomaly_detector_arn: str) -> LogAnomalyDetector:
+        if anomaly_detector_arn not in self.anomaly_detectors:
+            raise ResourceNotFoundException(
+                msg="The specified anomaly detector does not exist."
+            )
+        return self.anomaly_detectors[anomaly_detector_arn]
+
+    def update_log_anomaly_detector(
+        self,
+        anomaly_detector_arn: str,
+        evaluation_frequency: Optional[str],
+        filter_pattern: Optional[str],
+        anomaly_visibility_time: Optional[int],
+        enabled: bool,
+    ) -> None:
+        if anomaly_detector_arn not in self.anomaly_detectors:
+            raise ResourceNotFoundException(
+                msg="The specified anomaly detector does not exist."
+            )
+        detector = self.anomaly_detectors[anomaly_detector_arn]
+        if evaluation_frequency is not None:
+            detector.evaluation_frequency = evaluation_frequency
+        if filter_pattern is not None:
+            detector.filter_pattern = filter_pattern
+        if anomaly_visibility_time is not None:
+            detector.anomaly_visibility_time = anomaly_visibility_time
+        if enabled:
+            detector.anomaly_detector_status = "TRAINING"
+        else:
+            detector.anomaly_detector_status = "PAUSED"
+        detector.last_modified_time_stamp = int(unix_time_millis())
+
+    def delete_log_anomaly_detector(self, anomaly_detector_arn: str) -> None:
+        if anomaly_detector_arn not in self.anomaly_detectors:
+            raise ResourceNotFoundException(
+                msg="The specified anomaly detector does not exist."
+            )
+        del self.anomaly_detectors[anomaly_detector_arn]
+
     def list_anomalies(
         self,
         anomaly_detector_arn: Optional[str] = None,
     ) -> list[dict[str, Any]]:
-        # Log anomalies are not yet modeled; return empty list
+        # Anomalies are not yet modeled; return empty list
         return []
 
     def list_log_anomaly_detectors(
         self,
         filter_log_group_arn: Optional[str] = None,
     ) -> list[dict[str, Any]]:
-        # Log anomaly detectors are not yet modeled; return empty list
-        return []
+        detectors = list(self.anomaly_detectors.values())
+        if filter_log_group_arn:
+            detectors = [
+                d
+                for d in detectors
+                if filter_log_group_arn in d.log_group_arn_list
+            ]
+        return [d.to_dict() for d in detectors]
+
+    def put_index_policy(
+        self,
+        log_group_identifier: str,
+        policy_document: str,
+    ) -> IndexPolicy:
+        # log_group_identifier can be a name or ARN
+        log_group = None
+        for group in self.groups.values():
+            if group.name == log_group_identifier or group.arn == log_group_identifier:
+                log_group = group
+                break
+        if not log_group:
+            raise ResourceNotFoundException()
+        policy = IndexPolicy(
+            account_id=self.account_id,
+            log_group_identifier=log_group.arn,
+            policy_document=policy_document,
+            log_group_name=log_group.name,
+        )
+        self.index_policies[log_group.name] = policy
+        return policy
+
+    def describe_index_policies(
+        self,
+        log_group_identifiers: list[str],
+    ) -> list[IndexPolicy]:
+        results = []
+        for identifier in log_group_identifiers:
+            # Identifier can be name or ARN
+            for name, policy in self.index_policies.items():
+                if (
+                    name == identifier
+                    or policy.log_group_identifier == identifier
+                ):
+                    results.append(policy)
+        return results
+
+    def delete_index_policy(
+        self,
+        log_group_identifier: str,
+    ) -> None:
+        # Find the log group by name or ARN
+        log_group = None
+        for group in self.groups.values():
+            if group.name == log_group_identifier or group.arn == log_group_identifier:
+                log_group = group
+                break
+        if not log_group:
+            raise ResourceNotFoundException()
+        if log_group.name not in self.index_policies:
+            raise ResourceNotFoundException(
+                msg="No index policy found for the specified log group."
+            )
+        del self.index_policies[log_group.name]
 
     def list_integrations(
         self,
