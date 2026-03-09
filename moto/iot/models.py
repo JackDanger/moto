@@ -1772,6 +1772,129 @@ class FakeFleetMetric(BaseModel):
         return result
 
 
+class FakeStream(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        stream_id: str,
+        description: str,
+        files: list[dict[str, Any]],
+        role_arn: str,
+        tags: Optional[list[dict[str, str]]],
+    ):
+        self.stream_id = stream_id
+        self.description = description or ""
+        self.files = files or []
+        self.role_arn = role_arn
+        self.tags = tags or []
+        self.stream_version = 1
+        self.created_at = utcnow()
+        self.last_updated_at = self.created_at
+        self.arn = f"arn:{get_partition(region_name)}:iot:{region_name}:{account_id}:stream/{stream_id}"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "streamId": self.stream_id,
+            "streamArn": self.arn,
+            "streamVersion": self.stream_version,
+        }
+
+    def to_description_dict(self) -> dict[str, Any]:
+        return {
+            "streamInfo": {
+                "streamId": self.stream_id,
+                "streamArn": self.arn,
+                "streamVersion": self.stream_version,
+                "description": self.description,
+                "files": self.files,
+                "roleArn": self.role_arn,
+                "createdAt": self.created_at,
+                "lastUpdatedAt": self.last_updated_at,
+            }
+        }
+
+
+class FakeMitigationAction(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        action_name: str,
+        role_arn: str,
+        action_params: dict[str, Any],
+        tags: Optional[list[dict[str, str]]],
+    ):
+        self.action_name = action_name
+        self.role_arn = role_arn
+        self.action_params = action_params
+        self.tags = tags or []
+        self.action_id = str(random.uuid4())
+        self.creation_date = utcnow()
+        self.last_modified_date = self.creation_date
+        self.arn = f"arn:{get_partition(region_name)}:iot:{region_name}:{account_id}:mitigationaction/{action_name}"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "actionName": self.action_name,
+            "actionArn": self.arn,
+            "actionId": self.action_id,
+        }
+
+    def to_description_dict(self) -> dict[str, Any]:
+        return {
+            "actionName": self.action_name,
+            "actionArn": self.arn,
+            "actionId": self.action_id,
+            "actionType": next(iter(self.action_params.keys()), "UNKNOWN"),
+            "actionParams": self.action_params,
+            "roleArn": self.role_arn,
+            "creationDate": self.creation_date,
+            "lastModifiedDate": self.last_modified_date,
+        }
+
+
+class FakeScheduledAudit(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        scheduled_audit_name: str,
+        frequency: str,
+        day_of_month: Optional[str],
+        day_of_week: Optional[str],
+        target_check_names: list[str],
+        tags: Optional[list[dict[str, str]]],
+    ):
+        self.scheduled_audit_name = scheduled_audit_name
+        self.frequency = frequency
+        self.day_of_month = day_of_month
+        self.day_of_week = day_of_week
+        self.target_check_names = target_check_names
+        self.tags = tags or []
+        self.arn = f"arn:{get_partition(region_name)}:iot:{region_name}:{account_id}:scheduledaudit/{scheduled_audit_name}"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "scheduledAuditName": self.scheduled_audit_name,
+            "scheduledAuditArn": self.arn,
+            "frequency": self.frequency,
+        }
+
+    def to_description_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "scheduledAuditName": self.scheduled_audit_name,
+            "scheduledAuditArn": self.arn,
+            "frequency": self.frequency,
+            "targetCheckNames": self.target_check_names,
+        }
+        if self.day_of_month:
+            result["dayOfMonth"] = self.day_of_month
+        if self.day_of_week:
+            result["dayOfWeek"] = self.day_of_week
+        return result
+
+
 class IoTBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -1798,10 +1921,19 @@ class IoTBackend(BaseBackend):
         self.indexing_configuration = FakeIndexingConfiguration(region_name, account_id)
         self.security_profiles: dict[str, FakeSecurityProfile] = OrderedDict()
         self.authorizers: dict[str, FakeAuthorizer] = OrderedDict()
+        self.default_authorizer_name: Optional[str] = None
         self.provisioning_templates: dict[str, FakeProvisioningTemplate] = OrderedDict()
+        self.provisioning_template_versions: dict[str, list[dict[str, Any]]] = (
+            OrderedDict()
+        )
         self.dimensions: dict[str, FakeDimension] = OrderedDict()
         self.custom_metrics: dict[str, FakeCustomMetric] = OrderedDict()
         self.fleet_metrics: dict[str, FakeFleetMetric] = OrderedDict()
+        self.streams: dict[str, FakeStream] = OrderedDict()
+        self.mitigation_actions: dict[str, FakeMitigationAction] = OrderedDict()
+        self.scheduled_audits: dict[str, FakeScheduledAudit] = OrderedDict()
+        self.event_configurations: dict[str, dict[str, bool]] = {}
+        self.account_audit_configuration: dict[str, Any] = {}
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -3721,6 +3853,342 @@ class IoTBackend(BaseBackend):
 
     def list_fleet_metrics(self) -> list[FakeFleetMetric]:
         return list(self.fleet_metrics.values())
+
+    # --- Event Configurations ---
+
+    def describe_event_configurations(self) -> dict[str, dict[str, bool]]:
+        if not self.event_configurations:
+            # Return defaults for all event types
+            event_types = [
+                "THING",
+                "THING_GROUP",
+                "THING_TYPE",
+                "THING_GROUP_MEMBERSHIP",
+                "THING_GROUP_HIERARCHY",
+                "THING_TYPE_ASSOCIATION",
+                "JOB",
+                "JOB_EXECUTION",
+                "POLICY",
+                "CERTIFICATE",
+                "CA_CERTIFICATE",
+            ]
+            return {et: {"Enabled": False} for et in event_types}
+        return self.event_configurations
+
+    def update_event_configurations(
+        self, event_configurations: dict[str, dict[str, bool]]
+    ) -> None:
+        self.event_configurations.update(event_configurations)
+
+    # --- Index ---
+
+    def describe_index(self, index_name: str) -> dict[str, Any]:
+        if index_name != "AWS_Things":
+            raise ResourceNotFoundException(f"Index {index_name} does not exist.")
+        return {
+            "indexName": "AWS_Things",
+            "indexStatus": "ACTIVE",
+            "schema": "REGISTRY_AND_SHADOW_AND_CONNECTIVITY_STATUS",
+        }
+
+    # --- Default Authorizer ---
+
+    def set_default_authorizer(self, authorizer_name: str) -> FakeAuthorizer:
+        if authorizer_name not in self.authorizers:
+            raise ResourceNotFoundException(
+                f"Authorizer {authorizer_name} does not exist."
+            )
+        self.default_authorizer_name = authorizer_name
+        return self.authorizers[authorizer_name]
+
+    def describe_default_authorizer(self) -> FakeAuthorizer:
+        if not self.default_authorizer_name:
+            raise ResourceNotFoundException("No default authorizer has been configured.")
+        if self.default_authorizer_name not in self.authorizers:
+            raise ResourceNotFoundException("No default authorizer has been configured.")
+        return self.authorizers[self.default_authorizer_name]
+
+    def clear_default_authorizer(self) -> None:
+        self.default_authorizer_name = None
+
+    # --- Account Audit Configuration ---
+
+    def describe_account_audit_configuration(self) -> dict[str, Any]:
+        if not self.account_audit_configuration:
+            return {
+                "roleArn": "",
+                "auditNotificationTargetConfigurations": {},
+                "auditCheckConfigurations": {},
+            }
+        return self.account_audit_configuration
+
+    def update_account_audit_configuration(
+        self,
+        role_arn: Optional[str],
+        audit_notification_target_configurations: Optional[dict[str, Any]],
+        audit_check_configurations: Optional[dict[str, Any]],
+    ) -> None:
+        if role_arn is not None:
+            self.account_audit_configuration["roleArn"] = role_arn
+        if audit_notification_target_configurations is not None:
+            self.account_audit_configuration[
+                "auditNotificationTargetConfigurations"
+            ] = audit_notification_target_configurations
+        if audit_check_configurations is not None:
+            self.account_audit_configuration[
+                "auditCheckConfigurations"
+            ] = audit_check_configurations
+
+    # --- Audit stubs (finding, task, suppression, mitigation actions task) ---
+
+    def describe_audit_finding(self, finding_id: str) -> dict[str, Any]:
+        raise ResourceNotFoundException(f"Audit finding {finding_id} does not exist.")
+
+    def describe_audit_task(self, task_id: str) -> dict[str, Any]:
+        raise ResourceNotFoundException(f"Audit task {task_id} does not exist.")
+
+    def describe_audit_suppression(
+        self, check_name: str, resource_identifier: dict[str, Any]
+    ) -> dict[str, Any]:
+        raise ResourceNotFoundException("Audit suppression does not exist.")
+
+    def describe_audit_mitigation_actions_task(
+        self, task_id: str
+    ) -> dict[str, Any]:
+        raise ResourceNotFoundException(
+            f"Audit mitigation actions task {task_id} does not exist."
+        )
+
+    def describe_detect_mitigation_actions_task(
+        self, task_id: str
+    ) -> dict[str, Any]:
+        raise ResourceNotFoundException(
+            f"Detect mitigation actions task {task_id} does not exist."
+        )
+
+    # --- Mitigation Actions ---
+
+    def create_mitigation_action(
+        self,
+        action_name: str,
+        role_arn: str,
+        action_params: dict[str, Any],
+        tags: Optional[list[dict[str, str]]],
+    ) -> FakeMitigationAction:
+        if action_name in self.mitigation_actions:
+            raise ResourceAlreadyExistsException(
+                f"Mitigation action {action_name} already exists.",
+                action_name,
+                self.mitigation_actions[action_name].arn,
+            )
+        action = FakeMitigationAction(
+            self.account_id,
+            self.region_name,
+            action_name,
+            role_arn,
+            action_params,
+            tags,
+        )
+        self.mitigation_actions[action_name] = action
+        return action
+
+    def describe_mitigation_action(
+        self, action_name: str
+    ) -> FakeMitigationAction:
+        if action_name not in self.mitigation_actions:
+            raise ResourceNotFoundException(
+                f"Mitigation action {action_name} does not exist."
+            )
+        return self.mitigation_actions[action_name]
+
+    def delete_mitigation_action(self, action_name: str) -> None:
+        if action_name not in self.mitigation_actions:
+            raise ResourceNotFoundException(
+                f"Mitigation action {action_name} does not exist."
+            )
+        del self.mitigation_actions[action_name]
+
+    def list_mitigation_actions(self) -> list[FakeMitigationAction]:
+        return list(self.mitigation_actions.values())
+
+    # --- Scheduled Audits ---
+
+    def create_scheduled_audit(
+        self,
+        scheduled_audit_name: str,
+        frequency: str,
+        day_of_month: Optional[str],
+        day_of_week: Optional[str],
+        target_check_names: list[str],
+        tags: Optional[list[dict[str, str]]],
+    ) -> FakeScheduledAudit:
+        if scheduled_audit_name in self.scheduled_audits:
+            raise ResourceAlreadyExistsException(
+                f"Scheduled audit {scheduled_audit_name} already exists.",
+                scheduled_audit_name,
+                self.scheduled_audits[scheduled_audit_name].arn,
+            )
+        audit = FakeScheduledAudit(
+            self.account_id,
+            self.region_name,
+            scheduled_audit_name,
+            frequency,
+            day_of_month,
+            day_of_week,
+            target_check_names,
+            tags,
+        )
+        self.scheduled_audits[scheduled_audit_name] = audit
+        return audit
+
+    def describe_scheduled_audit(
+        self, scheduled_audit_name: str
+    ) -> FakeScheduledAudit:
+        if scheduled_audit_name not in self.scheduled_audits:
+            raise ResourceNotFoundException(
+                f"Scheduled audit {scheduled_audit_name} does not exist."
+            )
+        return self.scheduled_audits[scheduled_audit_name]
+
+    def delete_scheduled_audit(self, scheduled_audit_name: str) -> None:
+        if scheduled_audit_name not in self.scheduled_audits:
+            raise ResourceNotFoundException(
+                f"Scheduled audit {scheduled_audit_name} does not exist."
+            )
+        del self.scheduled_audits[scheduled_audit_name]
+
+    def list_scheduled_audits(self) -> list[FakeScheduledAudit]:
+        return list(self.scheduled_audits.values())
+
+    # --- Provisioning Template Versions ---
+
+    def create_provisioning_template_version(
+        self, template_name: str, template_body: str, set_as_default: bool
+    ) -> dict[str, Any]:
+        if template_name not in self.provisioning_templates:
+            raise ResourceNotFoundException(
+                f"Provisioning template {template_name} does not exist."
+            )
+        template = self.provisioning_templates[template_name]
+        if template_name not in self.provisioning_template_versions:
+            # Store version 1 (the original)
+            self.provisioning_template_versions[template_name] = [
+                {
+                    "versionId": 1,
+                    "templateBody": template.template_body,
+                    "isDefaultVersion": True,
+                    "creationDate": template.creation_date,
+                }
+            ]
+        versions = self.provisioning_template_versions[template_name]
+        new_version_id = len(versions) + 1
+        version_entry = {
+            "versionId": new_version_id,
+            "templateBody": template_body,
+            "isDefaultVersion": bool(set_as_default),
+            "creationDate": utcnow(),
+        }
+        if set_as_default:
+            for v in versions:
+                v["isDefaultVersion"] = False
+            template.default_version_id = new_version_id
+            template.template_body = template_body
+        versions.append(version_entry)
+        return {
+            "templateArn": template.arn,
+            "templateName": template_name,
+            "versionId": new_version_id,
+            "isDefaultVersion": bool(set_as_default),
+        }
+
+    def describe_provisioning_template_version(
+        self, template_name: str, version_id: int
+    ) -> dict[str, Any]:
+        if template_name not in self.provisioning_templates:
+            raise ResourceNotFoundException(
+                f"Provisioning template {template_name} does not exist."
+            )
+        if template_name not in self.provisioning_template_versions:
+            # Only version 1 exists (the original)
+            template = self.provisioning_templates[template_name]
+            if version_id != 1:
+                raise ResourceNotFoundException(
+                    f"Version {version_id} of provisioning template {template_name} does not exist."
+                )
+            return {
+                "versionId": 1,
+                "templateBody": template.template_body,
+                "isDefaultVersion": True,
+                "creationDate": template.creation_date,
+            }
+        versions = self.provisioning_template_versions[template_name]
+        for v in versions:
+            if v["versionId"] == version_id:
+                return v
+        raise ResourceNotFoundException(
+            f"Version {version_id} of provisioning template {template_name} does not exist."
+        )
+
+    # --- Streams ---
+
+    def create_stream(
+        self,
+        stream_id: str,
+        description: str,
+        files: list[dict[str, Any]],
+        role_arn: str,
+        tags: Optional[list[dict[str, str]]],
+    ) -> FakeStream:
+        if stream_id in self.streams:
+            raise ResourceAlreadyExistsException(
+                f"Stream {stream_id} already exists.",
+                stream_id,
+                self.streams[stream_id].arn,
+            )
+        stream = FakeStream(
+            self.account_id,
+            self.region_name,
+            stream_id,
+            description,
+            files,
+            role_arn,
+            tags,
+        )
+        self.streams[stream_id] = stream
+        return stream
+
+    def describe_stream(self, stream_id: str) -> FakeStream:
+        if stream_id not in self.streams:
+            raise ResourceNotFoundException(
+                f"Stream {stream_id} does not exist."
+            )
+        return self.streams[stream_id]
+
+    def delete_stream(self, stream_id: str) -> None:
+        if stream_id not in self.streams:
+            raise ResourceNotFoundException(
+                f"Stream {stream_id} does not exist."
+            )
+        del self.streams[stream_id]
+
+    def list_streams(self) -> list[FakeStream]:
+        return list(self.streams.values())
+
+    # --- Managed Job Templates (stub) ---
+
+    def describe_managed_job_template(
+        self, template_name: str, template_version: Optional[str]
+    ) -> dict[str, Any]:
+        raise ResourceNotFoundException(
+            f"Managed job template {template_name} does not exist."
+        )
+
+    # --- Thing Registration Task (stub) ---
+
+    def describe_thing_registration_task(self, task_id: str) -> dict[str, Any]:
+        raise ResourceNotFoundException(
+            f"Thing registration task {task_id} does not exist."
+        )
 
 
 iot_backends = BackendDict(IoTBackend, "iot")

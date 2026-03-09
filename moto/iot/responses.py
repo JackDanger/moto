@@ -1289,3 +1289,218 @@ class IoTResponse(BaseResponse):
         return ActionResult(
             {"fleetMetrics": [fm.to_dict() for fm in fleet_metrics]}
         )
+
+    # --- Event Configurations ---
+
+    def describe_event_configurations(self) -> ActionResult:
+        configs = self.iot_backend.describe_event_configurations()
+        return ActionResult({"eventConfigurations": configs})
+
+    def update_event_configurations(self) -> ActionResult:
+        event_configurations = self._get_param("eventConfigurations")
+        self.iot_backend.update_event_configurations(
+            event_configurations=event_configurations
+        )
+        return EmptyResult()
+
+    # --- Index ---
+
+    def describe_index(self) -> ActionResult:
+        index_name = self._get_param("indexName")
+        index_info = self.iot_backend.describe_index(index_name=index_name)
+        return ActionResult(index_info)
+
+    # --- Default Authorizer ---
+
+    def set_default_authorizer(self) -> ActionResult:
+        authorizer_name = self._get_param("authorizerName")
+        authorizer = self.iot_backend.set_default_authorizer(
+            authorizer_name=authorizer_name
+        )
+        return ActionResult(
+            {
+                "authorizerName": authorizer.authorizer_name,
+                "authorizerArn": authorizer.arn,
+            }
+        )
+
+    def describe_default_authorizer(self) -> ActionResult:
+        authorizer = self.iot_backend.describe_default_authorizer()
+        return ActionResult({"authorizerDescription": authorizer.to_description_dict()})
+
+    def clear_default_authorizer(self) -> ActionResult:
+        self.iot_backend.clear_default_authorizer()
+        return EmptyResult()
+
+    # --- Account Audit Configuration ---
+
+    def describe_account_audit_configuration(self) -> ActionResult:
+        config = self.iot_backend.describe_account_audit_configuration()
+        return ActionResult(config)
+
+    def update_account_audit_configuration(self) -> ActionResult:
+        self.iot_backend.update_account_audit_configuration(
+            role_arn=self._get_param("roleArn"),
+            audit_notification_target_configurations=self._get_param(
+                "auditNotificationTargetConfigurations"
+            ),
+            audit_check_configurations=self._get_param("auditCheckConfigurations"),
+        )
+        return EmptyResult()
+
+    # --- Audit stubs ---
+
+    def describe_audit_finding(self) -> ActionResult:
+        finding_id = self._get_param("findingId")
+        self.iot_backend.describe_audit_finding(finding_id=finding_id)
+        return EmptyResult()  # unreachable due to exception
+
+    def describe_audit_task(self) -> ActionResult:
+        task_id = self._get_param("taskId")
+        self.iot_backend.describe_audit_task(task_id=task_id)
+        return EmptyResult()
+
+    def describe_audit_suppression(self) -> ActionResult:
+        check_name = self._get_param("checkName")
+        resource_identifier = self._get_param("resourceIdentifier")
+        self.iot_backend.describe_audit_suppression(
+            check_name=check_name, resource_identifier=resource_identifier
+        )
+        return EmptyResult()
+
+    def describe_audit_mitigation_actions_task(self) -> ActionResult:
+        task_id = self._get_param("taskId")
+        self.iot_backend.describe_audit_mitigation_actions_task(task_id=task_id)
+        return EmptyResult()
+
+    def describe_detect_mitigation_actions_task(self) -> ActionResult:
+        task_id = self._get_param("taskId")
+        self.iot_backend.describe_detect_mitigation_actions_task(task_id=task_id)
+        return EmptyResult()
+
+    # --- Mitigation Actions ---
+
+    def create_mitigation_action(self) -> ActionResult:
+        action_name = self._get_param("actionName")
+        action = self.iot_backend.create_mitigation_action(
+            action_name=action_name,
+            role_arn=self._get_param("roleArn"),
+            action_params=self._get_param("actionParams"),
+            tags=self._get_param("tags"),
+        )
+        return ActionResult(action.to_dict())
+
+    def describe_mitigation_action(self) -> ActionResult:
+        action_name = self._get_param("actionName")
+        action = self.iot_backend.describe_mitigation_action(
+            action_name=action_name
+        )
+        return ActionResult(action.to_description_dict())
+
+    def delete_mitigation_action(self) -> ActionResult:
+        action_name = self._get_param("actionName")
+        self.iot_backend.delete_mitigation_action(action_name=action_name)
+        return EmptyResult()
+
+    def list_mitigation_actions(self) -> ActionResult:
+        actions = self.iot_backend.list_mitigation_actions()
+        return ActionResult(
+            {"actionIdentifiers": [a.to_dict() for a in actions]}
+        )
+
+    # --- Scheduled Audits ---
+
+    def create_scheduled_audit(self) -> ActionResult:
+        scheduled_audit_name = self._get_param("scheduledAuditName")
+        audit = self.iot_backend.create_scheduled_audit(
+            scheduled_audit_name=scheduled_audit_name,
+            frequency=self._get_param("frequency"),
+            day_of_month=self._get_param("dayOfMonth"),
+            day_of_week=self._get_param("dayOfWeek"),
+            target_check_names=self._get_param("targetCheckNames"),
+            tags=self._get_param("tags"),
+        )
+        return ActionResult({"scheduledAuditArn": audit.arn})
+
+    def describe_scheduled_audit(self) -> ActionResult:
+        scheduled_audit_name = self._get_param("scheduledAuditName")
+        audit = self.iot_backend.describe_scheduled_audit(
+            scheduled_audit_name=scheduled_audit_name
+        )
+        return ActionResult(audit.to_description_dict())
+
+    def delete_scheduled_audit(self) -> ActionResult:
+        scheduled_audit_name = self._get_param("scheduledAuditName")
+        self.iot_backend.delete_scheduled_audit(
+            scheduled_audit_name=scheduled_audit_name
+        )
+        return EmptyResult()
+
+    def list_scheduled_audits(self) -> ActionResult:
+        audits = self.iot_backend.list_scheduled_audits()
+        return ActionResult(
+            {"scheduledAudits": [a.to_dict() for a in audits]}
+        )
+
+    # --- Provisioning Template Versions ---
+
+    def create_provisioning_template_version(self) -> ActionResult:
+        template_name = self._get_param("templateName")
+        result = self.iot_backend.create_provisioning_template_version(
+            template_name=template_name,
+            template_body=self._get_param("templateBody"),
+            set_as_default=self._get_bool_param("setAsDefault") or False,
+        )
+        return ActionResult(result)
+
+    def describe_provisioning_template_version(self) -> ActionResult:
+        template_name = self._get_param("templateName")
+        version_id = self._get_int_param("versionId")
+        version = self.iot_backend.describe_provisioning_template_version(
+            template_name=template_name, version_id=version_id
+        )
+        return ActionResult(version)
+
+    # --- Streams ---
+
+    def create_stream(self) -> ActionResult:
+        stream_id = self._get_param("streamId")
+        stream = self.iot_backend.create_stream(
+            stream_id=stream_id,
+            description=self._get_param("description"),
+            files=self._get_param("files"),
+            role_arn=self._get_param("roleArn"),
+            tags=self._get_param("tags"),
+        )
+        return ActionResult(stream.to_dict())
+
+    def describe_stream(self) -> ActionResult:
+        stream_id = self._get_param("streamId")
+        stream = self.iot_backend.describe_stream(stream_id=stream_id)
+        return ActionResult(stream.to_description_dict())
+
+    def delete_stream(self) -> ActionResult:
+        stream_id = self._get_param("streamId")
+        self.iot_backend.delete_stream(stream_id=stream_id)
+        return EmptyResult()
+
+    def list_streams(self) -> ActionResult:
+        streams = self.iot_backend.list_streams()
+        return ActionResult({"streams": [s.to_dict() for s in streams]})
+
+    # --- Managed Job Templates (stub) ---
+
+    def describe_managed_job_template(self) -> ActionResult:
+        template_name = self._get_param("templateName")
+        template_version = self._get_param("templateVersion")
+        self.iot_backend.describe_managed_job_template(
+            template_name=template_name, template_version=template_version
+        )
+        return EmptyResult()
+
+    # --- Thing Registration Task (stub) ---
+
+    def describe_thing_registration_task(self) -> ActionResult:
+        task_id = self._get_param("taskId")
+        self.iot_backend.describe_thing_registration_task(task_id=task_id)
+        return EmptyResult()
