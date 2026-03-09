@@ -925,3 +925,89 @@ class LogsResponse(BaseResponse):
             query_id=query_id,
         )
         return json.dumps({"logGroupIdentifiers": log_group_names})
+
+    def put_log_group_deletion_protection(self) -> str:
+        log_group_name = self._get_param("logGroupName")
+        deletion_protection_enabled = self._get_param(
+            "deletionProtectionEnabled", True
+        )
+        self.logs_backend.put_log_group_deletion_protection(
+            log_group_name=log_group_name,
+            deletion_protection_enabled=deletion_protection_enabled,
+        )
+        return "{}"
+
+    def update_anomaly(self) -> str:
+        anomaly_id = self._get_param("anomalyId")
+        pattern_id = self._get_param("patternId")
+        anomaly_detector_arn = self._get_param("anomalyDetectorArn")
+        suppression = self._get_param("suppression")
+        baseline = self._get_param("baseline")
+        self.logs_backend.update_anomaly(
+            anomaly_id=anomaly_id,
+            pattern_id=pattern_id,
+            anomaly_detector_arn=anomaly_detector_arn,
+            suppression=suppression,
+            baseline=baseline,
+        )
+        return "{}"
+
+    def update_delivery_configuration(self) -> str:
+        delivery_id = self._get_param("id")
+        record_fields = self._get_param("recordFields")
+        field_delimiter = self._get_param("fieldDelimiter")
+        s3_delivery_configuration = self._get_param("s3DeliveryConfiguration")
+        self.logs_backend.update_delivery_configuration(
+            delivery_id=delivery_id,
+            record_fields=record_fields,
+            field_delimiter=field_delimiter,
+            s3_delivery_configuration=s3_delivery_configuration,
+        )
+        return "{}"
+
+    def create_scheduled_query(self) -> str:
+        name = self._get_param("queryName")
+        query_string = self._get_param("queryString")
+        log_group_names = self._get_param("logGroupNames", [])
+        schedule_expression = self._get_param("scheduleExpression")
+        target_configuration = self._get_param("targetConfiguration")
+        sq = self.logs_backend.create_scheduled_query(
+            name=name,
+            query_string=query_string,
+            log_group_names=log_group_names,
+            schedule_expression=schedule_expression,
+            target_configuration=target_configuration,
+        )
+        return json.dumps({"scheduledQuery": sq.to_dict()})
+
+    def get_scheduled_query(self) -> str:
+        arn = self._get_param("arn")
+        sq = self.logs_backend.get_scheduled_query(arn=arn)
+        return json.dumps({"scheduledQuery": sq.to_dict()})
+
+    def update_scheduled_query(self) -> str:
+        arn = self._get_param("arn")
+        query_string = self._get_param("queryString")
+        schedule_expression = self._get_param("scheduleExpression")
+        log_group_names = self._get_param("logGroupNames")
+        target_configuration = self._get_param("targetConfiguration")
+        enabled = self._get_param("enabled")
+        sq = self.logs_backend.update_scheduled_query(
+            arn=arn,
+            query_string=query_string,
+            schedule_expression=schedule_expression,
+            log_group_names=log_group_names,
+            target_configuration=target_configuration,
+            enabled=enabled,
+        )
+        return json.dumps({"scheduledQuery": sq.to_dict()})
+
+    def delete_scheduled_query(self) -> str:
+        arn = self._get_param("arn")
+        self.logs_backend.delete_scheduled_query(arn=arn)
+        return "{}"
+
+    def get_scheduled_query_history(self) -> str:
+        arn = self._get_param("arn")
+        history = self.logs_backend.get_scheduled_query_history(arn=arn)
+        return json.dumps({"scheduledQueryRunSummaries": history})
