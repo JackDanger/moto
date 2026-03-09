@@ -401,6 +401,8 @@ class LogGroup(CloudFormationModel):
         # AWS defaults to Never Expire for log group retention
         self.retention_in_days = kwargs.get("RetentionInDays")
         self.subscription_filters: dict[str, SubscriptionFilter] = {}
+        self.data_protection_policy: Optional[dict[str, Any]] = None
+        self.transformer: Optional[dict[str, Any]] = None
 
         # The Amazon Resource Name (ARN) of the CMK to use when encrypting log data. It is optional.
         # Docs:
@@ -1898,6 +1900,17 @@ class LogsBackend(BaseBackend):
         }
         return query_definition_id
 
+    def delete_query_definition(
+        self,
+        query_definition_id: str,
+    ) -> bool:
+        if query_definition_id not in self.query_definitions:
+            raise ResourceNotFoundException(
+                msg=f"Query definition with id [{query_definition_id}] does not exist."
+            )
+        del self.query_definitions[query_definition_id]
+        return True
+
     def describe_query_definitions(
         self,
         query_definition_name_prefix: Optional[str] = None,
@@ -2186,29 +2199,98 @@ class LogsBackend(BaseBackend):
         # Integrations are not yet modeled; return empty list
         return []
 
+    def delete_integration(
+        self,
+        integration_name: str,
+    ) -> None:
+        # Integrations are not yet fully modeled, but we validate the name
+        raise ResourceNotFoundException(
+            msg=f"Integration with name [{integration_name}] does not exist."
+        )
+
     def list_scheduled_queries(self) -> list[dict[str, Any]]:
         # Scheduled queries are not yet modeled; return empty list
         return []
+
+    def list_aggregate_log_group_summaries(
+        self,
+        log_group_name_pattern: Optional[str] = None,
+        group_by: Optional[str] = None,
+        limit: int = 50,
+        next_token: Optional[str] = None,
+    ) -> tuple[list[dict[str, Any]], Optional[str]]:
+        groups, new_next_token = self.describe_log_groups(
+            limit=limit,
+            next_token=next_token,
+        )
+        summaries = []
+        for group in groups:
+            if log_group_name_pattern:
+                import re as _re
+
+                if not _re.search(log_group_name_pattern, group.name):
+                    continue
+            summary: dict[str, Any] = {
+                "logGroupName": group.name,
+                "logGroupArn": group.arn,
+                "creationTime": group.creation_time,
+                "storedBytes": 0,
+                "logStreamCount": len(group.streams),
+            }
+            if group.retention_in_days:
+                summary["retentionInDays"] = group.retention_in_days
+            summaries.append(summary)
+        return summaries, new_next_token
+
+    def put_bearer_token_authentication(
+        self,
+        log_group_identifier: str,
+        enabled: bool,
+    ) -> None:
+        # Verify log group exists
+        self._find_log_group(log_group_identifier)
+
+    def _find_log_group(self, identifier: str) -> "LogGroup":
+        """Find a log group by name or ARN."""
+        for group in self.groups.values():
+            if group.name == identifier or group.arn == identifier:
+                return group
+        raise ResourceNotFoundException()
+
+    def put_data_protection_policy(
+        self,
+        log_group_identifier: str,
+        policy_document: str,
+    ) -> dict[str, Any]:
+        log_group = self._find_log_group(log_group_identifier)
+        log_group.data_protection_policy = {
+            "logGroupIdentifier": log_group.name,
+            "policyDocument": policy_document,
+            "lastUpdatedTime": int(unix_time_millis()),
+        }
+        return log_group.data_protection_policy
+
+    def delete_data_protection_policy(
+        self,
+        log_group_identifier: str,
+    ) -> None:
+        log_group = self._find_log_group(log_group_identifier)
+        if log_group.data_protection_policy is None:
+            raise ResourceNotFoundException(
+                msg="The specified data protection policy does not exist."
+            )
+        log_group.data_protection_policy = None
 
     def get_data_protection_policy(
         self,
         log_group_identifier: Optional[str] = None,
     ) -> dict[str, Any]:
-        # Look up the log group by name or ARN
-        log_group = None
-        if log_group_identifier:
-            for group in self.groups.values():
-                if (
-                    group.name == log_group_identifier
-                    or group.arn == log_group_identifier
-                ):
-                    log_group = group
-                    break
-            if not log_group:
-                raise ResourceNotFoundException()
-        # Data protection policies are not yet modeled; return empty
-        # AWS returns the log group identifier and empty policy when none is set
-        return {}
+        if not log_group_identifier:
+            return {}
+        log_group = self._find_log_group(log_group_identifier)
+        if log_group.data_protection_policy is None:
+            return {}
+        return log_group.data_protection_policy
 
     def get_log_record(
         self,
@@ -2233,33 +2315,60 @@ class LogsBackend(BaseBackend):
             msg="The specified log record does not exist."
         )
 
+    def put_transformer(
+        self,
+        log_group_identifier: str,
+        transformer_config: list[dict[str, Any]],
+    ) -> None:
+        log_group = self._find_log_group(log_group_identifier)
+        now = int(unix_time_millis())
+        creation_time = now
+        if log_group.transformer is not None:
+            creation_time = log_group.transformer.get("creationTime", now)
+        log_group.transformer = {
+            "logGroupIdentifier": log_group.name,
+            "transformerConfig": transformer_config,
+            "creationTime": creation_time,
+            "lastModifiedTime": now,
+        }
+
+    def delete_transformer(
+        self,
+        log_group_identifier: str,
+    ) -> None:
+        log_group = self._find_log_group(log_group_identifier)
+        if log_group.transformer is None:
+            raise ResourceNotFoundException(
+                msg="No transformer found for the specified log group."
+            )
+        log_group.transformer = None
+
     def get_transformer(
         self,
         log_group_identifier: Optional[str] = None,
     ) -> dict[str, Any]:
-        # Transformers are not yet modeled
-        if log_group_identifier:
-            # Verify the log group exists
-            found = False
-            for group in self.groups.values():
-                if (
-                    group.name == log_group_identifier
-                    or group.arn == log_group_identifier
-                ):
-                    found = True
-                    break
-            if not found:
-                raise ResourceNotFoundException()
-        raise ResourceNotFoundException(
-            msg="No transformer found for the specified log group."
-        )
+        if not log_group_identifier:
+            raise ResourceNotFoundException(
+                msg="No transformer found for the specified log group."
+            )
+        log_group = self._find_log_group(log_group_identifier)
+        if log_group.transformer is None:
+            raise ResourceNotFoundException(
+                msg="No transformer found for the specified log group."
+            )
+        return log_group.transformer
 
     def list_transformers(
         self,
         log_group_name_prefix: Optional[str] = None,
     ) -> list[dict[str, Any]]:
-        # Transformers are not yet modeled; return empty list
-        return []
+        results = []
+        for group in self.groups.values():
+            if log_group_name_prefix and not group.name.startswith(log_group_name_prefix):
+                continue
+            if group.transformer is not None:
+                results.append(group.transformer)
+        return results
 
     def get_integration(
         self,

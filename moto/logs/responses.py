@@ -616,6 +616,13 @@ class LogsResponse(BaseResponse):
         )
         return json.dumps({"queryDefinitionId": result})
 
+    def delete_query_definition(self) -> str:
+        query_definition_id = self._get_param("queryDefinitionId")
+        success = self.logs_backend.delete_query_definition(
+            query_definition_id=query_definition_id,
+        )
+        return json.dumps({"success": success})
+
     def describe_query_definitions(self) -> str:
         query_definition_name_prefix = self._get_param("queryDefinitionNamePrefix")
         query_definitions = self.logs_backend.describe_query_definitions(
@@ -668,6 +675,38 @@ class LogsResponse(BaseResponse):
             filter_log_group_arn=filter_log_group_arn,
         )
         return json.dumps({"anomalyDetectors": detectors})
+
+    def delete_integration(self) -> str:
+        integration_name = self._get_param("integrationName")
+        self.logs_backend.delete_integration(
+            integration_name=integration_name,
+        )
+        return "{}"
+
+    def list_aggregate_log_group_summaries(self) -> str:
+        log_group_name_pattern = self._get_param("logGroupNamePattern")
+        group_by = self._get_param("groupBy")
+        next_token = self._get_param("nextToken")
+        limit = self._get_param("limit", 50)
+        summaries, new_next_token = self.logs_backend.list_aggregate_log_group_summaries(
+            log_group_name_pattern=log_group_name_pattern,
+            group_by=group_by,
+            limit=limit,
+            next_token=next_token,
+        )
+        result: dict[str, Any] = {"aggregateLogGroupSummaries": summaries}
+        if new_next_token:
+            result["nextToken"] = new_next_token
+        return json.dumps(result)
+
+    def put_bearer_token_authentication(self) -> str:
+        log_group_identifier = self._get_param("logGroupIdentifier")
+        enabled = self._get_param("bearerTokenAuthenticationEnabled", True)
+        self.logs_backend.put_bearer_token_authentication(
+            log_group_identifier=log_group_identifier,
+            enabled=enabled,
+        )
+        return "{}"
 
     def list_integrations(self) -> str:
         integration_name_prefix = self._get_param("integrationNamePrefix")
@@ -786,6 +825,22 @@ class LogsResponse(BaseResponse):
         )
         return "{}"
 
+    def put_data_protection_policy(self) -> str:
+        log_group_identifier = self._get_param("logGroupIdentifier")
+        policy_document = self._get_param("policyDocument")
+        result = self.logs_backend.put_data_protection_policy(
+            log_group_identifier=log_group_identifier,
+            policy_document=policy_document,
+        )
+        return json.dumps(result)
+
+    def delete_data_protection_policy(self) -> str:
+        log_group_identifier = self._get_param("logGroupIdentifier")
+        self.logs_backend.delete_data_protection_policy(
+            log_group_identifier=log_group_identifier,
+        )
+        return "{}"
+
     def get_data_protection_policy(self) -> str:
         log_group_identifier = self._get_param("logGroupIdentifier")
         policy = self.logs_backend.get_data_protection_policy(
@@ -799,6 +854,22 @@ class LogsResponse(BaseResponse):
             log_record_pointer=log_record_pointer,
         )
         return json.dumps({"logRecord": record})
+
+    def put_transformer(self) -> str:
+        log_group_identifier = self._get_param("logGroupIdentifier")
+        transformer_config = self._get_param("transformerConfig")
+        self.logs_backend.put_transformer(
+            log_group_identifier=log_group_identifier,
+            transformer_config=transformer_config,
+        )
+        return "{}"
+
+    def delete_transformer(self) -> str:
+        log_group_identifier = self._get_param("logGroupIdentifier")
+        self.logs_backend.delete_transformer(
+            log_group_identifier=log_group_identifier,
+        )
+        return "{}"
 
     def get_transformer(self) -> str:
         log_group_identifier = self._get_param("logGroupIdentifier")
