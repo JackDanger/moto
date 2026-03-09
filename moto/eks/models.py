@@ -20,6 +20,10 @@ NODEGROUP_ARN_TEMPLATE = "arn:{partition}:eks:{region}:{account_id}:nodegroup/{c
 ADDON_ARN_TEMPLATE = "arn:{partition}:eks:{region}:{account_id}:addon/{cluster_name}/{addon_name}/{uuid}"
 ACCESS_ENTRY_ARN_TEMPLATE = "arn:{partition}:eks:{region}:{account_id}:access-entry/{cluster_name}/{principal_arn_suffix}/{uuid}"
 POD_IDENTITY_ASSOCIATION_ARN_TEMPLATE = "arn:{partition}:eks:{region}:{account_id}:podidentityassociation/{cluster_name}/{uuid}"
+IDENTITY_PROVIDER_CONFIG_ARN_TEMPLATE = "arn:{partition}:eks:{region}:{account_id}:identityproviderconfig/{cluster_name}/oidc/{config_name}/{uuid}"
+INSIGHT_ARN_TEMPLATE = "arn:{partition}:eks:{region}:{account_id}:insight/{cluster_name}/{insight_id}"
+EKS_ANYWHERE_SUBSCRIPTION_ARN_TEMPLATE = "arn:{partition}:eks:{region}:{account_id}:eks-anywhere-subscription/{uuid}"
+CAPABILITY_ARN_TEMPLATE = "arn:{partition}:eks:{region}:{account_id}:capability/{cluster_name}/{capability_name}/{uuid}"
 ISSUER_TEMPLATE = (
     "https://oidc.eks.{region}.amazonaws.com/id/" + random.get_random_string(length=10)
 )
@@ -97,6 +101,20 @@ ACCESS_ENTRY_NOT_FOUND_MSG = "No access entry found for principal: {principalArn
 POD_IDENTITY_ASSOCIATION_NOT_FOUND_MSG = (
     "No pod identity association found for id: {associationId}."
 )
+IDENTITY_PROVIDER_CONFIG_NOT_FOUND_MSG = (
+    "No identity provider config found for name: {configName}."
+)
+IDENTITY_PROVIDER_CONFIG_EXISTS_MSG = (
+    "Identity provider config already exists with name {configName} and cluster name {clusterName}"
+)
+INSIGHT_NOT_FOUND_MSG = "No insight found for id: {insightId}."
+EKS_ANYWHERE_SUBSCRIPTION_NOT_FOUND_MSG = (
+    "No EKS Anywhere subscription found for id: {subscriptionId}."
+)
+CAPABILITY_NOT_FOUND_MSG = "No capability found for name: {capabilityName}."
+CAPABILITY_EXISTS_MSG = (
+    "Capability already exists with name {capabilityName} and cluster name {clusterName}"
+)
 
 
 class Cluster:
@@ -130,6 +148,8 @@ class Cluster:
         self.addons: dict[str, Addon] = {}
         self.access_entries: dict[str, AccessEntry] = {}
         self.pod_identity_associations: dict[str, PodIdentityAssociation] = {}
+        self.identity_provider_configs: dict[str, IdentityProviderConfig] = {}
+        self.capabilities: dict[str, Capability] = {}
 
         self.arn = CLUSTER_ARN_TEMPLATE.format(
             partition=aws_partition,
@@ -417,12 +437,134 @@ class PodIdentityAssociation:
         self.owner_arn = None
 
 
+class IdentityProviderConfig:
+    def __init__(
+        self,
+        cluster_name: str,
+        config_name: str,
+        issuer_url: str,
+        client_id: str,
+        account_id: str,
+        region_name: str,
+        aws_partition: str,
+        groups_claim: Optional[str] = None,
+        groups_prefix: Optional[str] = None,
+        required_claims: Optional[dict[str, str]] = None,
+        username_claim: Optional[str] = None,
+        username_prefix: Optional[str] = None,
+        tags: Optional[dict[str, str]] = None,
+    ):
+        if tags is None:
+            tags = {}
+
+        self.uuid = str(random.uuid4())
+        self.identity_provider_config_arn = IDENTITY_PROVIDER_CONFIG_ARN_TEMPLATE.format(
+            partition=aws_partition,
+            account_id=account_id,
+            region=region_name,
+            cluster_name=cluster_name,
+            config_name=config_name,
+            uuid=self.uuid,
+        )
+        self.created_at = utcnow()
+
+        self.cluster_name = cluster_name
+        self.config_name = config_name
+        self.issuer_url = issuer_url
+        self.client_id = client_id
+        self.groups_claim = groups_claim
+        self.groups_prefix = groups_prefix
+        self.required_claims = required_claims or {}
+        self.username_claim = username_claim
+        self.username_prefix = username_prefix
+        self.tags = tags
+        self.status = ACTIVE_STATUS
+        self.config_type = "oidc"
+
+
+class EksAnywhereSubscription:
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        aws_partition: str,
+        name: Optional[str] = None,
+        term: Optional[dict[str, Any]] = None,
+        auto_renew: bool = True,
+        license_quantity: Optional[int] = None,
+        license_type: Optional[str] = None,
+        tags: Optional[dict[str, str]] = None,
+    ):
+        if tags is None:
+            tags = {}
+
+        self.uuid = str(random.uuid4())
+        self.id = self.uuid
+        self.arn = EKS_ANYWHERE_SUBSCRIPTION_ARN_TEMPLATE.format(
+            partition=aws_partition,
+            account_id=account_id,
+            region=region_name,
+            uuid=self.uuid,
+        )
+        self.created_at = utcnow()
+
+        self.name = name or f"subscription-{self.uuid[:8]}"
+        self.term = term or {"duration": 12, "unit": "MONTHS"}
+        self.auto_renew = auto_renew
+        self.license_quantity = license_quantity or 1
+        self.license_type = license_type or "Cluster"
+        self.tags = tags
+        self.status = ACTIVE_STATUS
+        self.effective_date = self.created_at
+        self.expiration_date = None
+
+
+class Capability:
+    def __init__(
+        self,
+        cluster_name: str,
+        capability_name: str,
+        account_id: str,
+        region_name: str,
+        aws_partition: str,
+        capability_type: Optional[str] = None,
+        role_arn: Optional[str] = None,
+        configuration: Optional[dict[str, Any]] = None,
+        tags: Optional[dict[str, str]] = None,
+        delete_propagation_policy: Optional[str] = None,
+    ):
+        if tags is None:
+            tags = {}
+
+        self.uuid = str(random.uuid4())
+        self.arn = CAPABILITY_ARN_TEMPLATE.format(
+            partition=aws_partition,
+            account_id=account_id,
+            region=region_name,
+            cluster_name=cluster_name,
+            capability_name=capability_name,
+            uuid=self.uuid,
+        )
+        self.created_at = utcnow()
+        self.modified_at = utcnow()
+
+        self.cluster_name = cluster_name
+        self.capability_name = capability_name
+        self.type = capability_type or "STANDARD"
+        self.role_arn = role_arn or ""
+        self.configuration = configuration or {}
+        self.tags = tags
+        self.status = ACTIVE_STATUS
+        self.delete_propagation_policy = delete_propagation_policy or "DELETE"
+
+
 class EKSBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.clusters: dict[str, Cluster] = {}
         self.cluster_count = 0
         self.partition = get_partition(region_name)
+        self.eks_anywhere_subscriptions: dict[str, EksAnywhereSubscription] = {}
 
     def create_cluster(
         self,
@@ -1278,6 +1420,870 @@ class EKSBackend(BaseBackend):
 
         return {"associations": summary, "nextToken": None}
 
+    # --- Update Access Entry ---
+
+    def update_access_entry(
+        self,
+        cluster_name: str,
+        principal_arn: str,
+        kubernetes_groups: Optional[list[str]] = None,
+        username: Optional[str] = None,
+    ) -> "AccessEntry":
+        try:
+            cluster = self.clusters[cluster_name]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=CLUSTER_NOT_FOUND_MSG.format(clusterName=cluster_name),
+            )
+        try:
+            access_entry = cluster.access_entries[principal_arn]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=cluster_name,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=ACCESS_ENTRY_NOT_FOUND_MSG.format(principalArn=principal_arn),
+            )
+
+        if kubernetes_groups is not None:
+            access_entry.kubernetes_groups = kubernetes_groups
+        if username is not None:
+            access_entry.username = username
+        access_entry.modified_at = utcnow()
+        return access_entry
+
+    def list_associated_access_policies(
+        self,
+        cluster_name: str,
+        principal_arn: str,
+        max_results: int = 100,
+        next_token: Optional[str] = None,
+    ) -> dict[str, Any]:
+        try:
+            cluster = self.clusters[cluster_name]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=CLUSTER_NOT_FOUND_MSG.format(clusterName=cluster_name),
+            )
+        try:
+            access_entry = cluster.access_entries[principal_arn]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=cluster_name,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=ACCESS_ENTRY_NOT_FOUND_MSG.format(principalArn=principal_arn),
+            )
+
+        policies = list(access_entry.access_policies.values())
+        return {
+            "clusterName": cluster_name,
+            "principalArn": principal_arn,
+            "associatedAccessPolicies": policies,
+            "nextToken": None,
+        }
+
+    # --- Update Addon ---
+
+    def update_addon(
+        self,
+        cluster_name: str,
+        addon_name: str,
+        addon_version: Optional[str] = None,
+        service_account_role_arn: Optional[str] = None,
+        resolve_conflicts: Optional[str] = None,
+        client_request_token: Optional[str] = None,
+        configuration_values: Optional[str] = None,
+    ) -> dict[str, Any]:
+        try:
+            cluster = self.clusters[cluster_name]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=CLUSTER_NOT_FOUND_MSG.format(clusterName=cluster_name),
+            )
+        try:
+            addon = cluster.addons[addon_name]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=cluster_name,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=addon_name,
+                message=ADDON_NOT_FOUND_MSG.format(addonName=addon_name),
+            )
+
+        if addon_version is not None:
+            addon.addon_version = addon_version
+        if service_account_role_arn is not None:
+            addon.service_account_role_arn = service_account_role_arn
+        if resolve_conflicts is not None:
+            addon.resolve_conflicts = resolve_conflicts
+        if configuration_values is not None:
+            addon.configuration_values = configuration_values
+        addon.modified_at = utcnow()
+
+        params = []
+        if addon_version:
+            params.append({"type": "AddonVersion", "value": addon_version})
+        if service_account_role_arn:
+            params.append(
+                {
+                    "type": "ServiceAccountRoleArn",
+                    "value": service_account_role_arn,
+                }
+            )
+        if configuration_values:
+            params.append(
+                {"type": "ConfigurationValues", "value": configuration_values}
+            )
+
+        return {
+            "id": str(random.uuid4()),
+            "status": "Successful",
+            "type": "AddonUpdate",
+            "params": params,
+            "createdAt": utcnow(),
+            "errors": [],
+        }
+
+    # --- Update Cluster Version ---
+
+    def update_cluster_version(
+        self,
+        name: str,
+        version: str,
+    ) -> dict[str, Any]:
+        try:
+            cluster = self.clusters[name]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=CLUSTER_NOT_FOUND_MSG.format(clusterName=name),
+            )
+
+        old_version = cluster.version
+        cluster.version = version
+
+        return {
+            "id": str(random.uuid4()),
+            "status": "Successful",
+            "type": "VersionUpdate",
+            "params": [
+                {"type": "Version", "value": version},
+                {"type": "PlatformVersion", "value": cluster.platformVersion},
+            ],
+            "createdAt": utcnow(),
+            "errors": [],
+        }
+
+    # --- Associate Encryption Config ---
+
+    def associate_encryption_config(
+        self,
+        cluster_name: str,
+        encryption_config: list[dict[str, Any]],
+        client_request_token: Optional[str] = None,
+    ) -> dict[str, Any]:
+        try:
+            cluster = self.clusters[cluster_name]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=CLUSTER_NOT_FOUND_MSG.format(clusterName=cluster_name),
+            )
+
+        cluster.encryption_config.extend(encryption_config)
+
+        return {
+            "id": str(random.uuid4()),
+            "status": "Successful",
+            "type": "AssociateEncryptionConfig",
+            "params": [
+                {"type": "EncryptionConfig", "value": str(encryption_config)}
+            ],
+            "createdAt": utcnow(),
+            "errors": [],
+        }
+
+    # --- Identity Provider Config CRUD ---
+
+    def associate_identity_provider_config(
+        self,
+        cluster_name: str,
+        oidc: dict[str, Any],
+        tags: Optional[dict[str, str]] = None,
+        client_request_token: Optional[str] = None,
+    ) -> dict[str, Any]:
+        try:
+            cluster = self.clusters[cluster_name]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=CLUSTER_NOT_FOUND_MSG.format(clusterName=cluster_name),
+            )
+
+        config_name = oidc.get("identityProviderConfigName", "")
+        if config_name in cluster.identity_provider_configs:
+            raise ResourceInUseException(
+                clusterName=cluster_name,
+                nodegroupName=None,
+                addonName=None,
+                message=IDENTITY_PROVIDER_CONFIG_EXISTS_MSG.format(
+                    configName=config_name, clusterName=cluster_name
+                ),
+            )
+
+        config = IdentityProviderConfig(
+            cluster_name=cluster_name,
+            config_name=config_name,
+            issuer_url=oidc.get("issuerUrl", ""),
+            client_id=oidc.get("clientId", ""),
+            groups_claim=oidc.get("groupsClaim"),
+            groups_prefix=oidc.get("groupsPrefix"),
+            required_claims=oidc.get("requiredClaims"),
+            username_claim=oidc.get("usernameClaim"),
+            username_prefix=oidc.get("usernamePrefix"),
+            tags=tags,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            aws_partition=self.partition,
+        )
+        cluster.identity_provider_configs[config_name] = config
+
+        return {
+            "id": str(random.uuid4()),
+            "status": "Successful",
+            "type": "AssociateIdentityProviderConfig",
+            "params": [{"type": "IdentityProviderConfig", "value": str(oidc)}],
+            "createdAt": utcnow(),
+            "errors": [],
+        }
+
+    def describe_identity_provider_config(
+        self,
+        cluster_name: str,
+        identity_provider_config: dict[str, str],
+    ) -> dict[str, Any]:
+        try:
+            cluster = self.clusters[cluster_name]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=CLUSTER_NOT_FOUND_MSG.format(clusterName=cluster_name),
+            )
+
+        config_name = identity_provider_config.get("name", "")
+        try:
+            config = cluster.identity_provider_configs[config_name]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=cluster_name,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=IDENTITY_PROVIDER_CONFIG_NOT_FOUND_MSG.format(
+                    configName=config_name
+                ),
+            )
+
+        return {
+            "identityProviderConfig": {
+                "oidc": {
+                    "identityProviderConfigName": config.config_name,
+                    "identityProviderConfigArn": config.identity_provider_config_arn,
+                    "clusterName": config.cluster_name,
+                    "issuerUrl": config.issuer_url,
+                    "clientId": config.client_id,
+                    "usernameClaim": config.username_claim,
+                    "usernamePrefix": config.username_prefix,
+                    "groupsClaim": config.groups_claim,
+                    "groupsPrefix": config.groups_prefix,
+                    "requiredClaims": config.required_claims,
+                    "tags": config.tags,
+                    "status": {"status": config.status},
+                },
+            },
+        }
+
+    def disassociate_identity_provider_config(
+        self,
+        cluster_name: str,
+        identity_provider_config: dict[str, str],
+        client_request_token: Optional[str] = None,
+    ) -> dict[str, Any]:
+        try:
+            cluster = self.clusters[cluster_name]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=CLUSTER_NOT_FOUND_MSG.format(clusterName=cluster_name),
+            )
+
+        config_name = identity_provider_config.get("name", "")
+        try:
+            cluster.identity_provider_configs.pop(config_name)
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=cluster_name,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=IDENTITY_PROVIDER_CONFIG_NOT_FOUND_MSG.format(
+                    configName=config_name
+                ),
+            )
+
+        return {
+            "id": str(random.uuid4()),
+            "status": "Successful",
+            "type": "DisassociateIdentityProviderConfig",
+            "params": [],
+            "createdAt": utcnow(),
+            "errors": [],
+        }
+
+    def list_identity_provider_configs(
+        self,
+        cluster_name: str,
+        max_results: int = 100,
+        next_token: Optional[str] = None,
+    ) -> dict[str, Any]:
+        try:
+            cluster = self.clusters[cluster_name]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=CLUSTER_NOT_FOUND_MSG.format(clusterName=cluster_name),
+            )
+
+        configs = [
+            {
+                "type": "oidc",
+                "name": config.config_name,
+            }
+            for config in cluster.identity_provider_configs.values()
+        ]
+        return {"identityProviderConfigs": configs, "nextToken": None}
+
+    # --- Insights ---
+
+    def describe_insight(
+        self,
+        cluster_name: str,
+        insight_id: str,
+    ) -> dict[str, Any]:
+        try:
+            self.clusters[cluster_name]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=CLUSTER_NOT_FOUND_MSG.format(clusterName=cluster_name),
+            )
+
+        # Insights are read-only AWS-generated items; return a mock insight
+        raise ResourceNotFoundException(
+            clusterName=cluster_name,
+            nodegroupName=None,
+            fargateProfileName=None,
+            addonName=None,
+            message=INSIGHT_NOT_FOUND_MSG.format(insightId=insight_id),
+        )
+
+    def list_insights(
+        self,
+        cluster_name: str,
+        filter_param: Optional[dict[str, Any]] = None,
+        max_results: int = 100,
+        next_token: Optional[str] = None,
+    ) -> dict[str, Any]:
+        try:
+            self.clusters[cluster_name]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=CLUSTER_NOT_FOUND_MSG.format(clusterName=cluster_name),
+            )
+
+        # Insights are AWS-generated; return empty list
+        return {"insights": [], "nextToken": None}
+
+    # --- Access Policies (global) ---
+
+    def list_access_policies(
+        self,
+        max_results: int = 100,
+        next_token: Optional[str] = None,
+    ) -> dict[str, Any]:
+        # Return a static list of well-known EKS access policies
+        policies = [
+            {
+                "name": "AmazonEKSClusterAdminPolicy",
+                "arn": "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy",
+            },
+            {
+                "name": "AmazonEKSAdminPolicy",
+                "arn": "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAdminPolicy",
+            },
+            {
+                "name": "AmazonEKSEditPolicy",
+                "arn": "arn:aws:eks::aws:cluster-access-policy/AmazonEKSEditPolicy",
+            },
+            {
+                "name": "AmazonEKSViewPolicy",
+                "arn": "arn:aws:eks::aws:cluster-access-policy/AmazonEKSViewPolicy",
+            },
+            {
+                "name": "AmazonEKSAdminViewPolicy",
+                "arn": "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAdminViewPolicy",
+            },
+        ]
+        return {"accessPolicies": policies, "nextToken": None}
+
+    # --- Describe Addon Configuration ---
+
+    def describe_addon_configuration(
+        self,
+        addon_name: str,
+        addon_version: str,
+    ) -> dict[str, Any]:
+        return {
+            "addonName": addon_name,
+            "addonVersion": addon_version,
+            "configurationSchema": "{}",
+            "podIdentityConfiguration": [],
+        }
+
+    # --- Describe Cluster Versions ---
+
+    def describe_cluster_versions(
+        self,
+        cluster_type: Optional[str] = None,
+        max_results: int = 100,
+        next_token: Optional[str] = None,
+        default_only: bool = False,
+        include_all: bool = False,
+        cluster_versions_only: Optional[list[str]] = None,
+        status: Optional[str] = None,
+    ) -> dict[str, Any]:
+        versions = [
+            {
+                "clusterVersion": "1.31",
+                "clusterType": "eks",
+                "defaultPlatformVersion": "eks.14",
+                "defaultVersion": True,
+                "releaseDate": utcnow(),
+                "endOfStandardSupportDate": None,
+                "endOfExtendedSupportDate": None,
+                "status": "standard-support",
+            },
+            {
+                "clusterVersion": "1.30",
+                "clusterType": "eks",
+                "defaultPlatformVersion": "eks.18",
+                "defaultVersion": False,
+                "releaseDate": utcnow(),
+                "endOfStandardSupportDate": None,
+                "endOfExtendedSupportDate": None,
+                "status": "standard-support",
+            },
+            {
+                "clusterVersion": "1.29",
+                "clusterType": "eks",
+                "defaultPlatformVersion": "eks.19",
+                "defaultVersion": False,
+                "releaseDate": utcnow(),
+                "endOfStandardSupportDate": None,
+                "endOfExtendedSupportDate": None,
+                "status": "standard-support",
+            },
+            {
+                "clusterVersion": "1.28",
+                "clusterType": "eks",
+                "defaultPlatformVersion": "eks.22",
+                "defaultVersion": False,
+                "releaseDate": utcnow(),
+                "endOfStandardSupportDate": None,
+                "endOfExtendedSupportDate": None,
+                "status": "extended-support",
+            },
+            {
+                "clusterVersion": "1.27",
+                "clusterType": "eks",
+                "defaultPlatformVersion": "eks.24",
+                "defaultVersion": False,
+                "releaseDate": utcnow(),
+                "endOfStandardSupportDate": None,
+                "endOfExtendedSupportDate": None,
+                "status": "extended-support",
+            },
+        ]
+
+        if cluster_versions_only:
+            versions = [
+                v for v in versions if v["clusterVersion"] in cluster_versions_only
+            ]
+        if default_only:
+            versions = [v for v in versions if v["defaultVersion"]]
+        if status:
+            versions = [v for v in versions if v["status"] == status]
+
+        return {"clusterVersions": versions, "nextToken": None}
+
+    # --- Deregister Cluster ---
+
+    def deregister_cluster(self, name: str) -> "Cluster":
+        try:
+            cluster = self.clusters[name]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=CLUSTER_NOT_FOUND_MSG.format(clusterName=name),
+            )
+
+        result = self.clusters.pop(name)
+        self.cluster_count -= 1
+        result.status = "DELETING"
+        return result
+
+    # --- EKS Anywhere Subscriptions CRUD ---
+
+    def create_eks_anywhere_subscription(
+        self,
+        name: Optional[str] = None,
+        term: Optional[dict[str, Any]] = None,
+        auto_renew: bool = True,
+        license_quantity: Optional[int] = None,
+        license_type: Optional[str] = None,
+        tags: Optional[dict[str, str]] = None,
+        client_request_token: Optional[str] = None,
+    ) -> "EksAnywhereSubscription":
+        subscription = EksAnywhereSubscription(
+            name=name,
+            term=term,
+            auto_renew=auto_renew,
+            license_quantity=license_quantity,
+            license_type=license_type,
+            tags=tags,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            aws_partition=self.partition,
+        )
+        self.eks_anywhere_subscriptions[subscription.id] = subscription
+        return subscription
+
+    def describe_eks_anywhere_subscription(
+        self, subscription_id: str
+    ) -> "EksAnywhereSubscription":
+        try:
+            return self.eks_anywhere_subscriptions[subscription_id]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=EKS_ANYWHERE_SUBSCRIPTION_NOT_FOUND_MSG.format(
+                    subscriptionId=subscription_id
+                ),
+            )
+
+    def delete_eks_anywhere_subscription(
+        self, subscription_id: str
+    ) -> "EksAnywhereSubscription":
+        try:
+            subscription = self.eks_anywhere_subscriptions.pop(subscription_id)
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=EKS_ANYWHERE_SUBSCRIPTION_NOT_FOUND_MSG.format(
+                    subscriptionId=subscription_id
+                ),
+            )
+        subscription.status = "DELETING"
+        return subscription
+
+    def list_eks_anywhere_subscriptions(
+        self,
+        max_results: int = 100,
+        next_token: Optional[str] = None,
+        include_status: Optional[list[str]] = None,
+    ) -> dict[str, Any]:
+        subscriptions = list(self.eks_anywhere_subscriptions.values())
+        if include_status:
+            subscriptions = [
+                s for s in subscriptions if s.status in include_status
+            ]
+
+        results = [
+            {
+                "id": s.id,
+                "arn": s.arn,
+                "createdAt": s.created_at,
+                "effectiveDate": s.effective_date,
+                "expirationDate": s.expiration_date,
+                "licenseQuantity": s.license_quantity,
+                "licenseType": s.license_type,
+                "term": s.term,
+                "status": s.status,
+                "autoRenew": s.auto_renew,
+                "tags": s.tags,
+            }
+            for s in subscriptions
+        ]
+        return {"subscriptions": results, "nextToken": None}
+
+    def update_eks_anywhere_subscription(
+        self,
+        subscription_id: str,
+        auto_renew: bool = True,
+        client_request_token: Optional[str] = None,
+    ) -> "EksAnywhereSubscription":
+        try:
+            subscription = self.eks_anywhere_subscriptions[subscription_id]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=EKS_ANYWHERE_SUBSCRIPTION_NOT_FOUND_MSG.format(
+                    subscriptionId=subscription_id
+                ),
+            )
+
+        subscription.auto_renew = auto_renew
+        return subscription
+
+    # --- Capability CRUD ---
+
+    def create_capability(
+        self,
+        cluster_name: str,
+        capability_name: str,
+        capability_type: Optional[str] = None,
+        role_arn: Optional[str] = None,
+        configuration: Optional[dict[str, Any]] = None,
+        tags: Optional[dict[str, str]] = None,
+        client_request_token: Optional[str] = None,
+        delete_propagation_policy: Optional[str] = None,
+    ) -> "Capability":
+        try:
+            cluster = self.clusters[cluster_name]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=CLUSTER_NOT_FOUND_MSG.format(clusterName=cluster_name),
+            )
+
+        if capability_name in cluster.capabilities:
+            raise ResourceInUseException(
+                clusterName=cluster_name,
+                nodegroupName=None,
+                addonName=None,
+                message=CAPABILITY_EXISTS_MSG.format(
+                    capabilityName=capability_name, clusterName=cluster_name
+                ),
+            )
+
+        capability = Capability(
+            cluster_name=cluster_name,
+            capability_name=capability_name,
+            capability_type=capability_type,
+            role_arn=role_arn,
+            configuration=configuration,
+            tags=tags,
+            delete_propagation_policy=delete_propagation_policy,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            aws_partition=self.partition,
+        )
+        cluster.capabilities[capability_name] = capability
+        return capability
+
+    def describe_capability(
+        self, cluster_name: str, capability_name: str
+    ) -> "Capability":
+        try:
+            cluster = self.clusters[cluster_name]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=CLUSTER_NOT_FOUND_MSG.format(clusterName=cluster_name),
+            )
+        try:
+            return cluster.capabilities[capability_name]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=cluster_name,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=CAPABILITY_NOT_FOUND_MSG.format(
+                    capabilityName=capability_name
+                ),
+            )
+
+    def delete_capability(
+        self, cluster_name: str, capability_name: str
+    ) -> "Capability":
+        try:
+            cluster = self.clusters[cluster_name]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=CLUSTER_NOT_FOUND_MSG.format(clusterName=cluster_name),
+            )
+        try:
+            capability = cluster.capabilities.pop(capability_name)
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=cluster_name,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=CAPABILITY_NOT_FOUND_MSG.format(
+                    capabilityName=capability_name
+                ),
+            )
+        capability.status = "DELETING"
+        return capability
+
+    def list_capabilities(
+        self,
+        cluster_name: str,
+        max_results: int = 100,
+        next_token: Optional[str] = None,
+    ) -> dict[str, Any]:
+        try:
+            cluster = self.clusters[cluster_name]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=CLUSTER_NOT_FOUND_MSG.format(clusterName=cluster_name),
+            )
+
+        capabilities = [
+            {
+                "capabilityName": cap.capability_name,
+                "capabilityArn": cap.arn,
+                "status": cap.status,
+                "type": cap.type,
+            }
+            for cap in cluster.capabilities.values()
+        ]
+        return {"capabilities": capabilities, "nextToken": None}
+
+    def update_capability(
+        self,
+        cluster_name: str,
+        capability_name: str,
+        role_arn: Optional[str] = None,
+        configuration: Optional[dict[str, Any]] = None,
+        client_request_token: Optional[str] = None,
+        delete_propagation_policy: Optional[str] = None,
+    ) -> dict[str, Any]:
+        try:
+            cluster = self.clusters[cluster_name]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=CLUSTER_NOT_FOUND_MSG.format(clusterName=cluster_name),
+            )
+        try:
+            capability = cluster.capabilities[capability_name]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=cluster_name,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=CAPABILITY_NOT_FOUND_MSG.format(
+                    capabilityName=capability_name
+                ),
+            )
+
+        if role_arn is not None:
+            capability.role_arn = role_arn
+        if configuration is not None:
+            capability.configuration = configuration
+        if delete_propagation_policy is not None:
+            capability.delete_propagation_policy = delete_propagation_policy
+        capability.modified_at = utcnow()
+
+        params = []
+        if role_arn:
+            params.append({"type": "RoleArn", "value": role_arn})
+        if configuration:
+            params.append({"type": "Configuration", "value": str(configuration)})
+
+        return {
+            "id": str(random.uuid4()),
+            "status": "Successful",
+            "type": "CapabilityUpdate",
+            "params": params,
+            "createdAt": utcnow(),
+            "errors": [],
+        }
+
     # --- Tagging ---
 
     def _find_resource_by_arn(self, resource_arn: str) -> Any:
@@ -1306,6 +2312,18 @@ class EKSBackend(BaseBackend):
             for pia in cluster.pod_identity_associations.values():
                 if pia.association_arn == resource_arn:
                     return pia
+            # Check identity provider configs
+            for ipc in cluster.identity_provider_configs.values():
+                if ipc.identity_provider_config_arn == resource_arn:
+                    return ipc
+            # Check capabilities
+            for cap in cluster.capabilities.values():
+                if cap.arn == resource_arn:
+                    return cap
+        # Check EKS Anywhere subscriptions
+        for sub in self.eks_anywhere_subscriptions.values():
+            if sub.arn == resource_arn:
+                return sub
         return None
 
     def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
