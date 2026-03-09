@@ -259,6 +259,8 @@ class AthenaBackend(BaseBackend):
         self.databases: dict[str, dict[str, Database]] = {}  # catalog_name -> {db_name -> Database}
         self.tables: dict[str, dict[str, dict[str, TableMetadata]]] = {}  # catalog -> db -> {table -> TableMetadata}
         self.sessions: dict[str, dict[str, Any]] = {}
+        self.notebooks: dict[str, dict[str, Any]] = {}
+        self.calculation_executions: dict[str, dict[str, Any]] = {}
         self.tagger = TaggingService()
 
         # Initialise with the primary workgroup
@@ -817,10 +819,11 @@ class AthenaBackend(BaseBackend):
         cr = self.capacity_reservations.get(capacity_reservation_name)
         if cr is None:
             return None
+        assignments = getattr(cr, "_capacity_assignments", [])
         return {
             "CapacityAssignmentConfiguration": {
                 "CapacityReservationName": capacity_reservation_name,
-                "CapacityAssignments": [],
+                "CapacityAssignments": assignments,
             }
         }
 
@@ -902,16 +905,254 @@ class AthenaBackend(BaseBackend):
     def list_calculation_executions(self, session_id: str) -> list[dict[str, Any]]:
         return []
 
-    # --- Notebook operations (stubs) ---
+    # --- Notebook operations ---
+
+    def create_notebook(
+        self,
+        work_group: str,
+        name: str,
+        client_request_token: Optional[str] = None,
+    ) -> str:
+        notebook_id = str(mock_random.uuid4())
+        notebook = {
+            "NotebookId": notebook_id,
+            "Name": name,
+            "WorkGroup": work_group,
+            "Type": "IPYNB",
+            "Status": "ACTIVE",
+            "CreationTime": time.time(),
+            "LastModifiedTime": time.time(),
+            "Content": "",
+        }
+        self.notebooks[notebook_id] = notebook
+        return notebook_id
+
+    def delete_notebook(self, notebook_id: str) -> None:
+        self.notebooks.pop(notebook_id, None)
+
+    def update_notebook(
+        self,
+        notebook_id: str,
+        payload: Optional[str] = None,
+        type_: Optional[str] = None,
+        session_id: Optional[str] = None,
+        client_request_token: Optional[str] = None,
+    ) -> None:
+        if notebook_id in self.notebooks:
+            if payload is not None:
+                self.notebooks[notebook_id]["Content"] = payload
+            if type_ is not None:
+                self.notebooks[notebook_id]["Type"] = type_
+            self.notebooks[notebook_id]["LastModifiedTime"] = time.time()
+
+    def update_notebook_metadata(
+        self,
+        notebook_id: str,
+        name: Optional[str] = None,
+        client_request_token: Optional[str] = None,
+    ) -> None:
+        if notebook_id in self.notebooks:
+            if name is not None:
+                self.notebooks[notebook_id]["Name"] = name
+            self.notebooks[notebook_id]["LastModifiedTime"] = time.time()
+
+    def export_notebook(self, notebook_id: str) -> Optional[dict[str, Any]]:
+        if notebook_id in self.notebooks:
+            nb = self.notebooks[notebook_id]
+            return {
+                "NotebookMetadata": {
+                    "NotebookId": notebook_id,
+                    "Name": nb["Name"],
+                    "WorkGroup": nb["WorkGroup"],
+                    "CreationTime": nb["CreationTime"],
+                    "Type": nb["Type"],
+                    "LastModifiedTime": nb["LastModifiedTime"],
+                },
+                "Payload": nb.get("Content", ""),
+            }
+        return None
+
+    def import_notebook(
+        self,
+        work_group: str,
+        name: str,
+        payload: Optional[str] = None,
+        notebook_s3_location_uri: Optional[str] = None,
+        type_: str = "IPYNB",
+        client_request_token: Optional[str] = None,
+    ) -> str:
+        notebook_id = str(mock_random.uuid4())
+        notebook = {
+            "NotebookId": notebook_id,
+            "Name": name,
+            "WorkGroup": work_group,
+            "Type": type_,
+            "Status": "ACTIVE",
+            "CreationTime": time.time(),
+            "LastModifiedTime": time.time(),
+            "Content": payload or "",
+        }
+        self.notebooks[notebook_id] = notebook
+        return notebook_id
 
     def get_notebook_metadata(self, notebook_id: str) -> Optional[dict[str, Any]]:
+        if notebook_id in self.notebooks:
+            nb = self.notebooks[notebook_id]
+            return {
+                "NotebookMetadata": {
+                    "NotebookId": notebook_id,
+                    "Name": nb["Name"],
+                    "WorkGroup": nb["WorkGroup"],
+                    "CreationTime": nb["CreationTime"],
+                    "Type": nb["Type"],
+                    "LastModifiedTime": nb["LastModifiedTime"],
+                }
+            }
         return None
 
     def list_notebook_metadata(self, work_group: str) -> list[dict[str, Any]]:
-        return []
+        return [
+            {
+                "NotebookId": nb["NotebookId"],
+                "Name": nb["Name"],
+                "WorkGroup": nb["WorkGroup"],
+                "CreationTime": nb["CreationTime"],
+                "Type": nb["Type"],
+                "LastModifiedTime": nb["LastModifiedTime"],
+            }
+            for nb in self.notebooks.values()
+            if nb.get("WorkGroup") == work_group
+        ]
 
     def list_notebook_sessions(self, notebook_id: str) -> list[dict[str, Any]]:
         return []
+
+    # --- Named query update ---
+
+    def update_named_query(
+        self,
+        named_query_id: str,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        query_string: Optional[str] = None,
+    ) -> None:
+        if named_query_id in self.named_queries:
+            nq = self.named_queries[named_query_id]
+            if name is not None:
+                nq.name = name
+            if description is not None:
+                nq.description = description
+            if query_string is not None:
+                nq.query_string = query_string
+
+    # --- Capacity assignment configuration (put) ---
+
+    def put_capacity_assignment_configuration(
+        self,
+        capacity_reservation_name: str,
+        capacity_assignments: list[dict[str, Any]],
+    ) -> None:
+        if capacity_reservation_name not in self.capacity_reservations:
+            raise InvalidArgumentException("Capacity Reservation does not exist")
+        # Store on the reservation object
+        cr = self.capacity_reservations[capacity_reservation_name]
+        cr._capacity_assignments = capacity_assignments  # type: ignore[attr-defined]
+
+    # --- Calculation execution operations ---
+
+    def start_calculation_execution(
+        self,
+        session_id: str,
+        description: Optional[str] = None,
+        code_block: Optional[str] = None,
+    ) -> dict[str, Any]:
+        calc_id = str(mock_random.uuid4())
+        calc = {
+            "CalculationExecutionId": calc_id,
+            "SessionId": session_id,
+            "Description": description or "",
+            "CodeBlock": code_block or "",
+            "Status": {"State": "RUNNING", "SubmissionDateTime": time.time()},
+        }
+        self.calculation_executions[calc_id] = calc
+        return {"CalculationExecutionId": calc_id, "State": "RUNNING"}
+
+    def stop_calculation_execution(self, calculation_execution_id: str) -> Optional[str]:
+        if calculation_execution_id in self.calculation_executions:
+            calc = self.calculation_executions[calculation_execution_id]
+            calc["Status"]["State"] = "CANCELED"
+            calc["Status"]["CompletionDateTime"] = time.time()
+            return "CANCELED"
+        return None
+
+    def get_calculation_execution(self, calculation_execution_id: str) -> Optional[dict[str, Any]]:
+        return self.calculation_executions.get(calculation_execution_id)
+
+    def get_calculation_execution_code(self, calculation_execution_id: str) -> Optional[dict[str, Any]]:
+        if calculation_execution_id in self.calculation_executions:
+            calc = self.calculation_executions[calculation_execution_id]
+            return {"CodeBlock": calc.get("CodeBlock", "")}
+        return None
+
+    def get_calculation_execution_status(self, calculation_execution_id: str) -> Optional[dict[str, Any]]:
+        if calculation_execution_id in self.calculation_executions:
+            calc = self.calculation_executions[calculation_execution_id]
+            return {
+                "Status": calc["Status"],
+                "Statistics": {
+                    "DpuExecutionInMillis": 1000,
+                    "Progress": "100%",
+                },
+            }
+        return None
+
+    def list_calculation_executions(self, session_id: str) -> list[dict[str, Any]]:
+        return [
+            {
+                "CalculationExecutionId": calc["CalculationExecutionId"],
+                "Description": calc.get("Description", ""),
+                "Status": calc["Status"],
+            }
+            for calc in self.calculation_executions.values()
+            if calc.get("SessionId") == session_id
+        ]
+
+    # --- Session endpoint ---
+
+    def get_session_endpoint(self, session_id: str) -> Optional[dict[str, Any]]:
+        if session_id in self.sessions:
+            return {
+                "SessionId": session_id,
+                "Endpoint": f"https://athena-sessions.amazonaws.com/{session_id}",
+            }
+        return None
+
+    # --- Executors ---
+
+    def list_executors(self, session_id: str) -> dict[str, Any]:
+        return {
+            "SessionId": session_id,
+            "ExecutorsSummary": [],
+        }
+
+    # --- Table metadata listing ---
+
+    def list_table_metadata(
+        self, catalog_name: str, database_name: str
+    ) -> list[TableMetadata]:
+        key = f"{catalog_name}.{database_name}"
+        return list(self.tables.get(key, {}).values())
+
+    # --- Resource dashboard ---
+
+    def get_resource_dashboard(self, work_group: str) -> dict[str, Any]:
+        return {
+            "ResourceDashboard": {
+                "WorkGroup": work_group,
+                "QueryCount": len(self.executions),
+                "NamedQueryCount": len(self.named_queries),
+            }
+        }
 
 
 athena_backends = BackendDict(AthenaBackend, "athena")

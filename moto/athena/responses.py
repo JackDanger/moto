@@ -632,6 +632,155 @@ class AthenaResponse(BaseResponse):
         sessions = self.athena_backend.list_notebook_sessions(notebook_id)
         return json.dumps({"NotebookSessionsList": sessions})
 
+    def create_notebook(self) -> Union[str, tuple[str, dict[str, int]]]:
+        work_group = self._get_param("WorkGroup")
+        name = self._get_param("Name")
+        client_request_token = self._get_param("ClientRequestToken")
+        if work_group and not self.athena_backend.get_work_group(work_group):
+            return self.error("WorkGroup does not exist", 400)
+        notebook_id = self.athena_backend.create_notebook(
+            work_group=work_group,
+            name=name,
+            client_request_token=client_request_token,
+        )
+        return json.dumps({"NotebookId": notebook_id})
+
+    def delete_notebook(self) -> str:
+        notebook_id = self._get_param("NotebookId")
+        self.athena_backend.delete_notebook(notebook_id)
+        return json.dumps({})
+
+    def update_notebook(self) -> str:
+        notebook_id = self._get_param("NotebookId")
+        payload = self._get_param("Payload")
+        type_ = self._get_param("Type")
+        session_id = self._get_param("SessionId")
+        client_request_token = self._get_param("ClientRequestToken")
+        self.athena_backend.update_notebook(
+            notebook_id=notebook_id,
+            payload=payload,
+            type_=type_,
+            session_id=session_id,
+            client_request_token=client_request_token,
+        )
+        return json.dumps({})
+
+    def update_notebook_metadata(self) -> str:
+        notebook_id = self._get_param("NotebookId")
+        name = self._get_param("Name")
+        client_request_token = self._get_param("ClientRequestToken")
+        self.athena_backend.update_notebook_metadata(
+            notebook_id=notebook_id,
+            name=name,
+            client_request_token=client_request_token,
+        )
+        return json.dumps({})
+
+    def export_notebook(self) -> Union[str, tuple[str, dict[str, int]]]:
+        notebook_id = self._get_param("NotebookId")
+        result = self.athena_backend.export_notebook(notebook_id)
+        if result is None:
+            return self.error(f"Notebook {notebook_id} was not found", 400)
+        return json.dumps(result)
+
+    def import_notebook(self) -> Union[str, tuple[str, dict[str, int]]]:
+        work_group = self._get_param("WorkGroup")
+        name = self._get_param("Name")
+        payload = self._get_param("Payload")
+        notebook_s3_location_uri = self._get_param("NotebookS3LocationUri")
+        type_ = self._get_param("Type") or "IPYNB"
+        client_request_token = self._get_param("ClientRequestToken")
+        if work_group and not self.athena_backend.get_work_group(work_group):
+            return self.error("WorkGroup does not exist", 400)
+        notebook_id = self.athena_backend.import_notebook(
+            work_group=work_group,
+            name=name,
+            payload=payload,
+            notebook_s3_location_uri=notebook_s3_location_uri,
+            type_=type_,
+            client_request_token=client_request_token,
+        )
+        return json.dumps({"NotebookId": notebook_id})
+
+    def update_named_query(self) -> str:
+        named_query_id = self._get_param("NamedQueryId")
+        name = self._get_param("Name")
+        description = self._get_param("Description")
+        query_string = self._get_param("QueryString")
+        self.athena_backend.update_named_query(
+            named_query_id=named_query_id,
+            name=name,
+            description=description,
+            query_string=query_string,
+        )
+        return json.dumps({})
+
+    def put_capacity_assignment_configuration(self) -> str:
+        capacity_reservation_name = self._get_param("CapacityReservationName")
+        capacity_assignments = self._get_param("CapacityAssignments") or []
+        self.athena_backend.put_capacity_assignment_configuration(
+            capacity_reservation_name=capacity_reservation_name,
+            capacity_assignments=capacity_assignments,
+        )
+        return json.dumps({})
+
+    def start_calculation_execution(self) -> Union[str, tuple[str, dict[str, int]]]:
+        session_id = self._get_param("SessionId")
+        description = self._get_param("Description")
+        code_block = self._get_param("CodeBlock")
+        result = self.athena_backend.start_calculation_execution(
+            session_id=session_id,
+            description=description,
+            code_block=code_block,
+        )
+        return json.dumps(result)
+
+    def stop_calculation_execution(self) -> Union[str, tuple[str, dict[str, int]]]:
+        calculation_execution_id = self._get_param("CalculationExecutionId")
+        state = self.athena_backend.stop_calculation_execution(calculation_execution_id)
+        if state is None:
+            return self.error(
+                f"CalculationExecution {calculation_execution_id} was not found", 400
+            )
+        return json.dumps({"State": state})
+
+    def get_session_endpoint(self) -> Union[str, tuple[str, dict[str, int]]]:
+        session_id = self._get_param("SessionId")
+        result = self.athena_backend.get_session_endpoint(session_id)
+        if result is None:
+            return self.error(f"Session {session_id} was not found", 400)
+        return json.dumps(result)
+
+    def list_executors(self) -> str:
+        session_id = self._get_param("SessionId")
+        result = self.athena_backend.list_executors(session_id)
+        return json.dumps(result)
+
+    def list_table_metadata(self) -> str:
+        catalog_name = self._get_param("CatalogName")
+        database_name = self._get_param("DatabaseName")
+        tables = self.athena_backend.list_table_metadata(catalog_name, database_name)
+        return json.dumps(
+            {
+                "TableMetadataList": [
+                    {
+                        "Name": tm.name,
+                        "TableType": tm.table_type,
+                        "Columns": tm.columns,
+                        "PartitionKeys": tm.partition_keys,
+                        "Parameters": tm.parameters,
+                        "CreateTime": tm.create_time,
+                    }
+                    for tm in tables
+                ]
+            }
+        )
+
+    def get_resource_dashboard(self) -> Union[str, tuple[str, dict[str, int]]]:
+        work_group = self._get_param("WorkGroup")
+        result = self.athena_backend.get_resource_dashboard(work_group)
+        return json.dumps(result)
+
     def get_query_runtime_statistics(self) -> Union[str, tuple[str, dict[str, int]]]:
         query_execution_id = self._get_param("QueryExecutionId")
 
