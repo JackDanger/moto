@@ -721,3 +721,210 @@ class AppSyncResponse(BaseResponse):
         response = api.to_json()
         response["tags"] = self.appsync_backend.list_tags_for_resource(api.api_arn)
         return json.dumps({"api": response})
+
+    def update_api(self) -> str:
+        api_id = self.path.split("/")[-1]
+        params = json.loads(self.body)
+        api = self.appsync_backend.update_api(
+            api_id=api_id,
+            name=params.get("name"),
+            owner_contact=params.get("ownerContact"),
+            event_config=params.get("eventConfig"),
+        )
+        response = api.to_json()
+        return json.dumps({"api": response})
+
+    def get_channel_namespace(self) -> str:
+        path_parts = self.path.split("/")
+        api_id = path_parts[-3]
+        name = path_parts[-1]
+        ns = self.appsync_backend.get_channel_namespace(api_id=api_id, name=name)
+        return json.dumps({"channelNamespace": ns.to_json()})
+
+    def update_channel_namespace(self) -> str:
+        path_parts = self.path.split("/")
+        api_id = path_parts[-3]
+        name = path_parts[-1]
+        params = json.loads(self.body)
+        ns = self.appsync_backend.update_channel_namespace(
+            api_id=api_id,
+            name=name,
+            subscribe_auth_modes=params.get("subscribeAuthModes"),
+            publish_auth_modes=params.get("publishAuthModes"),
+            code_handlers=params.get("codeHandlers"),
+            handler_configs=params.get("handlerConfigs"),
+        )
+        return json.dumps({"channelNamespace": ns.to_json()})
+
+    # region: Merged/Source GraphQL API handlers
+    def associate_merged_graphql_api(self) -> str:
+        # POST /v1/sourceApis/{sourceApiIdentifier}/mergedApiAssociations
+        source_api_identifier = self.path.split("/")[-2]
+        params = json.loads(self.body)
+        result = self.appsync_backend.associate_merged_graphql_api(
+            source_api_identifier=source_api_identifier,
+            merged_api_identifier=params.get("mergedApiIdentifier"),
+        )
+        return json.dumps(result)
+
+    def disassociate_merged_graphql_api(self) -> str:
+        # DELETE /v1/sourceApis/{sourceApiIdentifier}/mergedApiAssociations/{associationId}
+        parts = self.path.split("/")
+        source_api_identifier = parts[-3]
+        association_id = parts[-1]
+        result = self.appsync_backend.disassociate_merged_graphql_api(
+            source_api_identifier=source_api_identifier,
+            association_id=association_id,
+        )
+        return json.dumps(result)
+
+    def associate_source_graphql_api(self) -> str:
+        # POST /v1/mergedApis/{mergedApiIdentifier}/sourceApiAssociations
+        merged_api_identifier = self.path.split("/")[-2]
+        params = json.loads(self.body)
+        result = self.appsync_backend.associate_source_graphql_api(
+            merged_api_identifier=merged_api_identifier,
+            source_api_identifier=params.get("sourceApiIdentifier"),
+        )
+        return json.dumps(result)
+
+    def disassociate_source_graphql_api(self) -> str:
+        # DELETE /v1/mergedApis/{mergedApiIdentifier}/sourceApiAssociations/{associationId}
+        parts = self.path.split("/")
+        merged_api_identifier = parts[-3]
+        association_id = parts[-1]
+        result = self.appsync_backend.disassociate_source_graphql_api(
+            merged_api_identifier=merged_api_identifier,
+            association_id=association_id,
+        )
+        return json.dumps(result)
+
+    def get_source_api_association(self) -> str:
+        # GET /v1/mergedApis/{mergedApiIdentifier}/sourceApiAssociations/{associationId}
+        parts = self.path.split("/")
+        merged_api_identifier = parts[-3]
+        association_id = parts[-1]
+        result = self.appsync_backend.get_source_api_association(
+            merged_api_identifier=merged_api_identifier,
+            association_id=association_id,
+        )
+        return json.dumps(result)
+
+    def update_source_api_association(self) -> str:
+        # POST /v1/mergedApis/{mergedApiIdentifier}/sourceApiAssociations/{associationId}
+        parts = self.path.split("/")
+        merged_api_identifier = parts[-3]
+        association_id = parts[-1]
+        params = json.loads(self.body)
+        result = self.appsync_backend.update_source_api_association(
+            merged_api_identifier=merged_api_identifier,
+            association_id=association_id,
+            **params,
+        )
+        return json.dumps(result)
+
+    def list_source_api_associations(self) -> str:
+        # GET /v1/apis/{apiId}/sourceApiAssociations
+        api_id = self.path.split("/")[-2]
+        associations = self.appsync_backend.list_source_api_associations(api_id=api_id)
+        return json.dumps({"sourceApiAssociationSummaries": associations})
+
+    def start_schema_merge(self) -> str:
+        # POST /v1/mergedApis/{mergedApiIdentifier}/sourceApiAssociations/{associationId}/merge
+        parts = self.path.split("/")
+        merged_api_identifier = parts[-4]
+        association_id = parts[-2]
+        result = self.appsync_backend.start_schema_merge(
+            association_id=association_id,
+            merged_api_identifier=merged_api_identifier,
+        )
+        return json.dumps(result)
+
+    # endregion
+
+    # region: Resolvers by function
+    def list_resolvers_by_function(self) -> str:
+        # GET /v1/apis/{apiId}/functions/{functionId}/resolvers
+        parts = self.path.split("/")
+        api_id = parts[-4]
+        function_id = parts[-2]
+        resolvers = self.appsync_backend.list_resolvers_by_function(
+            api_id=api_id, function_id=function_id
+        )
+        return json.dumps({"resolvers": resolvers})
+
+    # endregion
+
+    # region: Environment variables
+    def get_graphql_api_environment_variables(self) -> str:
+        # GET /v1/apis/{apiId}/environmentVariables
+        api_id = self.path.split("/")[-2]
+        env_vars = self.appsync_backend.get_graphql_api_environment_variables(api_id=api_id)
+        return json.dumps({"environmentVariables": env_vars})
+
+    def put_graphql_api_environment_variables(self) -> str:
+        # PUT /v1/apis/{apiId}/environmentVariables
+        api_id = self.path.split("/")[-2]
+        params = json.loads(self.body)
+        env_vars = self.appsync_backend.put_graphql_api_environment_variables(
+            api_id=api_id,
+            environment_variables=params.get("environmentVariables", {}),
+        )
+        return json.dumps({"environmentVariables": env_vars})
+
+    # endregion
+
+    # region: Evaluate code / mapping template
+    def evaluate_code(self) -> str:
+        params = json.loads(self.body)
+        result = self.appsync_backend.evaluate_code(
+            runtime=params.get("runtime", {}),
+            code=params.get("code", ""),
+            context=params.get("context", ""),
+            function_name=params.get("function", "request"),
+        )
+        return json.dumps(result)
+
+    def evaluate_mapping_template(self) -> str:
+        params = json.loads(self.body)
+        result = self.appsync_backend.evaluate_mapping_template(
+            template=params.get("template", ""),
+            context=params.get("context", ""),
+        )
+        return json.dumps(result)
+
+    # endregion
+
+    # region: DataSource introspection
+    def start_data_source_introspection(self) -> str:
+        params = json.loads(self.body)
+        introspection_id = self.appsync_backend.start_data_source_introspection(
+            rds_data_api_config=params.get("rdsDataApiConfig"),
+        )
+        return json.dumps({"introspectionId": introspection_id, "introspectionStatus": "PROCESSING"})
+
+    def get_data_source_introspection(self) -> str:
+        # GET /v1/datasources/introspections/{introspectionId}
+        introspection_id = self.path.split("/")[-1]
+        result = self.appsync_backend.get_data_source_introspection(
+            introspection_id=introspection_id,
+        )
+        return json.dumps(result)
+
+    # endregion
+
+    # region: ListTypesByAssociation
+    def list_types_by_association(self) -> str:
+        # GET /v1/mergedApis/{mergedApiIdentifier}/sourceApiAssociations/{associationId}/types
+        parts = self.path.split("/")
+        merged_api_identifier = parts[-5]
+        association_id = parts[-3]
+        format_ = self.querystring.get("format", ["SDL"])[0]
+        types = self.appsync_backend.list_types_by_association(
+            merged_api_identifier=merged_api_identifier,
+            association_id=association_id,
+            format_=format_,
+        )
+        return json.dumps({"types": types})
+
+    # endregion

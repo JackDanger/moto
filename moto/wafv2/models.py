@@ -1121,5 +1121,179 @@ class WAFV2Backend(BaseBackend):
             {"Name": "Version_2.0", "LastUpdateTimestamp": "2022-01-01T00:00:00Z"},
         ]
 
+    # region: API Key operations
+    def create_api_key(
+        self, scope: str, token_domains: list[str]
+    ) -> tuple[str, str]:
+        """Create an API key. Returns (api_key, api_key_id)."""
+        api_key = str(mock_random.uuid4()).replace("-", "")
+        created = iso_8601_datetime_with_milliseconds()
+        if not hasattr(self, "_api_keys"):
+            self._api_keys: dict[str, dict[str, Any]] = {}
+        self._api_keys[api_key] = {
+            "APIKey": api_key,
+            "TokenDomains": token_domains,
+            "CreationTimestamp": created,
+            "Version": 1,
+        }
+        return api_key, created
+
+    def delete_api_key(self, scope: str, api_key: str) -> None:
+        if not hasattr(self, "_api_keys"):
+            self._api_keys = {}
+        self._api_keys.pop(api_key, None)
+
+    def list_api_keys(self, scope: str) -> list[dict[str, Any]]:
+        if not hasattr(self, "_api_keys"):
+            self._api_keys = {}
+        return list(self._api_keys.values())
+
+    def get_decrypted_api_key(
+        self, scope: str, api_key: str
+    ) -> list[str]:
+        """Return the token domains for a decrypted API key."""
+        if not hasattr(self, "_api_keys"):
+            self._api_keys = {}
+        key_data = self._api_keys.get(api_key)
+        if key_data:
+            return key_data.get("TokenDomains", [])
+        return []
+
+    # endregion
+
+    # region: Mobile SDK stubs
+    def get_mobile_sdk_release(
+        self, platform: str, release_version: str
+    ) -> dict[str, Any]:
+        return {
+            "MobileSdkRelease": {
+                "ReleaseVersion": release_version,
+                "Timestamp": "2023-01-01T00:00:00Z",
+                "ReleaseNotes": "Mock release",
+                "Tags": [],
+            }
+        }
+
+    def list_mobile_sdk_releases(
+        self, platform: str
+    ) -> list[dict[str, Any]]:
+        return []
+
+    def generate_mobile_sdk_release_url(
+        self, platform: str, release_version: str
+    ) -> str:
+        return f"https://sdk.amazonaws.com/wafv2/{platform}/{release_version}/sdk.zip"
+
+    # endregion
+
+    # region: Managed rule set stubs
+    def get_managed_rule_set(
+        self, name: str, scope: str, _id: str
+    ) -> dict[str, Any]:
+        return {
+            "ManagedRuleSet": {
+                "Name": name,
+                "Id": _id,
+                "ARN": f"arn:aws:wafv2:{self.region_name}:{self.account_id}:managed-rule-set/{name}/{_id}",
+                "Description": "",
+                "PublishedVersions": {},
+                "RecommendedVersion": "Version_1.0",
+                "LabelNamespace": f"awswaf:managed:{name.lower()}:",
+            },
+            "LockToken": str(mock_random.uuid4()),
+        }
+
+    def list_managed_rule_sets(
+        self, scope: str
+    ) -> list[dict[str, Any]]:
+        return []
+
+    def put_managed_rule_set_versions(
+        self, name: str, scope: str, _id: str, lock_token: str,
+        versions_to_publish: Optional[dict[str, Any]] = None,
+    ) -> str:
+        return str(mock_random.uuid4())
+
+    def update_managed_rule_set_version_expiry_date(
+        self, name: str, scope: str, _id: str, lock_token: str,
+        version_to_expire: str, expiry_timestamp: str,
+    ) -> tuple[str, str, str]:
+        return version_to_expire, expiry_timestamp, str(mock_random.uuid4())
+
+    # endregion
+
+    # region: Describe managed products
+    def describe_all_managed_products(
+        self, scope: str
+    ) -> list[dict[str, Any]]:
+        """Return a static list of managed product descriptions."""
+        return [
+            {
+                "VendorName": "AWS",
+                "ManagedRuleSetName": "AWSManagedRulesCommonRuleSet",
+                "ProductId": "aws-common-rules",
+                "ProductTitle": "AWS Managed Rules Common Rule Set",
+                "ProductDescription": "Contains rules that are generally applicable to web applications.",
+                "SnsTopicArn": f"arn:aws:sns:{self.region_name}:{self.account_id}:managed-product-common",
+                "IsVersioningSupported": True,
+                "IsAdvancedManagedRuleSet": False,
+            },
+        ]
+
+    def describe_managed_products_by_vendor(
+        self, vendor_name: str, scope: str
+    ) -> list[dict[str, Any]]:
+        products = self.describe_all_managed_products(scope)
+        return [p for p in products if p["VendorName"] == vendor_name]
+
+    # endregion
+
+    # region: Firewall Manager, Rate-based, Sampled requests, Resources for WebACL
+    def delete_firewall_manager_rule_groups(
+        self, web_acl_arn: str, web_acl_lock_token: str
+    ) -> str:
+        """Remove Firewall Manager rule groups from a WebACL. Returns new lock token."""
+        return str(mock_random.uuid4())
+
+    def get_rate_based_statement_managed_keys(
+        self, scope: str, web_acl_name: str, web_acl_id: str,
+        rule_name: str, rule_group_rule_name: Optional[str] = None,
+    ) -> dict[str, Any]:
+        return {
+            "ManagedKeysIPV4": {
+                "IPAddressVersion": "IPV4",
+                "Addresses": [],
+            },
+            "ManagedKeysIPV6": {
+                "IPAddressVersion": "IPV6",
+                "Addresses": [],
+            },
+        }
+
+    def get_sampled_requests(
+        self, web_acl_arn: str, rule_metric_name: str, scope: str,
+        time_window: dict[str, str], max_items: int,
+    ) -> dict[str, Any]:
+        return {
+            "SampledRequests": [],
+            "PopulationSize": 0,
+            "TimeWindow": time_window,
+        }
+
+    def list_resources_for_web_acl(
+        self, web_acl_arn: str, resource_type: Optional[str] = None
+    ) -> list[str]:
+        wacl = self.wacls.get(web_acl_arn)
+        if not wacl:
+            raise WAFNonexistentItemException
+        if resource_type:
+            return [
+                r for r in wacl.associated_resources
+                if resource_type.lower() in r.lower()
+            ]
+        return list(wacl.associated_resources)
+
+    # endregion
+
 
 wafv2_backends = BackendDict(WAFV2Backend, "wafv2", additional_regions=PARTITION_NAMES)

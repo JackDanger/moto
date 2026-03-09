@@ -295,3 +295,107 @@ class BatchResponse(BaseResponse):
         fairshare_policy = body.get("fairsharePolicy") or {}
         self.batch_backend.update_scheduling_policy(arn, fairshare_policy)
         return ""
+
+    def getjobqueuesnapshot(self) -> str:
+        body = json.loads(self.body)
+        job_queue = body.get("jobQueue")
+        result = self.batch_backend.get_job_queue_snapshot(job_queue)
+        return json.dumps(result)
+
+    def createconsumableresource(self) -> str:
+        body = json.loads(self.body)
+        result = self.batch_backend.create_consumable_resource(
+            name=body.get("consumableResourceName"),
+            total_quantity=body.get("totalQuantity", 0),
+            resource_type=body.get("resourceType", "REPLENISHABLE"),
+            tags=body.get("tags"),
+        )
+        return json.dumps({
+            "consumableResourceArn": result["consumableResourceArn"],
+            "consumableResourceName": result["consumableResourceName"],
+        })
+
+    def describeconsumableresource(self) -> str:
+        body = json.loads(self.body)
+        result = self.batch_backend.describe_consumable_resource(
+            body.get("consumableResource")
+        )
+        return json.dumps(result)
+
+    def deleteconsumableresource(self) -> str:
+        body = json.loads(self.body)
+        self.batch_backend.delete_consumable_resource(body.get("consumableResource"))
+        return ""
+
+    def listconsumableresources(self) -> str:
+        resources = self.batch_backend.list_consumable_resources()
+        return json.dumps({"consumableResources": resources})
+
+    def updateconsumableresource(self) -> str:
+        body = json.loads(self.body)
+        result = self.batch_backend.update_consumable_resource(
+            consumable_resource=body.get("consumableResource"),
+            total_quantity=body.get("totalQuantity"),
+        )
+        return json.dumps(result)
+
+    def listjobsbyconsumableresource(self) -> str:
+        body = json.loads(self.body)
+        jobs = self.batch_backend.list_jobs_by_consumable_resource(
+            body.get("consumableResource")
+        )
+        return json.dumps({"jobs": jobs})
+
+    def createserviceenvironment(self) -> str:
+        body = json.loads(self.body)
+        result = self.batch_backend.create_service_environment(
+            name=body.get("serviceEnvironmentName"),
+        )
+        return json.dumps(result)
+
+    def deleteserviceenvironment(self) -> str:
+        body = json.loads(self.body)
+        self.batch_backend.delete_service_environment(body.get("serviceEnvironment"))
+        return ""
+
+    def describeserviceenvironments(self) -> str:
+        body = json.loads(self.body)
+        envs = self.batch_backend.describe_service_environments(
+            body.get("serviceEnvironments")
+        )
+        return json.dumps({"serviceEnvironments": envs})
+
+    def updateserviceenvironment(self) -> str:
+        body = json.loads(self.body)
+        result = self.batch_backend.update_service_environment(
+            service_environment=body.get("serviceEnvironment"),
+        )
+        return json.dumps(result)
+
+    def submitservicejob(self) -> str:
+        body = json.loads(self.body)
+        result = self.batch_backend.submit_service_job(
+            job_name=body.get("jobName"),
+            job_queue=body.get("jobQueue"),
+            job_definition=body.get("jobDefinition"),
+        )
+        return json.dumps(result)
+
+    def describeservicejob(self) -> str:
+        body = json.loads(self.body)
+        result = self.batch_backend.describe_service_job(body.get("jobId"))
+        return json.dumps(result)
+
+    def listservicejobs(self) -> str:
+        body = json.loads(self.body)
+        jobs = self.batch_backend.list_service_jobs(
+            body.get("serviceEnvironment")
+        )
+        return json.dumps({"jobSummaryList": jobs})
+
+    def terminateservicejob(self) -> str:
+        body = json.loads(self.body)
+        self.batch_backend.terminate_service_job(
+            body.get("jobId"), body.get("reason")
+        )
+        return ""

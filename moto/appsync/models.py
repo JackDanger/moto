@@ -1640,6 +1640,221 @@ class AppSyncBackend(BaseBackend):
             raise EventsAPINotFound(api_id)
         return self.events_apis[api_id]
 
+    def update_api(
+        self,
+        api_id: str,
+        name: Optional[str] = None,
+        owner_contact: Optional[str] = None,
+        event_config: Optional[dict[str, Any]] = None,
+    ) -> EventsAPI:
+        if api_id not in self.events_apis:
+            raise EventsAPINotFound(api_id)
+        api = self.events_apis[api_id]
+        if name is not None:
+            api.name = name
+        if owner_contact is not None:
+            api.owner_contact = owner_contact
+        if event_config is not None:
+            api.event_config = event_config
+        return api
+
+    def get_channel_namespace(self, api_id: str, name: str) -> ChannelNamespace:
+        if api_id not in self.events_apis:
+            raise EventsAPINotFound(api_id)
+        for ns in self.events_apis[api_id].channel_namespaces:
+            if ns.name == name:
+                return ns
+        raise BadRequestException(f"Channel namespace {name} not found for API {api_id}")
+
+    def update_channel_namespace(
+        self,
+        api_id: str,
+        name: str,
+        subscribe_auth_modes: Optional[list[dict[str, str]]] = None,
+        publish_auth_modes: Optional[list[dict[str, str]]] = None,
+        code_handlers: Optional[list[dict[str, Any]]] = None,
+        handler_configs: Optional[dict[str, Any]] = None,
+    ) -> ChannelNamespace:
+        ns = self.get_channel_namespace(api_id, name)
+        if subscribe_auth_modes is not None:
+            ns.subscribe_auth_modes = subscribe_auth_modes
+        if publish_auth_modes is not None:
+            ns.publish_auth_modes = publish_auth_modes
+        if code_handlers is not None:
+            ns.code_handlers = code_handlers
+        if handler_configs is not None:
+            ns.handler_configs = handler_configs
+        ns.last_modified = datetime.now(timezone.utc).isoformat()
+        return ns
+
+    # region: Merged/Source GraphQL API stubs
+    def associate_merged_graphql_api(
+        self, source_api_identifier: str, merged_api_identifier: str
+    ) -> dict[str, Any]:
+        assoc_id = str(mock_random.uuid4())
+        return {
+            "sourceApiAssociation": {
+                "associationId": assoc_id,
+                "sourceApiId": source_api_identifier,
+                "mergedApiId": merged_api_identifier,
+                "sourceApiAssociationConfig": {},
+                "sourceApiAssociationStatus": "MERGE_SUCCESS",
+            }
+        }
+
+    def disassociate_merged_graphql_api(
+        self, source_api_identifier: str, association_id: str
+    ) -> dict[str, Any]:
+        return {
+            "sourceApiAssociationStatus": "DELETION_IN_PROGRESS",
+        }
+
+    def associate_source_graphql_api(
+        self, merged_api_identifier: str, source_api_identifier: str
+    ) -> dict[str, Any]:
+        assoc_id = str(mock_random.uuid4())
+        return {
+            "sourceApiAssociation": {
+                "associationId": assoc_id,
+                "sourceApiId": source_api_identifier,
+                "mergedApiId": merged_api_identifier,
+                "sourceApiAssociationConfig": {},
+                "sourceApiAssociationStatus": "MERGE_SUCCESS",
+            }
+        }
+
+    def disassociate_source_graphql_api(
+        self, merged_api_identifier: str, association_id: str
+    ) -> dict[str, Any]:
+        return {
+            "sourceApiAssociationStatus": "DELETION_IN_PROGRESS",
+        }
+
+    def get_source_api_association(
+        self, merged_api_identifier: str, association_id: str
+    ) -> dict[str, Any]:
+        return {
+            "sourceApiAssociation": {
+                "associationId": association_id,
+                "mergedApiId": merged_api_identifier,
+                "sourceApiAssociationConfig": {},
+                "sourceApiAssociationStatus": "MERGE_SUCCESS",
+            }
+        }
+
+    def update_source_api_association(
+        self, merged_api_identifier: str, association_id: str, **kwargs: Any
+    ) -> dict[str, Any]:
+        return {
+            "sourceApiAssociation": {
+                "associationId": association_id,
+                "mergedApiId": merged_api_identifier,
+                "sourceApiAssociationConfig": {},
+                "sourceApiAssociationStatus": "MERGE_SUCCESS",
+            }
+        }
+
+    def list_source_api_associations(
+        self, api_id: str
+    ) -> list[dict[str, Any]]:
+        return []
+
+    def start_schema_merge(
+        self, association_id: str, merged_api_identifier: str
+    ) -> dict[str, Any]:
+        return {"sourceApiAssociationStatus": "MERGE_IN_PROGRESS"}
+
+    # endregion
+
+    # region: Resolver by function
+    def list_resolvers_by_function(
+        self, api_id: str, function_id: str
+    ) -> list[dict[str, Any]]:
+        if api_id not in self.graphql_apis:
+            raise GraphqlAPINotFound(api_id)
+        api = self.graphql_apis[api_id]
+        result = []
+        for resolver in api.resolvers.values():
+            pipeline_config = resolver.pipeline_config or {}
+            functions = pipeline_config.get("functions", [])
+            if function_id in functions:
+                result.append(resolver.to_json())
+        return result
+
+    # endregion
+
+    # region: Environment variables
+    def get_graphql_api_environment_variables(
+        self, api_id: str
+    ) -> dict[str, str]:
+        if api_id not in self.graphql_apis:
+            raise GraphqlAPINotFound(api_id)
+        api = self.graphql_apis[api_id]
+        if not hasattr(api, "environment_variables"):
+            api.environment_variables: dict[str, str] = {}
+        return api.environment_variables
+
+    def put_graphql_api_environment_variables(
+        self, api_id: str, environment_variables: dict[str, str]
+    ) -> dict[str, str]:
+        if api_id not in self.graphql_apis:
+            raise GraphqlAPINotFound(api_id)
+        api = self.graphql_apis[api_id]
+        api.environment_variables = environment_variables
+        return environment_variables
+
+    # endregion
+
+    # region: Evaluate code / mapping template stubs
+    def evaluate_code(
+        self, runtime: dict[str, str], code: str, context: str, function_name: str
+    ) -> dict[str, Any]:
+        return {
+            "evaluationResult": "{}",
+            "error": None,
+            "logs": [],
+        }
+
+    def evaluate_mapping_template(
+        self, template: str, context: str
+    ) -> dict[str, Any]:
+        return {
+            "evaluationResult": "{}",
+            "error": None,
+            "logs": [],
+        }
+
+    # endregion
+
+    # region: DataSource introspection stubs
+    def start_data_source_introspection(
+        self, rds_data_api_config: Optional[dict[str, Any]] = None
+    ) -> str:
+        introspection_id = str(mock_random.uuid4())
+        return introspection_id
+
+    def get_data_source_introspection(
+        self, introspection_id: str
+    ) -> dict[str, Any]:
+        return {
+            "introspectionId": introspection_id,
+            "introspectionStatus": "SUCCESS",
+            "introspectionStatusDetail": None,
+            "introspectionResult": {
+                "models": [],
+            },
+        }
+
+    # endregion
+
+    # region: ListTypesByAssociation stub
+    def list_types_by_association(
+        self, merged_api_identifier: str, association_id: str, format_: str
+    ) -> list[dict[str, Any]]:
+        return []
+
+    # endregion
+
 
 # endregion
 

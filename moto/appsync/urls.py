@@ -44,4 +44,23 @@ url_paths = {
     "{0}/v2/apis/(?P<apiId>[^/]+)/channelNamespaces$": AppSyncResponse.dispatch,
     "{0}/v2/apis/(?P<apiId>[^/]+)/channelNamespaces/(?P<name>[^/]+)$": AppSyncResponse.dispatch,
     "{0}/event$": AppSyncResponse.dns_event_response,
+    # Merged/Source API associations
+    "{0}/v1/sourceApis/(?P<sourceApiId>[^/]+)/mergedApiAssociations$": AppSyncResponse.dispatch,
+    "{0}/v1/sourceApis/(?P<sourceApiId>[^/]+)/mergedApiAssociations/(?P<assocId>[^/]+)$": AppSyncResponse.dispatch,
+    "{0}/v1/mergedApis/(?P<mergedApiId>[^/]+)/sourceApiAssociations$": AppSyncResponse.dispatch,
+    "{0}/v1/mergedApis/(?P<mergedApiId>[^/]+)/sourceApiAssociations/(?P<assocId>[^/]+)/merge$": AppSyncResponse.dispatch,
+    "{0}/v1/mergedApis/(?P<mergedApiId>[^/]+)/sourceApiAssociations/(?P<assocId>[^/]+)/types$": AppSyncResponse.dispatch,
+    "{0}/v1/mergedApis/(?P<mergedApiId>[^/]+)/sourceApiAssociations/(?P<assocId>[^/]+)$": AppSyncResponse.dispatch,
+    # Resolvers by function
+    "{0}/v1/apis/(?P<api_id>[^/]+)/functions/(?P<function_id>[^/]+)/resolvers$": AppSyncResponse.dispatch,
+    # Environment variables
+    "{0}/v1/apis/(?P<api_id>[^/]+)/environmentVariables$": AppSyncResponse.dispatch,
+    # Evaluate code / mapping template
+    "{0}/v1/dataplane-evaluatecode$": AppSyncResponse.dispatch,
+    "{0}/v1/dataplane-evaluatetemplate$": AppSyncResponse.dispatch,
+    # DataSource introspection
+    "{0}/v1/datasources/introspections$": AppSyncResponse.dispatch,
+    "{0}/v1/datasources/introspections/(?P<introspectionId>[^/]+)$": AppSyncResponse.dispatch,
+    # Source API associations for listing
+    "{0}/v1/apis/(?P<api_id>[^/]+)/sourceApiAssociations$": AppSyncResponse.dispatch,
 }

@@ -626,6 +626,171 @@ class WAFV2Response(BaseResponse):
             }),
         )
 
+    def create_api_key(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        scope = body.get("Scope", "REGIONAL")
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+        token_domains = body.get("TokenDomains", [])
+        api_key, created = self.wafv2_backend.create_api_key(scope, token_domains)
+        return 200, {}, json.dumps({"APIKey": api_key})
+
+    def delete_api_key(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        scope = body.get("Scope", "REGIONAL")
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+        api_key = body["APIKey"]
+        self.wafv2_backend.delete_api_key(scope, api_key)
+        return 200, {}, "{}"
+
+    def list_api_keys(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        scope = body.get("Scope", "REGIONAL")
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+        api_keys = self.wafv2_backend.list_api_keys(scope)
+        return 200, {}, json.dumps({"APIKeySummaries": api_keys, "NextMarker": None})
+
+    def get_decrypted_api_key(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        scope = body.get("Scope", "REGIONAL")
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+        api_key = body["APIKey"]
+        token_domains = self.wafv2_backend.get_decrypted_api_key(scope, api_key)
+        return 200, {}, json.dumps({"TokenDomains": token_domains})
+
+    def get_mobile_sdk_release(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        platform = body["Platform"]
+        release_version = body["ReleaseVersion"]
+        result = self.wafv2_backend.get_mobile_sdk_release(platform, release_version)
+        return 200, {}, json.dumps(result)
+
+    def list_mobile_sdk_releases(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        platform = body["Platform"]
+        releases = self.wafv2_backend.list_mobile_sdk_releases(platform)
+        return 200, {}, json.dumps({"ReleaseSummaries": releases, "NextMarker": None})
+
+    def generate_mobile_sdk_release_url(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        platform = body["Platform"]
+        release_version = body["ReleaseVersion"]
+        url = self.wafv2_backend.generate_mobile_sdk_release_url(platform, release_version)
+        return 200, {}, json.dumps({"Url": url})
+
+    def get_managed_rule_set(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        name = body["Name"]
+        scope = body.get("Scope", "REGIONAL")
+        _id = body["Id"]
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+        result = self.wafv2_backend.get_managed_rule_set(name, scope, _id)
+        return 200, {}, json.dumps(result)
+
+    def list_managed_rule_sets(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        scope = body.get("Scope", "REGIONAL")
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+        rule_sets = self.wafv2_backend.list_managed_rule_sets(scope)
+        return 200, {}, json.dumps({"ManagedRuleSets": rule_sets, "NextMarker": None})
+
+    def put_managed_rule_set_versions(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        name = body["Name"]
+        scope = body.get("Scope", "REGIONAL")
+        _id = body["Id"]
+        lock_token = body["LockToken"]
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+        next_lock_token = self.wafv2_backend.put_managed_rule_set_versions(
+            name, scope, _id, lock_token,
+            versions_to_publish=body.get("VersionsToPublish"),
+        )
+        return 200, {}, json.dumps({"NextLockToken": next_lock_token})
+
+    def update_managed_rule_set_version_expiry_date(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        name = body["Name"]
+        scope = body.get("Scope", "REGIONAL")
+        _id = body["Id"]
+        lock_token = body["LockToken"]
+        version_to_expire = body["VersionToExpire"]
+        expiry_timestamp = body["ExpiryTimestamp"]
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+        version, expiry, next_lock = self.wafv2_backend.update_managed_rule_set_version_expiry_date(
+            name, scope, _id, lock_token, version_to_expire, expiry_timestamp,
+        )
+        return 200, {}, json.dumps({
+            "ExpiringVersion": version,
+            "ExpiryTimestamp": expiry,
+            "NextLockToken": next_lock,
+        })
+
+    def describe_all_managed_products(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        scope = body.get("Scope", "REGIONAL")
+        products = self.wafv2_backend.describe_all_managed_products(scope)
+        return 200, {}, json.dumps({"ManagedProducts": products})
+
+    def describe_managed_products_by_vendor(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        vendor_name = body["VendorName"]
+        scope = body.get("Scope", "REGIONAL")
+        products = self.wafv2_backend.describe_managed_products_by_vendor(vendor_name, scope)
+        return 200, {}, json.dumps({"ManagedProducts": products})
+
+    def delete_firewall_manager_rule_groups(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        web_acl_arn = body["WebACLArn"]
+        web_acl_lock_token = body["WebACLLockToken"]
+        next_lock = self.wafv2_backend.delete_firewall_manager_rule_groups(
+            web_acl_arn, web_acl_lock_token,
+        )
+        return 200, {}, json.dumps({"NextWebACLLockToken": next_lock})
+
+    def get_rate_based_statement_managed_keys(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        scope = body.get("Scope", "REGIONAL")
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+        result = self.wafv2_backend.get_rate_based_statement_managed_keys(
+            scope=scope,
+            web_acl_name=body["WebACLName"],
+            web_acl_id=body["WebACLId"],
+            rule_name=body["RuleName"],
+            rule_group_rule_name=body.get("RuleGroupRuleName"),
+        )
+        return 200, {}, json.dumps(result)
+
+    def get_sampled_requests(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        scope = body.get("Scope", "REGIONAL")
+        if scope == "CLOUDFRONT":
+            self.region = GLOBAL_REGION
+        result = self.wafv2_backend.get_sampled_requests(
+            web_acl_arn=body["WebAclArn"],
+            rule_metric_name=body["RuleMetricName"],
+            scope=scope,
+            time_window=body["TimeWindow"],
+            max_items=body.get("MaxItems", 100),
+        )
+        return 200, {}, json.dumps(result)
+
+    def list_resources_for_web_acl(self) -> TYPE_RESPONSE:
+        body = json.loads(self.body)
+        web_acl_arn = body["WebACLArn"]
+        resource_type = body.get("ResourceType")
+        resources = self.wafv2_backend.list_resources_for_web_acl(
+            web_acl_arn, resource_type,
+        )
+        return 200, {}, json.dumps({"ResourceArns": resources})
+
 
 # notes about region and scope
 # --scope = CLOUDFRONT is ALWAYS us-east-1 (but we use "global" instead to differentiate between REGIONAL us-east-1)

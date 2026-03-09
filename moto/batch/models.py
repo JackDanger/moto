@@ -2130,5 +2130,182 @@ class BatchBackend(BaseBackend):
     ) -> None:
         self._scheduling_policies[arn].fairshare_policy = fairshare_policy
 
+    def get_job_queue_snapshot(self, job_queue: str) -> dict[str, Any]:
+        """Return a snapshot of the front of the job queue."""
+        # Find matching queue
+        for queue in self._job_queues.values():
+            if queue.name == job_queue or queue.arn == job_queue:
+                return {
+                    "scheduledJobs": [],
+                    "frontOfQueue": {
+                        "jobs": [],
+                        "lastUpdatedAt": int(time.time() * 1000),
+                    },
+                }
+        raise ClientException(f"Job queue {job_queue} does not exist")
+
+    # region: ConsumableResource operations
+    def create_consumable_resource(
+        self,
+        name: str,
+        total_quantity: int,
+        resource_type: str,
+        tags: Optional[dict[str, str]] = None,
+    ) -> dict[str, Any]:
+        arn = f"arn:{get_partition(self.region_name)}:batch:{self.region_name}:{self.account_id}:consumable-resource/{name}"
+        resource = {
+            "consumableResourceArn": arn,
+            "consumableResourceName": name,
+            "totalQuantity": total_quantity,
+            "resourceType": resource_type,
+            "inUseQuantity": 0,
+            "availableQuantity": total_quantity,
+            "createdAt": int(time.time() * 1000),
+        }
+        if not hasattr(self, "_consumable_resources"):
+            self._consumable_resources: dict[str, dict[str, Any]] = {}
+        self._consumable_resources[arn] = resource
+        if tags:
+            self.tag_resource(arn, tags)
+        return resource
+
+    def describe_consumable_resource(self, consumable_resource: str) -> dict[str, Any]:
+        if not hasattr(self, "_consumable_resources"):
+            self._consumable_resources = {}
+        for arn, res in self._consumable_resources.items():
+            if arn == consumable_resource or res["consumableResourceName"] == consumable_resource:
+                result = dict(res)
+                result["tags"] = self.list_tags_for_resource(arn)
+                return result
+        raise ClientException(f"Consumable resource {consumable_resource} does not exist")
+
+    def delete_consumable_resource(self, consumable_resource: str) -> None:
+        if not hasattr(self, "_consumable_resources"):
+            self._consumable_resources = {}
+        to_delete = None
+        for arn, res in self._consumable_resources.items():
+            if arn == consumable_resource or res["consumableResourceName"] == consumable_resource:
+                to_delete = arn
+                break
+        if to_delete:
+            self._consumable_resources.pop(to_delete)
+
+    def list_consumable_resources(self) -> list[dict[str, Any]]:
+        if not hasattr(self, "_consumable_resources"):
+            self._consumable_resources = {}
+        return [
+            {
+                "consumableResourceArn": r["consumableResourceArn"],
+                "consumableResourceName": r["consumableResourceName"],
+                "totalQuantity": r["totalQuantity"],
+                "resourceType": r["resourceType"],
+            }
+            for r in self._consumable_resources.values()
+        ]
+
+    def update_consumable_resource(
+        self, consumable_resource: str, total_quantity: Optional[int] = None
+    ) -> dict[str, Any]:
+        if not hasattr(self, "_consumable_resources"):
+            self._consumable_resources = {}
+        for arn, res in self._consumable_resources.items():
+            if arn == consumable_resource or res["consumableResourceName"] == consumable_resource:
+                if total_quantity is not None:
+                    res["totalQuantity"] = total_quantity
+                    res["availableQuantity"] = total_quantity - res["inUseQuantity"]
+                return {
+                    "consumableResourceArn": res["consumableResourceArn"],
+                    "consumableResourceName": res["consumableResourceName"],
+                    "totalQuantity": res["totalQuantity"],
+                }
+        raise ClientException(f"Consumable resource {consumable_resource} does not exist")
+
+    def list_jobs_by_consumable_resource(
+        self, consumable_resource: str
+    ) -> list[dict[str, Any]]:
+        return []
+
+    # endregion
+
+    # region: ServiceEnvironment operations (stubs)
+    def create_service_environment(
+        self, name: str, **kwargs: Any
+    ) -> dict[str, Any]:
+        arn = f"arn:{get_partition(self.region_name)}:batch:{self.region_name}:{self.account_id}:service-environment/{name}"
+        env = {
+            "serviceEnvironmentArn": arn,
+            "serviceEnvironmentName": name,
+            "status": "ACTIVE",
+            "createdAt": int(time.time() * 1000),
+        }
+        if not hasattr(self, "_service_environments"):
+            self._service_environments: dict[str, dict[str, Any]] = {}
+        self._service_environments[arn] = env
+        return env
+
+    def delete_service_environment(self, service_environment: str) -> None:
+        if not hasattr(self, "_service_environments"):
+            self._service_environments = {}
+        to_delete = None
+        for arn, env in self._service_environments.items():
+            if arn == service_environment or env["serviceEnvironmentName"] == service_environment:
+                to_delete = arn
+                break
+        if to_delete:
+            self._service_environments.pop(to_delete)
+
+    def describe_service_environments(
+        self, service_environments: Optional[list[str]] = None
+    ) -> list[dict[str, Any]]:
+        if not hasattr(self, "_service_environments"):
+            self._service_environments = {}
+        if service_environments:
+            return [
+                env for env in self._service_environments.values()
+                if env["serviceEnvironmentArn"] in service_environments
+                or env["serviceEnvironmentName"] in service_environments
+            ]
+        return list(self._service_environments.values())
+
+    def update_service_environment(
+        self, service_environment: str, **kwargs: Any
+    ) -> dict[str, Any]:
+        if not hasattr(self, "_service_environments"):
+            self._service_environments = {}
+        for arn, env in self._service_environments.items():
+            if arn == service_environment or env["serviceEnvironmentName"] == service_environment:
+                return env
+        raise ClientException(f"Service environment {service_environment} does not exist")
+
+    # endregion
+
+    # region: ServiceJob operations (stubs)
+    def submit_service_job(
+        self, job_name: str, job_queue: str, job_definition: str, **kwargs: Any
+    ) -> dict[str, Any]:
+        job_id = str(mock_random.uuid4())
+        arn = f"arn:{get_partition(self.region_name)}:batch:{self.region_name}:{self.account_id}:service-job/{job_id}"
+        return {
+            "jobArn": arn,
+            "jobName": job_name,
+            "jobId": job_id,
+        }
+
+    def describe_service_job(self, job_id: str) -> dict[str, Any]:
+        return {
+            "jobId": job_id,
+            "status": "SUCCEEDED",
+        }
+
+    def list_service_jobs(
+        self, service_environment: Optional[str] = None
+    ) -> list[dict[str, Any]]:
+        return []
+
+    def terminate_service_job(self, job_id: str, reason: str) -> None:
+        pass
+
+    # endregion
+
 
 batch_backends = BackendDict(BatchBackend, "batch")
