@@ -198,6 +198,25 @@ class EFSResponse(BaseResponse):
         self.efs_backend.untag_resource(resource_id, tag_keys)
         return "{}", {"Content-Type": "application/json"}
 
+    def describe_account_preferences(self) -> TYPE_RESPONSE:
+        result = self.efs_backend.describe_account_preferences()
+        return json.dumps(result), {"Content-Type": "application/json"}
+
+    def describe_replication_configurations(self) -> TYPE_RESPONSE:
+        file_system_id = self._get_param("FileSystemId")
+        replications = self.efs_backend.describe_replication_configurations(
+            file_system_id=file_system_id,
+        )
+        return json.dumps({"Replications": replications}), {
+            "Content-Type": "application/json"
+        }
+
+    def describe_tags(self) -> TYPE_RESPONSE:
+        file_system_id = self._get_param("FileSystemId")
+        tags = self.efs_backend.describe_tags(file_system_id)
+        resp: dict[str, Any] = {"Tags": tags}
+        return json.dumps(resp), {"Content-Type": "application/json"}
+
     def describe_file_system_policy(self) -> TYPE_RESPONSE:
         file_system_id = self._get_param("FileSystemId")
         policy = self.efs_backend.describe_file_system_policy(

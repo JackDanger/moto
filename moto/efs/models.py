@@ -755,6 +755,26 @@ class EFSBackend(BaseBackend):
     def untag_resource(self, resource_id: str, tag_keys: list[str]) -> None:
         self.tagging_service.untag_resource_using_names(resource_id, tag_keys)
 
+    def describe_account_preferences(self) -> dict[str, Any]:
+        return {
+            "ResourceIdPreference": {
+                "ResourceIdType": "LONG_ID",
+                "Resources": ["FILE_SYSTEM", "MOUNT_TARGET"],
+            }
+        }
+
+    def describe_replication_configurations(
+        self, file_system_id: Optional[str] = None
+    ) -> list[dict[str, Any]]:
+        if file_system_id and file_system_id not in self.file_systems_by_id:
+            raise FileSystemNotFound(file_system_id)
+        return []
+
+    def describe_tags(self, file_system_id: str) -> list[dict[str, str]]:
+        if file_system_id not in self.file_systems_by_id:
+            raise FileSystemNotFound(file_system_id)
+        return self.list_tags_for_resource(file_system_id)
+
     def describe_file_system_policy(self, file_system_id: str) -> str:
         policy = self.file_systems_by_id[file_system_id].file_system_policy
         if not policy:
