@@ -880,17 +880,26 @@ class CloudFrontResponse(BaseResponse):
         return self.create_distribution()
 
     # Stub operations for newer/niche APIs
-    def associate_distribution_web_a_c_l(self) -> TYPE_RESPONSE:
+    def associate_distribution_web_acl(self) -> TYPE_RESPONSE:
         return 200, {}, ""
 
-    def disassociate_distribution_web_a_c_l(self) -> TYPE_RESPONSE:
+    # Alias for Moto dispatch compatibility
+    associate_distribution_web_a_c_l = associate_distribution_web_acl
+
+    def disassociate_distribution_web_acl(self) -> TYPE_RESPONSE:
         return 200, {}, ""
 
-    def associate_distribution_tenant_web_a_c_l(self) -> TYPE_RESPONSE:
+    disassociate_distribution_web_a_c_l = disassociate_distribution_web_acl
+
+    def associate_distribution_tenant_web_acl(self) -> TYPE_RESPONSE:
         return 200, {}, ""
 
-    def disassociate_distribution_tenant_web_a_c_l(self) -> TYPE_RESPONSE:
+    associate_distribution_tenant_web_a_c_l = associate_distribution_tenant_web_acl
+
+    def disassociate_distribution_tenant_web_acl(self) -> TYPE_RESPONSE:
         return 200, {}, ""
+
+    disassociate_distribution_tenant_web_a_c_l = disassociate_distribution_tenant_web_acl
 
     def create_key_value_store(self) -> TYPE_RESPONSE:
         body = self._get_xml_body()
