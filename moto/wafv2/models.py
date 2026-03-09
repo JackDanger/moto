@@ -1047,89 +1047,57 @@ class WAFV2Backend(BaseBackend):
             {
                 "VendorName": "AWS",
                 "Name": "AWSManagedRulesCommonRuleSet",
-                "Description": (
-                    "Contains rules that are generally applicable to web applications."
-                ),
+                "Description": "Contains rules that are generally applicable to web applications.",
             },
             {
                 "VendorName": "AWS",
                 "Name": "AWSManagedRulesAdminProtectionRuleSet",
-                "Description": (
-                    "Contains rules that allow you to block external access"
-                    " to exposed admin pages."
-                ),
+                "Description": "Contains rules that allow you to block external access to exposed admin pages.",
             },
             {
                 "VendorName": "AWS",
                 "Name": "AWSManagedRulesKnownBadInputsRuleSet",
-                "Description": (
-                    "Contains rules to block request patterns"
-                    " that are known to be invalid."
-                ),
+                "Description": "Contains rules to block request patterns that are known to be invalid.",
             },
             {
                 "VendorName": "AWS",
                 "Name": "AWSManagedRulesSQLiRuleSet",
-                "Description": (
-                    "Contains rules that allow you to block request patterns"
-                    " associated with SQL injection."
-                ),
+                "Description": "Contains rules that allow you to block request patterns associated with SQL injection.",
             },
             {
                 "VendorName": "AWS",
                 "Name": "AWSManagedRulesLinuxRuleSet",
-                "Description": (
-                    "Contains rules that block request patterns associated with"
-                    " exploitation of vulnerabilities specific to Linux."
-                ),
+                "Description": "Contains rules that block request patterns associated with exploitation of vulnerabilities specific to Linux.",
             },
             {
                 "VendorName": "AWS",
                 "Name": "AWSManagedRulesUnixRuleSet",
-                "Description": (
-                    "Contains rules that block request patterns"
-                    " associated with POSIX/POSIX-like OS."
-                ),
+                "Description": "Contains rules that block request patterns associated with POSIX/POSIX-like OS.",
             },
             {
                 "VendorName": "AWS",
                 "Name": "AWSManagedRulesWindowsRuleSet",
-                "Description": (
-                    "Contains rules that block request patterns associated with"
-                    " exploitation of vulnerabilities specific to Windows."
-                ),
+                "Description": "Contains rules that block request patterns associated with exploitation of vulnerabilities specific to Windows.",
             },
             {
                 "VendorName": "AWS",
                 "Name": "AWSManagedRulesPHPRuleSet",
-                "Description": (
-                    "Contains rules that block request patterns"
-                    " associated with PHP."
-                ),
+                "Description": "Contains rules that block request patterns associated with PHP.",
             },
             {
                 "VendorName": "AWS",
                 "Name": "AWSManagedRulesWordPressRuleSet",
-                "Description": (
-                    "Contains rules that block request patterns"
-                    " associated with WordPress."
-                ),
+                "Description": "Contains rules that block request patterns associated with WordPress.",
             },
             {
                 "VendorName": "AWS",
                 "Name": "AWSManagedRulesAmazonIpReputationList",
-                "Description": (
-                    "This group contains rules that are based on"
-                    " Amazon internal threat intelligence."
-                ),
+                "Description": "This group contains rules that are based on Amazon internal threat intelligence.",
             },
             {
                 "VendorName": "AWS",
                 "Name": "AWSManagedRulesAnonymousIpList",
-                "Description": (
-                    "This group contains rules to block requests from services"
-                    " that allow obfuscation of viewer identity."
-                ),
+                "Description": "This group contains rules to block requests from services that allow obfuscation of viewer identity.",
             },
             {
                 "VendorName": "AWS",
@@ -1139,9 +1107,7 @@ class WAFV2Backend(BaseBackend):
             {
                 "VendorName": "AWS",
                 "Name": "AWSManagedRulesATPRuleSet",
-                "Description": (
-                    "Contains rules for managing account takeover prevention."
-                ),
+                "Description": "Contains rules for managing account takeover prevention.",
             },
         ]
 
@@ -1150,18 +1116,9 @@ class WAFV2Backend(BaseBackend):
     ) -> list[dict[str, Any]]:
         """Return a static list of versions for a managed rule group."""
         return [
-            {
-                "Name": "Version_1.0",
-                "LastUpdateTimestamp": "2021-03-01T00:00:00Z",
-            },
-            {
-                "Name": "Version_1.1",
-                "LastUpdateTimestamp": "2021-06-01T00:00:00Z",
-            },
-            {
-                "Name": "Version_2.0",
-                "LastUpdateTimestamp": "2022-01-01T00:00:00Z",
-            },
+            {"Name": "Version_1.0", "LastUpdateTimestamp": "2021-03-01T00:00:00Z"},
+            {"Name": "Version_1.1", "LastUpdateTimestamp": "2021-06-01T00:00:00Z"},
+            {"Name": "Version_2.0", "LastUpdateTimestamp": "2022-01-01T00:00:00Z"},
         ]
 
 

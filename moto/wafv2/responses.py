@@ -619,13 +619,11 @@ class WAFV2Response(BaseResponse):
         return (
             200,
             {},
-            json.dumps(
-                {
-                    "Versions": versions,
-                    "CurrentDefaultVersion": "Version_2.0",
-                    "NextMarker": None,
-                }
-            ),
+            json.dumps({
+                "Versions": versions,
+                "CurrentDefaultVersion": "Version_2.0",
+                "NextMarker": None,
+            }),
         )
 
 
