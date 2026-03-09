@@ -242,3 +242,34 @@ class EFSResponse(BaseResponse):
             json.dumps({"FileSystemId": file_system_id, "Policy": policy}),
             {"Content-Type": "application/json"},
         )
+
+    def delete_file_system_policy(self) -> TYPE_RESPONSE:
+        file_system_id = self._get_param("FileSystemId")
+        self.efs_backend.delete_file_system_policy(file_system_id)
+        return json.dumps({}), {"status": 200, "Content-Type": "application/json"}
+
+    def put_backup_policy(self) -> TYPE_RESPONSE:
+        file_system_id = self._get_param("FileSystemId")
+        backup_policy = self._get_param("BackupPolicy")
+        result = self.efs_backend.put_backup_policy(file_system_id, backup_policy)
+        return json.dumps({"BackupPolicy": result}), {
+            "Content-Type": "application/json"
+        }
+
+    def put_account_preferences(self) -> TYPE_RESPONSE:
+        resource_id_type = self._get_param("ResourceIdType")
+        result = self.efs_backend.put_account_preferences(resource_id_type)
+        return json.dumps(result), {"Content-Type": "application/json"}
+
+    def update_file_system(self) -> TYPE_RESPONSE:
+        file_system_id = self._get_param("FileSystemId")
+        throughput_mode = self._get_param("ThroughputMode")
+        provisioned_throughput_in_mibps = self._get_param(
+            "ProvisionedThroughputInMibps"
+        )
+        fs = self.efs_backend.update_file_system(
+            file_system_id=file_system_id,
+            throughput_mode=throughput_mode,
+            provisioned_throughput_in_mibps=provisioned_throughput_in_mibps,
+        )
+        return json.dumps(fs.info_json()), {"Content-Type": "application/json"}

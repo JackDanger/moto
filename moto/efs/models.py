@@ -787,5 +787,42 @@ class EFSBackend(BaseBackend):
         file_system = self.file_systems_by_id[file_system_id]
         file_system.file_system_policy = policy
 
+    def delete_file_system_policy(self, file_system_id: str) -> None:
+        if file_system_id not in self.file_systems_by_id:
+            raise FileSystemNotFound(file_system_id)
+        self.file_systems_by_id[file_system_id].file_system_policy = None
+
+    def put_backup_policy(
+        self, file_system_id: str, backup_policy: dict[str, str]
+    ) -> dict[str, str]:
+        if file_system_id not in self.file_systems_by_id:
+            raise FileSystemNotFound(file_system_id)
+        status = backup_policy.get("Status", "ENABLED")
+        self.file_systems_by_id[file_system_id]._backup = status == "ENABLED"
+        return {"Status": status}
+
+    def put_account_preferences(self, resource_id_type: str) -> dict[str, Any]:
+        return {
+            "ResourceIdPreference": {
+                "ResourceIdType": resource_id_type,
+                "Resources": ["FILE_SYSTEM", "MOUNT_TARGET"],
+            }
+        }
+
+    def update_file_system(
+        self,
+        file_system_id: str,
+        throughput_mode: Optional[str] = None,
+        provisioned_throughput_in_mibps: Optional[float] = None,
+    ) -> "FileSystem":
+        if file_system_id not in self.file_systems_by_id:
+            raise FileSystemNotFound(file_system_id)
+        fs = self.file_systems_by_id[file_system_id]
+        if throughput_mode:
+            fs.throughput_mode = throughput_mode
+        if provisioned_throughput_in_mibps is not None:
+            fs.provisioned_throughput_in_mibps = provisioned_throughput_in_mibps
+        return fs
+
 
 efs_backends = BackendDict(EFSBackend, "efs")
