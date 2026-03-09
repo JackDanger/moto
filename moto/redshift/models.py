@@ -1362,6 +1362,26 @@ class RedshiftBackend(BaseBackend):
         self.snapshot_schedules[schedule_identifier] = schedule
         return schedule
 
+    def delete_snapshot_schedule(self, schedule_identifier: str) -> None:
+        if schedule_identifier not in self.snapshot_schedules:
+            raise ResourceNotFoundFaultError(
+                message=f"Snapshot schedule {schedule_identifier} not found."
+            )
+        del self.snapshot_schedules[schedule_identifier]
+
+    def modify_snapshot_schedule(
+        self,
+        schedule_identifier: str,
+        schedule_definitions: list[str],
+    ) -> dict[str, Any]:
+        if schedule_identifier not in self.snapshot_schedules:
+            raise ResourceNotFoundFaultError(
+                message=f"Snapshot schedule {schedule_identifier} not found."
+            )
+        schedule = self.snapshot_schedules[schedule_identifier]
+        schedule["ScheduleDefinitions"] = schedule_definitions
+        return schedule
+
     def describe_snapshot_schedules(
         self, schedule_identifier: Optional[str] = None
     ) -> list[dict[str, Any]]:
@@ -1460,6 +1480,21 @@ class RedshiftBackend(BaseBackend):
             raise EndpointNotFoundError(endpoint_name)
         ep = self.endpoint_access.pop(endpoint_name)
         ep.endpoint_status = "deleting"
+        return self._endpoint_access_to_dict(ep)
+
+    def modify_endpoint_access(
+        self,
+        endpoint_name: str,
+        vpc_security_group_ids: Optional[list[str]] = None,
+    ) -> dict[str, Any]:
+        if endpoint_name not in self.endpoint_access:
+            raise EndpointNotFoundError(endpoint_name)
+        ep = self.endpoint_access[endpoint_name]
+        if vpc_security_group_ids is not None:
+            ep.vpc_security_groups = [
+                {"VpcSecurityGroupId": sg_id, "Status": "active"}
+                for sg_id in vpc_security_group_ids
+            ]
         return self._endpoint_access_to_dict(ep)
 
     def describe_endpoint_authorization(
