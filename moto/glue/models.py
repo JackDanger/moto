@@ -286,6 +286,7 @@ class GlueBackend(BaseBackend):
         self.ml_transforms: dict[str, "FakeMLTransform"] = OrderedDict()
         self.classifiers: dict[str, "FakeClassifier"] = OrderedDict()
         self.usage_profiles: dict[str, "FakeUsageProfile"] = OrderedDict()
+        self.custom_entity_types: dict[str, "FakeCustomEntityType"] = OrderedDict()
 
     def create_database(
         self,
@@ -1969,13 +1970,43 @@ class GlueBackend(BaseBackend):
         self.get_session(session_id)
         return []
 
+    def create_custom_entity_type(
+        self,
+        name: str,
+        regex_string: str,
+        context_words: Optional[list[str]] = None,
+        tags: Optional[dict[str, str]] = None,
+    ) -> "FakeCustomEntityType":
+        if name in self.custom_entity_types:
+            raise AlreadyExistsException("CustomEntityType")
+        entity = FakeCustomEntityType(name, regex_string, context_words)
+        self.custom_entity_types[name] = entity
+        return entity
+
+    def get_custom_entity_type(self, name: str) -> "FakeCustomEntityType":
+        if name not in self.custom_entity_types:
+            raise EntityNotFoundException(
+                f"CustomEntityType {name} not found."
+            )
+        return self.custom_entity_types[name]
+
+    def delete_custom_entity_type(self, name: str) -> str:
+        if name not in self.custom_entity_types:
+            raise EntityNotFoundException(
+                f"CustomEntityType {name} not found."
+            )
+        del self.custom_entity_types[name]
+        return name
+
     def list_custom_entity_types(
         self,
         max_results: Optional[int],
         next_token: Optional[str],
     ) -> dict[str, Any]:
-        """Return empty custom entity types list (not yet implemented)."""
-        return {"CustomEntityTypes": [], "NextToken": None}
+        """Return custom entity types list."""
+        entities = list(self.custom_entity_types.values())
+        result = [e.as_dict() for e in entities]
+        return {"CustomEntityTypes": result, "NextToken": None}
 
     def list_column_statistics_task_runs(
         self,
@@ -2181,6 +2212,36 @@ class GlueBackend(BaseBackend):
         raise EntityNotFoundException(
             f"DataQualityRulesetEvaluationRun {run_id} not found."
         )
+
+    def get_data_quality_model(
+        self, profile_id: str, statistic_id: Optional[str] = None
+    ) -> None:
+        raise EntityNotFoundException(
+            f"DataQualityModel for profile {profile_id} not found."
+        )
+
+    # --- Column Statistics Delete ---
+
+    def delete_column_statistics_for_table(
+        self,
+        database_name: str,
+        table_name: str,
+        column_name: str,
+    ) -> None:
+        # Verify the table exists
+        self.get_table(database_name, table_name)
+        # We don't store column stats, so this is a no-op (matching Get behavior)
+
+    def delete_column_statistics_for_partition(
+        self,
+        database_name: str,
+        table_name: str,
+        partition_values: list[str],
+        column_name: str,
+    ) -> None:
+        # Verify the table exists
+        self.get_table(database_name, table_name)
+        # We don't store column stats, so this is a no-op (matching Get behavior)
 
     # --- Blueprint Runs ---
 
@@ -3455,6 +3516,27 @@ class FakeClassifier(BaseModel):
             clf["CreationTime"] = self.created_time
             clf["LastUpdated"] = self.last_updated
             result["CsvClassifier"] = clf
+        return result
+
+
+class FakeCustomEntityType(BaseModel):
+    def __init__(
+        self,
+        name: str,
+        regex_string: str,
+        context_words: Optional[list[str]] = None,
+    ) -> None:
+        self.name = name
+        self.regex_string = regex_string
+        self.context_words = context_words or []
+
+    def as_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "Name": self.name,
+            "RegexString": self.regex_string,
+        }
+        if self.context_words:
+            result["ContextWords"] = self.context_words
         return result
 
 

@@ -1628,3 +1628,46 @@ class GlueResponse(BaseResponse):
             next_token=self.parameters.get("NextToken"),
         )
         return ActionResult(result)
+
+    def create_custom_entity_type(self) -> ActionResult:
+        entity = self.glue_backend.create_custom_entity_type(
+            name=self.parameters["Name"],
+            regex_string=self.parameters["RegexString"],
+            context_words=self.parameters.get("ContextWords"),
+            tags=self.parameters.get("Tags"),
+        )
+        return ActionResult({"Name": entity.name})
+
+    def get_custom_entity_type(self) -> ActionResult:
+        name = self.parameters["Name"]
+        entity = self.glue_backend.get_custom_entity_type(name)
+        return ActionResult(entity.as_dict())
+
+    def delete_custom_entity_type(self) -> ActionResult:
+        name = self.parameters["Name"]
+        deleted_name = self.glue_backend.delete_custom_entity_type(name)
+        return ActionResult({"Name": deleted_name})
+
+    def get_data_quality_model(self) -> ActionResult:
+        self.glue_backend.get_data_quality_model(
+            profile_id=self.parameters["ProfileId"],
+            statistic_id=self.parameters.get("StatisticId"),
+        )
+        return EmptyResult()
+
+    def delete_column_statistics_for_table(self) -> ActionResult:
+        self.glue_backend.delete_column_statistics_for_table(
+            database_name=self.parameters["DatabaseName"],
+            table_name=self.parameters["TableName"],
+            column_name=self.parameters["ColumnName"],
+        )
+        return EmptyResult()
+
+    def delete_column_statistics_for_partition(self) -> ActionResult:
+        self.glue_backend.delete_column_statistics_for_partition(
+            database_name=self.parameters["DatabaseName"],
+            table_name=self.parameters["TableName"],
+            partition_values=self.parameters["PartitionValues"],
+            column_name=self.parameters["ColumnName"],
+        )
+        return EmptyResult()
