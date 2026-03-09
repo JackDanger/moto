@@ -201,6 +201,41 @@ class PreparedStatement(BaseModel):
         self.last_modified_time = datetime.now()
 
 
+class Database(BaseModel):
+    def __init__(
+        self,
+        catalog_name: str,
+        database_name: str,
+        description: str,
+        parameters: Optional[dict[str, str]] = None,
+    ):
+        self.catalog_name = catalog_name
+        self.name = database_name
+        self.description = description
+        self.parameters = parameters or {}
+
+
+class TableMetadata(BaseModel):
+    def __init__(
+        self,
+        catalog_name: str,
+        database_name: str,
+        table_name: str,
+        table_type: str = "EXTERNAL_TABLE",
+        columns: Optional[list[dict[str, str]]] = None,
+        partition_keys: Optional[list[dict[str, str]]] = None,
+        parameters: Optional[dict[str, str]] = None,
+    ):
+        self.catalog_name = catalog_name
+        self.database_name = database_name
+        self.name = table_name
+        self.table_type = table_type
+        self.columns = columns or []
+        self.partition_keys = partition_keys or []
+        self.parameters = parameters or {}
+        self.create_time = time.time()
+
+
 class AthenaBackend(BaseBackend):
     PAGINATION_MODEL = {
         "list_named_queries": {
@@ -221,6 +256,8 @@ class AthenaBackend(BaseBackend):
         self.query_results: dict[str, QueryResults] = {}
         self.query_results_queue: list[QueryResults] = []
         self.prepared_statements: dict[str, PreparedStatement] = {}
+        self.databases: dict[str, dict[str, Database]] = {}  # catalog_name -> {db_name -> Database}
+        self.tables: dict[str, dict[str, dict[str, TableMetadata]]] = {}  # catalog -> db -> {table -> TableMetadata}
         self.tagger = TaggingService()
 
         # Initialise with the primary workgroup
@@ -644,6 +681,134 @@ class AthenaBackend(BaseBackend):
     def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> dict[str, Any]:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
         return {}
+
+    # --- Database operations ---
+
+    def create_database(
+        self,
+        catalog_name: str,
+        database_name: str,
+        description: str = "",
+        parameters: Optional[dict[str, str]] = None,
+    ) -> Database:
+        if catalog_name not in self.databases:
+            self.databases[catalog_name] = {}
+        db = Database(catalog_name, database_name, description, parameters)
+        self.databases[catalog_name][database_name] = db
+        return db
+
+    def get_database(self, catalog_name: str, database_name: str) -> Optional[Database]:
+        catalog_dbs = self.databases.get(catalog_name, {})
+        return catalog_dbs.get(database_name)
+
+    def list_databases(self, catalog_name: str) -> list[Database]:
+        return list(self.databases.get(catalog_name, {}).values())
+
+    # --- Table metadata operations ---
+
+    def create_table_metadata(
+        self,
+        catalog_name: str,
+        database_name: str,
+        table_name: str,
+        table_type: str = "EXTERNAL_TABLE",
+        columns: Optional[list[dict[str, str]]] = None,
+        partition_keys: Optional[list[dict[str, str]]] = None,
+        parameters: Optional[dict[str, str]] = None,
+    ) -> TableMetadata:
+        key = f"{catalog_name}.{database_name}"
+        if key not in self.tables:
+            self.tables[key] = {}
+        tm = TableMetadata(catalog_name, database_name, table_name, table_type, columns, partition_keys, parameters)
+        self.tables[key][table_name] = tm
+        return tm
+
+    def get_table_metadata(
+        self, catalog_name: str, database_name: str, table_name: str
+    ) -> Optional[TableMetadata]:
+        key = f"{catalog_name}.{database_name}"
+        return self.tables.get(key, {}).get(table_name)
+
+    # --- Engine versions ---
+
+    @staticmethod
+    def list_engine_versions() -> list[dict[str, str]]:
+        return [
+            {
+                "SelectedEngineVersion": "AUTO",
+                "EffectiveEngineVersion": "Athena engine version 3",
+            },
+            {
+                "SelectedEngineVersion": "Athena engine version 2",
+                "EffectiveEngineVersion": "Athena engine version 2",
+            },
+            {
+                "SelectedEngineVersion": "Athena engine version 3",
+                "EffectiveEngineVersion": "Athena engine version 3",
+            },
+            {
+                "SelectedEngineVersion": "PySpark engine version 3",
+                "EffectiveEngineVersion": "PySpark engine version 3",
+            },
+        ]
+
+    # --- Application DPU sizes ---
+
+    @staticmethod
+    def list_application_dpu_sizes() -> list[dict[str, Any]]:
+        return [
+            {"ApplicationDPUSizeType": "NOTEBOOK", "SupportedDPUSizes": [4, 8, 16, 32, 48]},
+            {"ApplicationDPUSizeType": "SPARK", "SupportedDPUSizes": [4, 8, 16, 32, 48, 64]},
+        ]
+
+    # --- Capacity assignment configuration ---
+
+    def get_capacity_assignment_configuration(
+        self, capacity_reservation_name: str
+    ) -> Optional[dict[str, Any]]:
+        cr = self.capacity_reservations.get(capacity_reservation_name)
+        if cr is None:
+            return None
+        return {
+            "CapacityAssignmentConfiguration": {
+                "CapacityReservationName": capacity_reservation_name,
+                "CapacityAssignments": [],
+            }
+        }
+
+    # --- Session operations (stubs) ---
+
+    def get_session(self, session_id: str) -> Optional[dict[str, Any]]:
+        # Sessions are not stored; return None to indicate not found
+        return None
+
+    def get_session_status(self, session_id: str) -> Optional[dict[str, Any]]:
+        return None
+
+    # --- Calculation execution operations (stubs) ---
+
+    def get_calculation_execution(self, calculation_execution_id: str) -> Optional[dict[str, Any]]:
+        return None
+
+    def get_calculation_execution_code(self, calculation_execution_id: str) -> Optional[dict[str, Any]]:
+        return None
+
+    def get_calculation_execution_status(self, calculation_execution_id: str) -> Optional[dict[str, Any]]:
+        return None
+
+    def list_calculation_executions(self, session_id: str) -> list[dict[str, Any]]:
+        return []
+
+    # --- Notebook operations (stubs) ---
+
+    def get_notebook_metadata(self, notebook_id: str) -> Optional[dict[str, Any]]:
+        return None
+
+    def list_notebook_metadata(self, work_group: str) -> list[dict[str, Any]]:
+        return []
+
+    def list_notebook_sessions(self, notebook_id: str) -> list[dict[str, Any]]:
+        return []
 
 
 athena_backends = BackendDict(AthenaBackend, "athena")

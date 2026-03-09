@@ -409,6 +409,150 @@ class AthenaResponse(BaseResponse):
             }
         )
 
+    def get_database(self) -> Union[str, tuple[str, dict[str, int]]]:
+        catalog_name = self._get_param("CatalogName")
+        database_name = self._get_param("DatabaseName")
+        db = self.athena_backend.get_database(catalog_name, database_name)
+        if db is None:
+            return self.error(
+                f"Database {database_name} not found in catalog {catalog_name}", 400
+            )
+        return json.dumps(
+            {
+                "Database": {
+                    "Name": db.name,
+                    "Description": db.description,
+                    "Parameters": db.parameters,
+                }
+            }
+        )
+
+    def list_databases(self) -> str:
+        catalog_name = self._get_param("CatalogName")
+        databases = self.athena_backend.list_databases(catalog_name)
+        return json.dumps(
+            {
+                "DatabaseList": [
+                    {
+                        "Name": db.name,
+                        "Description": db.description,
+                        "Parameters": db.parameters,
+                    }
+                    for db in databases
+                ]
+            }
+        )
+
+    def get_table_metadata(self) -> Union[str, tuple[str, dict[str, int]]]:
+        catalog_name = self._get_param("CatalogName")
+        database_name = self._get_param("DatabaseName")
+        table_name = self._get_param("TableName")
+        tm = self.athena_backend.get_table_metadata(
+            catalog_name, database_name, table_name
+        )
+        if tm is None:
+            return self.error(
+                f"Table {table_name} not found in database {database_name}", 400
+            )
+        return json.dumps(
+            {
+                "TableMetadata": {
+                    "Name": tm.name,
+                    "TableType": tm.table_type,
+                    "Columns": tm.columns,
+                    "PartitionKeys": tm.partition_keys,
+                    "Parameters": tm.parameters,
+                    "CreateTime": tm.create_time,
+                }
+            }
+        )
+
+    def list_engine_versions(self) -> str:
+        engine_versions = self.athena_backend.list_engine_versions()
+        return json.dumps({"EngineVersions": engine_versions})
+
+    def list_application_dpu_sizes(self) -> str:
+        dpu_sizes = self.athena_backend.list_application_dpu_sizes()
+        return json.dumps({"ApplicationDPUSizes": dpu_sizes})
+
+    def get_capacity_assignment_configuration(
+        self,
+    ) -> Union[str, tuple[str, dict[str, int]]]:
+        capacity_reservation_name = self._get_param("CapacityReservationName")
+        result = self.athena_backend.get_capacity_assignment_configuration(
+            capacity_reservation_name
+        )
+        if result is None:
+            return self.error("Capacity Reservation does not exist", 400)
+        return json.dumps(result)
+
+    def get_session(self) -> Union[str, tuple[str, dict[str, int]]]:
+        session_id = self._get_param("SessionId")
+        result = self.athena_backend.get_session(session_id)
+        if result is None:
+            return self.error(f"Session {session_id} was not found", 400)
+        return json.dumps(result)
+
+    def get_session_status(self) -> Union[str, tuple[str, dict[str, int]]]:
+        session_id = self._get_param("SessionId")
+        result = self.athena_backend.get_session_status(session_id)
+        if result is None:
+            return self.error(f"Session {session_id} was not found", 400)
+        return json.dumps(result)
+
+    def get_calculation_execution(self) -> Union[str, tuple[str, dict[str, int]]]:
+        calc_id = self._get_param("CalculationExecutionId")
+        result = self.athena_backend.get_calculation_execution(calc_id)
+        if result is None:
+            return self.error(
+                f"CalculationExecution {calc_id} was not found", 400
+            )
+        return json.dumps(result)
+
+    def get_calculation_execution_code(
+        self,
+    ) -> Union[str, tuple[str, dict[str, int]]]:
+        calc_id = self._get_param("CalculationExecutionId")
+        result = self.athena_backend.get_calculation_execution_code(calc_id)
+        if result is None:
+            return self.error(
+                f"CalculationExecution {calc_id} was not found", 400
+            )
+        return json.dumps(result)
+
+    def get_calculation_execution_status(
+        self,
+    ) -> Union[str, tuple[str, dict[str, int]]]:
+        calc_id = self._get_param("CalculationExecutionId")
+        result = self.athena_backend.get_calculation_execution_status(calc_id)
+        if result is None:
+            return self.error(
+                f"CalculationExecution {calc_id} was not found", 400
+            )
+        return json.dumps(result)
+
+    def list_calculation_executions(self) -> str:
+        session_id = self._get_param("SessionId")
+        calculations = self.athena_backend.list_calculation_executions(session_id)
+        return json.dumps({"Calculations": calculations})
+
+    def get_notebook_metadata(self) -> Union[str, tuple[str, dict[str, int]]]:
+        notebook_id = self._get_param("NotebookId")
+        result = self.athena_backend.get_notebook_metadata(notebook_id)
+        if result is None:
+            return self.error(f"Notebook {notebook_id} was not found", 400)
+        return json.dumps(result)
+
+    def list_notebook_metadata(self) -> str:
+        work_group = self._get_param("WorkGroup")
+        notebooks = self.athena_backend.list_notebook_metadata(work_group)
+        return json.dumps({"NotebookMetadataList": notebooks})
+
+    def list_notebook_sessions(self) -> str:
+        notebook_id = self._get_param("NotebookId")
+        sessions = self.athena_backend.list_notebook_sessions(notebook_id)
+        return json.dumps({"NotebookSessionsList": sessions})
+
     def get_query_runtime_statistics(self) -> Union[str, tuple[str, dict[str, int]]]:
         query_execution_id = self._get_param("QueryExecutionId")
 
