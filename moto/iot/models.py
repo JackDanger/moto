@@ -1984,7 +1984,12 @@ class IoTBackend(BaseBackend):
     def create_certificate_from_csr(
         self, csr: str, set_as_active: bool
     ) -> FakeCertificate:
-        cert = x509.load_pem_x509_csr(csr.encode("utf-8"), default_backend())
+        try:
+            cert = x509.load_pem_x509_csr(csr.encode("utf-8"), default_backend())
+        except Exception:
+            raise InvalidRequestException(
+                "CSR is not a valid certificate signing request."
+            )
         pem = self._generate_certificate_pem(
             domain_name="example.com", subject=cert.subject
         )
@@ -2968,7 +2973,11 @@ class IoTBackend(BaseBackend):
         return jobs[0]
 
     def delete_job(self, job_id: str, force: bool) -> None:
-        job = self.jobs[job_id]
+        job = self.jobs.get(job_id)
+        if job is None:
+            raise ResourceNotFoundException(
+                f"Job {job_id} not found"
+            )
 
         if job.status == "IN_PROGRESS" and force:
             del self.jobs[job_id]
@@ -2980,7 +2989,11 @@ class IoTBackend(BaseBackend):
     def cancel_job(
         self, job_id: str, reason_code: str, comment: str, force: bool
     ) -> FakeJob:
-        job = self.jobs[job_id]
+        job = self.jobs.get(job_id)
+        if job is None:
+            raise ResourceNotFoundException(
+                f"Job {job_id} not found"
+            )
 
         job.reason_code = reason_code if reason_code is not None else job.reason_code
         job.comment = comment if comment is not None else job.comment
@@ -2997,7 +3010,12 @@ class IoTBackend(BaseBackend):
         return job
 
     def get_job_document(self, job_id: str) -> FakeJob:
-        return self.jobs[job_id]
+        job = self.jobs.get(job_id)
+        if job is None:
+            raise ResourceNotFoundException(
+                f"Job {job_id} not found"
+            )
+        return job
 
     @paginate(PAGINATION_MODEL)  # type: ignore[misc]
     def list_jobs(self) -> list[FakeJob]:
@@ -3026,7 +3044,7 @@ class IoTBackend(BaseBackend):
         """
         The parameters ExpectedVersion and StatusDetails are not yet implemented
         """
-        job_execution = self.job_executions[(job_id, thing_name)]
+        job_execution = self.job_executions.get((job_id, thing_name))
 
         if job_execution is None:
             raise ResourceNotFoundException()
@@ -3048,7 +3066,10 @@ class IoTBackend(BaseBackend):
     def delete_job_execution(
         self, job_id: str, thing_name: str, execution_number: int, force: bool
     ) -> None:
-        job_execution = self.job_executions[(job_id, thing_name)]
+        job_execution = self.job_executions.get((job_id, thing_name))
+
+        if job_execution is None:
+            raise ResourceNotFoundException()
 
         if job_execution.execution_number != execution_number:
             raise ResourceNotFoundException()
@@ -4372,6 +4393,11 @@ class IoTBackend(BaseBackend):
         """Managed job templates are AWS-managed; always raises for now."""
         raise ResourceNotFoundException(
             f"Managed job template {template_name} does not exist."
+        )
+
+    def describe_thing_registration_task(self, task_id: str) -> None:
+        raise ResourceNotFoundException(
+            f"Task {task_id} cannot be found."
         )
 
 
