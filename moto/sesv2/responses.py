@@ -268,6 +268,125 @@ class SESV2Response(BaseResponse):
         )
         return json.dumps({"Policies": policies})
 
+
+    # ===== Email Template handlers =====
+
+    def create_email_template(self) -> str:
+        params = json.loads(self.body)
+        self.sesv2_backend.create_email_template(template_name=params["TemplateName"], template_content=params["TemplateContent"])
+        return json.dumps({})
+
+    def get_email_template(self) -> str:
+        template_name = self._get_param("TemplateName")
+        template = self.sesv2_backend.get_email_template(template_name=template_name)
+        return json.dumps({"TemplateName": template.template_name, "TemplateContent": template.template_content})
+
+    def update_email_template(self) -> str:
+        template_name = self._get_param("TemplateName")
+        params = json.loads(self.body)
+        self.sesv2_backend.update_email_template(template_name=template_name, template_content=params["TemplateContent"])
+        return json.dumps({})
+
+    def delete_email_template(self) -> str:
+        template_name = self._get_param("TemplateName")
+        self.sesv2_backend.delete_email_template(template_name=template_name)
+        return json.dumps({})
+
+    def list_email_templates(self) -> str:
+        next_token = self._get_param("NextToken")
+        page_size = self._get_param("PageSize")
+        templates, next_token = self.sesv2_backend.list_email_templates(next_token=next_token, page_size=page_size)
+        return json.dumps({"TemplatesMetadata": [t.to_metadata_dict() for t in templates], "NextToken": next_token})
+
+    # ===== Configuration Set Event Destination handlers =====
+
+    def create_configuration_set_event_destination(self) -> str:
+        configuration_set_name = self._get_param("ConfigurationSetName")
+        params = json.loads(self.body)
+        self.sesv2_backend.create_configuration_set_event_destination(configuration_set_name=configuration_set_name, event_destination_name=params["EventDestinationName"], event_destination=params["EventDestination"])
+        return json.dumps({})
+
+    def get_configuration_set_event_destinations(self) -> str:
+        configuration_set_name = self._get_param("ConfigurationSetName")
+        destinations = self.sesv2_backend.get_configuration_set_event_destinations(configuration_set_name=configuration_set_name)
+        return json.dumps({"EventDestinations": [d.to_dict() for d in destinations]})
+
+    def update_configuration_set_event_destination(self) -> str:
+        configuration_set_name = self._get_param("ConfigurationSetName")
+        event_destination_name = self._get_param("EventDestinationName")
+        params = json.loads(self.body)
+        self.sesv2_backend.update_configuration_set_event_destination(configuration_set_name=configuration_set_name, event_destination_name=event_destination_name, event_destination=params["EventDestination"])
+        return json.dumps({})
+
+    def delete_configuration_set_event_destination(self) -> str:
+        configuration_set_name = self._get_param("ConfigurationSetName")
+        event_destination_name = self._get_param("EventDestinationName")
+        self.sesv2_backend.delete_configuration_set_event_destination(configuration_set_name=configuration_set_name, event_destination_name=event_destination_name)
+        return json.dumps({})
+
+    # ===== Custom Verification Email Template handlers =====
+
+    def create_custom_verification_email_template(self) -> str:
+        params = json.loads(self.body)
+        self.sesv2_backend.create_custom_verification_email_template(template_name=params["TemplateName"], from_email_address=params["FromEmailAddress"], template_subject=params["TemplateSubject"], template_content=params["TemplateContent"], success_redirection_url=params["SuccessRedirectionURL"], failure_redirection_url=params["FailureRedirectionURL"])
+        return json.dumps({})
+
+    def get_custom_verification_email_template(self) -> str:
+        template_name = self._get_param("TemplateName")
+        tmpl = self.sesv2_backend.get_custom_verification_email_template(template_name=template_name)
+        return json.dumps({"TemplateName": tmpl.template_name, "FromEmailAddress": tmpl.from_email_address, "TemplateSubject": tmpl.template_subject, "TemplateContent": tmpl.template_content, "SuccessRedirectionURL": tmpl.success_redirection_url, "FailureRedirectionURL": tmpl.failure_redirection_url})
+
+    def update_custom_verification_email_template(self) -> str:
+        template_name = self._get_param("TemplateName")
+        params = json.loads(self.body)
+        self.sesv2_backend.update_custom_verification_email_template(template_name=template_name, from_email_address=params["FromEmailAddress"], template_subject=params["TemplateSubject"], template_content=params["TemplateContent"], success_redirection_url=params["SuccessRedirectionURL"], failure_redirection_url=params["FailureRedirectionURL"])
+        return json.dumps({})
+
+    def delete_custom_verification_email_template(self) -> str:
+        template_name = self._get_param("TemplateName")
+        self.sesv2_backend.delete_custom_verification_email_template(template_name=template_name)
+        return json.dumps({})
+
+    def list_custom_verification_email_templates(self) -> str:
+        next_token = self._get_param("NextToken")
+        page_size = self._get_param("PageSize")
+        templates, next_token = self.sesv2_backend.list_custom_verification_email_templates(next_token=next_token, page_size=page_size)
+        return json.dumps({"CustomVerificationEmailTemplates": [{"TemplateName": t.template_name, "FromEmailAddress": t.from_email_address, "TemplateSubject": t.template_subject, "SuccessRedirectionURL": t.success_redirection_url, "FailureRedirectionURL": t.failure_redirection_url} for t in templates], "NextToken": next_token})
+
+    # ===== Account handlers =====
+
+    def put_account_details(self) -> str:
+        params = json.loads(self.body)
+        self.sesv2_backend.put_account_details(mail_type=params["MailType"], website_url=params["WebsiteURL"], contact_language=params.get("ContactLanguage"), use_case_description=params.get("UseCaseDescription"), additional_contact_email_addresses=params.get("AdditionalContactEmailAddresses"), production_access_enabled=params.get("ProductionAccessEnabled"))
+        return json.dumps({})
+
+    def get_account(self) -> str:
+        return json.dumps(self.sesv2_backend.get_account())
+
+    def put_account_sending_attributes(self) -> str:
+        params = json.loads(self.body)
+        self.sesv2_backend.put_account_sending_attributes(sending_enabled=params.get("SendingEnabled", False))
+        return json.dumps({})
+
+    def put_account_suppression_attributes(self) -> str:
+        params = json.loads(self.body)
+        self.sesv2_backend.put_account_suppression_attributes(suppressed_reasons=params.get("SuppressedReasons", []))
+        return json.dumps({})
+
+    # ===== Configuration Set options handlers =====
+
+    def put_configuration_set_sending_options(self) -> str:
+        configuration_set_name = self._get_param("ConfigurationSetName")
+        params = json.loads(self.body)
+        self.sesv2_backend.put_configuration_set_sending_options(configuration_set_name=configuration_set_name, sending_enabled=params.get("SendingEnabled", False))
+        return json.dumps({})
+
+    def put_configuration_set_reputation_options(self) -> str:
+        configuration_set_name = self._get_param("ConfigurationSetName")
+        params = json.loads(self.body)
+        self.sesv2_backend.put_configuration_set_reputation_options(configuration_set_name=configuration_set_name, reputation_metrics_enabled=params.get("ReputationMetricsEnabled", False))
+        return json.dumps({})
+
     def tag_resource(self) -> str:
         resource_arn = self._get_param("ResourceArn")
         tags = self._get_param("Tags")

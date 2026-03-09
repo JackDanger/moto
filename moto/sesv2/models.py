@@ -4,10 +4,13 @@ from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.utilities.paginator import paginate
+from moto.core.common_models import BaseModel
+from moto.core.utils import iso_8601_datetime_with_milliseconds
 
 from ..ses.exceptions import NotFoundException
 from ..ses.models import (
     ConfigurationSet,
+    CustomVerificationEmailTemplate,
     Contact,
     ContactList,
     DedicatedIpPool,
@@ -17,6 +20,7 @@ from ..ses.models import (
     ses_backends,
 )
 from ..ses.utils import get_arn
+from .exceptions import AlreadyExistsException, SESV2NotFoundException
 
 PAGINATION_MODEL = {
     "list_dedicated_ip_pools": {
@@ -37,11 +41,47 @@ PAGINATION_MODEL = {
         "limit_default": 100,
         "unique_attribute": "configuration_set_name",
     },
+    "list_email_templates": {
+        "input_token": "next_token",
+        "limit_key": "page_size",
+        "limit_default": 10,
+        "unique_attribute": "template_name",
+    },
+    "list_custom_verification_email_templates": {
+        "input_token": "next_token",
+        "limit_key": "page_size",
+        "limit_default": 50,
+        "unique_attribute": "template_name",
+    },
 }
 
 
-# TODO
-# ListTagsForResource, TagResource, UntagResource to do
+
+class EmailTemplate(BaseModel):
+    def __init__(self, template_name, template_content):
+        self.template_name = template_name
+        self.template_content = template_content
+        self.created_timestamp = iso_8601_datetime_with_milliseconds()
+    def to_metadata_dict(self):
+        return {"TemplateName": self.template_name, "CreatedTimestamp": self.created_timestamp}
+
+class EventDestination(BaseModel):
+    def __init__(self, name, enabled, matching_event_types, kinesis_firehose_destination=None, cloud_watch_destination=None, sns_destination=None, pinpoint_destination=None):
+        self.name = name
+        self.enabled = enabled
+        self.matching_event_types = matching_event_types
+        self.kinesis_firehose_destination = kinesis_firehose_destination
+        self.cloud_watch_destination = cloud_watch_destination
+        self.sns_destination = sns_destination
+        self.pinpoint_destination = pinpoint_destination
+    def to_dict(self):
+        r = {"Name": self.name, "Enabled": self.enabled, "MatchingEventTypes": self.matching_event_types}
+        if self.kinesis_firehose_destination: r["KinesisFirehoseDestination"] = self.kinesis_firehose_destination
+        if self.cloud_watch_destination: r["CloudWatchDestination"] = self.cloud_watch_destination
+        if self.sns_destination: r["SnsDestination"] = self.sns_destination
+        if self.pinpoint_destination: r["PinpointDestination"] = self.pinpoint_destination
+        return r
+
 class SESV2Backend(BaseBackend):
     """Implementation of SESV2 APIs, piggy back on v1 SES"""
 
@@ -50,6 +90,11 @@ class SESV2Backend(BaseBackend):
 
         # Store local variables in v1 backend for interoperability
         self.core_backend = ses_backends[self.account_id][self.region_name]
+        self.email_templates = {}
+        self.config_set_event_destinations = {}
+        self.account_details = {}
+        self.account_sending_enabled = True
+        self.account_suppression_attributes = {}
 
     def create_contact_list(self, params: dict[str, Any]) -> None:
         name = params["ContactListName"]
@@ -255,6 +300,102 @@ class SESV2Backend(BaseBackend):
         email_id = self.get_email_identity(email_identity)
 
         return email_id.policies
+
+
+    def create_email_template(self, template_name, template_content):
+        if template_name in self.email_templates:
+            raise AlreadyExistsException(f"Template already exists with name: {template_name}")
+        self.email_templates[template_name] = EmailTemplate(template_name=template_name, template_content=template_content)
+
+    def get_email_template(self, template_name):
+        if template_name not in self.email_templates:
+            raise SESV2NotFoundException(f"Template not found with name: {template_name}")
+        return self.email_templates[template_name]
+
+    def update_email_template(self, template_name, template_content):
+        if template_name not in self.email_templates:
+            raise SESV2NotFoundException(f"Template not found with name: {template_name}")
+        self.email_templates[template_name].template_content = template_content
+
+    def delete_email_template(self, template_name):
+        if template_name not in self.email_templates:
+            raise SESV2NotFoundException(f"Template not found with name: {template_name}")
+        del self.email_templates[template_name]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_email_templates(self):
+        return list(self.email_templates.values())
+
+    def create_configuration_set_event_destination(self, configuration_set_name, event_destination_name, event_destination):
+        self.core_backend.describe_configuration_set(configuration_set_name=configuration_set_name)
+        if configuration_set_name not in self.config_set_event_destinations:
+            self.config_set_event_destinations[configuration_set_name] = {}
+        dests = self.config_set_event_destinations[configuration_set_name]
+        if event_destination_name in dests:
+            raise AlreadyExistsException(f"Event destination already exists: {event_destination_name}")
+        dests[event_destination_name] = EventDestination(name=event_destination_name, enabled=event_destination.get("Enabled", False), matching_event_types=event_destination.get("MatchingEventTypes", []), kinesis_firehose_destination=event_destination.get("KinesisFirehoseDestination"), cloud_watch_destination=event_destination.get("CloudWatchDestination"), sns_destination=event_destination.get("SnsDestination"), pinpoint_destination=event_destination.get("PinpointDestination"))
+
+    def get_configuration_set_event_destinations(self, configuration_set_name):
+        self.core_backend.describe_configuration_set(configuration_set_name=configuration_set_name)
+        return list(self.config_set_event_destinations.get(configuration_set_name, {}).values())
+
+    def update_configuration_set_event_destination(self, configuration_set_name, event_destination_name, event_destination):
+        self.core_backend.describe_configuration_set(configuration_set_name=configuration_set_name)
+        dests = self.config_set_event_destinations.get(configuration_set_name, {})
+        if event_destination_name not in dests:
+            raise SESV2NotFoundException(f"Event destination not found: {event_destination_name}")
+        dests[event_destination_name] = EventDestination(name=event_destination_name, enabled=event_destination.get("Enabled", False), matching_event_types=event_destination.get("MatchingEventTypes", []), kinesis_firehose_destination=event_destination.get("KinesisFirehoseDestination"), cloud_watch_destination=event_destination.get("CloudWatchDestination"), sns_destination=event_destination.get("SnsDestination"), pinpoint_destination=event_destination.get("PinpointDestination"))
+
+    def delete_configuration_set_event_destination(self, configuration_set_name, event_destination_name):
+        self.core_backend.describe_configuration_set(configuration_set_name=configuration_set_name)
+        dests = self.config_set_event_destinations.get(configuration_set_name, {})
+        if event_destination_name not in dests:
+            raise SESV2NotFoundException(f"Event destination not found: {event_destination_name}")
+        del dests[event_destination_name]
+
+    def create_custom_verification_email_template(self, template_name, from_email_address, template_subject, template_content, success_redirection_url, failure_redirection_url):
+        self.core_backend.create_custom_verification_email_template(template_name=template_name, from_email_address=from_email_address, template_subject=template_subject, template_content=template_content, success_redirection_url=success_redirection_url, failure_redirection_url=failure_redirection_url)
+
+    def get_custom_verification_email_template(self, template_name):
+        return self.core_backend.get_custom_verification_email_template(template_name)
+
+    def update_custom_verification_email_template(self, template_name, from_email_address, template_subject, template_content, success_redirection_url, failure_redirection_url):
+        self.core_backend.update_custom_verification_email_template(template_name=template_name, from_email_address=from_email_address, template_subject=template_subject, template_content=template_content, success_redirection_url=success_redirection_url, failure_redirection_url=failure_redirection_url)
+
+    def delete_custom_verification_email_template(self, template_name):
+        self.core_backend.delete_custom_verification_email_template(template_name)
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_custom_verification_email_templates(self):
+        return self.core_backend.list_custom_verification_email_templates()
+
+    def put_account_details(self, mail_type, website_url, contact_language, use_case_description, additional_contact_email_addresses, production_access_enabled):
+        self.account_details = {"MailType": mail_type, "WebsiteURL": website_url}
+        if contact_language is not None:
+            self.account_details["ContactLanguage"] = contact_language
+        if use_case_description is not None:
+            self.account_details["UseCaseDescription"] = use_case_description
+        if additional_contact_email_addresses is not None:
+            self.account_details["AdditionalContactEmailAddresses"] = additional_contact_email_addresses
+        if production_access_enabled is not None:
+            self.account_details["ProductionAccessEnabled"] = production_access_enabled
+
+    def get_account(self):
+        return {"DedicatedIpAutoWarmupEnabled": False, "EnforcementStatus": "HEALTHY", "ProductionAccessEnabled": self.account_details.get("ProductionAccessEnabled", False), "SendQuota": {"Max24HourSend": 200.0, "MaxSendRate": 1.0, "SentLast24Hours": 0.0}, "SendingEnabled": self.account_sending_enabled, "SuppressionAttributes": self.account_suppression_attributes, "Details": self.account_details if self.account_details else None}
+
+    def put_account_sending_attributes(self, sending_enabled):
+        self.account_sending_enabled = sending_enabled
+
+    def put_account_suppression_attributes(self, suppressed_reasons):
+        self.account_suppression_attributes = {"SuppressedReasons": suppressed_reasons}
+
+    def put_configuration_set_sending_options(self, configuration_set_name, sending_enabled):
+        config_set = self.core_backend.describe_configuration_set(configuration_set_name=configuration_set_name)
+        config_set.enabled = sending_enabled
+
+    def put_configuration_set_reputation_options(self, configuration_set_name, reputation_metrics_enabled):
+        config_set = self.core_backend.describe_configuration_set(configuration_set_name=configuration_set_name)
+        config_set.reputation_options = {"ReputationMetricsEnabled": reputation_metrics_enabled}
 
     def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
         self.core_backend.tagger.tag_resource(resource_arn, tags)
