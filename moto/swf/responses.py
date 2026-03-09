@@ -539,7 +539,7 @@ class SWFResponse(BaseResponse):
         domain_name = self._params["domain"]
         signal_name = self._params["signalName"]
         workflow_id = self._params["workflowId"]
-        _input = self._params["input"]
+        _input = self._params.get("input")
         run_id = self._params.get("runId")
 
         self._check_string(domain_name)
@@ -551,4 +551,119 @@ class SWFResponse(BaseResponse):
         self.swf_backend.signal_workflow_execution(
             domain_name, signal_name, workflow_id, _input, run_id
         )
+        return ""
+
+    def count_closed_workflow_executions(self) -> str:
+        domain = self._params["domain"]
+        start_time_filter = self._params.get("startTimeFilter", None)
+        close_time_filter = self._params.get("closeTimeFilter", None)
+        execution_filter = self._params.get("executionFilter", None)
+        tag_filter = self._params.get("tagFilter", None)
+        type_filter = self._params.get("typeFilter", None)
+        close_status_filter = self._params.get("closeStatusFilter", None)
+
+        self._check_string(domain)
+        self._check_exclusivity(
+            executionFilter=execution_filter,
+            typeFilter=type_filter,
+            tagFilter=tag_filter,
+            closeStatusFilter=close_status_filter,
+        )
+        self._check_exclusivity(
+            startTimeFilter=start_time_filter, closeTimeFilter=close_time_filter
+        )
+        if start_time_filter is None and close_time_filter is None:
+            raise SWFValidationException("Must specify time filter")
+
+        count = self.swf_backend.count_closed_workflow_executions(
+            domain_name=domain,
+            tag_filter=tag_filter,
+            close_status_filter=close_status_filter,
+        )
+        return json.dumps({"count": count, "truncated": False})
+
+    def count_open_workflow_executions(self) -> str:
+        domain = self._params["domain"]
+        start_time_filter = self._params.get("startTimeFilter", None)
+        execution_filter = self._params.get("executionFilter", None)
+        tag_filter = self._params.get("tagFilter", None)
+        type_filter = self._params.get("typeFilter", None)
+
+        self._check_string(domain)
+        self._check_exclusivity(
+            executionFilter=execution_filter,
+            typeFilter=type_filter,
+            tagFilter=tag_filter,
+        )
+        if start_time_filter is None:
+            raise SWFValidationException("Must specify time filter")
+
+        count = self.swf_backend.count_open_workflow_executions(
+            domain_name=domain,
+            tag_filter=tag_filter,
+        )
+        return json.dumps({"count": count, "truncated": False})
+
+    def request_cancel_workflow_execution(self) -> str:
+        domain_name = self._params["domain"]
+        workflow_id = self._params["workflowId"]
+        run_id = self._params.get("runId")
+
+        self._check_string(domain_name)
+        self._check_string(workflow_id)
+        self._check_none_or_string(run_id)
+
+        self.swf_backend.request_cancel_workflow_execution(
+            domain_name, workflow_id, run_id=run_id
+        )
+        return ""
+
+    def respond_activity_task_canceled(self) -> str:
+        task_token = self._params["taskToken"]
+        details = self._params.get("details")
+        self._check_string(task_token)
+        self._check_none_or_string(details)
+        self.swf_backend.respond_activity_task_canceled(task_token, details=details)
+        return ""
+
+    def tag_resource(self) -> str:
+        resource_arn = self._params["resourceArn"]
+        tags = self._params["tags"]
+        self._check_string(resource_arn)
+        self.swf_backend.tag_resource(resource_arn, tags)
+        return ""
+
+    def untag_resource(self) -> str:
+        resource_arn = self._params["resourceArn"]
+        tag_keys = self._params["tagKeys"]
+        self._check_string(resource_arn)
+        self.swf_backend.untag_resource(resource_arn, tag_keys)
+        return ""
+
+    def list_tags_for_resource(self) -> str:
+        resource_arn = self._params["resourceArn"]
+        self._check_string(resource_arn)
+        tags = self.swf_backend.list_tags_for_resource(resource_arn)
+        return json.dumps({"tags": tags})
+
+    def delete_activity_type(self) -> str:
+        domain = self._params["domain"]
+        _type_args = self._params["activityType"]
+        name = _type_args["name"]
+        version = _type_args["version"]
+        self._check_string(domain)
+        self._check_string(name)
+        self._check_string(version)
+        self.swf_backend.delete_type("activity", domain, name, version)
+        return ""
+
+    def delete_workflow_type(self) -> str:
+        domain = self._params["domain"]
+        _type_args = self._params["workflowType"]
+        name = _type_args["name"]
+        version = _type_args["version"]
+        self._check_string(domain)
+        self._check_string(name)
+        self._check_string(version)
+        self.swf_backend.delete_type("workflow", domain, name, version)
         return ""
