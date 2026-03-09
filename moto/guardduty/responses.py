@@ -85,6 +85,11 @@ class GuardDutyResponse(BaseResponse):
         _filter = self.guardduty_backend.get_filter(detector_id, filter_name)
         return json.dumps(_filter.to_json())
 
+    def list_filters(self) -> str:
+        detector_id = self.path.split("/")[-2]
+        filter_names = self.guardduty_backend.list_filters(detector_id)
+        return json.dumps({"filterNames": filter_names})
+
     def update_detector(self) -> str:
         detector_id = self.path.split("/")[-1]
         enable = self._get_param("enable")
@@ -120,3 +125,134 @@ class GuardDutyResponse(BaseResponse):
         detector_id = self.path.split("/")[-2]
         result = self.guardduty_backend.get_administrator_account(detector_id)
         return json.dumps(result)
+
+    # IPSet operations
+    def create_ip_set(self) -> str:
+        detector_id = self.path.split("/")[-2]
+        name = self._get_param("name")
+        ip_format = self._get_param("format")
+        location = self._get_param("location")
+        activate = self._get_param("activate")
+        tags = self._get_param("tags")
+        ip_set_id = self.guardduty_backend.create_ip_set(
+            detector_id=detector_id,
+            name=name,
+            ip_format=ip_format,
+            location=location,
+            activate=activate,
+            tags=tags,
+        )
+        return json.dumps({"ipSetId": ip_set_id})
+
+    def get_ip_set(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        ip_set_id = self.path.split("/")[-1]
+        ip_set = self.guardduty_backend.get_ip_set(detector_id, ip_set_id)
+        return json.dumps(ip_set.to_json())
+
+    def update_ip_set(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        ip_set_id = self.path.split("/")[-1]
+        name = self._get_param("name")
+        location = self._get_param("location")
+        activate = self._get_param("activate")
+        self.guardduty_backend.update_ip_set(
+            detector_id=detector_id,
+            ip_set_id=ip_set_id,
+            name=name,
+            location=location,
+            activate=activate,
+        )
+        return "{}"
+
+    def delete_ip_set(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        ip_set_id = self.path.split("/")[-1]
+        self.guardduty_backend.delete_ip_set(detector_id, ip_set_id)
+        return "{}"
+
+    def list_ip_sets(self) -> str:
+        detector_id = self.path.split("/")[-2]
+        ip_set_ids = self.guardduty_backend.list_ip_sets(detector_id)
+        return json.dumps({"ipSetIds": ip_set_ids})
+
+    # ThreatIntelSet operations
+    def create_threat_intel_set(self) -> str:
+        detector_id = self.path.split("/")[-2]
+        name = self._get_param("name")
+        tis_format = self._get_param("format")
+        location = self._get_param("location")
+        activate = self._get_param("activate")
+        tags = self._get_param("tags")
+        threat_intel_set_id = self.guardduty_backend.create_threat_intel_set(
+            detector_id=detector_id,
+            name=name,
+            tis_format=tis_format,
+            location=location,
+            activate=activate,
+            tags=tags,
+        )
+        return json.dumps({"threatIntelSetId": threat_intel_set_id})
+
+    def get_threat_intel_set(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        threat_intel_set_id = self.path.split("/")[-1]
+        tis = self.guardduty_backend.get_threat_intel_set(
+            detector_id, threat_intel_set_id
+        )
+        return json.dumps(tis.to_json())
+
+    def update_threat_intel_set(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        threat_intel_set_id = self.path.split("/")[-1]
+        name = self._get_param("name")
+        location = self._get_param("location")
+        activate = self._get_param("activate")
+        self.guardduty_backend.update_threat_intel_set(
+            detector_id=detector_id,
+            threat_intel_set_id=threat_intel_set_id,
+            name=name,
+            location=location,
+            activate=activate,
+        )
+        return "{}"
+
+    def delete_threat_intel_set(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        threat_intel_set_id = self.path.split("/")[-1]
+        self.guardduty_backend.delete_threat_intel_set(
+            detector_id, threat_intel_set_id
+        )
+        return "{}"
+
+    def list_threat_intel_sets(self) -> str:
+        detector_id = self.path.split("/")[-2]
+        threat_intel_set_ids = self.guardduty_backend.list_threat_intel_sets(
+            detector_id
+        )
+        return json.dumps({"threatIntelSetIds": threat_intel_set_ids})
+
+    # Tagging operations
+    def tag_resource(self) -> str:
+        resource_arn = self._get_resource_arn_from_path()
+        tags = self._get_param("tags")
+        self.guardduty_backend.tag_resource(resource_arn, tags or {})
+        return "{}"
+
+    def untag_resource(self) -> str:
+        resource_arn = self._get_resource_arn_from_path()
+        tag_keys = self.querystring.get("tagKeys", [])
+        self.guardduty_backend.untag_resource(resource_arn, tag_keys)
+        return "{}"
+
+    def list_tags_for_resource(self) -> str:
+        resource_arn = self._get_resource_arn_from_path()
+        tags = self.guardduty_backend.list_tags_for_resource(resource_arn)
+        return json.dumps({"tags": tags})
+
+    def _get_resource_arn_from_path(self) -> str:
+        path = unquote(self.path)
+        idx = path.find("/tags/")
+        if idx >= 0:
+            return path[idx + 6:]
+        return ""
