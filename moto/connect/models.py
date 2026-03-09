@@ -2375,11 +2375,11 @@ class ConnectBackend(BaseBackend):
         vocabs = self.vocabularies.get(instance_id, {})
         results = []
         for v in vocabs.values():
-            if state and v.state \!= state:
+            if state and v.state != state:
                 continue
             if name_starts_with and not v.name.startswith(name_starts_with):
                 continue
-            if language_code and v.language_code \!= language_code:
+            if language_code and v.language_code != language_code:
                 continue
             results.append(v.to_dict())
         return results
