@@ -135,7 +135,7 @@ class AnomalyDetector(BaseModel):
         workspace_id: str,
         alias: Optional[str],
         evaluation_interval_in_seconds: Optional[int],
-        missing_data_action: Optional[str],
+        missing_data_action: Optional[dict[str, Any]],
         configuration: Optional[dict[str, Any]],
         labels: Optional[dict[str, str]],
         tags: Optional[dict[str, str]],
@@ -145,7 +145,10 @@ class AnomalyDetector(BaseModel):
         self.alias = alias or ""
         self.arn = f"arn:{get_partition(region)}:aps:{region}:{account_id}:workspace/{workspace_id}/anomalydetector/{self.anomaly_detector_id}"
         self.evaluation_interval_in_seconds = evaluation_interval_in_seconds or 300
-        self.missing_data_action = missing_data_action or "IGNORE"
+        self.missing_data_action = missing_data_action or {
+            "markAsAnomaly": False,
+            "skip": True,
+        }
         self.configuration = configuration or {}
         self.labels = labels or {}
         self.tags = tags or {}
