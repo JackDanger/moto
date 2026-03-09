@@ -1128,3 +1128,267 @@ class GlueResponse(BaseResponse):
                 "NextToken": None,
             }
         )
+
+    # --- Catalogs ---
+
+    def create_catalog(self) -> ActionResult:
+        name = self._get_param("Name")
+        catalog_input = self._get_param("CatalogInput")
+        tags = self._get_param("Tags")
+        self.glue_backend.create_catalog(name, catalog_input or {}, tags)
+        return EmptyResult()
+
+    def get_catalog(self) -> ActionResult:
+        catalog_id = self._get_param("CatalogId")
+        catalog = self.glue_backend.get_catalog(catalog_id)
+        return ActionResult({"Catalog": catalog.as_dict()})
+
+    def update_catalog(self) -> ActionResult:
+        catalog_id = self._get_param("CatalogId")
+        catalog_input = self._get_param("CatalogInput")
+        self.glue_backend.update_catalog(catalog_id, catalog_input or {})
+        return EmptyResult()
+
+    def delete_catalog(self) -> ActionResult:
+        catalog_id = self._get_param("CatalogId")
+        self.glue_backend.delete_catalog(catalog_id)
+        return EmptyResult()
+
+    # --- Data Quality Rulesets ---
+
+    def create_data_quality_ruleset(self) -> ActionResult:
+        name = self._get_param("Name")
+        ruleset = self._get_param("Ruleset")
+        description = self._get_param("Description")
+        target_table = self._get_param("TargetTable")
+        tags = self._get_param("Tags")
+        self.glue_backend.create_data_quality_ruleset(
+            name, ruleset, description, target_table, tags
+        )
+        return ActionResult({"Name": name})
+
+    def get_data_quality_ruleset(self) -> ActionResult:
+        name = self._get_param("Name")
+        dq = self.glue_backend.get_data_quality_ruleset(name)
+        return ActionResult(dq.as_dict())
+
+    def update_data_quality_ruleset(self) -> ActionResult:
+        name = self._get_param("Name")
+        ruleset = self._get_param("Ruleset")
+        description = self._get_param("Description")
+        self.glue_backend.update_data_quality_ruleset(name, ruleset, description)
+        return ActionResult({"Name": name})
+
+    def delete_data_quality_ruleset(self) -> ActionResult:
+        name = self._get_param("Name")
+        self.glue_backend.delete_data_quality_ruleset(name)
+        return EmptyResult()
+
+    def list_data_quality_rulesets(self) -> ActionResult:
+        next_token = self._get_param("NextToken")
+        max_results = self._get_int_param("MaxResults")
+        rulesets, next_token = self.glue_backend.list_data_quality_rulesets(
+            next_token=next_token, max_results=max_results
+        )
+        return ActionResult(
+            {
+                "Rulesets": [r.as_dict() for r in rulesets],
+                "NextToken": next_token,
+            }
+        )
+
+    # --- Blueprints ---
+
+    def create_blueprint(self) -> ActionResult:
+        name = self._get_param("Name")
+        blueprint_location = self._get_param("BlueprintLocation")
+        description = self._get_param("Description")
+        tags = self._get_param("Tags")
+        self.glue_backend.create_blueprint(name, blueprint_location, description, tags)
+        return ActionResult({"Name": name})
+
+    def get_blueprint(self) -> ActionResult:
+        name = self._get_param("Name")
+        bp = self.glue_backend.get_blueprint(name)
+        return ActionResult({"Blueprint": bp.as_dict()})
+
+    def update_blueprint(self) -> ActionResult:
+        name = self._get_param("Name")
+        blueprint_location = self._get_param("BlueprintLocation")
+        description = self._get_param("Description")
+        self.glue_backend.update_blueprint(name, blueprint_location, description)
+        return ActionResult({"Name": name})
+
+    def delete_blueprint(self) -> ActionResult:
+        name = self._get_param("Name")
+        self.glue_backend.delete_blueprint(name)
+        return EmptyResult()
+
+    def list_blueprints(self) -> ActionResult:
+        next_token = self._get_param("NextToken")
+        max_results = self._get_int_param("MaxResults")
+        blueprints, next_token = self.glue_backend.list_blueprints(
+            next_token=next_token, max_results=max_results
+        )
+        return ActionResult(
+            {
+                "Blueprints": [bp.name for bp in blueprints],
+                "NextToken": next_token,
+            }
+        )
+
+    # --- ML Transforms ---
+
+    def create_ml_transform(self) -> ActionResult:
+        name = self._get_param("Name")
+        input_record_tables = self._get_param("InputRecordTables")
+        parameters = self._get_param("Parameters")
+        role = self._get_param("Role")
+        description = self._get_param("Description")
+        glue_version = self._get_param("GlueVersion")
+        max_capacity = self._get_param("MaxCapacity")
+        worker_type = self._get_param("WorkerType")
+        number_of_workers = self._get_int_param("NumberOfWorkers")
+        timeout = self._get_int_param("Timeout")
+        max_retries = self._get_int_param("MaxRetries")
+        tags = self._get_param("Tags")
+        transform = self.glue_backend.create_ml_transform(
+            name=name,
+            input_record_tables=input_record_tables,
+            parameters=parameters,
+            role=role,
+            description=description,
+            glue_version=glue_version,
+            max_capacity=max_capacity,
+            worker_type=worker_type,
+            number_of_workers=number_of_workers,
+            timeout=timeout,
+            max_retries=max_retries,
+            tags=tags,
+        )
+        return ActionResult({"TransformId": transform.transform_id})
+
+    def get_ml_transform(self) -> ActionResult:
+        transform_id = self._get_param("TransformId")
+        transform = self.glue_backend.get_ml_transform(transform_id)
+        return ActionResult(transform.as_dict())
+
+    def update_ml_transform(self) -> ActionResult:
+        transform_id = self._get_param("TransformId")
+        self.glue_backend.update_ml_transform(
+            transform_id=transform_id,
+            name=self._get_param("Name"),
+            description=self._get_param("Description"),
+            parameters=self._get_param("Parameters"),
+            role=self._get_param("Role"),
+            glue_version=self._get_param("GlueVersion"),
+            max_capacity=self._get_param("MaxCapacity"),
+            worker_type=self._get_param("WorkerType"),
+            number_of_workers=self._get_int_param("NumberOfWorkers"),
+            timeout=self._get_int_param("Timeout"),
+            max_retries=self._get_int_param("MaxRetries"),
+        )
+        return ActionResult({"TransformId": transform_id})
+
+    def delete_ml_transform(self) -> ActionResult:
+        transform_id = self._get_param("TransformId")
+        self.glue_backend.delete_ml_transform(transform_id)
+        return ActionResult({"TransformId": transform_id})
+
+    def get_ml_transforms(self) -> ActionResult:
+        next_token = self._get_param("NextToken")
+        max_results = self._get_int_param("MaxResults")
+        transforms, next_token = self.glue_backend.list_ml_transforms(
+            next_token=next_token, max_results=max_results
+        )
+        return ActionResult(
+            {
+                "Transforms": [t.as_dict() for t in transforms],
+                "NextToken": next_token,
+            }
+        )
+
+    # --- Classifiers ---
+
+    def create_classifier(self) -> ActionResult:
+        self.glue_backend.create_classifier(
+            grok_classifier=self._get_param("GrokClassifier"),
+            xml_classifier=self._get_param("XMLClassifier"),
+            json_classifier=self._get_param("JsonClassifier"),
+            csv_classifier=self._get_param("CsvClassifier"),
+        )
+        return EmptyResult()
+
+    def get_classifier(self) -> ActionResult:
+        name = self._get_param("Name")
+        classifier = self.glue_backend.get_classifier(name)
+        return ActionResult({"Classifier": classifier.as_dict()})
+
+    def update_classifier(self) -> ActionResult:
+        self.glue_backend.update_classifier(
+            grok_classifier=self._get_param("GrokClassifier"),
+            xml_classifier=self._get_param("XMLClassifier"),
+            json_classifier=self._get_param("JsonClassifier"),
+            csv_classifier=self._get_param("CsvClassifier"),
+        )
+        return EmptyResult()
+
+    def delete_classifier(self) -> ActionResult:
+        name = self._get_param("Name")
+        self.glue_backend.delete_classifier(name)
+        return EmptyResult()
+
+    def get_classifiers(self) -> ActionResult:
+        next_token = self._get_param("NextToken")
+        max_results = self._get_int_param("MaxResults")
+        classifiers, next_token = self.glue_backend.list_classifiers(
+            next_token=next_token, max_results=max_results
+        )
+        return ActionResult(
+            {
+                "Classifiers": [c.as_dict() for c in classifiers],
+                "NextToken": next_token,
+            }
+        )
+
+    # --- Usage Profiles ---
+
+    def create_usage_profile(self) -> ActionResult:
+        name = self._get_param("Name")
+        description = self._get_param("Description")
+        configuration = self._get_param("Configuration")
+        tags = self._get_param("Tags")
+        profile = self.glue_backend.create_usage_profile(
+            name, description, configuration, tags
+        )
+        return ActionResult({"Name": profile.name})
+
+    def get_usage_profile(self) -> ActionResult:
+        name = self._get_param("Name")
+        profile = self.glue_backend.get_usage_profile(name)
+        return ActionResult(profile.as_dict())
+
+    def update_usage_profile(self) -> ActionResult:
+        name = self._get_param("Name")
+        description = self._get_param("Description")
+        configuration = self._get_param("Configuration")
+        self.glue_backend.update_usage_profile(name, description, configuration)
+        return EmptyResult()
+
+    def delete_usage_profile(self) -> ActionResult:
+        name = self._get_param("Name")
+        self.glue_backend.delete_usage_profile(name)
+        return EmptyResult()
+
+    def list_usage_profiles(self) -> ActionResult:
+        next_token = self._get_param("NextToken")
+        max_results = self._get_int_param("MaxResults")
+        profiles, next_token = self.glue_backend.list_usage_profiles(
+            next_token=next_token, max_results=max_results
+        )
+        return ActionResult(
+            {
+                "Profiles": [p.as_dict() for p in profiles],
+                "NextToken": next_token,
+            }
+        )

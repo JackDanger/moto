@@ -996,3 +996,296 @@ class IoTResponse(BaseResponse):
         return ActionResult(
             {"things": [thing.thing_name for thing in things], "nextToken": next_token}
         )
+
+    # --- Security Profiles ---
+
+    def create_security_profile(self) -> ActionResult:
+        security_profile_name = self._get_param("securityProfileName")
+        profile = self.iot_backend.create_security_profile(
+            security_profile_name=security_profile_name,
+            security_profile_description=self._get_param("securityProfileDescription"),
+            behaviors=self._get_param("behaviors"),
+            alert_targets=self._get_param("alertTargets"),
+            additional_metrics_to_retain_v2=self._get_param(
+                "additionalMetricsToRetainV2"
+            ),
+            tags=self._get_param("tags"),
+        )
+        return ActionResult(profile.to_dict())
+
+    def describe_security_profile(self) -> ActionResult:
+        security_profile_name = self._get_param("securityProfileName")
+        profile = self.iot_backend.describe_security_profile(
+            security_profile_name=security_profile_name
+        )
+        return ActionResult(profile.to_description_dict())
+
+    def update_security_profile(self) -> ActionResult:
+        security_profile_name = self._get_param("securityProfileName")
+        profile = self.iot_backend.update_security_profile(
+            security_profile_name=security_profile_name,
+            security_profile_description=self._get_param("securityProfileDescription"),
+            behaviors=self._get_param("behaviors"),
+            alert_targets=self._get_param("alertTargets"),
+            additional_metrics_to_retain_v2=self._get_param(
+                "additionalMetricsToRetainV2"
+            ),
+        )
+        return ActionResult(profile.to_description_dict())
+
+    def delete_security_profile(self) -> ActionResult:
+        security_profile_name = self._get_param("securityProfileName")
+        self.iot_backend.delete_security_profile(
+            security_profile_name=security_profile_name
+        )
+        return EmptyResult()
+
+    def list_security_profiles(self) -> ActionResult:
+        profiles = self.iot_backend.list_security_profiles()
+        return ActionResult(
+            {"securityProfileIdentifiers": [p.to_list_dict() for p in profiles]}
+        )
+
+    def attach_security_profile(self) -> ActionResult:
+        security_profile_name = self._get_param("securityProfileName")
+        security_profile_target_arn = self._get_param("securityProfileTargetArn")
+        self.iot_backend.attach_security_profile(
+            security_profile_name=security_profile_name,
+            security_profile_target_arn=security_profile_target_arn,
+        )
+        return EmptyResult()
+
+    def detach_security_profile(self) -> ActionResult:
+        security_profile_name = self._get_param("securityProfileName")
+        security_profile_target_arn = self._get_param("securityProfileTargetArn")
+        self.iot_backend.detach_security_profile(
+            security_profile_name=security_profile_name,
+            security_profile_target_arn=security_profile_target_arn,
+        )
+        return EmptyResult()
+
+    # --- Authorizers ---
+
+    def create_authorizer(self) -> ActionResult:
+        authorizer_name = self._get_param("authorizerName")
+        authorizer = self.iot_backend.create_authorizer(
+            authorizer_name=authorizer_name,
+            authorizer_function_arn=self._get_param("authorizerFunctionArn"),
+            token_key_name=self._get_param("tokenKeyName"),
+            token_signing_public_keys=self._get_param("tokenSigningPublicKeys"),
+            status=self._get_param("status"),
+            signing_disabled=self._get_bool_param("signingDisabled"),
+            enable_caching_for_http=self._get_bool_param("enableCachingForHttp"),
+        )
+        return ActionResult(
+            {
+                "authorizerName": authorizer.authorizer_name,
+                "authorizerArn": authorizer.arn,
+            }
+        )
+
+    def describe_authorizer(self) -> ActionResult:
+        authorizer_name = self._get_param("authorizerName")
+        authorizer = self.iot_backend.describe_authorizer(
+            authorizer_name=authorizer_name
+        )
+        return ActionResult({"authorizerDescription": authorizer.to_description_dict()})
+
+    def update_authorizer(self) -> ActionResult:
+        authorizer_name = self._get_param("authorizerName")
+        authorizer = self.iot_backend.update_authorizer(
+            authorizer_name=authorizer_name,
+            authorizer_function_arn=self._get_param("authorizerFunctionArn"),
+            token_key_name=self._get_param("tokenKeyName"),
+            token_signing_public_keys=self._get_param("tokenSigningPublicKeys"),
+            status=self._get_param("status"),
+            enable_caching_for_http=self._get_bool_param("enableCachingForHttp"),
+        )
+        return ActionResult(
+            {
+                "authorizerName": authorizer.authorizer_name,
+                "authorizerArn": authorizer.arn,
+            }
+        )
+
+    def delete_authorizer(self) -> ActionResult:
+        authorizer_name = self._get_param("authorizerName")
+        self.iot_backend.delete_authorizer(authorizer_name=authorizer_name)
+        return EmptyResult()
+
+    def list_authorizers(self) -> ActionResult:
+        authorizers = self.iot_backend.list_authorizers()
+        return ActionResult(
+            {"authorizers": [a.to_description_dict() for a in authorizers]}
+        )
+
+    # --- Provisioning Templates ---
+
+    def create_provisioning_template(self) -> ActionResult:
+        template_name = self._get_param("templateName")
+        template = self.iot_backend.create_provisioning_template(
+            template_name=template_name,
+            description=self._get_param("description"),
+            template_body=self._get_param("templateBody"),
+            enabled=self._get_param("enabled"),
+            provisioning_role_arn=self._get_param("provisioningRoleArn"),
+            pre_provisioning_hook=self._get_param("preProvisioningHook"),
+            tags=self._get_param("tags"),
+            template_type=self._get_param("type"),
+        )
+        return ActionResult(
+            {
+                "templateName": template.template_name,
+                "templateArn": template.arn,
+                "defaultVersionId": template.default_version_id,
+            }
+        )
+
+    def describe_provisioning_template(self) -> ActionResult:
+        template_name = self._get_param("templateName")
+        template = self.iot_backend.describe_provisioning_template(
+            template_name=template_name
+        )
+        return ActionResult(template.to_description_dict())
+
+    def update_provisioning_template(self) -> ActionResult:
+        template_name = self._get_param("templateName")
+        self.iot_backend.update_provisioning_template(
+            template_name=template_name,
+            description=self._get_param("description"),
+            enabled=self._get_param("enabled"),
+            provisioning_role_arn=self._get_param("provisioningRoleArn"),
+            pre_provisioning_hook=self._get_param("preProvisioningHook"),
+            default_version_id=self._get_param("defaultVersionId"),
+        )
+        return EmptyResult()
+
+    def delete_provisioning_template(self) -> ActionResult:
+        template_name = self._get_param("templateName")
+        self.iot_backend.delete_provisioning_template(template_name=template_name)
+        return EmptyResult()
+
+    def list_provisioning_templates(self) -> ActionResult:
+        templates = self.iot_backend.list_provisioning_templates()
+        return ActionResult({"templates": [t.to_dict() for t in templates]})
+
+    # --- Dimensions ---
+
+    def create_dimension(self) -> ActionResult:
+        name = self._get_param("name")
+        dimension = self.iot_backend.create_dimension(
+            name=name,
+            dimension_type=self._get_param("type"),
+            string_values=self._get_param("stringValues"),
+            tags=self._get_param("tags"),
+        )
+        return ActionResult({"name": dimension.name, "arn": dimension.arn})
+
+    def describe_dimension(self) -> ActionResult:
+        name = self._get_param("name")
+        dimension = self.iot_backend.describe_dimension(name=name)
+        return ActionResult(dimension.to_description_dict())
+
+    def update_dimension(self) -> ActionResult:
+        name = self._get_param("name")
+        dimension = self.iot_backend.update_dimension(
+            name=name,
+            string_values=self._get_param("stringValues"),
+        )
+        return ActionResult(dimension.to_description_dict())
+
+    def delete_dimension(self) -> ActionResult:
+        name = self._get_param("name")
+        self.iot_backend.delete_dimension(name=name)
+        return EmptyResult()
+
+    def list_dimensions(self) -> ActionResult:
+        dimension_names = self.iot_backend.list_dimensions()
+        return ActionResult({"dimensionNames": dimension_names})
+
+    # --- Custom Metrics ---
+
+    def create_custom_metric(self) -> ActionResult:
+        metric_name = self._get_param("metricName")
+        metric = self.iot_backend.create_custom_metric(
+            metric_name=metric_name,
+            display_name=self._get_param("displayName"),
+            metric_type=self._get_param("metricType"),
+            tags=self._get_param("tags"),
+        )
+        return ActionResult(
+            {"metricName": metric.metric_name, "metricArn": metric.arn}
+        )
+
+    def describe_custom_metric(self) -> ActionResult:
+        metric_name = self._get_param("metricName")
+        metric = self.iot_backend.describe_custom_metric(metric_name=metric_name)
+        return ActionResult(metric.to_description_dict())
+
+    def update_custom_metric(self) -> ActionResult:
+        metric_name = self._get_param("metricName")
+        metric = self.iot_backend.update_custom_metric(
+            metric_name=metric_name,
+            display_name=self._get_param("displayName"),
+        )
+        return ActionResult(metric.to_description_dict())
+
+    def delete_custom_metric(self) -> ActionResult:
+        metric_name = self._get_param("metricName")
+        self.iot_backend.delete_custom_metric(metric_name=metric_name)
+        return EmptyResult()
+
+    def list_custom_metrics(self) -> ActionResult:
+        metric_names = self.iot_backend.list_custom_metrics()
+        return ActionResult({"metricNames": metric_names})
+
+    # --- Fleet Metrics ---
+
+    def create_fleet_metric(self) -> ActionResult:
+        metric_name = self._get_param("metricName")
+        fleet_metric = self.iot_backend.create_fleet_metric(
+            metric_name=metric_name,
+            query_string=self._get_param("queryString"),
+            aggregation_type=self._get_param("aggregationType"),
+            period=self._get_int_param("period"),
+            aggregation_field=self._get_param("aggregationField"),
+            description=self._get_param("description"),
+            query_version=self._get_param("queryVersion"),
+            index_name=self._get_param("indexName"),
+            unit=self._get_param("unit"),
+            tags=self._get_param("tags"),
+        )
+        return ActionResult(
+            {"metricName": fleet_metric.metric_name, "metricArn": fleet_metric.arn}
+        )
+
+    def describe_fleet_metric(self) -> ActionResult:
+        metric_name = self._get_param("metricName")
+        fleet_metric = self.iot_backend.describe_fleet_metric(metric_name=metric_name)
+        return ActionResult(fleet_metric.to_description_dict())
+
+    def update_fleet_metric(self) -> ActionResult:
+        metric_name = self._get_param("metricName")
+        self.iot_backend.update_fleet_metric(
+            metric_name=metric_name,
+            query_string=self._get_param("queryString"),
+            aggregation_type=self._get_param("aggregationType"),
+            period=self._get_int_param("period"),
+            aggregation_field=self._get_param("aggregationField"),
+            description=self._get_param("description"),
+            query_version=self._get_param("queryVersion"),
+            index_name=self._get_param("indexName"),
+            unit=self._get_param("unit"),
+        )
+        return EmptyResult()
+
+    def delete_fleet_metric(self) -> ActionResult:
+        metric_name = self._get_param("metricName")
+        self.iot_backend.delete_fleet_metric(metric_name=metric_name)
+        return EmptyResult()
+
+    def list_fleet_metrics(self) -> ActionResult:
+        fleet_metrics = self.iot_backend.list_fleet_metrics()
+        return ActionResult(
+            {"fleetMetrics": [fm.to_dict() for fm in fleet_metrics]}
+        )

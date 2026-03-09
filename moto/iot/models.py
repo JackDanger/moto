@@ -1493,6 +1493,285 @@ class FakeIndexingConfiguration(BaseModel):
         )
 
 
+class FakeSecurityProfile(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        security_profile_name: str,
+        security_profile_description: Optional[str],
+        behaviors: Optional[list[dict[str, Any]]],
+        alert_targets: Optional[dict[str, Any]],
+        additional_metrics_to_retain_v2: Optional[list[dict[str, Any]]],
+        tags: Optional[list[dict[str, str]]],
+    ):
+        self.security_profile_name = security_profile_name
+        self.security_profile_description = security_profile_description or ""
+        self.behaviors = behaviors or []
+        self.alert_targets = alert_targets or {}
+        self.additional_metrics_to_retain_v2 = additional_metrics_to_retain_v2 or []
+        self.tags = tags or []
+        self.creation_date = utcnow()
+        self.last_modified_date = self.creation_date
+        self.version = 1
+        self.arn = f"arn:{get_partition(region_name)}:iot:{region_name}:{account_id}:securityprofile/{security_profile_name}"
+        self.targets: list[str] = []
+
+    def to_dict(self) -> dict[str, Any]:
+        """Used for create response (securityProfileName, securityProfileArn)."""
+        return {
+            "securityProfileName": self.security_profile_name,
+            "securityProfileArn": self.arn,
+        }
+
+    def to_list_dict(self) -> dict[str, Any]:
+        """Used for list response (name, arn)."""
+        return {
+            "name": self.security_profile_name,
+            "arn": self.arn,
+        }
+
+    def to_description_dict(self) -> dict[str, Any]:
+        return {
+            "securityProfileName": self.security_profile_name,
+            "securityProfileArn": self.arn,
+            "securityProfileDescription": self.security_profile_description,
+            "behaviors": self.behaviors,
+            "alertTargets": self.alert_targets,
+            "additionalMetricsToRetainV2": self.additional_metrics_to_retain_v2,
+            "version": self.version,
+            "creationDate": self.creation_date,
+            "lastModifiedDate": self.last_modified_date,
+        }
+
+
+class FakeAuthorizer(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        authorizer_name: str,
+        authorizer_function_arn: str,
+        token_key_name: Optional[str],
+        token_signing_public_keys: Optional[dict[str, str]],
+        status: Optional[str],
+        signing_disabled: Optional[bool],
+        enable_caching_for_http: Optional[bool],
+    ):
+        self.authorizer_name = authorizer_name
+        self.authorizer_function_arn = authorizer_function_arn
+        self.token_key_name = token_key_name or ""
+        self.token_signing_public_keys = token_signing_public_keys or {}
+        self.status = status or "ACTIVE"
+        self.signing_disabled = signing_disabled or False
+        self.enable_caching_for_http = enable_caching_for_http or False
+        self.creation_date = utcnow()
+        self.last_modified_date = self.creation_date
+        self.arn = f"arn:{get_partition(region_name)}:iot:{region_name}:{account_id}:authorizer/{authorizer_name}"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "authorizerName": self.authorizer_name,
+            "authorizerArn": self.arn,
+        }
+
+    def to_description_dict(self) -> dict[str, Any]:
+        return {
+            "authorizerName": self.authorizer_name,
+            "authorizerArn": self.arn,
+            "authorizerFunctionArn": self.authorizer_function_arn,
+            "tokenKeyName": self.token_key_name,
+            "tokenSigningPublicKeys": self.token_signing_public_keys,
+            "status": self.status,
+            "signingDisabled": self.signing_disabled,
+            "enableCachingForHttp": self.enable_caching_for_http,
+            "creationDate": self.creation_date,
+            "lastModifiedDate": self.last_modified_date,
+        }
+
+
+class FakeProvisioningTemplate(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        template_name: str,
+        description: Optional[str],
+        template_body: str,
+        enabled: Optional[bool],
+        provisioning_role_arn: str,
+        pre_provisioning_hook: Optional[dict[str, str]],
+        tags: Optional[list[dict[str, str]]],
+        template_type: Optional[str],
+    ):
+        self.template_name = template_name
+        self.description = description or ""
+        self.template_body = template_body
+        self.enabled = enabled if enabled is not None else False
+        self.provisioning_role_arn = provisioning_role_arn
+        self.pre_provisioning_hook = pre_provisioning_hook
+        self.tags = tags or []
+        self.template_type = template_type
+        self.creation_date = utcnow()
+        self.last_modified_date = self.creation_date
+        self.default_version_id = 1
+        self.arn = f"arn:{get_partition(region_name)}:iot:{region_name}:{account_id}:provisioningtemplate/{template_name}"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "templateName": self.template_name,
+            "templateArn": self.arn,
+            "enabled": self.enabled,
+            "creationDate": self.creation_date,
+            "lastModifiedDate": self.last_modified_date,
+        }
+
+    def to_description_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "templateName": self.template_name,
+            "templateArn": self.arn,
+            "description": self.description,
+            "templateBody": self.template_body,
+            "enabled": self.enabled,
+            "provisioningRoleArn": self.provisioning_role_arn,
+            "defaultVersionId": self.default_version_id,
+            "creationDate": self.creation_date,
+            "lastModifiedDate": self.last_modified_date,
+        }
+        if self.pre_provisioning_hook:
+            result["preProvisioningHook"] = self.pre_provisioning_hook
+        if self.template_type:
+            result["type"] = self.template_type
+        return result
+
+
+class FakeDimension(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        name: str,
+        dimension_type: str,
+        string_values: list[str],
+        tags: Optional[list[dict[str, str]]],
+    ):
+        self.name = name
+        self.type = dimension_type
+        self.string_values = string_values
+        self.tags = tags or []
+        self.creation_date = utcnow()
+        self.last_modified_date = self.creation_date
+        self.arn = f"arn:{get_partition(region_name)}:iot:{region_name}:{account_id}:dimension/{name}"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "arn": self.arn,
+        }
+
+    def to_description_dict(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "arn": self.arn,
+            "type": self.type,
+            "stringValues": self.string_values,
+            "creationDate": self.creation_date,
+            "lastModifiedDate": self.last_modified_date,
+        }
+
+
+class FakeCustomMetric(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        metric_name: str,
+        display_name: Optional[str],
+        metric_type: str,
+        tags: Optional[list[dict[str, str]]],
+    ):
+        self.metric_name = metric_name
+        self.display_name = display_name or ""
+        self.metric_type = metric_type
+        self.tags = tags or []
+        self.creation_date = utcnow()
+        self.last_modified_date = self.creation_date
+        self.arn = f"arn:{get_partition(region_name)}:iot:{region_name}:{account_id}:custommetric/{metric_name}"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "metricName": self.metric_name,
+            "metricArn": self.arn,
+        }
+
+    def to_description_dict(self) -> dict[str, Any]:
+        return {
+            "metricName": self.metric_name,
+            "metricArn": self.arn,
+            "displayName": self.display_name,
+            "metricType": self.metric_type,
+            "creationDate": self.creation_date,
+            "lastModifiedDate": self.last_modified_date,
+        }
+
+
+class FakeFleetMetric(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        metric_name: str,
+        query_string: str,
+        aggregation_type: Optional[dict[str, Any]],
+        period: Optional[int],
+        aggregation_field: Optional[str],
+        description: Optional[str],
+        query_version: Optional[str],
+        index_name: Optional[str],
+        unit: Optional[str],
+        tags: Optional[list[dict[str, str]]],
+    ):
+        self.metric_name = metric_name
+        self.query_string = query_string
+        self.aggregation_type = aggregation_type
+        self.period = period or 300
+        self.aggregation_field = aggregation_field or ""
+        self.description = description or ""
+        self.query_version = query_version or "2017-09-30"
+        self.index_name = index_name or "AWS_Things"
+        self.unit = unit or "None"
+        self.tags = tags or []
+        self.creation_date = utcnow()
+        self.last_modified_date = self.creation_date
+        self.version = 1
+        self.arn = f"arn:{get_partition(region_name)}:iot:{region_name}:{account_id}:fleetmetric/{metric_name}"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "metricName": self.metric_name,
+            "metricArn": self.arn,
+        }
+
+    def to_description_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "metricName": self.metric_name,
+            "metricArn": self.arn,
+            "queryString": self.query_string,
+            "period": self.period,
+            "aggregationField": self.aggregation_field,
+            "description": self.description,
+            "queryVersion": self.query_version,
+            "indexName": self.index_name,
+            "unit": self.unit,
+            "version": self.version,
+            "creationDate": self.creation_date,
+            "lastModifiedDate": self.last_modified_date,
+        }
+        if self.aggregation_type:
+            result["aggregationType"] = self.aggregation_type
+        return result
+
+
 class IoTBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -1517,6 +1796,12 @@ class IoTBackend(BaseBackend):
         self.endpoint: Optional[FakeEndpoint] = None
         self.domain_configurations: dict[str, FakeDomainConfiguration] = OrderedDict()
         self.indexing_configuration = FakeIndexingConfiguration(region_name, account_id)
+        self.security_profiles: dict[str, FakeSecurityProfile] = OrderedDict()
+        self.authorizers: dict[str, FakeAuthorizer] = OrderedDict()
+        self.provisioning_templates: dict[str, FakeProvisioningTemplate] = OrderedDict()
+        self.dimensions: dict[str, FakeDimension] = OrderedDict()
+        self.custom_metrics: dict[str, FakeCustomMetric] = OrderedDict()
+        self.fleet_metrics: dict[str, FakeFleetMetric] = OrderedDict()
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -2991,6 +3276,451 @@ class IoTBackend(BaseBackend):
     def list_things_in_billing_group(self, billing_group_name: str) -> list[FakeThing]:
         billing_group = self.describe_billing_group(billing_group_name)
         return [self.things[arn] for arn in billing_group.things]
+
+
+    # --- Security Profiles ---
+
+    def create_security_profile(
+        self,
+        security_profile_name: str,
+        security_profile_description: Optional[str],
+        behaviors: Optional[list[dict[str, Any]]],
+        alert_targets: Optional[dict[str, Any]],
+        additional_metrics_to_retain_v2: Optional[list[dict[str, Any]]],
+        tags: Optional[list[dict[str, str]]],
+    ) -> FakeSecurityProfile:
+        if security_profile_name in self.security_profiles:
+            raise ResourceAlreadyExistsException(
+                f"Security profile {security_profile_name} already exists.",
+                security_profile_name,
+                self.security_profiles[security_profile_name].arn,
+            )
+        profile = FakeSecurityProfile(
+            self.account_id,
+            self.region_name,
+            security_profile_name,
+            security_profile_description,
+            behaviors,
+            alert_targets,
+            additional_metrics_to_retain_v2,
+            tags,
+        )
+        self.security_profiles[security_profile_name] = profile
+        return profile
+
+    def describe_security_profile(
+        self, security_profile_name: str
+    ) -> FakeSecurityProfile:
+        if security_profile_name not in self.security_profiles:
+            raise ResourceNotFoundException(
+                f"Security profile {security_profile_name} does not exist."
+            )
+        return self.security_profiles[security_profile_name]
+
+    def update_security_profile(
+        self,
+        security_profile_name: str,
+        security_profile_description: Optional[str],
+        behaviors: Optional[list[dict[str, Any]]],
+        alert_targets: Optional[dict[str, Any]],
+        additional_metrics_to_retain_v2: Optional[list[dict[str, Any]]],
+    ) -> FakeSecurityProfile:
+        if security_profile_name not in self.security_profiles:
+            raise ResourceNotFoundException(
+                f"Security profile {security_profile_name} does not exist."
+            )
+        profile = self.security_profiles[security_profile_name]
+        if security_profile_description is not None:
+            profile.security_profile_description = security_profile_description
+        if behaviors is not None:
+            profile.behaviors = behaviors
+        if alert_targets is not None:
+            profile.alert_targets = alert_targets
+        if additional_metrics_to_retain_v2 is not None:
+            profile.additional_metrics_to_retain_v2 = additional_metrics_to_retain_v2
+        profile.version += 1
+        profile.last_modified_date = utcnow()
+        return profile
+
+    def delete_security_profile(self, security_profile_name: str) -> None:
+        if security_profile_name not in self.security_profiles:
+            raise ResourceNotFoundException(
+                f"Security profile {security_profile_name} does not exist."
+            )
+        del self.security_profiles[security_profile_name]
+
+    def list_security_profiles(self) -> list[FakeSecurityProfile]:
+        return list(self.security_profiles.values())
+
+    def attach_security_profile(
+        self, security_profile_name: str, security_profile_target_arn: str
+    ) -> None:
+        if security_profile_name not in self.security_profiles:
+            raise ResourceNotFoundException(
+                f"Security profile {security_profile_name} does not exist."
+            )
+        profile = self.security_profiles[security_profile_name]
+        if security_profile_target_arn not in profile.targets:
+            profile.targets.append(security_profile_target_arn)
+
+    def detach_security_profile(
+        self, security_profile_name: str, security_profile_target_arn: str
+    ) -> None:
+        if security_profile_name not in self.security_profiles:
+            raise ResourceNotFoundException(
+                f"Security profile {security_profile_name} does not exist."
+            )
+        profile = self.security_profiles[security_profile_name]
+        if security_profile_target_arn in profile.targets:
+            profile.targets.remove(security_profile_target_arn)
+
+    # --- Authorizers ---
+
+    def create_authorizer(
+        self,
+        authorizer_name: str,
+        authorizer_function_arn: str,
+        token_key_name: Optional[str],
+        token_signing_public_keys: Optional[dict[str, str]],
+        status: Optional[str],
+        signing_disabled: Optional[bool],
+        enable_caching_for_http: Optional[bool],
+    ) -> FakeAuthorizer:
+        if authorizer_name in self.authorizers:
+            raise ResourceAlreadyExistsException(
+                f"Authorizer {authorizer_name} already exists.",
+                authorizer_name,
+                self.authorizers[authorizer_name].arn,
+            )
+        authorizer = FakeAuthorizer(
+            self.account_id,
+            self.region_name,
+            authorizer_name,
+            authorizer_function_arn,
+            token_key_name,
+            token_signing_public_keys,
+            status,
+            signing_disabled,
+            enable_caching_for_http,
+        )
+        self.authorizers[authorizer_name] = authorizer
+        return authorizer
+
+    def describe_authorizer(self, authorizer_name: str) -> FakeAuthorizer:
+        if authorizer_name not in self.authorizers:
+            raise ResourceNotFoundException(
+                f"Authorizer {authorizer_name} does not exist."
+            )
+        return self.authorizers[authorizer_name]
+
+    def update_authorizer(
+        self,
+        authorizer_name: str,
+        authorizer_function_arn: Optional[str],
+        token_key_name: Optional[str],
+        token_signing_public_keys: Optional[dict[str, str]],
+        status: Optional[str],
+        enable_caching_for_http: Optional[bool],
+    ) -> FakeAuthorizer:
+        if authorizer_name not in self.authorizers:
+            raise ResourceNotFoundException(
+                f"Authorizer {authorizer_name} does not exist."
+            )
+        authorizer = self.authorizers[authorizer_name]
+        if authorizer_function_arn is not None:
+            authorizer.authorizer_function_arn = authorizer_function_arn
+        if token_key_name is not None:
+            authorizer.token_key_name = token_key_name
+        if token_signing_public_keys is not None:
+            authorizer.token_signing_public_keys = token_signing_public_keys
+        if status is not None:
+            authorizer.status = status
+        if enable_caching_for_http is not None:
+            authorizer.enable_caching_for_http = enable_caching_for_http
+        authorizer.last_modified_date = utcnow()
+        return authorizer
+
+    def delete_authorizer(self, authorizer_name: str) -> None:
+        if authorizer_name not in self.authorizers:
+            raise ResourceNotFoundException(
+                f"Authorizer {authorizer_name} does not exist."
+            )
+        del self.authorizers[authorizer_name]
+
+    def list_authorizers(self) -> list[FakeAuthorizer]:
+        return list(self.authorizers.values())
+
+    # --- Provisioning Templates ---
+
+    def create_provisioning_template(
+        self,
+        template_name: str,
+        description: Optional[str],
+        template_body: str,
+        enabled: Optional[bool],
+        provisioning_role_arn: str,
+        pre_provisioning_hook: Optional[dict[str, str]],
+        tags: Optional[list[dict[str, str]]],
+        template_type: Optional[str],
+    ) -> FakeProvisioningTemplate:
+        if template_name in self.provisioning_templates:
+            raise ResourceAlreadyExistsException(
+                f"Provisioning template {template_name} already exists.",
+                template_name,
+                self.provisioning_templates[template_name].arn,
+            )
+        template = FakeProvisioningTemplate(
+            self.account_id,
+            self.region_name,
+            template_name,
+            description,
+            template_body,
+            enabled,
+            provisioning_role_arn,
+            pre_provisioning_hook,
+            tags,
+            template_type,
+        )
+        self.provisioning_templates[template_name] = template
+        return template
+
+    def describe_provisioning_template(
+        self, template_name: str
+    ) -> FakeProvisioningTemplate:
+        if template_name not in self.provisioning_templates:
+            raise ResourceNotFoundException(
+                f"Provisioning template {template_name} does not exist."
+            )
+        return self.provisioning_templates[template_name]
+
+    def update_provisioning_template(
+        self,
+        template_name: str,
+        description: Optional[str],
+        enabled: Optional[bool],
+        provisioning_role_arn: Optional[str],
+        pre_provisioning_hook: Optional[dict[str, str]],
+        default_version_id: Optional[int],
+    ) -> None:
+        if template_name not in self.provisioning_templates:
+            raise ResourceNotFoundException(
+                f"Provisioning template {template_name} does not exist."
+            )
+        template = self.provisioning_templates[template_name]
+        if description is not None:
+            template.description = description
+        if enabled is not None:
+            template.enabled = enabled
+        if provisioning_role_arn is not None:
+            template.provisioning_role_arn = provisioning_role_arn
+        if pre_provisioning_hook is not None:
+            template.pre_provisioning_hook = pre_provisioning_hook
+        if default_version_id is not None:
+            template.default_version_id = default_version_id
+        template.last_modified_date = utcnow()
+
+    def delete_provisioning_template(self, template_name: str) -> None:
+        if template_name not in self.provisioning_templates:
+            raise ResourceNotFoundException(
+                f"Provisioning template {template_name} does not exist."
+            )
+        del self.provisioning_templates[template_name]
+
+    def list_provisioning_templates(self) -> list[FakeProvisioningTemplate]:
+        return list(self.provisioning_templates.values())
+
+    # --- Dimensions ---
+
+    def create_dimension(
+        self,
+        name: str,
+        dimension_type: str,
+        string_values: list[str],
+        tags: Optional[list[dict[str, str]]],
+    ) -> FakeDimension:
+        if name in self.dimensions:
+            raise ResourceAlreadyExistsException(
+                f"Dimension {name} already exists.",
+                name,
+                self.dimensions[name].arn,
+            )
+        dimension = FakeDimension(
+            self.account_id,
+            self.region_name,
+            name,
+            dimension_type,
+            string_values,
+            tags,
+        )
+        self.dimensions[name] = dimension
+        return dimension
+
+    def describe_dimension(self, name: str) -> FakeDimension:
+        if name not in self.dimensions:
+            raise ResourceNotFoundException(f"Dimension {name} does not exist.")
+        return self.dimensions[name]
+
+    def update_dimension(self, name: str, string_values: list[str]) -> FakeDimension:
+        if name not in self.dimensions:
+            raise ResourceNotFoundException(f"Dimension {name} does not exist.")
+        dimension = self.dimensions[name]
+        dimension.string_values = string_values
+        dimension.last_modified_date = utcnow()
+        return dimension
+
+    def delete_dimension(self, name: str) -> None:
+        if name not in self.dimensions:
+            raise ResourceNotFoundException(f"Dimension {name} does not exist.")
+        del self.dimensions[name]
+
+    def list_dimensions(self) -> list[str]:
+        return list(self.dimensions.keys())
+
+    # --- Custom Metrics ---
+
+    def create_custom_metric(
+        self,
+        metric_name: str,
+        display_name: Optional[str],
+        metric_type: str,
+        tags: Optional[list[dict[str, str]]],
+    ) -> FakeCustomMetric:
+        if metric_name in self.custom_metrics:
+            raise ResourceAlreadyExistsException(
+                f"Custom metric {metric_name} already exists.",
+                metric_name,
+                self.custom_metrics[metric_name].arn,
+            )
+        metric = FakeCustomMetric(
+            self.account_id,
+            self.region_name,
+            metric_name,
+            display_name,
+            metric_type,
+            tags,
+        )
+        self.custom_metrics[metric_name] = metric
+        return metric
+
+    def describe_custom_metric(self, metric_name: str) -> FakeCustomMetric:
+        if metric_name not in self.custom_metrics:
+            raise ResourceNotFoundException(
+                f"Custom metric {metric_name} does not exist."
+            )
+        return self.custom_metrics[metric_name]
+
+    def update_custom_metric(
+        self, metric_name: str, display_name: str
+    ) -> FakeCustomMetric:
+        if metric_name not in self.custom_metrics:
+            raise ResourceNotFoundException(
+                f"Custom metric {metric_name} does not exist."
+            )
+        metric = self.custom_metrics[metric_name]
+        metric.display_name = display_name
+        metric.last_modified_date = utcnow()
+        return metric
+
+    def delete_custom_metric(self, metric_name: str) -> None:
+        if metric_name not in self.custom_metrics:
+            raise ResourceNotFoundException(
+                f"Custom metric {metric_name} does not exist."
+            )
+        del self.custom_metrics[metric_name]
+
+    def list_custom_metrics(self) -> list[str]:
+        return list(self.custom_metrics.keys())
+
+    # --- Fleet Metrics ---
+
+    def create_fleet_metric(
+        self,
+        metric_name: str,
+        query_string: str,
+        aggregation_type: Optional[dict[str, Any]],
+        period: Optional[int],
+        aggregation_field: Optional[str],
+        description: Optional[str],
+        query_version: Optional[str],
+        index_name: Optional[str],
+        unit: Optional[str],
+        tags: Optional[list[dict[str, str]]],
+    ) -> FakeFleetMetric:
+        if metric_name in self.fleet_metrics:
+            raise ResourceAlreadyExistsException(
+                f"Fleet metric {metric_name} already exists.",
+                metric_name,
+                self.fleet_metrics[metric_name].arn,
+            )
+        fleet_metric = FakeFleetMetric(
+            self.account_id,
+            self.region_name,
+            metric_name,
+            query_string,
+            aggregation_type,
+            period,
+            aggregation_field,
+            description,
+            query_version,
+            index_name,
+            unit,
+            tags,
+        )
+        self.fleet_metrics[metric_name] = fleet_metric
+        return fleet_metric
+
+    def describe_fleet_metric(self, metric_name: str) -> FakeFleetMetric:
+        if metric_name not in self.fleet_metrics:
+            raise ResourceNotFoundException(
+                f"Fleet metric {metric_name} does not exist."
+            )
+        return self.fleet_metrics[metric_name]
+
+    def update_fleet_metric(
+        self,
+        metric_name: str,
+        query_string: Optional[str],
+        aggregation_type: Optional[dict[str, Any]],
+        period: Optional[int],
+        aggregation_field: Optional[str],
+        description: Optional[str],
+        query_version: Optional[str],
+        index_name: Optional[str],
+        unit: Optional[str],
+    ) -> None:
+        if metric_name not in self.fleet_metrics:
+            raise ResourceNotFoundException(
+                f"Fleet metric {metric_name} does not exist."
+            )
+        fleet_metric = self.fleet_metrics[metric_name]
+        if query_string is not None:
+            fleet_metric.query_string = query_string
+        if aggregation_type is not None:
+            fleet_metric.aggregation_type = aggregation_type
+        if period is not None:
+            fleet_metric.period = period
+        if aggregation_field is not None:
+            fleet_metric.aggregation_field = aggregation_field
+        if description is not None:
+            fleet_metric.description = description
+        if query_version is not None:
+            fleet_metric.query_version = query_version
+        if index_name is not None:
+            fleet_metric.index_name = index_name
+        if unit is not None:
+            fleet_metric.unit = unit
+        fleet_metric.version += 1
+        fleet_metric.last_modified_date = utcnow()
+
+    def delete_fleet_metric(self, metric_name: str) -> None:
+        if metric_name not in self.fleet_metrics:
+            raise ResourceNotFoundException(
+                f"Fleet metric {metric_name} does not exist."
+            )
+        del self.fleet_metrics[metric_name]
+
+    def list_fleet_metrics(self) -> list[FakeFleetMetric]:
+        return list(self.fleet_metrics.values())
 
 
 iot_backends = BackendDict(IoTBackend, "iot")

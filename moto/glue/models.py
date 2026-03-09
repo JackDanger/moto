@@ -225,6 +225,36 @@ class GlueBackend(BaseBackend):
             "limit_default": 100,
             "unique_attribute": "workflow_run_id",
         },
+        "list_data_quality_rulesets": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "name",
+        },
+        "list_blueprints": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "name",
+        },
+        "list_ml_transforms": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "transform_id",
+        },
+        "list_classifiers": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "name",
+        },
+        "list_usage_profiles": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "name",
+        },
     }
 
     def __init__(self, region_name: str, account_id: str):
@@ -250,6 +280,12 @@ class GlueBackend(BaseBackend):
         self.data_catalog_encryption_settings: dict[str, dict[str, Any]] = {}
         self.resource_policies: dict[str, dict[str, Any]] = {}
         self.default_catalog_arn = f"arn:{get_partition(self.region_name)}:glue:{self.region_name}:{self.account_id}:catalog"
+        self.catalogs: dict[str, "FakeCatalog"] = OrderedDict()
+        self.data_quality_rulesets: dict[str, "FakeDataQualityRuleset"] = OrderedDict()
+        self.blueprints: dict[str, "FakeBlueprint"] = OrderedDict()
+        self.ml_transforms: dict[str, "FakeMLTransform"] = OrderedDict()
+        self.classifiers: dict[str, "FakeClassifier"] = OrderedDict()
+        self.usage_profiles: dict[str, "FakeUsageProfile"] = OrderedDict()
 
     def create_database(
         self,
@@ -1639,6 +1675,327 @@ class GlueBackend(BaseBackend):
         """Pagination is not yet implemented"""
         return list(self.security_configurations.values())
 
+    # --- Catalogs ---
+
+    def create_catalog(
+        self,
+        name: str,
+        catalog_input: dict[str, Any],
+        tags: Optional[dict[str, str]] = None,
+    ) -> "FakeCatalog":
+        if name in self.catalogs:
+            raise AlreadyExistsException("Catalog")
+        catalog = FakeCatalog(self, name, catalog_input)
+        self.catalogs[name] = catalog
+        if tags:
+            self.tag_resource(catalog.arn, tags)
+        return catalog
+
+    def get_catalog(self, name: str) -> "FakeCatalog":
+        if name not in self.catalogs:
+            raise EntityNotFoundException(f"Catalog {name} not found.")
+        return self.catalogs[name]
+
+    def update_catalog(self, name: str, catalog_input: dict[str, Any]) -> None:
+        if name not in self.catalogs:
+            raise EntityNotFoundException(f"Catalog {name} not found.")
+        self.catalogs[name].update_from_input(catalog_input)
+
+    def delete_catalog(self, name: str) -> None:
+        if name not in self.catalogs:
+            raise EntityNotFoundException(f"Catalog {name} not found.")
+        del self.catalogs[name]
+
+    # --- Data Quality Rulesets ---
+
+    def create_data_quality_ruleset(
+        self,
+        name: str,
+        ruleset: str,
+        description: Optional[str] = None,
+        target_table: Optional[dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
+    ) -> "FakeDataQualityRuleset":
+        if name in self.data_quality_rulesets:
+            raise AlreadyExistsException("DataQualityRuleset")
+        dq = FakeDataQualityRuleset(self, name, ruleset, description, target_table)
+        self.data_quality_rulesets[name] = dq
+        if tags:
+            self.tag_resource(dq.arn, tags)
+        return dq
+
+    def get_data_quality_ruleset(self, name: str) -> "FakeDataQualityRuleset":
+        if name not in self.data_quality_rulesets:
+            raise EntityNotFoundException(f"DataQualityRuleset {name} not found.")
+        return self.data_quality_rulesets[name]
+
+    def update_data_quality_ruleset(
+        self,
+        name: str,
+        ruleset: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> None:
+        if name not in self.data_quality_rulesets:
+            raise EntityNotFoundException(f"DataQualityRuleset {name} not found.")
+        dq = self.data_quality_rulesets[name]
+        if ruleset is not None:
+            dq.ruleset = ruleset
+        if description is not None:
+            dq.description = description
+        dq.last_modified_on = utcnow()
+
+    def delete_data_quality_ruleset(self, name: str) -> None:
+        if name not in self.data_quality_rulesets:
+            raise EntityNotFoundException(f"DataQualityRuleset {name} not found.")
+        del self.data_quality_rulesets[name]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_data_quality_rulesets(self) -> list["FakeDataQualityRuleset"]:
+        return list(self.data_quality_rulesets.values())
+
+    # --- Blueprints ---
+
+    def create_blueprint(
+        self,
+        name: str,
+        blueprint_location: str,
+        description: Optional[str] = None,
+        tags: Optional[dict[str, str]] = None,
+    ) -> "FakeBlueprint":
+        if name in self.blueprints:
+            raise AlreadyExistsException("Blueprint")
+        bp = FakeBlueprint(self, name, blueprint_location, description)
+        self.blueprints[name] = bp
+        if tags:
+            self.tag_resource(bp.arn, tags)
+        return bp
+
+    def get_blueprint(self, name: str) -> "FakeBlueprint":
+        if name not in self.blueprints:
+            raise EntityNotFoundException(f"Blueprint {name} not found.")
+        return self.blueprints[name]
+
+    def update_blueprint(
+        self,
+        name: str,
+        blueprint_location: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> None:
+        if name not in self.blueprints:
+            raise EntityNotFoundException(f"Blueprint {name} not found.")
+        bp = self.blueprints[name]
+        if blueprint_location is not None:
+            bp.blueprint_location = blueprint_location
+        if description is not None:
+            bp.description = description
+        bp.last_modified_on = utcnow()
+
+    def delete_blueprint(self, name: str) -> None:
+        if name not in self.blueprints:
+            raise EntityNotFoundException(f"Blueprint {name} not found.")
+        del self.blueprints[name]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_blueprints(self) -> list["FakeBlueprint"]:
+        return list(self.blueprints.values())
+
+    # --- ML Transforms ---
+
+    def create_ml_transform(
+        self,
+        name: str,
+        input_record_tables: list[dict[str, str]],
+        parameters: dict[str, Any],
+        role: str,
+        description: Optional[str] = None,
+        glue_version: Optional[str] = None,
+        max_capacity: Optional[float] = None,
+        worker_type: Optional[str] = None,
+        number_of_workers: Optional[int] = None,
+        timeout: Optional[int] = None,
+        max_retries: Optional[int] = None,
+        tags: Optional[dict[str, str]] = None,
+    ) -> "FakeMLTransform":
+        transform = FakeMLTransform(
+            self,
+            name,
+            input_record_tables,
+            parameters,
+            role,
+            description,
+            glue_version,
+            max_capacity,
+            worker_type,
+            number_of_workers,
+            timeout,
+            max_retries,
+        )
+        self.ml_transforms[transform.transform_id] = transform
+        if tags:
+            self.tag_resource(transform.arn, tags)
+        return transform
+
+    def get_ml_transform(self, transform_id: str) -> "FakeMLTransform":
+        if transform_id not in self.ml_transforms:
+            raise EntityNotFoundException(
+                f"MLTransform {transform_id} not found."
+            )
+        return self.ml_transforms[transform_id]
+
+    def update_ml_transform(
+        self,
+        transform_id: str,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        parameters: Optional[dict[str, Any]] = None,
+        role: Optional[str] = None,
+        glue_version: Optional[str] = None,
+        max_capacity: Optional[float] = None,
+        worker_type: Optional[str] = None,
+        number_of_workers: Optional[int] = None,
+        timeout: Optional[int] = None,
+        max_retries: Optional[int] = None,
+    ) -> None:
+        if transform_id not in self.ml_transforms:
+            raise EntityNotFoundException(
+                f"MLTransform {transform_id} not found."
+            )
+        t = self.ml_transforms[transform_id]
+        if name is not None:
+            t.name = name
+        if description is not None:
+            t.description = description
+        if parameters is not None:
+            t.parameters = parameters
+        if role is not None:
+            t.role = role
+        if glue_version is not None:
+            t.glue_version = glue_version
+        if max_capacity is not None:
+            t.max_capacity = max_capacity
+        if worker_type is not None:
+            t.worker_type = worker_type
+        if number_of_workers is not None:
+            t.number_of_workers = number_of_workers
+        if timeout is not None:
+            t.timeout = timeout
+        if max_retries is not None:
+            t.max_retries = max_retries
+        t.last_modified_on = utcnow()
+
+    def delete_ml_transform(self, transform_id: str) -> None:
+        if transform_id not in self.ml_transforms:
+            raise EntityNotFoundException(
+                f"MLTransform {transform_id} not found."
+            )
+        del self.ml_transforms[transform_id]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_ml_transforms(self) -> list["FakeMLTransform"]:
+        return list(self.ml_transforms.values())
+
+    # --- Classifiers ---
+
+    def create_classifier(
+        self,
+        grok_classifier: Optional[dict[str, Any]] = None,
+        xml_classifier: Optional[dict[str, Any]] = None,
+        json_classifier: Optional[dict[str, Any]] = None,
+        csv_classifier: Optional[dict[str, Any]] = None,
+    ) -> "FakeClassifier":
+        classifier = FakeClassifier(
+            grok_classifier, xml_classifier, json_classifier, csv_classifier
+        )
+        if classifier.name in self.classifiers:
+            raise AlreadyExistsException("Classifier")
+        self.classifiers[classifier.name] = classifier
+        return classifier
+
+    def get_classifier(self, name: str) -> "FakeClassifier":
+        if name not in self.classifiers:
+            raise EntityNotFoundException(f"Classifier {name} not found.")
+        return self.classifiers[name]
+
+    def update_classifier(
+        self,
+        grok_classifier: Optional[dict[str, Any]] = None,
+        xml_classifier: Optional[dict[str, Any]] = None,
+        json_classifier: Optional[dict[str, Any]] = None,
+        csv_classifier: Optional[dict[str, Any]] = None,
+    ) -> None:
+        # Determine which classifier type is being updated
+        if grok_classifier:
+            name = grok_classifier.get("Name", "")
+        elif xml_classifier:
+            name = xml_classifier.get("Name", "")
+        elif json_classifier:
+            name = json_classifier.get("Name", "")
+        elif csv_classifier:
+            name = csv_classifier.get("Name", "")
+        else:
+            raise InvalidInputException(
+                "UpdateClassifier", "No classifier provided"
+            )
+        if name not in self.classifiers:
+            raise EntityNotFoundException(f"Classifier {name} not found.")
+        c = self.classifiers[name]
+        c.update(grok_classifier, xml_classifier, json_classifier, csv_classifier)
+
+    def delete_classifier(self, name: str) -> None:
+        if name not in self.classifiers:
+            raise EntityNotFoundException(f"Classifier {name} not found.")
+        del self.classifiers[name]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_classifiers(self) -> list["FakeClassifier"]:
+        return list(self.classifiers.values())
+
+    # --- Usage Profiles ---
+
+    def create_usage_profile(
+        self,
+        name: str,
+        description: Optional[str] = None,
+        configuration: Optional[dict[str, Any]] = None,
+        tags: Optional[dict[str, str]] = None,
+    ) -> "FakeUsageProfile":
+        if name in self.usage_profiles:
+            raise AlreadyExistsException("UsageProfile")
+        profile = FakeUsageProfile(self, name, description, configuration)
+        self.usage_profiles[name] = profile
+        if tags:
+            self.tag_resource(profile.arn, tags)
+        return profile
+
+    def get_usage_profile(self, name: str) -> "FakeUsageProfile":
+        if name not in self.usage_profiles:
+            raise EntityNotFoundException(f"UsageProfile {name} not found.")
+        return self.usage_profiles[name]
+
+    def update_usage_profile(
+        self,
+        name: str,
+        description: Optional[str] = None,
+        configuration: Optional[dict[str, Any]] = None,
+    ) -> None:
+        if name not in self.usage_profiles:
+            raise EntityNotFoundException(f"UsageProfile {name} not found.")
+        profile = self.usage_profiles[name]
+        if description is not None:
+            profile.description = description
+        if configuration is not None:
+            profile.configuration = configuration
+        profile.last_modified_on = utcnow()
+
+    def delete_usage_profile(self, name: str) -> None:
+        if name not in self.usage_profiles:
+            raise EntityNotFoundException(f"UsageProfile {name} not found.")
+        del self.usage_profiles[name]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_usage_profiles(self) -> list["FakeUsageProfile"]:
+        return list(self.usage_profiles.values())
+
 
 class FakeSecurityConfiguration(BaseModel):
     def __init__(self, name: str, configuration: dict[str, Any]):
@@ -2570,6 +2927,267 @@ class FakeWorkflow:
     def stop_run(self, run_id: str) -> None:
         if not self.runs.get(run_id):
             raise EntityNotFoundException("Entity not found")
+
+
+class FakeCatalog(BaseModel):
+    def __init__(
+        self,
+        backend: GlueBackend,
+        name: str,
+        catalog_input: dict[str, Any],
+    ) -> None:
+        self.name = name
+        self.catalog_input = catalog_input
+        self.description = catalog_input.get("Description")
+        self.parameters = catalog_input.get("Parameters", {})
+        self.created_time = utcnow()
+        self.updated_time = self.created_time
+        self.arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:catalog/{name}"
+        self.catalog_id = name
+        self.account_id = backend.account_id
+
+    def update_from_input(self, catalog_input: dict[str, Any]) -> None:
+        self.catalog_input = catalog_input
+        self.description = catalog_input.get("Description", self.description)
+        self.parameters = catalog_input.get("Parameters", self.parameters)
+        self.updated_time = utcnow()
+
+    def as_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "CatalogId": self.catalog_id,
+            "Name": self.name,
+            "ResourceArn": self.arn,
+            "CreateTime": self.created_time,
+            "UpdateTime": self.updated_time,
+        }
+        if self.description:
+            result["Description"] = self.description
+        if self.parameters:
+            result["Parameters"] = self.parameters
+        return result
+
+
+class FakeDataQualityRuleset(BaseModel):
+    def __init__(
+        self,
+        backend: GlueBackend,
+        name: str,
+        ruleset: str,
+        description: Optional[str] = None,
+        target_table: Optional[dict[str, str]] = None,
+    ) -> None:
+        self.name = name
+        self.ruleset = ruleset
+        self.description = description
+        self.target_table = target_table
+        self.created_on = utcnow()
+        self.last_modified_on = self.created_on
+        self.arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:dataQualityRuleset/{name}"
+
+    def as_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "Name": self.name,
+            "Ruleset": self.ruleset,
+            "CreatedOn": self.created_on,
+            "LastModifiedOn": self.last_modified_on,
+        }
+        if self.description:
+            result["Description"] = self.description
+        if self.target_table:
+            result["TargetTable"] = self.target_table
+        return result
+
+
+class FakeBlueprint(BaseModel):
+    def __init__(
+        self,
+        backend: GlueBackend,
+        name: str,
+        blueprint_location: str,
+        description: Optional[str] = None,
+    ) -> None:
+        self.name = name
+        self.blueprint_location = blueprint_location
+        self.description = description
+        self.created_on = utcnow()
+        self.last_modified_on = self.created_on
+        self.status = "ACTIVE"
+        self.arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:blueprint/{name}"
+
+    def as_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "Name": self.name,
+            "BlueprintLocation": self.blueprint_location,
+            "Status": self.status,
+            "CreatedOn": self.created_on,
+            "LastModifiedOn": self.last_modified_on,
+        }
+        if self.description:
+            result["Description"] = self.description
+        return result
+
+
+class FakeMLTransform(BaseModel):
+    def __init__(
+        self,
+        backend: GlueBackend,
+        name: str,
+        input_record_tables: list[dict[str, str]],
+        parameters: dict[str, Any],
+        role: str,
+        description: Optional[str] = None,
+        glue_version: Optional[str] = None,
+        max_capacity: Optional[float] = None,
+        worker_type: Optional[str] = None,
+        number_of_workers: Optional[int] = None,
+        timeout: Optional[int] = None,
+        max_retries: Optional[int] = None,
+    ) -> None:
+        self.transform_id = f"tfm_{mock_random.get_random_hex(32)}"
+        self.name = name
+        self.input_record_tables = input_record_tables
+        self.parameters = parameters
+        self.role = role
+        self.description = description
+        self.glue_version = glue_version
+        self.max_capacity = max_capacity
+        self.worker_type = worker_type
+        self.number_of_workers = number_of_workers
+        self.timeout = timeout
+        self.max_retries = max_retries
+        self.status = "NOT_READY"
+        self.created_on = utcnow()
+        self.last_modified_on = self.created_on
+        self.arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:mlTransform/{self.transform_id}"
+
+    def as_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "TransformId": self.transform_id,
+            "Name": self.name,
+            "InputRecordTables": self.input_record_tables,
+            "Parameters": self.parameters,
+            "Role": self.role,
+            "Status": self.status,
+            "CreatedOn": self.created_on,
+            "LastModifiedOn": self.last_modified_on,
+        }
+        if self.description:
+            result["Description"] = self.description
+        if self.glue_version:
+            result["GlueVersion"] = self.glue_version
+        if self.max_capacity is not None:
+            result["MaxCapacity"] = self.max_capacity
+        if self.worker_type:
+            result["WorkerType"] = self.worker_type
+        if self.number_of_workers is not None:
+            result["NumberOfWorkers"] = self.number_of_workers
+        if self.timeout is not None:
+            result["Timeout"] = self.timeout
+        if self.max_retries is not None:
+            result["MaxRetries"] = self.max_retries
+        return result
+
+
+class FakeClassifier(BaseModel):
+    def __init__(
+        self,
+        grok_classifier: Optional[dict[str, Any]] = None,
+        xml_classifier: Optional[dict[str, Any]] = None,
+        json_classifier: Optional[dict[str, Any]] = None,
+        csv_classifier: Optional[dict[str, Any]] = None,
+    ) -> None:
+        self.grok_classifier = grok_classifier
+        self.xml_classifier = xml_classifier
+        self.json_classifier = json_classifier
+        self.csv_classifier = csv_classifier
+        self.created_time = utcnow()
+        self.last_updated = self.created_time
+
+        # Determine the name from whichever classifier type is provided
+        if grok_classifier:
+            self.name = grok_classifier.get("Name", "")
+            self.classifier_type = "grok"
+        elif xml_classifier:
+            self.name = xml_classifier.get("Name", "")
+            self.classifier_type = "xml"
+        elif json_classifier:
+            self.name = json_classifier.get("Name", "")
+            self.classifier_type = "json"
+        elif csv_classifier:
+            self.name = csv_classifier.get("Name", "")
+            self.classifier_type = "csv"
+        else:
+            self.name = ""
+            self.classifier_type = "unknown"
+
+    def update(
+        self,
+        grok_classifier: Optional[dict[str, Any]] = None,
+        xml_classifier: Optional[dict[str, Any]] = None,
+        json_classifier: Optional[dict[str, Any]] = None,
+        csv_classifier: Optional[dict[str, Any]] = None,
+    ) -> None:
+        if grok_classifier:
+            self.grok_classifier = {**(self.grok_classifier or {}), **grok_classifier}
+        if xml_classifier:
+            self.xml_classifier = {**(self.xml_classifier or {}), **xml_classifier}
+        if json_classifier:
+            self.json_classifier = {**(self.json_classifier or {}), **json_classifier}
+        if csv_classifier:
+            self.csv_classifier = {**(self.csv_classifier or {}), **csv_classifier}
+        self.last_updated = utcnow()
+
+    def as_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        if self.grok_classifier:
+            clf = dict(self.grok_classifier)
+            clf["CreationTime"] = self.created_time
+            clf["LastUpdated"] = self.last_updated
+            result["GrokClassifier"] = clf
+        if self.xml_classifier:
+            clf = dict(self.xml_classifier)
+            clf["CreationTime"] = self.created_time
+            clf["LastUpdated"] = self.last_updated
+            result["XMLClassifier"] = clf
+        if self.json_classifier:
+            clf = dict(self.json_classifier)
+            clf["CreationTime"] = self.created_time
+            clf["LastUpdated"] = self.last_updated
+            result["JsonClassifier"] = clf
+        if self.csv_classifier:
+            clf = dict(self.csv_classifier)
+            clf["CreationTime"] = self.created_time
+            clf["LastUpdated"] = self.last_updated
+            result["CsvClassifier"] = clf
+        return result
+
+
+class FakeUsageProfile(BaseModel):
+    def __init__(
+        self,
+        backend: GlueBackend,
+        name: str,
+        description: Optional[str] = None,
+        configuration: Optional[dict[str, Any]] = None,
+    ) -> None:
+        self.name = name
+        self.description = description
+        self.configuration = configuration
+        self.created_on = utcnow()
+        self.last_modified_on = self.created_on
+        self.arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:usageProfile/{name}"
+
+    def as_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "Name": self.name,
+            "CreatedOn": self.created_on,
+            "LastModifiedOn": self.last_modified_on,
+        }
+        if self.description:
+            result["Description"] = self.description
+        if self.configuration:
+            result["Configuration"] = self.configuration
+        return result
 
 
 glue_backends = BackendDict(GlueBackend, "glue")
