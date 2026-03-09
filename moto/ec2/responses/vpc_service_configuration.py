@@ -91,6 +91,20 @@ class VPCEndpointServiceConfiguration(EC2BaseResponse):
 
         return MODIFY_VPC_ENDPOINT_SERVICE_PERMISSIONS
 
+    def accept_vpc_endpoint_connections(self) -> str:
+        service_id = self._get_param("ServiceId")
+        vpc_endpoint_ids = self._get_param("VpcEndpointIds", [])
+        failed = self.ec2_backend.accept_vpc_endpoint_connections(service_id, vpc_endpoint_ids)
+        template = self.response_template(ACCEPT_VPC_ENDPOINT_CONNECTIONS)
+        return template.render(failed=failed)
+
+    def reject_vpc_endpoint_connections(self) -> str:
+        service_id = self._get_param("ServiceId")
+        vpc_endpoint_ids = self._get_param("VpcEndpointIds", [])
+        failed = self.ec2_backend.reject_vpc_endpoint_connections(service_id, vpc_endpoint_ids)
+        template = self.response_template(REJECT_VPC_ENDPOINT_CONNECTIONS)
+        return template.render(failed=failed)
+
 
 CREATE_VPC_ENDPOINT_SERVICE_CONFIGURATION = """
 <CreateVpcEndpointServiceConfigurationResult xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
@@ -243,4 +257,38 @@ MODIFY_VPC_ENDPOINT_SERVICE_CONFIGURATION = """
 <ModifyVpcEndpointServiceConfigurationResult>
 <return>true</return>
 </ModifyVpcEndpointServiceConfigurationResult>
+"""
+
+
+ACCEPT_VPC_ENDPOINT_CONNECTIONS = """
+<AcceptVpcEndpointConnectionsResult>
+  <unsuccessful>
+    {% for endpoint_id in failed %}
+    <item>
+      <error>
+        <code>InvalidVpcEndpointId.NotFound</code>
+        <message>The VpcEndpoint Id '{{ endpoint_id }}' does not exist</message>
+      </error>
+      <resourceId>{{ endpoint_id }}</resourceId>
+    </item>
+    {% endfor %}
+  </unsuccessful>
+</AcceptVpcEndpointConnectionsResult>
+"""
+
+
+REJECT_VPC_ENDPOINT_CONNECTIONS = """
+<RejectVpcEndpointConnectionsResult>
+  <unsuccessful>
+    {% for endpoint_id in failed %}
+    <item>
+      <error>
+        <code>InvalidVpcEndpointId.NotFound</code>
+        <message>The VpcEndpoint Id '{{ endpoint_id }}' does not exist</message>
+      </error>
+      <resourceId>{{ endpoint_id }}</resourceId>
+    </item>
+    {% endfor %}
+  </unsuccessful>
+</RejectVpcEndpointConnectionsResult>
 """
