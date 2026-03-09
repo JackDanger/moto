@@ -341,6 +341,107 @@ class GuardDutyResponse(BaseResponse):
         )
         return json.dumps(result)
 
+    def list_publishing_destinations(self) -> str:
+        detector_id = self.path.split("/")[-2]
+        destinations = self.guardduty_backend.list_publishing_destinations(detector_id)
+        return json.dumps({"destinations": destinations})
+
+    def update_publishing_destination(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        destination_id = self.path.split("/")[-1]
+        destination_properties = self._get_param("destinationProperties")
+        self.guardduty_backend.update_publishing_destination(
+            detector_id, destination_id, destination_properties
+        )
+        return "{}"
+
+    def delete_publishing_destination(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        destination_id = self.path.split("/")[-1]
+        self.guardduty_backend.delete_publishing_destination(
+            detector_id, destination_id
+        )
+        return "{}"
+
+    # Members operations
+    def create_members(self) -> str:
+        detector_id = self.path.split("/")[-2]
+        account_details = self._get_param("accountDetails")
+        _, unprocessed = self.guardduty_backend.create_members(
+            detector_id, account_details or []
+        )
+        return json.dumps({"unprocessedAccounts": unprocessed})
+
+    def get_members(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        account_ids = self._get_param("accountIds")
+        members, unprocessed = self.guardduty_backend.get_members(
+            detector_id, account_ids or []
+        )
+        return json.dumps({
+            "members": members,
+            "unprocessedAccounts": unprocessed,
+        })
+
+    def list_members(self) -> str:
+        detector_id = self.path.split("/")[-2]
+        members = self.guardduty_backend.list_members(detector_id)
+        return json.dumps({"members": members})
+
+    def delete_members(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        account_ids = self._get_param("accountIds")
+        _, unprocessed = self.guardduty_backend.delete_members(
+            detector_id, account_ids or []
+        )
+        return json.dumps({"unprocessedAccounts": unprocessed})
+
+    def start_monitoring_members(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        account_ids = self._get_param("accountIds")
+        unprocessed = self.guardduty_backend.start_monitoring_members(
+            detector_id, account_ids or []
+        )
+        return json.dumps({"unprocessedAccounts": unprocessed})
+
+    def stop_monitoring_members(self) -> str:
+        detector_id = self.path.split("/")[-3]
+        account_ids = self._get_param("accountIds")
+        unprocessed = self.guardduty_backend.stop_monitoring_members(
+            detector_id, account_ids or []
+        )
+        return json.dumps({"unprocessedAccounts": unprocessed})
+
+    # Organization admin operations
+    def accept_administrator_invitation(self) -> str:
+        detector_id = self.path.split("/")[-2]
+        administrator_id = self._get_param("administratorId")
+        invitation_id = self._get_param("invitationId")
+        self.guardduty_backend.accept_administrator_invitation(
+            detector_id, administrator_id, invitation_id
+        )
+        return "{}"
+
+    def disable_organization_admin_account(self) -> str:
+        admin_account_id = self._get_param("adminAccountId")
+        self.guardduty_backend.disable_organization_admin_account(admin_account_id)
+        return "{}"
+
+    def update_organization_configuration(self) -> str:
+        detector_id = self.path.split("/")[-2]
+        auto_enable = self._get_param("autoEnable")
+        data_sources = self._get_param("dataSources")
+        features = self._get_param("features")
+        auto_enable_org = self._get_param("autoEnableOrganizationMembers")
+        self.guardduty_backend.update_organization_configuration(
+            detector_id,
+            auto_enable=auto_enable,
+            data_sources=data_sources,
+            features=features,
+            auto_enable_organization_members=auto_enable_org,
+        )
+        return "{}"
+
     # Coverage statistics
     def get_coverage_statistics(self) -> str:
         detector_id = self.path.split("/")[-3]

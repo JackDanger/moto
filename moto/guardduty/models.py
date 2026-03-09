@@ -97,15 +97,24 @@ class GuardDutyBackend(BaseBackend):
 
     def get_administrator_account(self, detector_id: str) -> dict[str, Any]:
         """Get administrator account details."""
-        self.get_detector(detector_id)
+        detector = self.get_detector(detector_id)
+
+        # Check detector-level administrator first (from AcceptAdministratorInvitation)
+        if detector.administrator_id:
+            return {
+                "administrator": {
+                    "accountId": detector.administrator_id,
+                    "relationshipStatus": "ENABLED",
+                }
+            }
 
         if not self.admin_account_ids:
             return {}
 
         return {
-            "Administrator": {
-                "AccountId": self.admin_account_ids[0],
-                "RelationshipStatus": "ENABLED",
+            "administrator": {
+                "accountId": self.admin_account_ids[0],
+                "relationshipStatus": "ENABLED",
             }
         }
 
@@ -475,6 +484,164 @@ class GuardDutyBackend(BaseBackend):
             )
         return detector.publishing_destinations[destination_id]
 
+    def list_publishing_destinations(
+        self, detector_id: str
+    ) -> list[dict[str, Any]]:
+        detector = self.get_detector(detector_id)
+        return [
+            {
+                "destinationId": d["destinationId"],
+                "destinationType": d["destinationType"],
+                "status": d["status"],
+            }
+            for d in detector.publishing_destinations.values()
+        ]
+
+    def update_publishing_destination(
+        self,
+        detector_id: str,
+        destination_id: str,
+        destination_properties: Optional[dict[str, str]] = None,
+    ) -> None:
+        dest = self.describe_publishing_destination(detector_id, destination_id)
+        if destination_properties is not None:
+            dest["destinationProperties"] = destination_properties
+
+    def delete_publishing_destination(
+        self, detector_id: str, destination_id: str
+    ) -> None:
+        detector = self.get_detector(detector_id)
+        if destination_id not in detector.publishing_destinations:
+            raise ResourceNotFoundException(
+                f"arn:{get_partition(self.region_name)}:guardduty:"
+                f"{self.region_name}:{self.account_id}:"
+                f"detector/{detector_id}/publishingDestination/{destination_id}"
+            )
+        del detector.publishing_destinations[destination_id]
+
+    # Members operations
+    def create_members(
+        self,
+        detector_id: str,
+        account_details: list[dict[str, str]],
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        detector = self.get_detector(detector_id)
+        unprocessed: list[dict[str, Any]] = []
+        for detail in account_details or []:
+            acct_id = detail.get("accountId", "")
+            email = detail.get("email", "")
+            detector.members[acct_id] = {
+                "accountId": acct_id,
+                "email": email,
+                "detectorId": detector_id,
+                "masterId": self.account_id,
+                "administratorId": self.account_id,
+                "relationshipStatus": "CREATED",
+                "invitedAt": datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                "updatedAt": datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            }
+        return [], unprocessed
+
+    def get_members(
+        self,
+        detector_id: str,
+        account_ids: list[str],
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        detector = self.get_detector(detector_id)
+        members: list[dict[str, Any]] = []
+        unprocessed: list[dict[str, Any]] = []
+        for acct_id in account_ids or []:
+            if acct_id in detector.members:
+                members.append(detector.members[acct_id])
+            else:
+                unprocessed.append({
+                    "accountId": acct_id,
+                    "result": "Account not found as a member",
+                })
+        return members, unprocessed
+
+    def list_members(self, detector_id: str) -> list[dict[str, Any]]:
+        detector = self.get_detector(detector_id)
+        return list(detector.members.values())
+
+    def delete_members(
+        self,
+        detector_id: str,
+        account_ids: list[str],
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        detector = self.get_detector(detector_id)
+        unprocessed: list[dict[str, Any]] = []
+        for acct_id in account_ids or []:
+            if acct_id in detector.members:
+                del detector.members[acct_id]
+            else:
+                unprocessed.append({
+                    "accountId": acct_id,
+                    "result": "Account not found as a member",
+                })
+        return [], unprocessed
+
+    def start_monitoring_members(
+        self,
+        detector_id: str,
+        account_ids: list[str],
+    ) -> list[dict[str, Any]]:
+        detector = self.get_detector(detector_id)
+        unprocessed: list[dict[str, Any]] = []
+        for acct_id in account_ids or []:
+            if acct_id in detector.members:
+                detector.members[acct_id]["relationshipStatus"] = "ENABLED"
+            else:
+                unprocessed.append({
+                    "accountId": acct_id,
+                    "result": "Account not found as a member",
+                })
+        return unprocessed
+
+    def stop_monitoring_members(
+        self,
+        detector_id: str,
+        account_ids: list[str],
+    ) -> list[dict[str, Any]]:
+        detector = self.get_detector(detector_id)
+        unprocessed: list[dict[str, Any]] = []
+        for acct_id in account_ids or []:
+            if acct_id in detector.members:
+                detector.members[acct_id]["relationshipStatus"] = "DISABLED"
+            else:
+                unprocessed.append({
+                    "accountId": acct_id,
+                    "result": "Account not found as a member",
+                })
+        return unprocessed
+
+    # Organization admin operations
+    def accept_administrator_invitation(
+        self,
+        detector_id: str,
+        administrator_id: str,
+        invitation_id: str,
+    ) -> None:
+        detector = self.get_detector(detector_id)
+        detector.administrator_id = administrator_id
+        detector.invitation_id = invitation_id
+
+    def disable_organization_admin_account(
+        self, admin_account_id: str
+    ) -> None:
+        if admin_account_id in self.admin_account_ids:
+            self.admin_account_ids.remove(admin_account_id)
+
+    def update_organization_configuration(
+        self,
+        detector_id: str,
+        auto_enable: Optional[bool] = None,
+        data_sources: Optional[dict[str, Any]] = None,
+        features: Optional[list[dict[str, Any]]] = None,
+        auto_enable_organization_members: Optional[str] = None,
+    ) -> None:
+        self.get_detector(detector_id)
+
     # Coverage statistics
     def get_coverage_statistics(
         self, detector_id: str
@@ -647,6 +814,9 @@ class Detector(BaseModel):
         self.threat_intel_sets: dict[str, ThreatIntelSet] = {}
         self.findings: dict[str, dict[str, Any]] = {}
         self.publishing_destinations: dict[str, dict[str, Any]] = {}
+        self.members: dict[str, dict[str, Any]] = {}
+        self.administrator_id: Optional[str] = None
+        self.invitation_id: Optional[str] = None
 
     def add_filter(self, _filter: Filter) -> None:
         self.filters[_filter.name] = _filter
