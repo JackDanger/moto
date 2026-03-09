@@ -427,6 +427,41 @@ class ElastiCacheResponse(BaseResponse):
         )
         return PaginatedResult({"UpdateActions": actions})
 
+    def batch_apply_update_action(self) -> ActionResult:
+        service_update_name = self._get_param("ServiceUpdateName")
+        replication_group_ids = self._get_param("ReplicationGroupIds", [])
+        cache_cluster_ids = self._get_param("CacheClusterIds", [])
+        processed, unprocessed = self.elasticache_backend.batch_apply_update_action(
+            service_update_name=service_update_name,
+            replication_group_ids=replication_group_ids,
+            cache_cluster_ids=cache_cluster_ids,
+        )
+        return ActionResult({
+            "ProcessedUpdateActions": processed,
+            "UnprocessedUpdateActions": unprocessed,
+        })
+
+    def batch_stop_update_action(self) -> ActionResult:
+        service_update_name = self._get_param("ServiceUpdateName")
+        replication_group_ids = self._get_param("ReplicationGroupIds", [])
+        cache_cluster_ids = self._get_param("CacheClusterIds", [])
+        processed, unprocessed = self.elasticache_backend.batch_stop_update_action(
+            service_update_name=service_update_name,
+            replication_group_ids=replication_group_ids,
+            cache_cluster_ids=cache_cluster_ids,
+        )
+        return ActionResult({
+            "ProcessedUpdateActions": processed,
+            "UnprocessedUpdateActions": unprocessed,
+        })
+
+    def delete_cache_subnet_group(self) -> ActionResult:
+        cache_subnet_group_name = self._get_param("CacheSubnetGroupName")
+        self.elasticache_backend.delete_cache_subnet_group(
+            cache_subnet_group_name=cache_subnet_group_name,
+        )
+        return EmptyResult()
+
     def describe_user_groups(self) -> ActionResult:
         user_group_id = self._get_param("UserGroupId")
         groups = self.elasticache_backend.describe_user_groups(
