@@ -28,12 +28,15 @@ class QuicksightIngestion(BaseModel):
     ):
         self.arn = f"arn:{get_partition(region)}:quicksight:{region}:{account_id}:data-set/{data_set_id}/ingestions/{ingestion_id}"
         self.ingestion_id = ingestion_id
+        self.data_set_id = data_set_id
+        self.ingestion_status = "INITIALIZED"
+        self.created_time = datetime.datetime.now()
 
     def to_json(self) -> dict[str, Any]:
         return {
             "Arn": self.arn,
             "IngestionId": self.ingestion_id,
-            "IngestionStatus": "INITIALIZED",
+            "IngestionStatus": self.ingestion_status,
         }
 
 
@@ -108,6 +111,9 @@ class QuicksightUser(BaseModel):
         self.user_role = user_role
         self.active = False
         self.principal_id = random.get_random_hex(10)
+        self.account_id = account_id
+        self.region = region
+        self.custom_permissions_name: Optional[str] = None
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -122,8 +128,6 @@ class QuicksightUser(BaseModel):
 
 
 class QuicksightDashboard(BaseModel):
-    # Matches model from https://docs.aws.amazon.com/quicksight/latest/APIReference/API_CreateDashboard.html#API_CreateDashboard_RequestSyntax
-    # Todo: Handle versions and all fields
     def __init__(
         self,
         account_id: str,
@@ -154,7 +158,7 @@ class QuicksightDashboard(BaseModel):
         self.link_entities = link_entities
         self.link_sharing_configuration = link_sharing_configuration
         self.parameters = parameters
-        self.permissions = permissions
+        self.permissions = permissions or []
         self.source_entity = source_entity
         self.tags = tags
         self.theme_arn = theme_arn
@@ -231,6 +235,7 @@ class QuickSightDataSource(BaseModel):
         self.tags = tags or []
         self.ssl_properties = ssl_properties
         self.vpc_connection_properties = vpc_connection_properties
+        self.permissions: list[dict[str, Any]] = []
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -246,3 +251,465 @@ class QuickSightDataSource(BaseModel):
             "Type": self.data_source_type,
             "VpcConnectionProperties": self.vpc_connection_properties,
         }
+
+
+# --- New resource types ---
+
+
+class QuicksightAnalysis(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region: str,
+        analysis_id: str,
+        name: str,
+        source_entity: Optional[dict[str, Any]] = None,
+        definition: Optional[dict[str, Any]] = None,
+        parameters: Optional[dict[str, Any]] = None,
+        permissions: Optional[list[dict[str, Any]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+        theme_arn: Optional[str] = None,
+        validation_strategy: Optional[dict[str, str]] = None,
+        folder_arns: Optional[list[str]] = None,
+    ) -> None:
+        self.arn = f"arn:{get_partition(region)}:quicksight:{region}:{account_id}:analysis/{analysis_id}"
+        self.analysis_id = analysis_id
+        self.name = name
+        self.account_id = account_id
+        self.region = region
+        self.source_entity = source_entity
+        self.definition = definition
+        self.parameters = parameters
+        self.permissions = permissions or []
+        self.tags = tags
+        self.theme_arn = theme_arn
+        self.validation_strategy = validation_strategy
+        self.folder_arns = folder_arns
+        self.created_time = datetime.datetime.now()
+        self.last_updated_time = datetime.datetime.now()
+        self.status = "CREATION_SUCCESSFUL"
+        self.deleted = False
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "Arn": self.arn,
+            "AnalysisId": self.analysis_id,
+            "Name": self.name,
+            "Status": self.status,
+            "CreatedTime": str(self.created_time),
+            "LastUpdatedTime": str(self.last_updated_time),
+            "ThemeArn": self.theme_arn,
+        }
+
+    def to_summary(self) -> dict[str, Any]:
+        return {
+            "Arn": self.arn,
+            "AnalysisId": self.analysis_id,
+            "Name": self.name,
+            "Status": self.status,
+            "CreatedTime": str(self.created_time),
+            "LastUpdatedTime": str(self.last_updated_time),
+        }
+
+
+class QuicksightTemplate(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region: str,
+        template_id: str,
+        name: str,
+        source_entity: Optional[dict[str, Any]] = None,
+        definition: Optional[dict[str, Any]] = None,
+        permissions: Optional[list[dict[str, Any]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+        version_description: Optional[str] = None,
+        validation_strategy: Optional[dict[str, str]] = None,
+    ) -> None:
+        self.arn = f"arn:{get_partition(region)}:quicksight:{region}:{account_id}:template/{template_id}"
+        self.template_id = template_id
+        self.name = name
+        self.account_id = account_id
+        self.region = region
+        self.source_entity = source_entity
+        self.definition = definition
+        self.permissions = permissions or []
+        self.tags = tags
+        self.version_description = version_description
+        self.validation_strategy = validation_strategy
+        self.created_time = datetime.datetime.now()
+        self.last_updated_time = datetime.datetime.now()
+        self.version_number = 1
+        self.status = "CREATION_SUCCESSFUL"
+        self.aliases: dict[str, QuicksightTemplateAlias] = {}
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "Arn": self.arn,
+            "TemplateId": self.template_id,
+            "Name": self.name,
+            "Version": {
+                "CreatedTime": str(self.created_time),
+                "Errors": [],
+                "VersionNumber": self.version_number,
+                "Status": self.status,
+                "Description": self.version_description,
+                "SourceEntityArn": self.source_entity,
+            },
+            "CreatedTime": str(self.created_time),
+            "LastUpdatedTime": str(self.last_updated_time),
+        }
+
+    def to_summary(self) -> dict[str, Any]:
+        return {
+            "Arn": self.arn,
+            "TemplateId": self.template_id,
+            "Name": self.name,
+            "LatestVersionNumber": self.version_number,
+            "CreatedTime": str(self.created_time),
+            "LastUpdatedTime": str(self.last_updated_time),
+        }
+
+
+class QuicksightTemplateAlias(BaseModel):
+    def __init__(
+        self,
+        alias_name: str,
+        template_version_number: int,
+        arn: str,
+    ) -> None:
+        self.alias_name = alias_name
+        self.template_version_number = template_version_number
+        self.arn = arn
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "AliasName": self.alias_name,
+            "Arn": self.arn,
+            "TemplateVersionNumber": self.template_version_number,
+        }
+
+
+class QuicksightTheme(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region: str,
+        theme_id: str,
+        name: str,
+        base_theme_id: Optional[str] = None,
+        configuration: Optional[dict[str, Any]] = None,
+        permissions: Optional[list[dict[str, Any]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+        version_description: Optional[str] = None,
+    ) -> None:
+        self.arn = f"arn:{get_partition(region)}:quicksight:{region}:{account_id}:theme/{theme_id}"
+        self.theme_id = theme_id
+        self.name = name
+        self.account_id = account_id
+        self.region = region
+        self.base_theme_id = base_theme_id
+        self.configuration = configuration
+        self.permissions = permissions or []
+        self.tags = tags
+        self.version_description = version_description
+        self.created_time = datetime.datetime.now()
+        self.last_updated_time = datetime.datetime.now()
+        self.version_number = 1
+        self.status = "CREATION_SUCCESSFUL"
+        self.aliases: dict[str, QuicksightThemeAlias] = {}
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "Arn": self.arn,
+            "ThemeId": self.theme_id,
+            "Name": self.name,
+            "Version": {
+                "VersionNumber": self.version_number,
+                "Status": self.status,
+                "CreatedTime": str(self.created_time),
+                "Description": self.version_description,
+                "BaseThemeId": self.base_theme_id,
+                "Configuration": self.configuration,
+            },
+            "CreatedTime": str(self.created_time),
+            "LastUpdatedTime": str(self.last_updated_time),
+            "Type": "CUSTOM",
+        }
+
+    def to_summary(self) -> dict[str, Any]:
+        return {
+            "Arn": self.arn,
+            "ThemeId": self.theme_id,
+            "Name": self.name,
+            "LatestVersionNumber": self.version_number,
+            "CreatedTime": str(self.created_time),
+            "LastUpdatedTime": str(self.last_updated_time),
+        }
+
+
+class QuicksightThemeAlias(BaseModel):
+    def __init__(
+        self,
+        alias_name: str,
+        theme_version_number: int,
+        arn: str,
+    ) -> None:
+        self.alias_name = alias_name
+        self.theme_version_number = theme_version_number
+        self.arn = arn
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "AliasName": self.alias_name,
+            "Arn": self.arn,
+            "ThemeVersionNumber": self.theme_version_number,
+        }
+
+
+class QuicksightFolder(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region: str,
+        folder_id: str,
+        name: str,
+        folder_type: Optional[str] = None,
+        parent_folder_arn: Optional[str] = None,
+        permissions: Optional[list[dict[str, Any]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+        sharing_model: Optional[str] = None,
+    ) -> None:
+        self.arn = f"arn:{get_partition(region)}:quicksight:{region}:{account_id}:folder/{folder_id}"
+        self.folder_id = folder_id
+        self.name = name
+        self.account_id = account_id
+        self.region = region
+        self.folder_type = folder_type or "SHARED"
+        self.parent_folder_arn = parent_folder_arn
+        self.permissions = permissions or []
+        self.tags = tags
+        self.sharing_model = sharing_model
+        self.created_time = datetime.datetime.now()
+        self.last_updated_time = datetime.datetime.now()
+        # members: dict of (member_type, member_id) -> member_arn
+        self.members: dict[tuple[str, str], str] = {}
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "Arn": self.arn,
+            "FolderId": self.folder_id,
+            "Name": self.name,
+            "FolderType": self.folder_type,
+            "FolderPath": [self.arn],
+            "CreatedTime": str(self.created_time),
+            "LastUpdatedTime": str(self.last_updated_time),
+            "SharingModel": self.sharing_model,
+        }
+
+    def to_summary(self) -> dict[str, Any]:
+        return {
+            "Arn": self.arn,
+            "FolderId": self.folder_id,
+            "Name": self.name,
+            "FolderType": self.folder_type,
+            "CreatedTime": str(self.created_time),
+            "LastUpdatedTime": str(self.last_updated_time),
+            "SharingModel": self.sharing_model,
+        }
+
+
+class QuicksightNamespace(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region: str,
+        namespace: str,
+        identity_store: Optional[str] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> None:
+        self.arn = f"arn:{get_partition(region)}:quicksight:{region}:{account_id}:namespace/{namespace}"
+        self.namespace = namespace
+        self.account_id = account_id
+        self.region = region
+        self.identity_store = identity_store or "QUICKSIGHT"
+        self.tags = tags
+        self.creation_status = "CREATED"
+        self.capacity_region = region
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "Arn": self.arn,
+            "Name": self.namespace,
+            "CapacityRegion": self.capacity_region,
+            "CreationStatus": self.creation_status,
+            "IdentityStore": self.identity_store,
+        }
+
+
+class QuicksightTopic(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region: str,
+        topic_id: str,
+        name: str,
+        description: Optional[str] = None,
+        data_sets: Optional[list[dict[str, Any]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> None:
+        self.arn = f"arn:{get_partition(region)}:quicksight:{region}:{account_id}:topic/{topic_id}"
+        self.topic_id = topic_id
+        self.name = name
+        self.account_id = account_id
+        self.region = region
+        self.description = description
+        self.data_sets = data_sets or []
+        self.tags = tags
+        self.permissions: list[dict[str, Any]] = []
+        self.refresh_schedules: dict[str, dict[str, Any]] = {}
+        self.reviewed_answers: list[dict[str, Any]] = []
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "Arn": self.arn,
+            "TopicId": self.topic_id,
+            "Name": self.name,
+            "Description": self.description,
+            "DataSets": self.data_sets,
+        }
+
+    def to_summary(self) -> dict[str, Any]:
+        return {
+            "Arn": self.arn,
+            "TopicId": self.topic_id,
+            "Name": self.name,
+        }
+
+
+class QuicksightVPCConnection(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region: str,
+        vpc_connection_id: str,
+        name: str,
+        subnet_ids: Optional[list[str]] = None,
+        security_group_ids: Optional[list[str]] = None,
+        dns_resolvers: Optional[list[str]] = None,
+        role_arn: Optional[str] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> None:
+        self.arn = f"arn:{get_partition(region)}:quicksight:{region}:{account_id}:vpcConnection/{vpc_connection_id}"
+        self.vpc_connection_id = vpc_connection_id
+        self.name = name
+        self.account_id = account_id
+        self.region = region
+        self.subnet_ids = subnet_ids or []
+        self.security_group_ids = security_group_ids or []
+        self.dns_resolvers = dns_resolvers or []
+        self.role_arn = role_arn
+        self.tags = tags
+        self.status = "CREATION_SUCCESSFUL"
+        self.availability_status = "AVAILABLE"
+        self.created_time = datetime.datetime.now()
+        self.last_updated_time = datetime.datetime.now()
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "Arn": self.arn,
+            "VPCConnectionId": self.vpc_connection_id,
+            "Name": self.name,
+            "VPCId": "vpc-mock",
+            "SecurityGroupIds": self.security_group_ids,
+            "DnsResolvers": self.dns_resolvers,
+            "Status": self.status,
+            "AvailabilityStatus": self.availability_status,
+            "RoleArn": self.role_arn,
+            "CreatedTime": str(self.created_time),
+            "LastUpdatedTime": str(self.last_updated_time),
+        }
+
+    def to_summary(self) -> dict[str, Any]:
+        return {
+            "Arn": self.arn,
+            "VPCConnectionId": self.vpc_connection_id,
+            "Name": self.name,
+            "VPCId": "vpc-mock",
+            "Status": self.status,
+            "AvailabilityStatus": self.availability_status,
+            "CreatedTime": str(self.created_time),
+            "LastUpdatedTime": str(self.last_updated_time),
+        }
+
+
+class QuicksightRefreshSchedule(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region: str,
+        data_set_id: str,
+        schedule: dict[str, Any],
+    ) -> None:
+        self.schedule_id = schedule.get("ScheduleId", "")
+        self.arn = f"arn:{get_partition(region)}:quicksight:{region}:{account_id}:data-set/{data_set_id}/refresh-schedule/{self.schedule_id}"
+        self.data_set_id = data_set_id
+        self.schedule = schedule
+
+    def to_dict(self) -> dict[str, Any]:
+        return self.schedule
+
+
+class QuicksightIAMPolicyAssignment(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region: str,
+        namespace: str,
+        assignment_name: str,
+        assignment_status: Optional[str] = None,
+        policy_arn: Optional[str] = None,
+        identities: Optional[dict[str, list[str]]] = None,
+    ) -> None:
+        self.arn = f"arn:{get_partition(region)}:quicksight:{region}:{account_id}:assignment/{namespace}/{assignment_name}"
+        self.assignment_name = assignment_name
+        self.assignment_id = random.get_random_hex(16)
+        self.assignment_status = assignment_status or "ENABLED"
+        self.policy_arn = policy_arn
+        self.identities = identities or {}
+        self.namespace = namespace
+        self.account_id = account_id
+        self.region = region
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "AssignmentName": self.assignment_name,
+            "AssignmentId": self.assignment_id,
+            "AssignmentStatus": self.assignment_status,
+            "PolicyArn": self.policy_arn,
+            "Identities": self.identities,
+        }
+
+
+class QuicksightAccountCustomization(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region: str,
+        default_theme: Optional[str] = None,
+        default_email_customization_template: Optional[str] = None,
+        namespace: Optional[str] = None,
+    ) -> None:
+        self.account_id = account_id
+        self.region = region
+        self.default_theme = default_theme
+        self.default_email_customization_template = default_email_customization_template
+        self.namespace = namespace
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        if self.default_theme:
+            result["DefaultTheme"] = self.default_theme
+        if self.default_email_customization_template:
+            result["DefaultEmailCustomizationTemplate"] = self.default_email_customization_template
+        return result
