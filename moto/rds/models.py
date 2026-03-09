@@ -3874,6 +3874,21 @@ class RDSBackend(BaseBackend):
                 raise SubscriptionNotFoundError(subscription_name)
         return self.event_subscriptions.values()
 
+    def modify_event_subscription(self, kwargs: Any) -> EventSubscription:
+        subscription_name = kwargs["subscription_name"]
+        if subscription_name not in self.event_subscriptions:
+            raise SubscriptionNotFoundError(subscription_name)
+        subscription = self.event_subscriptions[subscription_name]
+        if "sns_topic_arn" in kwargs and kwargs["sns_topic_arn"] is not None:
+            subscription.sns_topic_arn = kwargs["sns_topic_arn"]
+        if "source_type" in kwargs and kwargs["source_type"] is not None:
+            subscription.source_type = kwargs["source_type"]
+        if "event_categories" in kwargs and kwargs["event_categories"] is not None:
+            subscription.event_categories = kwargs["event_categories"]
+        if "enabled" in kwargs and kwargs["enabled"] is not None:
+            subscription.enabled = kwargs["enabled"]
+        return subscription
+
     def _find_resource(self, resource_type: str, resource_name: str) -> Any:
         for resource_class, resources in self.resource_map.items():
             if resource_type == getattr(resource_class, "resource_type", ""):
@@ -4071,6 +4086,27 @@ class RDSBackend(BaseBackend):
 
     def describe_global_clusters(self) -> list[GlobalCluster]:
         return list(self.global_clusters.values())
+
+    def modify_global_cluster(
+        self,
+        global_cluster_identifier: str,
+        new_global_cluster_identifier: Optional[str],
+        deletion_protection: Optional[bool],
+        engine_version: Optional[str],
+        allow_major_version_upgrade: Optional[bool],
+    ) -> GlobalCluster:
+        if global_cluster_identifier not in self.global_clusters:
+            raise GlobalClusterNotFoundError(global_cluster_identifier)
+        global_cluster = self.global_clusters[global_cluster_identifier]
+        if deletion_protection is not None:
+            global_cluster.deletion_protection = deletion_protection
+        if engine_version is not None:
+            global_cluster.engine_version = engine_version
+        if new_global_cluster_identifier is not None:
+            del self.global_clusters[global_cluster_identifier]
+            global_cluster._global_cluster_identifier = new_global_cluster_identifier.lower()
+            self.global_clusters[new_global_cluster_identifier] = global_cluster
+        return global_cluster
 
     def delete_global_cluster(self, global_cluster_identifier: str) -> GlobalCluster:
         if global_cluster_identifier not in self.global_clusters:

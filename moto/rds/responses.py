@@ -491,6 +491,12 @@ class RDSResponse(BaseResponse):
         result = {"EventSubscriptionsList": subscriptions}
         return ActionResult(result)
 
+    def modify_event_subscription(self) -> ActionResult:
+        kwargs = self.params
+        subscription = self.backend.modify_event_subscription(kwargs)
+        result = {"EventSubscription": subscription}
+        return ActionResult(result)
+
     def describe_orderable_db_instance_options(self) -> ActionResult:
         engine = self.params.get("Engine")
         engine_version = self.params.get("EngineVersion")
@@ -522,6 +528,18 @@ class RDSResponse(BaseResponse):
         params = self.params
         cluster = self.global_backend.delete_global_cluster(
             global_cluster_identifier=params["GlobalClusterIdentifier"],
+        )
+        result = {"GlobalCluster": cluster}
+        return ActionResult(result)
+
+    def modify_global_cluster(self) -> ActionResult:
+        params = self.params
+        cluster = self.global_backend.modify_global_cluster(
+            global_cluster_identifier=params["GlobalClusterIdentifier"],
+            new_global_cluster_identifier=params.get("NewGlobalClusterIdentifier"),
+            deletion_protection=params.get("DeletionProtection"),
+            engine_version=params.get("EngineVersion"),
+            allow_major_version_upgrade=params.get("AllowMajorVersionUpgrade"),
         )
         result = {"GlobalCluster": cluster}
         return ActionResult(result)

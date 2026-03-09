@@ -1506,6 +1506,94 @@ class ElastiCacheBackend(BaseBackend):
         # No update actions in mock
         return []
 
+    def batch_apply_update_action(
+        self,
+        service_update_name: str,
+        replication_group_ids: Optional[list[str]] = None,
+        cache_cluster_ids: Optional[list[str]] = None,
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        processed: list[dict[str, Any]] = []
+        unprocessed: list[dict[str, Any]] = []
+        if replication_group_ids:
+            for rg_id in replication_group_ids:
+                if rg_id in self.replication_groups:
+                    processed.append({
+                        "ReplicationGroupId": rg_id,
+                        "ServiceUpdateName": service_update_name,
+                        "UpdateActionStatus": "waiting-to-start",
+                    })
+                else:
+                    unprocessed.append({
+                        "ReplicationGroupId": rg_id,
+                        "ServiceUpdateName": service_update_name,
+                        "ErrorType": "replication-group-not-found",
+                        "ErrorMessage": f"Replication group {rg_id} not found",
+                    })
+        if cache_cluster_ids:
+            for cc_id in cache_cluster_ids:
+                if cc_id in self.cache_clusters:
+                    processed.append({
+                        "CacheClusterId": cc_id,
+                        "ServiceUpdateName": service_update_name,
+                        "UpdateActionStatus": "waiting-to-start",
+                    })
+                else:
+                    unprocessed.append({
+                        "CacheClusterId": cc_id,
+                        "ServiceUpdateName": service_update_name,
+                        "ErrorType": "cache-cluster-not-found",
+                        "ErrorMessage": f"Cache cluster {cc_id} not found",
+                    })
+        return processed, unprocessed
+
+    def batch_stop_update_action(
+        self,
+        service_update_name: str,
+        replication_group_ids: Optional[list[str]] = None,
+        cache_cluster_ids: Optional[list[str]] = None,
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        processed: list[dict[str, Any]] = []
+        unprocessed: list[dict[str, Any]] = []
+        if replication_group_ids:
+            for rg_id in replication_group_ids:
+                if rg_id in self.replication_groups:
+                    processed.append({
+                        "ReplicationGroupId": rg_id,
+                        "ServiceUpdateName": service_update_name,
+                        "UpdateActionStatus": "stopped",
+                    })
+                else:
+                    unprocessed.append({
+                        "ReplicationGroupId": rg_id,
+                        "ServiceUpdateName": service_update_name,
+                        "ErrorType": "replication-group-not-found",
+                        "ErrorMessage": f"Replication group {rg_id} not found",
+                    })
+        if cache_cluster_ids:
+            for cc_id in cache_cluster_ids:
+                if cc_id in self.cache_clusters:
+                    processed.append({
+                        "CacheClusterId": cc_id,
+                        "ServiceUpdateName": service_update_name,
+                        "UpdateActionStatus": "stopped",
+                    })
+                else:
+                    unprocessed.append({
+                        "CacheClusterId": cc_id,
+                        "ServiceUpdateName": service_update_name,
+                        "ErrorType": "cache-cluster-not-found",
+                        "ErrorMessage": f"Cache cluster {cc_id} not found",
+                    })
+        return processed, unprocessed
+
+    def delete_cache_subnet_group(
+        self,
+        cache_subnet_group_name: str,
+    ) -> None:
+        if cache_subnet_group_name not in self.cache_subnet_groups:
+            raise CacheSubnetGroupNotFound(cache_subnet_group_name)
+        del self.cache_subnet_groups[cache_subnet_group_name]
+
     def describe_user_groups(
         self,
         user_group_id: Optional[str] = None,
