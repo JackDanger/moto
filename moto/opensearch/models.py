@@ -1,4 +1,5 @@
 import datetime
+import uuid
 from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -7,8 +8,15 @@ from moto.core.utils import unix_time
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
-from .data import compatible_versions
-from .exceptions import EngineTypeNotFoundException, ResourceNotFoundException
+from .data import (
+    compatible_versions,
+    elasticsearch_instance_types,
+    elasticsearch_versions,
+    opensearch_instance_types,
+    opensearch_versions,
+    reserved_instance_offerings,
+)
+from .exceptions import ConflictException, EngineTypeNotFoundException, ResourceNotFoundException
 
 default_cluster_config = {
     "InstanceType": "t3.small.search",
@@ -60,6 +68,192 @@ class EngineVersion(BaseModel):
                 "UpdateDate": self.update_time,
                 "UpdateVersion": 28,
             },
+        }
+
+
+class OpenSearchPackage(BaseModel):
+    def __init__(
+        self,
+        package_name: str,
+        package_type: str,
+        package_description: str,
+        package_source: dict[str, str],
+        account_id: str,
+        region: str,
+    ) -> None:
+        self.package_id = f"pkg-{uuid.uuid4().hex[:12]}"
+        self.package_name = package_name
+        self.package_type = package_type
+        self.package_description = package_description
+        self.package_source = package_source
+        self.created_at = unix_time(datetime.datetime.now())
+        self.last_updated_at = self.created_at
+        self.status = "AVAILABLE"
+        self.error_details: dict[str, str] = {}
+        self.associated_domains: dict[str, str] = {}  # domain_name -> status
+        self.available_package_version = "1"
+        self.arn = f"arn:{get_partition(region)}:es:{region}:{account_id}:package/{self.package_id}"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "PackageID": self.package_id,
+            "PackageName": self.package_name,
+            "PackageType": self.package_type,
+            "PackageDescription": self.package_description,
+            "PackageStatus": self.status,
+            "CreatedAt": self.created_at,
+            "LastUpdatedAt": self.last_updated_at,
+            "AvailablePackageVersion": self.available_package_version,
+            "ErrorDetails": self.error_details,
+        }
+
+    def to_domain_package_dict(self, domain_name: str) -> dict[str, Any]:
+        return {
+            "PackageID": self.package_id,
+            "PackageName": self.package_name,
+            "PackageType": self.package_type,
+            "DomainName": domain_name,
+            "DomainPackageStatus": self.associated_domains.get(domain_name, "ACTIVE"),
+            "PackageVersion": self.available_package_version,
+            "LastUpdated": self.last_updated_at,
+        }
+
+
+class VpcEndpointModel(BaseModel):
+    def __init__(
+        self,
+        domain_arn: str,
+        vpc_options: dict[str, Any],
+        account_id: str,
+        region: str,
+    ) -> None:
+        self.vpc_endpoint_id = f"aos-{uuid.uuid4().hex[:17]}"
+        self.domain_arn = domain_arn
+        self.vpc_options = vpc_options or {}
+        self.status = "ACTIVE"
+        self.endpoint = f"vpc-{self.vpc_endpoint_id}.{region}.es.amazonaws.com"
+        self.arn = (
+            f"arn:{get_partition(region)}:es:{region}:{account_id}"
+            f":vpc-endpoint/{self.vpc_endpoint_id}"
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "VpcEndpointId": self.vpc_endpoint_id,
+            "VpcEndpointOwner": "",
+            "DomainArn": self.domain_arn,
+            "VpcOptions": self.vpc_options,
+            "Status": self.status,
+            "Endpoint": self.endpoint,
+        }
+
+    def to_summary(self) -> dict[str, Any]:
+        return {
+            "VpcEndpointId": self.vpc_endpoint_id,
+            "VpcEndpointOwner": "",
+            "DomainArn": self.domain_arn,
+            "Status": self.status,
+        }
+
+
+class OutboundConnection(BaseModel):
+    def __init__(
+        self,
+        local_domain_info: dict[str, Any],
+        remote_domain_info: dict[str, Any],
+        connection_alias: str,
+        connection_mode: str,
+    ) -> None:
+        self.connection_id = str(uuid.uuid4())
+        self.local_domain_info = local_domain_info
+        self.remote_domain_info = remote_domain_info
+        self.connection_alias = connection_alias
+        self.connection_mode = connection_mode or "DIRECT"
+        self.status = {
+            "StatusCode": "ACTIVE",
+            "Message": "Connection is active",
+        }
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "ConnectionId": self.connection_id,
+            "LocalDomainInfo": self.local_domain_info,
+            "RemoteDomainInfo": self.remote_domain_info,
+            "ConnectionAlias": self.connection_alias,
+            "ConnectionMode": self.connection_mode,
+            "ConnectionStatus": self.status,
+        }
+
+
+class InboundConnection(BaseModel):
+    def __init__(
+        self,
+        connection_id: str,
+        local_domain_info: dict[str, Any],
+        remote_domain_info: dict[str, Any],
+    ) -> None:
+        self.connection_id = connection_id
+        self.local_domain_info = local_domain_info
+        self.remote_domain_info = remote_domain_info
+        self.status = {
+            "StatusCode": "PENDING_ACCEPTANCE",
+            "Message": "Pending acceptance by destination domain owner",
+        }
+
+    def accept(self) -> None:
+        self.status = {
+            "StatusCode": "ACTIVE",
+            "Message": "Connection is active",
+        }
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "ConnectionId": self.connection_id,
+            "LocalDomainInfo": self.local_domain_info,
+            "RemoteDomainInfo": self.remote_domain_info,
+            "ConnectionStatus": self.status,
+        }
+
+
+class ReservedInstance(BaseModel):
+    def __init__(
+        self,
+        reserved_instance_offering_id: str,
+        reservation_name: str,
+        instance_count: int,
+        offering: dict[str, Any],
+    ) -> None:
+        self.reserved_instance_id = str(uuid.uuid4())
+        self.reserved_instance_offering_id = reserved_instance_offering_id
+        self.reservation_name = reservation_name
+        self.instance_count = instance_count
+        self.instance_type = offering["InstanceType"]
+        self.duration = offering["Duration"]
+        self.fixed_price = offering["FixedPrice"]
+        self.usage_price = offering["UsagePrice"]
+        self.currency_code = offering["CurrencyCode"]
+        self.payment_option = offering["PaymentOption"]
+        self.recurring_charges = offering.get("RecurringCharges", [])
+        self.state = "active"
+        self.start_time = unix_time(datetime.datetime.now())
+        self.billing_subscription_id = 0
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "ReservedInstanceId": self.reserved_instance_id,
+            "ReservedInstanceOfferingId": self.reserved_instance_offering_id,
+            "ReservationName": self.reservation_name,
+            "InstanceType": self.instance_type,
+            "InstanceCount": self.instance_count,
+            "Duration": self.duration,
+            "FixedPrice": self.fixed_price,
+            "UsagePrice": self.usage_price,
+            "CurrencyCode": self.currency_code,
+            "PaymentOption": self.payment_option,
+            "RecurringCharges": self.recurring_charges,
+            "State": self.state,
+            "StartTime": self.start_time,
+            "BillingSubscriptionId": self.billing_subscription_id,
         }
 
 
@@ -133,6 +327,7 @@ class OpenSearchDomain(BaseModel):
 
         self.deleted = False
         self.processing = False
+        self.associated_packages: dict[str, str] = {}  # package_id -> status
 
         # Defaults
         for key, value in default_cluster_config.items():
@@ -338,6 +533,11 @@ class OpenSearchServiceBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.domains: dict[str, OpenSearchDomain] = {}
         self.tagger = TaggingService()
+        self.packages: dict[str, OpenSearchPackage] = {}
+        self.vpc_endpoints: dict[str, VpcEndpointModel] = {}
+        self.outbound_connections: dict[str, OutboundConnection] = {}
+        self.inbound_connections: dict[str, InboundConnection] = {}
+        self.reserved_instances: dict[str, ReservedInstance] = {}
 
     def create_domain(
         self,
@@ -498,36 +698,326 @@ class OpenSearchServiceBackend(BaseBackend):
                 queried_domains.append(self.domains[domain_name])
         return queried_domains
 
-    def describe_inbound_connections(self) -> list[dict[str, Any]]:
-        # Inbound connections are not yet modeled; return empty list
-        return []
+    # ---- Packages ----
 
-    def describe_outbound_connections(self) -> list[dict[str, Any]]:
-        # Outbound connections are not yet modeled; return empty list
-        return []
+    def create_package(
+        self,
+        package_name: str,
+        package_type: str,
+        package_description: str,
+        package_source: dict[str, str],
+    ) -> OpenSearchPackage:
+        pkg = OpenSearchPackage(
+            package_name=package_name,
+            package_type=package_type,
+            package_description=package_description,
+            package_source=package_source,
+            account_id=self.account_id,
+            region=self.region_name,
+        )
+        self.packages[pkg.package_id] = pkg
+        return pkg
 
-    def describe_packages(self) -> list[dict[str, Any]]:
-        # Packages are not yet modeled; return empty list
-        return []
+    def describe_packages(
+        self, filters: Optional[list[dict[str, Any]]] = None
+    ) -> list[dict[str, Any]]:
+        results = list(self.packages.values())
+        if filters:
+            for f in filters:
+                name = f.get("Name", "")
+                values = f.get("Value", [])
+                if name == "PackageID" and values:
+                    results = [p for p in results if p.package_id in values]
+                elif name == "PackageName" and values:
+                    results = [p for p in results if p.package_name in values]
+                elif name == "PackageType" and values:
+                    results = [p for p in results if p.package_type in values]
+                elif name == "PackageStatus" and values:
+                    results = [p for p in results if p.status in values]
+        return [p.to_dict() for p in results]
 
-    def describe_reserved_instance_offerings(self) -> list[dict[str, Any]]:
-        # Reserved instance offerings are not yet modeled; return empty list
-        return []
+    def delete_package(self, package_id: str) -> dict[str, Any]:
+        if package_id not in self.packages:
+            raise ResourceNotFoundException(package_id)
+        pkg = self.packages.pop(package_id)
+        pkg.status = "DELETING"
+        return pkg.to_dict()
+
+    def update_package(
+        self,
+        package_id: str,
+        package_source: dict[str, str],
+        package_description: Optional[str],
+        commit_message: Optional[str],
+    ) -> dict[str, Any]:
+        if package_id not in self.packages:
+            raise ResourceNotFoundException(package_id)
+        pkg = self.packages[package_id]
+        pkg.package_source = package_source
+        if package_description is not None:
+            pkg.package_description = package_description
+        pkg.last_updated_at = unix_time(datetime.datetime.now())
+        return pkg.to_dict()
+
+    def associate_package(
+        self, package_id: str, domain_name: str
+    ) -> dict[str, Any]:
+        if package_id not in self.packages:
+            raise ResourceNotFoundException(package_id)
+        if domain_name not in self.domains:
+            raise ResourceNotFoundException(domain_name)
+        pkg = self.packages[package_id]
+        pkg.associated_domains[domain_name] = "ACTIVE"
+        self.domains[domain_name].associated_packages[package_id] = "ACTIVE"
+        return pkg.to_domain_package_dict(domain_name)
+
+    def dissociate_package(
+        self, package_id: str, domain_name: str
+    ) -> dict[str, Any]:
+        if package_id not in self.packages:
+            raise ResourceNotFoundException(package_id)
+        if domain_name not in self.domains:
+            raise ResourceNotFoundException(domain_name)
+        pkg = self.packages[package_id]
+        pkg.associated_domains.pop(domain_name, None)
+        self.domains[domain_name].associated_packages.pop(package_id, None)
+        result = pkg.to_domain_package_dict(domain_name)
+        result["DomainPackageStatus"] = "DISSOCIATING"
+        return result
+
+    def list_packages_for_domain(
+        self, domain_name: str
+    ) -> list[dict[str, Any]]:
+        if domain_name not in self.domains:
+            raise ResourceNotFoundException(domain_name)
+        domain = self.domains[domain_name]
+        results = []
+        for pkg_id in domain.associated_packages:
+            if pkg_id in self.packages:
+                results.append(
+                    self.packages[pkg_id].to_domain_package_dict(domain_name)
+                )
+        return results
+
+    def list_domains_for_package(
+        self, package_id: str
+    ) -> list[dict[str, Any]]:
+        if package_id not in self.packages:
+            raise ResourceNotFoundException(package_id)
+        pkg = self.packages[package_id]
+        results = []
+        for dname in pkg.associated_domains:
+            results.append(pkg.to_domain_package_dict(dname))
+        return results
+
+    def get_package_version_history(
+        self, package_id: str
+    ) -> list[dict[str, Any]]:
+        if package_id not in self.packages:
+            raise ResourceNotFoundException(package_id)
+        pkg = self.packages[package_id]
+        return [
+            {
+                "PackageVersion": pkg.available_package_version,
+                "CreatedAt": pkg.created_at,
+                "CommitMessage": "Initial version",
+            }
+        ]
+
+    # ---- VPC Endpoints ----
+
+    def create_vpc_endpoint(
+        self, domain_arn: str, vpc_options: dict[str, Any]
+    ) -> VpcEndpointModel:
+        ep = VpcEndpointModel(
+            domain_arn=domain_arn,
+            vpc_options=vpc_options,
+            account_id=self.account_id,
+            region=self.region_name,
+        )
+        self.vpc_endpoints[ep.vpc_endpoint_id] = ep
+        return ep
+
+    def describe_vpc_endpoints(
+        self, vpc_endpoint_ids: list[str]
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        endpoints: list[dict[str, Any]] = []
+        errors: list[dict[str, Any]] = []
+        for eid in vpc_endpoint_ids or []:
+            if eid in self.vpc_endpoints:
+                endpoints.append(self.vpc_endpoints[eid].to_dict())
+            else:
+                errors.append({
+                    "VpcEndpointId": eid,
+                    "ErrorCode": "ENDPOINT_NOT_FOUND",
+                    "ErrorMessage": f"VPC Endpoint {eid} not found",
+                })
+        return endpoints, errors
+
+    def update_vpc_endpoint(
+        self, vpc_endpoint_id: str, vpc_options: dict[str, Any]
+    ) -> VpcEndpointModel:
+        if vpc_endpoint_id not in self.vpc_endpoints:
+            raise ResourceNotFoundException(vpc_endpoint_id)
+        ep = self.vpc_endpoints[vpc_endpoint_id]
+        ep.vpc_options = vpc_options
+        return ep
+
+    def delete_vpc_endpoint(self, vpc_endpoint_id: str) -> dict[str, Any]:
+        if vpc_endpoint_id not in self.vpc_endpoints:
+            raise ResourceNotFoundException(vpc_endpoint_id)
+        ep = self.vpc_endpoints.pop(vpc_endpoint_id)
+        return {
+            "VpcEndpointId": ep.vpc_endpoint_id,
+            "VpcEndpointOwner": "",
+            "DomainArn": ep.domain_arn,
+            "Status": "DELETING",
+        }
+
+    def list_vpc_endpoints(self) -> list[dict[str, Any]]:
+        return [ep.to_summary() for ep in self.vpc_endpoints.values()]
+
+    def list_vpc_endpoints_for_domain(
+        self, domain_name: str
+    ) -> list[dict[str, Any]]:
+        if domain_name not in self.domains:
+            raise ResourceNotFoundException(domain_name)
+        domain_arn = self.domains[domain_name].arn
+        return [
+            ep.to_summary()
+            for ep in self.vpc_endpoints.values()
+            if ep.domain_arn == domain_arn
+        ]
+
+    # ---- Connections ----
+
+    def create_outbound_connection(
+        self,
+        local_domain_info: dict[str, Any],
+        remote_domain_info: dict[str, Any],
+        connection_alias: str,
+        connection_mode: str,
+    ) -> OutboundConnection:
+        conn = OutboundConnection(
+            local_domain_info=local_domain_info,
+            remote_domain_info=remote_domain_info,
+            connection_alias=connection_alias,
+            connection_mode=connection_mode,
+        )
+        self.outbound_connections[conn.connection_id] = conn
+        # Create a matching inbound connection
+        inbound = InboundConnection(
+            connection_id=conn.connection_id,
+            local_domain_info=remote_domain_info,
+            remote_domain_info=local_domain_info,
+        )
+        self.inbound_connections[conn.connection_id] = inbound
+        return conn
+
+    def describe_outbound_connections(
+        self, filters: Optional[list[dict[str, Any]]] = None
+    ) -> list[dict[str, Any]]:
+        return [c.to_dict() for c in self.outbound_connections.values()]
+
+    def delete_outbound_connection(
+        self, connection_id: str
+    ) -> dict[str, Any]:
+        if connection_id not in self.outbound_connections:
+            raise ResourceNotFoundException(connection_id)
+        conn = self.outbound_connections.pop(connection_id)
+        conn.status = {
+            "StatusCode": "DELETED",
+            "Message": "Connection has been deleted",
+        }
+        return conn.to_dict()
+
+    def accept_inbound_connection(
+        self, connection_id: str
+    ) -> dict[str, Any]:
+        if connection_id not in self.inbound_connections:
+            raise ResourceNotFoundException(connection_id)
+        conn = self.inbound_connections[connection_id]
+        conn.accept()
+        return conn.to_dict()
+
+    def describe_inbound_connections(
+        self, filters: Optional[list[dict[str, Any]]] = None
+    ) -> list[dict[str, Any]]:
+        return [c.to_dict() for c in self.inbound_connections.values()]
+
+    def delete_inbound_connection(
+        self, connection_id: str
+    ) -> dict[str, Any]:
+        if connection_id not in self.inbound_connections:
+            raise ResourceNotFoundException(connection_id)
+        conn = self.inbound_connections.pop(connection_id)
+        conn.status = {
+            "StatusCode": "DELETED",
+            "Message": "Connection has been deleted",
+        }
+        return conn.to_dict()
+
+    # ---- Reserved Instances ----
+
+    def describe_reserved_instance_offerings(
+        self,
+    ) -> list[dict[str, Any]]:
+        return reserved_instance_offerings
+
+    def purchase_reserved_instance_offering(
+        self,
+        reserved_instance_offering_id: str,
+        reservation_name: str,
+        instance_count: int,
+    ) -> dict[str, Any]:
+        offering = None
+        for o in reserved_instance_offerings:
+            if o["ReservedInstanceOfferingId"] == reserved_instance_offering_id:
+                offering = o
+                break
+        if offering is None:
+            raise ResourceNotFoundException(reserved_instance_offering_id)
+        ri = ReservedInstance(
+            reserved_instance_offering_id=reserved_instance_offering_id,
+            reservation_name=reservation_name,
+            instance_count=instance_count or 1,
+            offering=offering,
+        )
+        self.reserved_instances[ri.reserved_instance_id] = ri
+        return {
+            "ReservedInstanceId": ri.reserved_instance_id,
+            "ReservationName": ri.reservation_name,
+        }
 
     def describe_reserved_instances(self) -> list[dict[str, Any]]:
-        # Reserved instances are not yet modeled; return empty list
-        return []
+        return [ri.to_dict() for ri in self.reserved_instances.values()]
+
+    # ---- Versions ----
+
+    def list_versions(self) -> list[str]:
+        return opensearch_versions + elasticsearch_versions
+
+    def list_elasticsearch_versions(self) -> list[str]:
+        return elasticsearch_versions
+
+    # ---- Instance Types ----
+
+    def list_instance_type_details(
+        self, engine_version: str
+    ) -> list[dict[str, Any]]:
+        return opensearch_instance_types
+
+    def list_elasticsearch_instance_types(
+        self, elasticsearch_version: str
+    ) -> list[str]:
+        return elasticsearch_instance_types
+
+    # ---- Existing stubs (domain operations) ----
 
     def list_applications(self) -> list[dict[str, Any]]:
-        # Applications are not yet modeled; return empty list
         return []
 
     def list_direct_query_data_sources(self) -> list[dict[str, Any]]:
-        # Direct query data sources are not yet modeled; return empty list
-        return []
-
-    def list_vpc_endpoints(self) -> list[dict[str, Any]]:
-        # VPC endpoints are not yet modeled; return empty list
         return []
 
     def describe_domain_auto_tunes(self, domain_name: str) -> list[dict[str, Any]]:
@@ -663,19 +1153,6 @@ class OpenSearchServiceBackend(BaseBackend):
                 }
             }
         }
-
-    def describe_vpc_endpoints(
-        self, vpc_endpoint_ids: list[str]
-    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-        endpoints: list[dict[str, Any]] = []
-        errors: list[dict[str, Any]] = []
-        for eid in vpc_endpoint_ids or []:
-            errors.append({
-                "VpcEndpointId": eid,
-                "ErrorCode": "ENDPOINT_NOT_FOUND",
-                "ErrorMessage": f"VPC Endpoint {eid} not found",
-            })
-        return endpoints, errors
 
 
 opensearch_backends = BackendDict(OpenSearchServiceBackend, "opensearch")

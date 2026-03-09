@@ -27,6 +27,10 @@ from .iam_instance_profile import IamInstanceProfileAssociationBackend
 from .instance_connect_endpoint import InstanceConnectEndpointBackend
 from .instance_types import InstanceTypeBackend, InstanceTypeOfferingBackend
 from .ipam import IpamBackend
+from .capacity_reservations import CapacityReservationBackend
+from .fast_launch import FastLaunchBackend
+from .local_gateways import LocalGatewayBackend
+from .traffic_mirror import TrafficMirrorBackend
 from .instances import InstanceBackend
 from .internet_gateways import (
     EgressOnlyInternetGatewayBackend,
@@ -129,6 +133,10 @@ class EC2Backend(
     NetworkInsightsBackend,
     VerifiedAccessBackend,
     InstanceConnectEndpointBackend,
+    CapacityReservationBackend,
+    TrafficMirrorBackend,
+    FastLaunchBackend,
+    LocalGatewayBackend,
 ):
     """
     moto includes a limited set of AMIs in `moto/ec2/resources/amis.json`.

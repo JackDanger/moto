@@ -1,3 +1,4 @@
+import random as _random
 from typing import Any, Optional
 
 from moto.core.utils import iso_8601_datetime_with_milliseconds, utcnow
@@ -17,17 +18,17 @@ class IpamScope(TaggedEC2Resource):
         self,
         ec2_backend: Any,
         ipam_id: str,
-        description: str = "",
         scope_type: str = "private",
         is_default: bool = False,
+        description: str = "",
         tags: Optional[dict[str, str]] = None,
     ):
         self.ec2_backend = ec2_backend
         self.id = random_ipam_scope_id()
         self.ipam_id = ipam_id
-        self.description = description
         self.scope_type = scope_type
         self.is_default = is_default
+        self.description = description
         self.state = "create-complete"
         self.pool_count = 0
         self.add_tags(tags or {})
@@ -37,25 +38,30 @@ class IpamScope(TaggedEC2Resource):
         return self.ec2_backend.account_id
 
     @property
-    def arn(self) -> str:
-        return (
-            f"arn:{self.ec2_backend.partition}:ec2:{self.ec2_backend.region_name}"
-            f":{self.ec2_backend.account_id}:ipam-scope/{self.id}"
-        )
-
-    @property
     def ipam_arn(self) -> str:
         return (
             f"arn:{self.ec2_backend.partition}:ec2:{self.ec2_backend.region_name}"
             f":{self.ec2_backend.account_id}:ipam/{self.ipam_id}"
         )
 
+    @property
+    def arn(self) -> str:
+        return (
+            f"arn:{self.ec2_backend.partition}:ec2:{self.ec2_backend.region_name}"
+            f":{self.ec2_backend.account_id}:ipam-scope/{self.id}"
+        )
+
 
 class IpamPoolCidr:
-    def __init__(self, cidr: str, state: str = "provisioned"):
+    def __init__(
+        self,
+        cidr: str,
+        ipam_pool_id: str,
+    ):
         self.id = random_ipam_pool_cidr_id()
         self.cidr = cidr
-        self.state = state
+        self.ipam_pool_id = ipam_pool_id
+        self.state = "provisioned"
 
 
 class IpamPoolAllocation:
@@ -63,15 +69,15 @@ class IpamPoolAllocation:
         self,
         cidr: str,
         ipam_pool_allocation_id: str,
-        resource_type: str = "custom",
-        resource_id: Optional[str] = None,
-        resource_owner: Optional[str] = None,
+        description: str = "",
     ):
         self.cidr = cidr
         self.ipam_pool_allocation_id = ipam_pool_allocation_id
-        self.resource_type = resource_type
-        self.resource_id = resource_id or ""
-        self.resource_owner = resource_owner or ""
+        self.description = description
+        self.resource_type = "custom"
+        self.resource_id = ""
+        self.resource_region = ""
+        self.resource_owner = ""
 
 
 class Ipam(TaggedEC2Resource):
@@ -198,11 +204,14 @@ class IpamBackend:
             tags=tags,
         )
         self.ipams[ipam.id] = ipam
+        # Register default scopes
         self.ipam_scopes[ipam.private_default_scope.id] = ipam.private_default_scope
         self.ipam_scopes[ipam.public_default_scope.id] = ipam.public_default_scope
         return ipam
 
-    def describe_ipams(self, ipam_ids: Optional[list[str]] = None) -> list[Ipam]:
+    def describe_ipams(
+        self, ipam_ids: Optional[list[str]] = None
+    ) -> list[Ipam]:
         ipams = list(self.ipams.values())
         if ipam_ids:
             ipams = [i for i in ipams if i.id in ipam_ids]
@@ -212,8 +221,8 @@ class IpamBackend:
         self,
         ipam_id: str,
         description: Optional[str] = None,
-        operating_regions: Optional[list[str]] = None,
-        tier: Optional[str] = None,
+        add_operating_regions: Optional[list[str]] = None,
+        remove_operating_regions: Optional[list[str]] = None,
     ) -> Ipam:
         ipam = self.ipams.get(ipam_id)
         if not ipam:
@@ -222,10 +231,14 @@ class IpamBackend:
             raise InvalidIpamIdError(ipam_id)
         if description is not None:
             ipam.description = description
-        if operating_regions is not None:
-            ipam.operating_regions = operating_regions
-        if tier is not None:
-            ipam.tier = tier
+        if add_operating_regions:
+            for region in add_operating_regions:
+                if region not in ipam.operating_regions:
+                    ipam.operating_regions.append(region)
+        if remove_operating_regions:
+            ipam.operating_regions = [
+                r for r in ipam.operating_regions if r not in remove_operating_regions
+            ]
         return ipam
 
     def delete_ipam(self, ipam_id: str) -> Ipam:
@@ -235,8 +248,6 @@ class IpamBackend:
 
             raise InvalidIpamIdError(ipam_id)
         ipam.state = "delete-complete"
-        self.ipam_scopes.pop(ipam.private_default_scope.id, None)
-        self.ipam_scopes.pop(ipam.public_default_scope.id, None)
         return self.ipams.pop(ipam_id)
 
     def create_ipam_pool(
@@ -315,6 +326,40 @@ class IpamBackend:
         pool.state = "delete-complete"
         return self.ipam_pools.pop(ipam_pool_id)
 
+    def provision_ipam_pool_cidr(
+        self,
+        ipam_pool_id: str,
+        cidr: str,
+    ) -> IpamPoolCidr:
+        pool = self.ipam_pools.get(ipam_pool_id)
+        if not pool:
+            from ..exceptions import InvalidIpamPoolIdError
+
+            raise InvalidIpamPoolIdError(ipam_pool_id)
+        pool_cidr = IpamPoolCidr(cidr=cidr, ipam_pool_id=ipam_pool_id)
+        pool.cidrs.append(pool_cidr)
+        return pool_cidr
+
+    def deprovision_ipam_pool_cidr(
+        self,
+        ipam_pool_id: str,
+        cidr: str,
+    ) -> IpamPoolCidr:
+        pool = self.ipam_pools.get(ipam_pool_id)
+        if not pool:
+            from ..exceptions import InvalidIpamPoolIdError
+
+            raise InvalidIpamPoolIdError(ipam_pool_id)
+        for pc in pool.cidrs:
+            if pc.cidr == cidr:
+                pc.state = "deprovisioned"
+                pool.cidrs.remove(pc)
+                return pc
+        # Return synthetic result
+        pc = IpamPoolCidr(cidr=cidr, ipam_pool_id=ipam_pool_id)
+        pc.state = "deprovisioned"
+        return pc
+
     def allocate_ipam_pool_cidr(
         self,
         ipam_pool_id: str,
@@ -327,20 +372,17 @@ class IpamBackend:
             from ..exceptions import InvalidIpamPoolIdError
 
             raise InvalidIpamPoolIdError(ipam_pool_id)
-
-        if not cidr:
-            import random
-
-            mask = netmask_length or pool.allocation_default_netmask_length or 24
-            octet2 = random.randint(0, 255)
-            octet3 = random.randint(0, 255)
-            cidr = f"10.{octet2}.{octet3}.0/{mask}"
-
+        if not cidr and netmask_length:
+            # Generate a CIDR from the pool
+            base = _random.randint(1, 254)
+            cidr = f"10.{base}.0.0/{netmask_length}"
+        elif not cidr:
+            cidr = "10.0.0.0/24"
         alloc_id = random_ipam_pool_allocation_id()
         allocation = IpamPoolAllocation(
             cidr=cidr,
             ipam_pool_allocation_id=alloc_id,
-            resource_type="custom",
+            description=description,
         )
         pool.allocations[alloc_id] = allocation
         return allocation
@@ -350,14 +392,62 @@ class IpamBackend:
         ipam_pool_id: str,
         ipam_pool_allocation_id: str,
         cidr: str,
-    ) -> bool:
+    ) -> None:
         pool = self.ipam_pools.get(ipam_pool_id)
         if not pool:
             from ..exceptions import InvalidIpamPoolIdError
 
             raise InvalidIpamPoolIdError(ipam_pool_id)
         pool.allocations.pop(ipam_pool_allocation_id, None)
-        return True
+
+    def create_ipam_scope(
+        self,
+        ipam_id: str,
+        description: str = "",
+        tags: Optional[dict[str, str]] = None,
+    ) -> IpamScope:
+        ipam = self.ipams.get(ipam_id)
+        if not ipam:
+            from ..exceptions import InvalidIpamIdError
+
+            raise InvalidIpamIdError(ipam_id)
+        scope = IpamScope(
+            self,
+            ipam_id=ipam_id,
+            scope_type="private",
+            is_default=False,
+            description=description,
+            tags=tags,
+        )
+        self.ipam_scopes[scope.id] = scope
+        ipam.scope_count += 1
+        return scope
+
+    def delete_ipam_scope(self, ipam_scope_id: str) -> IpamScope:
+        scope = self.ipam_scopes.get(ipam_scope_id)
+        if not scope:
+            from ..exceptions import InvalidIpamScopeIdError
+
+            raise InvalidIpamScopeIdError(ipam_scope_id)
+        if scope.is_default:
+            from ..exceptions import InvalidInputError
+
+            raise InvalidInputError("Cannot delete a default IPAM scope")
+        scope.state = "delete-complete"
+        # Decrement scope count on parent IPAM
+        ipam = self.ipams.get(scope.ipam_id)
+        if ipam:
+            ipam.scope_count -= 1
+        return self.ipam_scopes.pop(ipam_scope_id)
+
+    def describe_ipam_scopes(
+        self,
+        ipam_scope_ids: Optional[list[str]] = None,
+    ) -> list[IpamScope]:
+        scopes = list(self.ipam_scopes.values())
+        if ipam_scope_ids:
+            scopes = [s for s in scopes if s.id in ipam_scope_ids]
+        return scopes
 
     def get_ipam_pool_allocations(
         self,
@@ -372,9 +462,7 @@ class IpamBackend:
         allocs = list(pool.allocations.values())
         if ipam_pool_allocation_id:
             allocs = [
-                a
-                for a in allocs
-                if a.ipam_pool_allocation_id == ipam_pool_allocation_id
+                a for a in allocs if a.ipam_pool_allocation_id == ipam_pool_allocation_id
             ]
         return allocs
 
@@ -393,70 +481,26 @@ class IpamBackend:
         self,
         ipam_pool_id: Optional[str] = None,
         ipam_scope_id: Optional[str] = None,
-        ipam_id: Optional[str] = None,
-    ) -> list[dict[str, str]]:
-        results: list[dict[str, str]] = []
+    ) -> list[dict[str, Any]]:
+        results: list[dict[str, Any]] = []
         pools = list(self.ipam_pools.values())
         if ipam_pool_id:
             pools = [p for p in pools if p.id == ipam_pool_id]
         if ipam_scope_id:
             pools = [p for p in pools if p.ipam_scope_id == ipam_scope_id]
         for pool in pools:
-            for alloc in pool.allocations.values():
+            for cidr_obj in pool.cidrs:
                 results.append(
                     {
                         "ipam_pool_id": pool.id,
-                        "resource_cidr": alloc.cidr,
-                        "resource_type": alloc.resource_type,
-                        "resource_id": alloc.resource_id,
-                        "resource_owner_id": alloc.resource_owner,
-                        "ip_usage": "0",
+                        "resource_cidr": cidr_obj.cidr,
+                        "resource_type": "subnet",
+                        "resource_id": "",
+                        "resource_name": "",
+                        "resource_region": self.region_name,
                         "compliance_status": "compliant",
-                        "management_state": "managed",
                         "overlap_status": "nonoverlapping",
+                        "management_state": "managed",
                     }
                 )
         return results
-
-    def create_ipam_scope(
-        self,
-        ipam_id: str,
-        description: str = "",
-        tags: Optional[dict[str, str]] = None,
-    ) -> IpamScope:
-        ipam = self.ipams.get(ipam_id)
-        if not ipam:
-            from ..exceptions import InvalidIpamIdError
-
-            raise InvalidIpamIdError(ipam_id)
-        scope = IpamScope(
-            self,
-            ipam_id=ipam_id,
-            description=description,
-            scope_type="private",
-            is_default=False,
-            tags=tags,
-        )
-        self.ipam_scopes[scope.id] = scope
-        ipam.scope_count += 1
-        return scope
-
-    def delete_ipam_scope(self, ipam_scope_id: str) -> IpamScope:
-        scope = self.ipam_scopes.get(ipam_scope_id)
-        if not scope:
-            from ..exceptions import InvalidIpamScopeIdError
-
-            raise InvalidIpamScopeIdError(ipam_scope_id)
-        scope.state = "delete-complete"
-        ipam = self.ipams.get(scope.ipam_id)
-        if ipam:
-            ipam.scope_count -= 1
-        return self.ipam_scopes.pop(ipam_scope_id)
-
-    def describe_ipam_scopes(
-        self, ipam_scope_ids: Optional[list[str]] = None
-    ) -> list[IpamScope]:
-        scopes = list(self.ipam_scopes.values())
-        if ipam_scope_ids:
-            scopes = [s for s in scopes if s.id in ipam_scope_ids]
-        return scopes
