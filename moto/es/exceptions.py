@@ -8,7 +8,7 @@ class ElasticSearchError(JsonRESTError):
 
 
 class ResourceNotFound(ElasticSearchError):
-    code = 409
+    code = 404
 
     def __init__(self, resource_type: str, resource_name: str):
         msg = f"{resource_type} not found: {resource_name}"
