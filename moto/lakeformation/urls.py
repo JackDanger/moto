@@ -48,5 +48,8 @@ url_paths = {
     "{0}/GetTemporaryGlueTableCredentials$": response.dispatch,
     "{0}/CreateDataCellsFilter$": response.dispatch,
     "{0}/GetDataCellsFilter$": response.dispatch,
+    "{0}/DeleteDataCellsFilter$": response.dispatch,
+    "{0}/SearchDatabasesByLFTags$": response.dispatch,
+    "{0}/SearchTablesByLFTags$": response.dispatch,
     "{0}/DescribeLakeFormationIdentityCenterConfiguration$": response.dispatch,
 }

@@ -94,6 +94,38 @@ class Trust(BaseModel):
         }
 
 
+class SchemaExtension(BaseModel):
+    def __init__(
+        self,
+        directory_id: str,
+        create_snapshot_before_schema_extension: bool,
+        ldif_content: str,
+        description: str,
+    ) -> None:
+        self.schema_extension_id = f"e-{mock_random.get_random_hex(10)}"
+        self.directory_id = directory_id
+        self.create_snapshot_before_schema_extension = (
+            create_snapshot_before_schema_extension
+        )
+        self.ldif_content = ldif_content
+        self.description = description
+        self.schema_extension_status = "Completed"
+        self.schema_extension_status_reason = ""
+        self.start_date_time = unix_time()
+        self.end_date_time = unix_time()
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "DirectoryId": self.directory_id,
+            "SchemaExtensionId": self.schema_extension_id,
+            "Description": self.description,
+            "SchemaExtensionStatus": self.schema_extension_status,
+            "SchemaExtensionStatusReason": self.schema_extension_status_reason,
+            "StartDateTime": self.start_date_time,
+            "EndDateTime": self.end_date_time,
+        }
+
+
 class ConditionalForwarder(BaseModel):
     def __init__(
         self,
@@ -454,6 +486,8 @@ class DirectoryServiceBackend(BaseBackend):
         self.client_auth_settings: dict[str, dict[str, str]] = {}
         # Keyed by directory_id -> list of Computer
         self.computers: dict[str, list[Computer]] = {}
+        # Keyed by schema_extension_id
+        self.schema_extensions: dict[str, SchemaExtension] = {}
 
     def _verify_subnets(self, region: str, vpc_settings: dict[str, Any]) -> None:
         """Verify subnets are valid, else raise an exception.
@@ -850,6 +884,17 @@ class DirectoryServiceBackend(BaseBackend):
             for trust in directory.trusts:
                 if trust.trust_id == trust_id:
                     directory.trusts.remove(trust)
+                    return trust_id
+        raise EntityDoesNotExistException(f"Trust {trust_id} does not exist")
+
+    def verify_trust(self, trust_id: str) -> str:
+        """Verify a trust relationship. Sets trust state to Verified."""
+        for directory in self.directories.values():
+            for trust in directory.trusts:
+                if trust.trust_id == trust_id:
+                    trust.trust_state = "Verified"
+                    trust.last_updated_date_time = unix_time()
+                    trust.state_last_updated_date_time = unix_time()
                     return trust_id
         raise EntityDoesNotExistException(f"Trust {trust_id} does not exist")
 
@@ -1381,10 +1426,56 @@ class DirectoryServiceBackend(BaseBackend):
         ]
         return routes
 
-    def list_schema_extensions(self, directory_id: str) -> list[dict[str, Any]]:
-        """List schema extensions — returns empty list."""
+    def start_schema_extension(
+        self,
+        directory_id: str,
+        create_snapshot_before_schema_extension: bool,
+        ldif_content: str,
+        description: str,
+    ) -> str:
+        """Apply a schema extension to a Microsoft AD directory."""
         self._validate_directory_id(directory_id)
-        return []
+        directory = self.directories[directory_id]
+        if directory.directory_type != "MicrosoftAD":
+            raise UnsupportedOperationException(
+                "Schema extensions are only supported for Microsoft AD directories."
+            )
+        ext = SchemaExtension(
+            directory_id=directory_id,
+            create_snapshot_before_schema_extension=create_snapshot_before_schema_extension,
+            ldif_content=ldif_content,
+            description=description,
+        )
+        self.schema_extensions[ext.schema_extension_id] = ext
+        return ext.schema_extension_id
+
+    def cancel_schema_extension(
+        self,
+        directory_id: str,
+        schema_extension_id: str,
+    ) -> None:
+        """Cancel a schema extension."""
+        self._validate_directory_id(directory_id)
+        if schema_extension_id not in self.schema_extensions:
+            raise EntityDoesNotExistException(
+                f"Schema extension {schema_extension_id} does not exist"
+            )
+        ext = self.schema_extensions[schema_extension_id]
+        if ext.directory_id != directory_id:
+            raise EntityDoesNotExistException(
+                f"Schema extension {schema_extension_id} does not exist"
+            )
+        ext.schema_extension_status = "CancelledByUser"
+        ext.end_date_time = unix_time()
+
+    def list_schema_extensions(self, directory_id: str) -> list[dict[str, Any]]:
+        """List schema extensions for a directory."""
+        self._validate_directory_id(directory_id)
+        return [
+            ext.to_dict()
+            for ext in self.schema_extensions.values()
+            if ext.directory_id == directory_id
+        ]
 
     def create_computer(
         self,

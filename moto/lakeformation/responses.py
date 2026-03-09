@@ -353,6 +353,38 @@ class LakeFormationResponse(BaseResponse):
         )
         return json.dumps({"DataCellsFilter": dcf.to_dict()})
 
+    def delete_data_cells_filter(self) -> str:
+        table_catalog_id = self._get_param("TableCatalogId") or self.current_account
+        database_name = self._get_param("DatabaseName")
+        table_name = self._get_param("TableName")
+        name = self._get_param("Name")
+        self.lakeformation_backend.delete_data_cells_filter(
+            table_catalog_id,
+            database_name,
+            table_name,
+            name,
+        )
+        return "{}"
+
+    def search_databases_by_lf_tags(self) -> str:
+        catalog_id = self._get_param("CatalogId") or self.current_account
+        expression = self._get_param("Expression") or []
+        results = self.lakeformation_backend.search_databases_by_lf_tags(
+            expression=expression,
+            catalog_id=catalog_id,
+        )
+        return json.dumps({"DatabaseList": results})
+
+    def search_tables_by_lf_tags(self) -> str:
+        catalog_id = self._get_param("CatalogId") or self.current_account
+        expression = self._get_param("Expression") or []
+        results = self.lakeformation_backend.search_tables_by_lf_tags(
+            expression=expression,
+            catalog_id=catalog_id,
+        )
+        return json.dumps({"TableList": results})
+
+
     def describe_lake_formation_identity_center_configuration(self) -> str:
         catalog_id = self._get_param("CatalogId") or self.current_account
         config = self.lakeformation_backend.describe_lake_formation_identity_center_configuration(

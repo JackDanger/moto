@@ -806,8 +806,81 @@ class LakeFormationBackend(BaseBackend):
             raise EntityNotFound
         return self.data_cells_filters[key]
 
+    def delete_data_cells_filter(
+        self,
+        table_catalog_id: str,
+        database_name: str,
+        table_name: str,
+        name: str,
+    ) -> None:
+        key = (table_catalog_id, database_name, table_name, name)
+        if key not in self.data_cells_filters:
+            raise EntityNotFound
+        del self.data_cells_filters[key]
+
     def list_data_cells_filter(self) -> list[dict[str, Any]]:
         return [dcf.to_dict() for dcf in self.data_cells_filters.values()]
+
+    def search_databases_by_lf_tags(
+        self,
+        expression: list[dict[str, Any]],
+        catalog_id: str,
+    ) -> list[dict[str, Any]]:
+        results = []
+        for (db_catalog_id, db_name), tags in self.lf_database_tags.items():
+            if self._tags_match_expression(tags, expression):
+                results.append(
+                    {
+                        "Database": {
+                            "CatalogId": db_catalog_id,
+                            "Name": db_name,
+                        },
+                        "LFTags": tags,
+                    }
+                )
+        return results
+
+    def search_tables_by_lf_tags(
+        self,
+        expression: list[dict[str, Any]],
+        catalog_id: str,
+    ) -> list[dict[str, Any]]:
+        results = []
+        for (tbl_catalog_id, db_name, tbl_name), tags in self.lf_table_tags.items():
+            if self._tags_match_expression(tags, expression):
+                results.append(
+                    {
+                        "Table": {
+                            "CatalogId": tbl_catalog_id,
+                            "DatabaseName": db_name,
+                            "Name": tbl_name,
+                        },
+                        "LFTags": tags,
+                    }
+                )
+        return results
+
+    def _tags_match_expression(
+        self, tags: list[dict[str, str]], expression: list[dict[str, Any]]
+    ) -> bool:
+        for expr in expression:
+            expr_key = expr["TagKey"]
+            expr_values = expr["TagValues"]
+            found = False
+            for tag in tags:
+                if tag.get("TagKey") == expr_key:
+                    tag_values = tag.get("TagValues", [])
+                    if isinstance(tag_values, list):
+                        if any(v in expr_values for v in tag_values):
+                            found = True
+                            break
+                    elif tag_values in expr_values:
+                        found = True
+                        break
+            if not found:
+                return False
+        return True
+
 
     def describe_lake_formation_identity_center_configuration(
         self, catalog_id: str,
