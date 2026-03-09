@@ -216,9 +216,11 @@ class CloudFrontResponse(BaseResponse):
         return 200, {}, response.render(keys=keys)
 
     def create_key_group(self) -> TYPE_RESPONSE:
-        config = self._get_xml_body()["KeyGroupConfig"]
-        name = config["Name"]
-        items = config["Items"]["PublicKey"]
+        config = self._get_xml_body().get("KeyGroupConfig") or {}
+        config.pop("@xmlns", None)
+        name = config.get("Name", "")
+        items_wrapper = config.get("Items") or {}
+        items = items_wrapper.get("PublicKey") or []
         if isinstance(items, str):
             # Serialized as a string if there is only one item
             items = [items]
@@ -248,9 +250,10 @@ class CloudFrontResponse(BaseResponse):
 
     def update_key_group(self) -> TYPE_RESPONSE:
         group_id = self.parsed_url.path.split("/")[-1]
-        config = self._get_xml_body()["KeyGroupConfig"]
-        name = config["Name"]
-        items = config.get("Items", {}).get("PublicKey", [])
+        config = self._get_xml_body().get("KeyGroupConfig") or {}
+        config.pop("@xmlns", None)
+        name = config.get("Name", "")
+        items = (config.get("Items") or {}).get("PublicKey") or []
         if isinstance(items, str):
             items = [items]
         key_group = self.backend.update_key_group(
@@ -468,13 +471,15 @@ class CloudFrontResponse(BaseResponse):
     def create_streaming_distribution(self) -> TYPE_RESPONSE:
         params = self._get_xml_body()
         if "StreamingDistributionConfigWithTags" in params:
-            wrapper = params["StreamingDistributionConfigWithTags"]
-            config = wrapper.get("StreamingDistributionConfig", {})
-            tags = (wrapper.get("Tags", {}).get("Items") or {}).get("Tag", [])
+            wrapper = params["StreamingDistributionConfigWithTags"] or {}
+            wrapper.pop("@xmlns", None)
+            config = wrapper.get("StreamingDistributionConfig") or {}
+            tags_items = (wrapper.get("Tags") or {}).get("Items") or {}
+            tags = tags_items.get("Tag") or []
             if not isinstance(tags, list):
                 tags = [tags]
         else:
-            config = params.get("StreamingDistributionConfig", {})
+            config = params.get("StreamingDistributionConfig") or {}
             tags = []
         config.pop("@xmlns", None)
         dist = self.backend.create_streaming_distribution(config, tags)
@@ -695,41 +700,77 @@ class CloudFrontResponse(BaseResponse):
         return 200, {}, ""
 
     # Realtime Log Configs
+    def _parse_realtime_body(self) -> dict[str, Any]:
+        """Parse body as XML (botocore sends XML for CloudFront rest-xml protocol)."""
+        body = self._get_xml_body()
+        # Unwrap the request wrapper element if present
+        for key in ("CreateRealtimeLogConfigRequest", "UpdateRealtimeLogConfigRequest",
+                    "GetRealtimeLogConfigRequest", "DeleteRealtimeLogConfigRequest"):
+            if key in body:
+                body = body[key] or {}
+                break
+        body.pop("@xmlns", None)
+        return body
+
+    @staticmethod
+    def _extract_endpoints(body: dict[str, Any]) -> list[dict[str, Any]]:
+        """Extract EndPoints from parsed XML body."""
+        eps_raw = (body.get("EndPoints") or {}).get("member") or []
+        if isinstance(eps_raw, dict):
+            eps_raw = [eps_raw]
+        end_points = []
+        for ep in eps_raw:
+            entry: dict[str, Any] = {"StreamType": ep.get("StreamType", "Kinesis")}
+            kinesis = ep.get("KinesisStreamConfig") or {}
+            if kinesis:
+                entry["KinesisStreamConfig"] = {
+                    "RoleARN": kinesis.get("RoleARN", ""),
+                    "StreamARN": kinesis.get("StreamARN", ""),
+                }
+            end_points.append(entry)
+        return end_points
+
+    @staticmethod
+    def _extract_fields(body: dict[str, Any]) -> list[str]:
+        """Extract Fields from parsed XML body."""
+        fields_raw = (body.get("Fields") or {}).get("Field") or []
+        if isinstance(fields_raw, str):
+            fields_raw = [fields_raw]
+        return fields_raw
+
     def create_realtime_log_config(self) -> TYPE_RESPONSE:
-        import json as _json
-        body = _json.loads(self.body)
+        body = self._parse_realtime_body()
         name = body.get("Name", "")
         sampling_rate = int(body.get("SamplingRate", 100))
-        end_points = body.get("EndPoints", [])
-        fields = body.get("Fields", [])
+        end_points = self._extract_endpoints(body)
+        fields = self._extract_fields(body)
         config = self.backend.create_realtime_log_config(
             name=name, sampling_rate=sampling_rate, end_points=end_points, fields=fields,
         )
-        template = self.response_template(REALTIME_LOG_CONFIG_TEMPLATE)
+        template = self.response_template(CREATE_REALTIME_LOG_CONFIG_RESULT)
         return 201, {"status": 201}, template.render(config=config)
 
     def get_realtime_log_config(self) -> TYPE_RESPONSE:
-        import json as _json
-        body = _json.loads(self.body) if self.body else {}
+        body = self._parse_realtime_body() if self.body else {}
         config = self.backend.get_realtime_log_config(name=body.get("Name"), arn=body.get("ARN"))
-        template = self.response_template(REALTIME_LOG_CONFIG_TEMPLATE)
+        template = self.response_template(GET_REALTIME_LOG_CONFIG_RESULT)
         return 200, {}, template.render(config=config)
 
     def update_realtime_log_config(self) -> TYPE_RESPONSE:
-        import json as _json
-        body = _json.loads(self.body)
+        body = self._parse_realtime_body() if self.body else {}
         sr = body.get("SamplingRate")
+        end_points = self._extract_endpoints(body) if "EndPoints" in body else None
+        fields = self._extract_fields(body) if "Fields" in body else None
         config = self.backend.update_realtime_log_config(
             name=body.get("Name"), arn=body.get("ARN"),
             sampling_rate=int(sr) if sr is not None else None,
-            end_points=body.get("EndPoints"), fields=body.get("Fields"),
+            end_points=end_points, fields=fields,
         )
-        template = self.response_template(REALTIME_LOG_CONFIG_TEMPLATE)
+        template = self.response_template(UPDATE_REALTIME_LOG_CONFIG_RESULT)
         return 200, {}, template.render(config=config)
 
     def delete_realtime_log_config(self) -> TYPE_RESPONSE:
-        import json as _json
-        body = _json.loads(self.body) if self.body else {}
+        body = self._parse_realtime_body() if self.body else {}
         self.backend.delete_realtime_log_config(name=body.get("Name"), arn=body.get("ARN"))
         return 204, {"status": 204}, ""
 
@@ -773,8 +814,7 @@ class CloudFrontResponse(BaseResponse):
         return 200, {}, template.render(dist_ids=dist_ids)
 
     def list_distributions_by_realtime_log_config(self) -> TYPE_RESPONSE:
-        import json as _json
-        body = _json.loads(self.body) if self.body else {}
+        body = self._parse_realtime_body() if self.body else {}
         distributions = self.backend.list_distributions_by_realtime_log_config(body.get("RealtimeLogConfigArn", ""))
         template = self.response_template(LIST_TEMPLATE)
         return 200, {}, template.render(distributions=distributions)
@@ -853,18 +893,35 @@ class CloudFrontResponse(BaseResponse):
         return 200, {}, ""
 
     def create_key_value_store(self) -> TYPE_RESPONSE:
-        import json
-        body = json.loads(self.body) if self.body else {}
-        name = body.get("Name", "")
+        body = self._get_xml_body()
+        # Unwrap request element
+        req = body.get("CreateKeyValueStoreRequest") or body
+        if isinstance(req, dict):
+            req.pop("@xmlns", None)
+        else:
+            req = {}
+        name = req.get("Name", "")
         kvs_id = random_id(length=14)
-        result = {"Name": name, "Id": kvs_id, "Comment": body.get("Comment", ""), "ARN": f"arn:aws:cloudfront::{self.backend.account_id}:key-value-store/{name}", "Status": "READY", "LastModifiedTime": iso_8601_datetime_with_milliseconds()}
-        return 201, {"status": 201, "ETag": random_id(length=14)}, json.dumps(result)
+        etag = random_id(length=14)
+        template = self.response_template(KEY_VALUE_STORE_TEMPLATE)
+        response = template.render(
+            name=name, kvs_id=kvs_id, comment=req.get("Comment", ""),
+            arn=f"arn:aws:cloudfront::{self.backend.account_id}:key-value-store/{name}",
+            status="READY", last_modified=iso_8601_datetime_with_milliseconds(),
+        )
+        return 201, {"status": 201, "ETag": etag, "Location": f"https://cloudfront.amazonaws.com/2020-05-31/key-value-store/{name}"}, response
 
     def describe_key_value_store(self) -> TYPE_RESPONSE:
-        import json
         name = self.path.split("/")[-1]
-        result = {"Name": name, "Id": random_id(length=14), "Comment": "", "ARN": f"arn:aws:cloudfront::{self.backend.account_id}:key-value-store/{name}", "Status": "READY", "LastModifiedTime": iso_8601_datetime_with_milliseconds(), "ItemCount": 0, "TotalSizeInBytes": 0}
-        return 200, {"ETag": random_id(length=14)}, json.dumps(result)
+        kvs_id = random_id(length=14)
+        etag = random_id(length=14)
+        template = self.response_template(KEY_VALUE_STORE_TEMPLATE)
+        response = template.render(
+            name=name, kvs_id=kvs_id, comment="",
+            arn=f"arn:aws:cloudfront::{self.backend.account_id}:key-value-store/{name}",
+            status="READY", last_modified=iso_8601_datetime_with_milliseconds(),
+        )
+        return 200, {"ETag": etag}, response
 
     def delete_key_value_store(self) -> TYPE_RESPONSE:
         return 204, {"status": 204}, ""
@@ -873,8 +930,8 @@ class CloudFrontResponse(BaseResponse):
         return self.describe_key_value_store()
 
     def list_key_value_stores(self) -> TYPE_RESPONSE:
-        import json
-        return 200, {}, json.dumps({"KeyValueStoreList": {"MaxItems": 100, "Quantity": 0, "Items": []}})
+        template = self.response_template(LIST_KEY_VALUE_STORES_TEMPLATE)
+        return 200, {}, template.render()
 
     def create_vpc_origin(self) -> TYPE_RESPONSE:
         import json
@@ -2170,29 +2227,50 @@ MONITORING_SUB_TEMPLATE = """<?xml version="1.0"?>
 """
 
 
-REALTIME_LOG_CONFIG_TEMPLATE = """<?xml version="1.0"?>
-<RealtimeLogConfig>
-  <ARN>{{ config.arn }}</ARN>
-  <Name>{{ config.name }}</Name>
-  <SamplingRate>{{ config.sampling_rate }}</SamplingRate>
-  <EndPoints>
-    {% for ep in config.end_points %}
-    <member>
-      <StreamType>{{ ep.get("StreamType", "Kinesis") }}</StreamType>
-      <KinesisStreamConfig>
-        <RoleARN>{{ ep.get("KinesisStreamConfig", {}).get("RoleARN", "") }}</RoleARN>
-        <StreamARN>{{ ep.get("KinesisStreamConfig", {}).get("StreamARN", "") }}</StreamARN>
-      </KinesisStreamConfig>
-    </member>
-    {% endfor %}
-  </EndPoints>
-  <Fields>
-    {% for field in config.fields %}
-    <member>{{ field }}</member>
-    {% endfor %}
-  </Fields>
-</RealtimeLogConfig>
+REALTIME_LOG_CONFIG_INNER = """
+  <RealtimeLogConfig>
+    <ARN>{{ config.arn }}</ARN>
+    <Name>{{ config.name }}</Name>
+    <SamplingRate>{{ config.sampling_rate }}</SamplingRate>
+    <EndPoints>
+      {% for ep in config.end_points %}
+      <member>
+        <StreamType>{{ ep.get("StreamType", "Kinesis") }}</StreamType>
+        <KinesisStreamConfig>
+          <RoleARN>{{ ep.get("KinesisStreamConfig", {}).get("RoleARN", "") }}</RoleARN>
+          <StreamARN>{{ ep.get("KinesisStreamConfig", {}).get("StreamARN", "") }}</StreamARN>
+        </KinesisStreamConfig>
+      </member>
+      {% endfor %}
+    </EndPoints>
+    <Fields>
+      {% for field in config.fields %}
+      <member>{{ field }}</member>
+      {% endfor %}
+    </Fields>
+  </RealtimeLogConfig>
 """
+
+CREATE_REALTIME_LOG_CONFIG_RESULT = (
+    """<?xml version="1.0"?><CreateRealtimeLogConfigResult>"""
+    + REALTIME_LOG_CONFIG_INNER
+    + """</CreateRealtimeLogConfigResult>"""
+)
+
+GET_REALTIME_LOG_CONFIG_RESULT = (
+    """<?xml version="1.0"?><GetRealtimeLogConfigResult>"""
+    + REALTIME_LOG_CONFIG_INNER
+    + """</GetRealtimeLogConfigResult>"""
+)
+
+UPDATE_REALTIME_LOG_CONFIG_RESULT = (
+    """<?xml version="1.0"?><UpdateRealtimeLogConfigResult>"""
+    + REALTIME_LOG_CONFIG_INNER
+    + """</UpdateRealtimeLogConfigResult>"""
+)
+
+# Keep for backward compat
+REALTIME_LOG_CONFIG_TEMPLATE = CREATE_REALTIME_LOG_CONFIG_RESULT
 
 LIST_REALTIME_LOG_CONFIGS_TEMPLATE = """<?xml version="1.0"?>
 <RealtimeLogConfigs>
@@ -2308,4 +2386,22 @@ CONFLICTING_ALIASES_TEMPLATE = """<?xml version="1.0"?>
   </Items>
   {% endif %}
 </ConflictingAliasesList>
+"""
+
+KEY_VALUE_STORE_TEMPLATE = """<?xml version="1.0"?>
+<KeyValueStore>
+  <Name>{{ name }}</Name>
+  <Id>{{ kvs_id }}</Id>
+  <Comment>{{ comment }}</Comment>
+  <ARN>{{ arn }}</ARN>
+  <Status>{{ status }}</Status>
+  <LastModifiedTime>{{ last_modified }}</LastModifiedTime>
+</KeyValueStore>
+"""
+
+LIST_KEY_VALUE_STORES_TEMPLATE = """<?xml version="1.0"?>
+<KeyValueStoreList>
+  <MaxItems>100</MaxItems>
+  <Quantity>0</Quantity>
+</KeyValueStoreList>
 """
