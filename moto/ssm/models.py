@@ -3056,14 +3056,18 @@ class SimpleSystemManagerBackend(BaseBackend):
         return baseline_id, patch_group
 
     def get_patch_baseline_for_patch_group(
-        self, patch_group: str, operating_system: str
+        self, patch_group: str, operating_system: Optional[str] = None
     ) -> tuple[str, str, str]:
         """get baselineid for patch group for operating system"""
-        if patch_group not in self.patch_groups.keys():
+        if operating_system is None:
+            operating_system = "WINDOWS"
+        if patch_group not in self.patch_groups:
             fake_patch_group = FakePatchGroup("Fake", self.region_name)
-            baseline_id = fake_patch_group.associations[operating_system]
+            baseline_id = fake_patch_group.associations.get(operating_system, "")
         else:
-            baseline_id = self.patch_groups[patch_group].associations[operating_system]
+            baseline_id = self.patch_groups[patch_group].associations.get(
+                operating_system, ""
+            )
         return baseline_id, patch_group, operating_system
 
     def deregister_patch_baseline_for_patch_group(
@@ -3992,6 +3996,141 @@ class SimpleSystemManagerBackend(BaseBackend):
             if baseline_id in pg.associations.values()
         ]
         return result
+
+    def put_compliance_items(
+        self,
+        resource_id: str,
+        resource_type: str,
+        compliance_type: str,
+        execution_summary: dict[str, Any],
+        items: list[dict[str, Any]],
+        item_content_hash: Optional[str] = None,
+        upload_type: Optional[str] = None,
+    ) -> dict[str, Any]:
+        if not hasattr(self, "_compliance_items"):
+            self._compliance_items: dict[str, list[dict[str, Any]]] = {}
+        key = f"{resource_type}:{resource_id}"
+        stored_items = []
+        for item in items:
+            stored_item = {
+                "ComplianceType": compliance_type,
+                "ResourceType": resource_type,
+                "ResourceId": resource_id,
+                "Id": item.get("Id", ""),
+                "Title": item.get("Title", ""),
+                "Status": item.get("Status", "COMPLIANT"),
+                "Severity": item.get("Severity", "UNSPECIFIED"),
+                "ExecutionSummary": execution_summary,
+                "Details": item.get("Details", {}),
+            }
+            stored_items.append(stored_item)
+        if upload_type == "COMPLETE":
+            self._compliance_items[key] = stored_items
+        else:
+            existing = self._compliance_items.get(key, [])
+            existing.extend(stored_items)
+            self._compliance_items[key] = existing
+        return {}
+
+    def reset_service_setting(self, setting_id: str) -> dict[str, Any]:
+        return {
+            "ServiceSetting": {
+                "SettingId": setting_id,
+                "SettingValue": "",
+                "LastModifiedDate": 0,
+                "LastModifiedUser": "",
+                "ARN": (
+                    f"arn:{self.partition}:ssm:{self.region_name}"
+                    f":{self.account_id}:servicesetting/{setting_id}"
+                ),
+                "Status": "Default",
+            }
+        }
+
+    def update_service_setting(
+        self, setting_id: str, setting_value: str
+    ) -> dict[str, Any]:
+        return {}
+
+    def update_resource_data_sync(
+        self,
+        sync_name: str,
+        sync_type: str,
+        sync_source: dict[str, Any],
+    ) -> None:
+        if sync_name not in self.resource_data_syncs:
+            raise DoesNotExistException(sync_name)
+        sync = self.resource_data_syncs[sync_name]
+        sync.sync_source = sync_source
+        sync.sync_last_modified_time = utcnow()
+
+    def update_document_metadata(
+        self,
+        name: str,
+        document_version: Optional[str] = None,
+        document_reviews: Optional[dict[str, Any]] = None,
+    ) -> None:
+        if name not in self._documents:
+            raise InvalidDocument(name)
+
+    def start_session(
+        self,
+        target: str,
+        document_name: Optional[str] = None,
+        parameters: Optional[dict[str, list[str]]] = None,
+        reason: Optional[str] = None,
+    ) -> dict[str, Any]:
+        session_id = f"{self.account_id}-{random.uuid4()}"
+        return {
+            "SessionId": session_id,
+            "TokenValue": str(random.uuid4()),
+            "StreamUrl": (
+                f"wss://ssmmessages.{self.region_name}.amazonaws.com"
+                f"/v1/data-channel/{session_id}"
+            ),
+        }
+
+    def resume_session(self, session_id: str) -> dict[str, Any]:
+        return {
+            "SessionId": session_id,
+            "TokenValue": str(random.uuid4()),
+            "StreamUrl": (
+                f"wss://ssmmessages.{self.region_name}.amazonaws.com"
+                f"/v1/data-channel/{session_id}"
+            ),
+        }
+
+    def terminate_session(self, session_id: str) -> dict[str, Any]:
+        return {"SessionId": session_id}
+
+    def start_execution_preview(
+        self,
+        document_name: str,
+        document_version: Optional[str] = None,
+        execution_inputs: Optional[dict[str, Any]] = None,
+    ) -> dict[str, str]:
+        return {"ExecutionPreviewId": str(random.uuid4())}
+
+    def get_access_token(
+        self,
+        access_request_id: Optional[str] = None,
+    ) -> dict[str, Any]:
+        return {
+            "AccessRequestStatus": "Approved",
+            "Credentials": {
+                "AccessKeyId": "AKIAIOSFODNN7EXAMPLE",
+                "SecretAccessKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+                "SessionToken": str(random.uuid4()),
+                "ExpirationTime": utcnow().isoformat(),
+            },
+        }
+
+    def start_access_request(
+        self,
+        targets: Optional[list[dict[str, Any]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> dict[str, str]:
+        return {"AccessRequestId": str(random.uuid4())}
 
 
 ssm_backends = BackendDict(SimpleSystemManagerBackend, "ssm")

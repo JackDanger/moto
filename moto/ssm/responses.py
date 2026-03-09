@@ -1201,3 +1201,107 @@ class SimpleSystemManagerResponse(BaseResponse):
         baseline_id = self._get_param("BaselineId")
         result = self.ssm_backend.get_patch_baseline(baseline_id)
         return ActionResult(result)
+
+    def put_compliance_items(self) -> ActionResult:
+        resource_id = self._get_param("ResourceId")
+        resource_type = self._get_param("ResourceType")
+        compliance_type = self._get_param("ComplianceType")
+        execution_summary = self._get_param("ExecutionSummary")
+        items = self._get_param("Items")
+        item_content_hash = self._get_param("ItemContentHash")
+        upload_type = self._get_param("UploadType")
+        result = self.ssm_backend.put_compliance_items(
+            resource_id=resource_id,
+            resource_type=resource_type,
+            compliance_type=compliance_type,
+            execution_summary=execution_summary,
+            items=items,
+            item_content_hash=item_content_hash,
+            upload_type=upload_type,
+        )
+        return ActionResult(result)
+
+    def reset_service_setting(self) -> ActionResult:
+        setting_id = self._get_param("SettingId")
+        result = self.ssm_backend.reset_service_setting(setting_id=setting_id)
+        return ActionResult(result)
+
+    def update_service_setting(self) -> ActionResult:
+        setting_id = self._get_param("SettingId")
+        setting_value = self._get_param("SettingValue")
+        result = self.ssm_backend.update_service_setting(
+            setting_id=setting_id, setting_value=setting_value
+        )
+        return ActionResult(result)
+
+    def update_resource_data_sync(self) -> ActionResult:
+        sync_name = self._get_param("SyncName")
+        sync_type = self._get_param("SyncType")
+        sync_source = self._get_param("SyncSource")
+        self.ssm_backend.update_resource_data_sync(
+            sync_name=sync_name,
+            sync_type=sync_type,
+            sync_source=sync_source,
+        )
+        return EmptyResult()
+
+    def update_document_metadata(self) -> ActionResult:
+        name = self._get_param("Name")
+        document_version = self._get_param("DocumentVersion")
+        document_reviews = self._get_param("DocumentReviews")
+        self.ssm_backend.update_document_metadata(
+            name=name,
+            document_version=document_version,
+            document_reviews=document_reviews,
+        )
+        return EmptyResult()
+
+    def start_session(self) -> ActionResult:
+        target = self._get_param("Target")
+        document_name = self._get_param("DocumentName")
+        parameters = self._get_param("Parameters")
+        reason = self._get_param("Reason")
+        result = self.ssm_backend.start_session(
+            target=target,
+            document_name=document_name,
+            parameters=parameters,
+            reason=reason,
+        )
+        return ActionResult(result)
+
+    def resume_session(self) -> ActionResult:
+        session_id = self._get_param("SessionId")
+        result = self.ssm_backend.resume_session(session_id=session_id)
+        return ActionResult(result)
+
+    def terminate_session(self) -> ActionResult:
+        session_id = self._get_param("SessionId")
+        result = self.ssm_backend.terminate_session(session_id=session_id)
+        return ActionResult(result)
+
+    def start_execution_preview(self) -> ActionResult:
+        document_name = self._get_param("DocumentName")
+        document_version = self._get_param("DocumentVersion")
+        execution_inputs = self._get_param("ExecutionInputs")
+        result = self.ssm_backend.start_execution_preview(
+            document_name=document_name,
+            document_version=document_version,
+            execution_inputs=execution_inputs,
+        )
+        return ActionResult(result)
+
+    def get_access_token(self) -> ActionResult:
+        access_request_id = self._get_param("AccessRequestId")
+        result = self.ssm_backend.get_access_token(
+            access_request_id=access_request_id,
+        )
+        return ActionResult(result)
+
+    def start_access_request(self) -> ActionResult:
+        targets = self._get_param("Targets")
+        tags = self._get_param("Tags")
+        result = self.ssm_backend.start_access_request(
+            targets=targets,
+            tags=tags,
+        )
+        return ActionResult(result)
