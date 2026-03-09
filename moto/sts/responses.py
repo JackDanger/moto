@@ -156,3 +156,40 @@ class TokenResponse(BaseResponse):
         access_key_id = self._get_param("AccessKeyId")
         result = self.backend.get_access_key_info(access_key_id)
         return ActionResult(result)
+
+    def assume_root(self) -> ActionResult:
+        target_principal = self._get_param("TargetPrincipal")
+        task_policy_arn_obj = self._get_param("TaskPolicyArn")
+        if isinstance(task_policy_arn_obj, dict):
+            task_policy_arn = task_policy_arn_obj.get("arn", "")
+        else:
+            task_policy_arn = str(task_policy_arn_obj or "")
+        duration = self._get_int_param("DurationSeconds", 3600)
+        role = self.backend.assume_root(
+            target_principal=target_principal,
+            task_policy_arn=task_policy_arn,
+            duration=duration,
+        )
+        result = {
+            "Credentials": role,
+            "SourceIdentity": "AssumeRootSession",
+        }
+        return ActionResult(result)
+
+    def get_delegated_access_token(self) -> ActionResult:
+        trade_in_token = self._get_param("TradeInToken")
+        result = self.backend.get_delegated_access_token(
+            trade_in_token=trade_in_token,
+        )
+        return ActionResult(result)
+
+    def get_web_identity_token(self) -> ActionResult:
+        audience = self._get_multi_param("Audience.member")
+        duration = self._get_int_param("DurationSeconds", 3600)
+        signing_algorithm = self._get_param("SigningAlgorithm")
+        result = self.backend.get_web_identity_token(
+            audience=audience,
+            duration=duration,
+            signing_algorithm=signing_algorithm,
+        )
+        return ActionResult(result)
