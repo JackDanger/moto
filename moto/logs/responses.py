@@ -681,3 +681,107 @@ class LogsResponse(BaseResponse):
     def list_scheduled_queries(self) -> str:
         scheduled_queries = self.logs_backend.list_scheduled_queries()
         return json.dumps({"scheduledQueries": scheduled_queries})
+
+    def put_account_policy(self) -> str:
+        policy_name = self._get_param("policyName")
+        policy_document = self._get_param("policyDocument")
+        policy_type = self._get_param("policyType")
+        scope = self._get_param("scope")
+        selection_criteria = self._get_param("selectionCriteria")
+        policy = self.logs_backend.put_account_policy(
+            policy_name=policy_name,
+            policy_document=policy_document,
+            policy_type=policy_type,
+            scope=scope,
+            selection_criteria=selection_criteria,
+        )
+        return json.dumps({"accountPolicy": policy.to_dict()})
+
+    def describe_account_policies(self) -> str:
+        policy_type = self._get_param("policyType")
+        policy_name = self._get_param("policyName")
+        policies = self.logs_backend.describe_account_policies(
+            policy_type=policy_type,
+            policy_name=policy_name,
+        )
+        return json.dumps({"accountPolicies": [p.to_dict() for p in policies]})
+
+    def delete_account_policy(self) -> str:
+        policy_name = self._get_param("policyName")
+        policy_type = self._get_param("policyType")
+        self.logs_backend.delete_account_policy(
+            policy_name=policy_name,
+            policy_type=policy_type,
+        )
+        return "{}"
+
+    def create_log_anomaly_detector(self) -> str:
+        log_group_arn_list = self._get_param("logGroupArnList")
+        detector_name = self._get_param("detectorName")
+        evaluation_frequency = self._get_param("evaluationFrequency")
+        filter_pattern = self._get_param("filterPattern")
+        kms_key_id = self._get_param("kmsKeyId")
+        anomaly_visibility_time = self._get_param("anomalyVisibilityTime")
+        tags = self._get_param("tags")
+        anomaly_detector_arn = self.logs_backend.create_log_anomaly_detector(
+            log_group_arn_list=log_group_arn_list,
+            detector_name=detector_name,
+            evaluation_frequency=evaluation_frequency,
+            filter_pattern=filter_pattern,
+            kms_key_id=kms_key_id,
+            anomaly_visibility_time=anomaly_visibility_time,
+            tags=tags,
+        )
+        return json.dumps({"anomalyDetectorArn": anomaly_detector_arn})
+
+    def get_log_anomaly_detector(self) -> str:
+        anomaly_detector_arn = self._get_param("anomalyDetectorArn")
+        detector = self.logs_backend.get_log_anomaly_detector(
+            anomaly_detector_arn=anomaly_detector_arn,
+        )
+        return json.dumps(detector.to_dict())
+
+    def update_log_anomaly_detector(self) -> str:
+        anomaly_detector_arn = self._get_param("anomalyDetectorArn")
+        evaluation_frequency = self._get_param("evaluationFrequency")
+        filter_pattern = self._get_param("filterPattern")
+        anomaly_visibility_time = self._get_param("anomalyVisibilityTime")
+        enabled = self._get_param("enabled", True)
+        self.logs_backend.update_log_anomaly_detector(
+            anomaly_detector_arn=anomaly_detector_arn,
+            evaluation_frequency=evaluation_frequency,
+            filter_pattern=filter_pattern,
+            anomaly_visibility_time=anomaly_visibility_time,
+            enabled=enabled,
+        )
+        return "{}"
+
+    def delete_log_anomaly_detector(self) -> str:
+        anomaly_detector_arn = self._get_param("anomalyDetectorArn")
+        self.logs_backend.delete_log_anomaly_detector(
+            anomaly_detector_arn=anomaly_detector_arn,
+        )
+        return "{}"
+
+    def put_index_policy(self) -> str:
+        log_group_identifier = self._get_param("logGroupIdentifier")
+        policy_document = self._get_param("policyDocument")
+        policy = self.logs_backend.put_index_policy(
+            log_group_identifier=log_group_identifier,
+            policy_document=policy_document,
+        )
+        return json.dumps({"indexPolicy": policy.to_dict()})
+
+    def describe_index_policies(self) -> str:
+        log_group_identifiers = self._get_param("logGroupIdentifiers")
+        policies = self.logs_backend.describe_index_policies(
+            log_group_identifiers=log_group_identifiers,
+        )
+        return json.dumps({"indexPolicies": [p.to_dict() for p in policies]})
+
+    def delete_index_policy(self) -> str:
+        log_group_identifier = self._get_param("logGroupIdentifier")
+        self.logs_backend.delete_index_policy(
+            log_group_identifier=log_group_identifier,
+        )
+        return "{}"
