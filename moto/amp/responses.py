@@ -4,22 +4,27 @@ import json
 from typing import Any
 from urllib.parse import unquote
 
-from moto.core.responses import BaseResponse
+from moto.core.responses import TYPE_RESPONSE, BaseResponse
 
 from .models import PrometheusServiceBackend, amp_backends
+
+
+def _r(body: str, status: int = 200) -> TYPE_RESPONSE:
+    return status, {"Content-Type": "application/json"}, body
 
 
 class PrometheusServiceResponse(BaseResponse):
     """Handler for PrometheusService requests and responses."""
 
-    def tags(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[return]
+    def tags(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
-            return self.list_tags_for_resource()
+            return _r(self._list_tags_for_resource())
         if request.method == "POST":
-            return self.tag_resource()
+            return _r(self._tag_resource())
         if request.method == "DELETE":
-            return self.untag_resource()
+            return _r(self._untag_resource())
+        return _r("{}", 400)
 
     def __init__(self) -> None:
         super().__init__(service_name="amp")
@@ -28,6 +33,8 @@ class PrometheusServiceResponse(BaseResponse):
     def amp_backend(self) -> PrometheusServiceBackend:
         """Return backend instance specific for this region."""
         return amp_backends[self.current_account][self.region]
+
+    # --- Methods for dispatch (called by call_action via camelcase_to_underscores) ---
 
     def create_workspace(self) -> str:
         params = json.loads(self.body)
@@ -42,6 +49,9 @@ class PrometheusServiceResponse(BaseResponse):
         return json.dumps({"workspace": workspace.to_dict()})
 
     def list_tags_for_resource(self) -> str:
+        return self._list_tags_for_resource()
+
+    def _list_tags_for_resource(self) -> str:
         resource_arn = unquote(self.path).split("tags/")[-1]
         tags = self.amp_backend.list_tags_for_resource(resource_arn=resource_arn)
         return json.dumps({"tags": tags})
@@ -70,6 +80,9 @@ class PrometheusServiceResponse(BaseResponse):
         )
 
     def tag_resource(self) -> str:
+        return self._tag_resource()
+
+    def _tag_resource(self) -> str:
         params = json.loads(self.body)
         resource_arn = unquote(self.path).split("tags/")[-1]
         tags = params.get("tags")
@@ -77,6 +90,9 @@ class PrometheusServiceResponse(BaseResponse):
         return json.dumps({})
 
     def untag_resource(self) -> str:
+        return self._untag_resource()
+
+    def _untag_resource(self) -> str:
         resource_arn = unquote(self.path).split("tags/")[-1]
         tag_keys = self.querystring.get("tagKeys", [])
         self.amp_backend.untag_resource(resource_arn=resource_arn, tag_keys=tag_keys)
@@ -172,20 +188,26 @@ class PrometheusServiceResponse(BaseResponse):
         self.amp_backend.delete_logging_configuration(workspace_id=workspace_id)
         return "{}"
 
-    # --- Alert Manager Definition ---
+    # --- Alert Manager Definition (custom handler) ---
 
-    def alert_manager_definition(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[return]
+    def alert_manager_definition(
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         if request.method == "POST":
-            return self.create_alert_manager_definition()
+            return _r(self._create_alert_manager_definition(), 202)
         if request.method == "GET":
-            return self.describe_alert_manager_definition()
+            return _r(self._describe_alert_manager_definition())
         if request.method == "PUT":
-            return self.put_alert_manager_definition()
+            return _r(self._put_alert_manager_definition(), 202)
         if request.method == "DELETE":
-            return self.delete_alert_manager_definition()
+            return _r(self._delete_alert_manager_definition(), 202)
+        return _r("{}", 400)
 
     def create_alert_manager_definition(self) -> str:
+        return self._create_alert_manager_definition()
+
+    def _create_alert_manager_definition(self) -> str:
         workspace_id = unquote(self.path).split("/workspaces/")[-1].split("/")[0]
         params = json.loads(self.body)
         data = params.get("data", "")
@@ -195,6 +217,9 @@ class PrometheusServiceResponse(BaseResponse):
         return json.dumps({"status": status})
 
     def describe_alert_manager_definition(self) -> str:
+        return self._describe_alert_manager_definition()
+
+    def _describe_alert_manager_definition(self) -> str:
         workspace_id = unquote(self.path).split("/workspaces/")[-1].split("/")[0]
         definition = self.amp_backend.describe_alert_manager_definition(
             workspace_id=workspace_id
@@ -202,6 +227,9 @@ class PrometheusServiceResponse(BaseResponse):
         return json.dumps({"alertManagerDefinition": definition})
 
     def put_alert_manager_definition(self) -> str:
+        return self._put_alert_manager_definition()
+
+    def _put_alert_manager_definition(self) -> str:
         workspace_id = unquote(self.path).split("/workspaces/")[-1].split("/")[0]
         params = json.loads(self.body)
         data = params.get("data", "")
@@ -211,29 +239,41 @@ class PrometheusServiceResponse(BaseResponse):
         return json.dumps({"status": status})
 
     def delete_alert_manager_definition(self) -> str:
+        return self._delete_alert_manager_definition()
+
+    def _delete_alert_manager_definition(self) -> str:
         workspace_id = unquote(self.path).split("/workspaces/")[-1].split("/")[0]
         self.amp_backend.delete_alert_manager_definition(workspace_id=workspace_id)
         return "{}"
 
-    # --- Scraper ---
+    # --- Scraper (custom handlers) ---
 
-    def scrapers_dispatch(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[return]
+    def scrapers_dispatch(
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         if request.method == "POST":
-            return self.create_scraper()
+            return _r(self._create_scraper(), 202)
         if request.method == "GET":
-            return self.list_scrapers()
+            return _r(self._list_scrapers())
+        return _r("{}", 400)
 
-    def scraper_dispatch(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[return]
+    def scraper_dispatch(
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
-            return self.describe_scraper()
+            return _r(self._describe_scraper())
         if request.method == "PUT":
-            return self.update_scraper()
+            return _r(self._update_scraper(), 202)
         if request.method == "DELETE":
-            return self.delete_scraper()
+            return _r(self._delete_scraper(), 202)
+        return _r("{}", 400)
 
     def create_scraper(self) -> str:
+        return self._create_scraper()
+
+    def _create_scraper(self) -> str:
         params = json.loads(self.body)
         scraper = self.amp_backend.create_scraper(
             alias=params.get("alias"),
@@ -251,11 +291,17 @@ class PrometheusServiceResponse(BaseResponse):
         })
 
     def describe_scraper(self) -> str:
+        return self._describe_scraper()
+
+    def _describe_scraper(self) -> str:
         scraper_id = unquote(self.path).split("/scrapers/")[-1].split("/")[0]
         scraper = self.amp_backend.describe_scraper(scraper_id=scraper_id)
         return json.dumps({"scraper": scraper.to_dict()})
 
     def update_scraper(self) -> str:
+        return self._update_scraper()
+
+    def _update_scraper(self) -> str:
         scraper_id = unquote(self.path).split("/scrapers/")[-1].split("/")[0]
         params = json.loads(self.body)
         scraper = self.amp_backend.update_scraper(
@@ -273,38 +319,54 @@ class PrometheusServiceResponse(BaseResponse):
         })
 
     def delete_scraper(self) -> str:
+        return self._delete_scraper()
+
+    def _delete_scraper(self) -> str:
         scraper_id = unquote(self.path).split("/scrapers/")[-1].split("/")[0]
         result = self.amp_backend.delete_scraper(scraper_id=scraper_id)
         return json.dumps(result)
 
     def list_scrapers(self) -> str:
-        # filters come as query params like filters.key=value
+        return self._list_scrapers()
+
+    def _list_scrapers(self) -> str:
         scrapers = self.amp_backend.list_scrapers(filters=None)
         return json.dumps({
             "nextToken": None,
             "scrapers": [s.summary_dict() for s in scrapers],
         })
 
-    def scraper_configuration(self, request: Any, full_url: str, headers: Any) -> str:
+    def scraper_configuration(
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
-        return self.get_default_scraper_configuration()
+        return _r(self._get_default_scraper_configuration())
 
     def get_default_scraper_configuration(self) -> str:
+        return self._get_default_scraper_configuration()
+
+    def _get_default_scraper_configuration(self) -> str:
         config = self.amp_backend.get_default_scraper_configuration()
         return json.dumps({"configuration": config})
 
     # --- Scraper Logging Configuration ---
 
-    def scraper_logging(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[return]
+    def scraper_logging(
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
-            return self.describe_scraper_logging_configuration()
+            return _r(self._describe_scraper_logging_configuration())
         if request.method == "PUT":
-            return self.update_scraper_logging_configuration()
+            return _r(self._update_scraper_logging_configuration(), 202)
         if request.method == "DELETE":
-            return self.delete_scraper_logging_configuration()
+            return _r(self._delete_scraper_logging_configuration(), 202)
+        return _r("{}", 400)
 
     def describe_scraper_logging_configuration(self) -> str:
+        return self._describe_scraper_logging_configuration()
+
+    def _describe_scraper_logging_configuration(self) -> str:
         scraper_id = unquote(self.path).split("/scrapers/")[-1].split("/")[0]
         result = self.amp_backend.describe_scraper_logging_configuration(
             scraper_id=scraper_id
@@ -312,6 +374,9 @@ class PrometheusServiceResponse(BaseResponse):
         return json.dumps(result)
 
     def update_scraper_logging_configuration(self) -> str:
+        return self._update_scraper_logging_configuration()
+
+    def _update_scraper_logging_configuration(self) -> str:
         scraper_id = unquote(self.path).split("/scrapers/")[-1].split("/")[0]
         params = json.loads(self.body)
         status = self.amp_backend.update_scraper_logging_configuration(
@@ -322,29 +387,41 @@ class PrometheusServiceResponse(BaseResponse):
         return json.dumps({"status": status})
 
     def delete_scraper_logging_configuration(self) -> str:
+        return self._delete_scraper_logging_configuration()
+
+    def _delete_scraper_logging_configuration(self) -> str:
         scraper_id = unquote(self.path).split("/scrapers/")[-1].split("/")[0]
         self.amp_backend.delete_scraper_logging_configuration(scraper_id=scraper_id)
         return "{}"
 
     # --- Anomaly Detector ---
 
-    def anomaly_detectors_dispatch(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[return]
+    def anomaly_detectors_dispatch(
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         if request.method == "POST":
-            return self.create_anomaly_detector()
+            return _r(self._create_anomaly_detector(), 202)
         if request.method == "GET":
-            return self.list_anomaly_detectors()
+            return _r(self._list_anomaly_detectors())
+        return _r("{}", 400)
 
-    def anomaly_detector_dispatch(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[return]
+    def anomaly_detector_dispatch(
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
-            return self.describe_anomaly_detector()
+            return _r(self._describe_anomaly_detector())
         if request.method == "PUT":
-            return self.put_anomaly_detector()
+            return _r(self._put_anomaly_detector(), 202)
         if request.method == "DELETE":
-            return self.delete_anomaly_detector()
+            return _r(self._delete_anomaly_detector(), 202)
+        return _r("{}", 400)
 
     def create_anomaly_detector(self) -> str:
+        return self._create_anomaly_detector()
+
+    def _create_anomaly_detector(self) -> str:
         workspace_id = unquote(self.path).split("/workspaces/")[-1].split("/")[0]
         params = json.loads(self.body)
         ad = self.amp_backend.create_anomaly_detector(
@@ -364,6 +441,9 @@ class PrometheusServiceResponse(BaseResponse):
         })
 
     def describe_anomaly_detector(self) -> str:
+        return self._describe_anomaly_detector()
+
+    def _describe_anomaly_detector(self) -> str:
         parts = unquote(self.path).split("/")
         workspace_id = parts[parts.index("workspaces") + 1]
         anomaly_detector_id = parts[-1]
@@ -374,6 +454,9 @@ class PrometheusServiceResponse(BaseResponse):
         return json.dumps({"anomalyDetector": ad.to_dict()})
 
     def put_anomaly_detector(self) -> str:
+        return self._put_anomaly_detector()
+
+    def _put_anomaly_detector(self) -> str:
         parts = unquote(self.path).split("/")
         workspace_id = parts[parts.index("workspaces") + 1]
         anomaly_detector_id = parts[-1]
@@ -394,6 +477,9 @@ class PrometheusServiceResponse(BaseResponse):
         })
 
     def delete_anomaly_detector(self) -> str:
+        return self._delete_anomaly_detector()
+
+    def _delete_anomaly_detector(self) -> str:
         parts = unquote(self.path).split("/")
         workspace_id = parts[parts.index("workspaces") + 1]
         anomaly_detector_id = parts[-1]
@@ -404,6 +490,9 @@ class PrometheusServiceResponse(BaseResponse):
         return "{}"
 
     def list_anomaly_detectors(self) -> str:
+        return self._list_anomaly_detectors()
+
+    def _list_anomaly_detectors(self) -> str:
         workspace_id = unquote(self.path).split("/workspaces/")[-1].split("/")[0]
         alias = self._get_param("alias")
         detectors = self.amp_backend.list_anomaly_detectors(
@@ -416,18 +505,24 @@ class PrometheusServiceResponse(BaseResponse):
 
     # --- Query Logging Configuration ---
 
-    def query_logging(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[return]
+    def query_logging(
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         if request.method == "POST":
-            return self.create_query_logging_configuration()
+            return _r(self._create_query_logging_configuration(), 202)
         if request.method == "GET":
-            return self.describe_query_logging_configuration()
+            return _r(self._describe_query_logging_configuration())
         if request.method == "PUT":
-            return self.update_query_logging_configuration()
+            return _r(self._update_query_logging_configuration(), 202)
         if request.method == "DELETE":
-            return self.delete_query_logging_configuration()
+            return _r(self._delete_query_logging_configuration(), 202)
+        return _r("{}", 400)
 
     def create_query_logging_configuration(self) -> str:
+        return self._create_query_logging_configuration()
+
+    def _create_query_logging_configuration(self) -> str:
         workspace_id = unquote(self.path).split("/workspaces/")[-1].split("/")[0]
         params = json.loads(self.body)
         destinations = params.get("destinations", [])
@@ -437,6 +532,9 @@ class PrometheusServiceResponse(BaseResponse):
         return json.dumps({"status": status})
 
     def describe_query_logging_configuration(self) -> str:
+        return self._describe_query_logging_configuration()
+
+    def _describe_query_logging_configuration(self) -> str:
         workspace_id = unquote(self.path).split("/workspaces/")[-1].split("/")[0]
         config = self.amp_backend.describe_query_logging_configuration(
             workspace_id=workspace_id
@@ -444,6 +542,9 @@ class PrometheusServiceResponse(BaseResponse):
         return json.dumps({"queryLoggingConfiguration": config})
 
     def update_query_logging_configuration(self) -> str:
+        return self._update_query_logging_configuration()
+
+    def _update_query_logging_configuration(self) -> str:
         workspace_id = unquote(self.path).split("/workspaces/")[-1].split("/")[0]
         params = json.loads(self.body)
         destinations = params.get("destinations", [])
@@ -453,6 +554,9 @@ class PrometheusServiceResponse(BaseResponse):
         return json.dumps({"status": status})
 
     def delete_query_logging_configuration(self) -> str:
+        return self._delete_query_logging_configuration()
+
+    def _delete_query_logging_configuration(self) -> str:
         workspace_id = unquote(self.path).split("/workspaces/")[-1].split("/")[0]
         self.amp_backend.delete_query_logging_configuration(
             workspace_id=workspace_id
@@ -461,21 +565,30 @@ class PrometheusServiceResponse(BaseResponse):
 
     # --- Resource Policy ---
 
-    def resource_policy(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[return]
+    def resource_policy(
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
-            return self.describe_resource_policy()
+            return _r(self._describe_resource_policy())
         if request.method == "PUT":
-            return self.put_resource_policy()
+            return _r(self._put_resource_policy(), 202)
         if request.method == "DELETE":
-            return self.delete_resource_policy()
+            return _r(self._delete_resource_policy(), 202)
+        return _r("{}", 400)
 
     def describe_resource_policy(self) -> str:
+        return self._describe_resource_policy()
+
+    def _describe_resource_policy(self) -> str:
         workspace_id = unquote(self.path).split("/workspaces/")[-1].split("/")[0]
         policy = self.amp_backend.describe_resource_policy(workspace_id=workspace_id)
         return json.dumps(policy)
 
     def put_resource_policy(self) -> str:
+        return self._put_resource_policy()
+
+    def _put_resource_policy(self) -> str:
         workspace_id = unquote(self.path).split("/workspaces/")[-1].split("/")[0]
         params = json.loads(self.body)
         result = self.amp_backend.put_resource_policy(
@@ -486,20 +599,29 @@ class PrometheusServiceResponse(BaseResponse):
         return json.dumps(result)
 
     def delete_resource_policy(self) -> str:
+        return self._delete_resource_policy()
+
+    def _delete_resource_policy(self) -> str:
         workspace_id = unquote(self.path).split("/workspaces/")[-1].split("/")[0]
         self.amp_backend.delete_resource_policy(workspace_id=workspace_id)
         return "{}"
 
     # --- Workspace Configuration ---
 
-    def workspace_configuration(self, request: Any, full_url: str, headers: Any) -> str:  # type: ignore[return]
+    def workspace_configuration(
+        self, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         if request.method == "GET":
-            return self.describe_workspace_configuration()
+            return _r(self._describe_workspace_configuration())
         if request.method == "PATCH":
-            return self.update_workspace_configuration()
+            return _r(self._update_workspace_configuration(), 202)
+        return _r("{}", 400)
 
     def describe_workspace_configuration(self) -> str:
+        return self._describe_workspace_configuration()
+
+    def _describe_workspace_configuration(self) -> str:
         workspace_id = unquote(self.path).split("/workspaces/")[-1].split("/")[0]
         result = self.amp_backend.describe_workspace_configuration(
             workspace_id=workspace_id
@@ -507,6 +629,9 @@ class PrometheusServiceResponse(BaseResponse):
         return json.dumps(result)
 
     def update_workspace_configuration(self) -> str:
+        return self._update_workspace_configuration()
+
+    def _update_workspace_configuration(self) -> str:
         workspace_id = unquote(self.path).split("/workspaces/")[-1].split("/")[0]
         params = json.loads(self.body)
         status = self.amp_backend.update_workspace_configuration(
