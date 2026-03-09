@@ -156,7 +156,7 @@ class LocalGatewayBackend:
         table.routes[destination_cidr_block] = route
         return route
 
-    def describe_local_gateway_routes(
+    def search_local_gateway_routes(
         self,
         local_gateway_route_table_id: str,
     ) -> list[LocalGatewayRoute]:
