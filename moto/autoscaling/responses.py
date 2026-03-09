@@ -458,3 +458,88 @@ class AutoScalingResponse(BaseResponse):
         group_name = self._get_param("AutoScalingGroupName")
         self.autoscaling_backend.delete_warm_pool(group_name=group_name)
         return EmptyResult()
+
+    def describe_account_limits(self) -> ActionResult:
+        limits = self.autoscaling_backend.describe_account_limits()
+        return ActionResult(limits)
+
+    def describe_adjustment_types(self) -> ActionResult:
+        adjustment_types = self.autoscaling_backend.describe_adjustment_types()
+        result = {"AdjustmentTypes": adjustment_types}
+        return ActionResult(result)
+
+    def describe_auto_scaling_notification_types(self) -> ActionResult:
+        notification_types = (
+            self.autoscaling_backend.describe_auto_scaling_notification_types()
+        )
+        result = {"AutoScalingNotificationTypes": notification_types}
+        return ActionResult(result)
+
+    def describe_lifecycle_hook_types(self) -> ActionResult:
+        hook_types = self.autoscaling_backend.describe_lifecycle_hook_types()
+        result = {"LifecycleHookTypes": hook_types}
+        return ActionResult(result)
+
+    def describe_scaling_process_types(self) -> ActionResult:
+        process_types = self.autoscaling_backend.describe_scaling_process_types()
+        result = {"Processes": process_types}
+        return ActionResult(result)
+
+    def describe_termination_policy_types(self) -> ActionResult:
+        policy_types = self.autoscaling_backend.describe_termination_policy_types()
+        result = {"TerminationPolicyTypes": policy_types}
+        return ActionResult(result)
+
+    def describe_metric_collection_types(self) -> ActionResult:
+        collection_types = self.autoscaling_backend.describe_metric_collection_types()
+        return ActionResult(collection_types)
+
+    def put_notification_configuration(self) -> ActionResult:
+        group_name = self._get_param("AutoScalingGroupName")
+        topic_arn = self._get_param("TopicARN")
+        notification_types = self._get_param("NotificationTypes", [])
+        self.autoscaling_backend.put_notification_configuration(
+            group_name, topic_arn, notification_types
+        )
+        return EmptyResult()
+
+    def describe_notification_configurations(self) -> ActionResult:
+        group_names = self._get_param("AutoScalingGroupNames", [])
+        configs = self.autoscaling_backend.describe_notification_configurations(
+            group_names if group_names else None
+        )
+        result = {"NotificationConfigurations": configs}
+        return ActionResult(result)
+
+    def delete_notification_configuration(self) -> ActionResult:
+        group_name = self._get_param("AutoScalingGroupName")
+        topic_arn = self._get_param("TopicARN")
+        self.autoscaling_backend.delete_notification_configuration(
+            group_name, topic_arn
+        )
+        return EmptyResult()
+
+    def start_instance_refresh(self) -> ActionResult:
+        group_name = self._get_param("AutoScalingGroupName")
+        strategy = self._get_param("Strategy")
+        preferences = self._get_param("Preferences", {})
+        refresh = self.autoscaling_backend.start_instance_refresh(
+            group_name, strategy, preferences
+        )
+        result = {"InstanceRefreshId": refresh.instance_refresh_id}
+        return ActionResult(result)
+
+    def describe_instance_refreshes(self) -> ActionResult:
+        group_name = self._get_param("AutoScalingGroupName")
+        instance_refresh_ids = self._get_param("InstanceRefreshIds", [])
+        refreshes = self.autoscaling_backend.describe_instance_refreshes(
+            group_name, instance_refresh_ids if instance_refresh_ids else None
+        )
+        result = {"InstanceRefreshes": refreshes}
+        return ActionResult(result)
+
+    def cancel_instance_refresh(self) -> ActionResult:
+        group_name = self._get_param("AutoScalingGroupName")
+        refresh_id = self.autoscaling_backend.cancel_instance_refresh(group_name)
+        result = {"InstanceRefreshId": refresh_id}
+        return ActionResult(result)

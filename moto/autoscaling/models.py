@@ -544,6 +544,38 @@ class FakeWarmPool(CloudFormationModel):
         self.instance_reuse_policy = instance_reuse_policy
 
 
+class InstanceRefresh:
+    def __init__(
+        self,
+        instance_refresh_id: str,
+        auto_scaling_group_name: str,
+        status: str = "Pending",
+        status_reason: Optional[str] = None,
+        preferences: Optional[dict[str, Any]] = None,
+    ):
+        self.instance_refresh_id = instance_refresh_id
+        self.auto_scaling_group_name = auto_scaling_group_name
+        self.status = status
+        self.status_reason = status_reason
+        self.start_time = utcnow()
+        self.end_time: Optional[datetime] = None
+        self.percentage_complete = 0
+        self.instances_to_update = 0
+        self.preferences = preferences or {}
+
+
+class NotificationConfiguration:
+    def __init__(
+        self,
+        auto_scaling_group_name: str,
+        topic_arn: str,
+        notification_types: list[str],
+    ):
+        self.auto_scaling_group_name = auto_scaling_group_name
+        self.topic_arn = topic_arn
+        self.notification_types = notification_types
+
+
 class FakeAutoScalingGroup(CloudFormationModel):
     def __init__(
         self,
@@ -1150,6 +1182,8 @@ class AutoScalingBackend(BaseBackend):
         self.scheduled_actions: dict[str, FakeScheduledAction] = OrderedDict()
         self.policies: dict[str, FakeScalingPolicy] = {}
         self.lifecycle_hooks: dict[str, LifecycleHook] = {}
+        self.notification_configurations: list[NotificationConfiguration] = []
+        self.instance_refreshes: dict[str, list[InstanceRefresh]] = {}
         self.ec2_backend: EC2Backend = ec2_backends[self.account_id][region_name]
         self.elb_backend: ELBBackend = elb_backends[self.account_id][region_name]
         self.elbv2_backend: ELBv2Backend = elbv2_backends[self.account_id][region_name]
@@ -1972,6 +2006,207 @@ class AutoScalingBackend(BaseBackend):
     def delete_warm_pool(self, group_name: str) -> None:
         group = self.describe_auto_scaling_groups([group_name])[0]
         group.warm_pool = None
+
+    def describe_account_limits(self) -> dict[str, int]:
+        return {
+            "MaxNumberOfAutoScalingGroups": 200,
+            "MaxNumberOfLaunchConfigurations": 200,
+            "NumberOfAutoScalingGroups": len(self.autoscaling_groups),
+            "NumberOfLaunchConfigurations": len(self.launch_configurations),
+        }
+
+    def describe_adjustment_types(self) -> list[dict[str, str]]:
+        return [
+            {"AdjustmentType": "ChangeInCapacity"},
+            {"AdjustmentType": "ExactCapacity"},
+            {"AdjustmentType": "PercentChangeInCapacity"},
+        ]
+
+    def describe_auto_scaling_notification_types(self) -> list[str]:
+        return [
+            "autoscaling:EC2_INSTANCE_LAUNCH",
+            "autoscaling:EC2_INSTANCE_LAUNCH_ERROR",
+            "autoscaling:EC2_INSTANCE_TERMINATE",
+            "autoscaling:EC2_INSTANCE_TERMINATE_ERROR",
+            "autoscaling:TEST_NOTIFICATION",
+        ]
+
+    def describe_lifecycle_hook_types(self) -> list[str]:
+        return [
+            "autoscaling:EC2_INSTANCE_LAUNCHING",
+            "autoscaling:EC2_INSTANCE_TERMINATING",
+        ]
+
+    def describe_scaling_process_types(self) -> list[dict[str, str]]:
+        return [
+            {"ProcessName": "Launch"},
+            {"ProcessName": "Terminate"},
+            {"ProcessName": "AddToLoadBalancer"},
+            {"ProcessName": "AlarmNotification"},
+            {"ProcessName": "AZRebalance"},
+            {"ProcessName": "HealthCheck"},
+            {"ProcessName": "InstanceRefresh"},
+            {"ProcessName": "ReplaceUnhealthy"},
+            {"ProcessName": "ScheduledActions"},
+        ]
+
+    def describe_termination_policy_types(self) -> list[str]:
+        return [
+            "AllocationStrategy",
+            "ClosestToNextInstanceHour",
+            "Default",
+            "NewestInstance",
+            "OldestInstance",
+            "OldestLaunchConfiguration",
+            "OldestLaunchTemplate",
+        ]
+
+    def describe_metric_collection_types(self) -> dict[str, list[dict[str, str]]]:
+        metrics = [
+            {"Metric": "GroupMinSize"},
+            {"Metric": "GroupMaxSize"},
+            {"Metric": "GroupDesiredCapacity"},
+            {"Metric": "GroupInServiceInstances"},
+            {"Metric": "GroupPendingInstances"},
+            {"Metric": "GroupStandbyInstances"},
+            {"Metric": "GroupTerminatingInstances"},
+            {"Metric": "GroupTotalInstances"},
+            {"Metric": "GroupInServiceCapacity"},
+            {"Metric": "GroupPendingCapacity"},
+            {"Metric": "GroupStandbyCapacity"},
+            {"Metric": "GroupTerminatingCapacity"},
+            {"Metric": "GroupTotalCapacity"},
+            {"Metric": "WarmPoolDesiredCapacity"},
+            {"Metric": "WarmPoolWarmedCapacity"},
+            {"Metric": "WarmPoolPendingCapacity"},
+            {"Metric": "WarmPoolTerminatingCapacity"},
+            {"Metric": "WarmPoolTotalCapacity"},
+            {"Metric": "GroupAndWarmPoolDesiredCapacity"},
+            {"Metric": "GroupAndWarmPoolTotalCapacity"},
+        ]
+        granularities = [{"Granularity": "1Minute"}]
+        return {"Metrics": metrics, "Granularities": granularities}
+
+    def put_notification_configuration(
+        self,
+        auto_scaling_group_name: str,
+        topic_arn: str,
+        notification_types: list[str],
+    ) -> None:
+        # Remove existing config for same group+topic combo
+        self.notification_configurations = [
+            nc
+            for nc in self.notification_configurations
+            if not (
+                nc.auto_scaling_group_name == auto_scaling_group_name
+                and nc.topic_arn == topic_arn
+            )
+        ]
+        self.notification_configurations.append(
+            NotificationConfiguration(
+                auto_scaling_group_name=auto_scaling_group_name,
+                topic_arn=topic_arn,
+                notification_types=notification_types,
+            )
+        )
+
+    def describe_notification_configurations(
+        self,
+        auto_scaling_group_names: Optional[list[str]] = None,
+    ) -> list[dict[str, str]]:
+        configs = self.notification_configurations
+        if auto_scaling_group_names:
+            configs = [
+                nc
+                for nc in configs
+                if nc.auto_scaling_group_name in auto_scaling_group_names
+            ]
+        # Flatten: one entry per notification type
+        result = []
+        for nc in configs:
+            for nt in nc.notification_types:
+                result.append(
+                    {
+                        "AutoScalingGroupName": nc.auto_scaling_group_name,
+                        "TopicARN": nc.topic_arn,
+                        "NotificationType": nt,
+                    }
+                )
+        return result
+
+    def delete_notification_configuration(
+        self,
+        auto_scaling_group_name: str,
+        topic_arn: str,
+    ) -> None:
+        self.notification_configurations = [
+            nc
+            for nc in self.notification_configurations
+            if not (
+                nc.auto_scaling_group_name == auto_scaling_group_name
+                and nc.topic_arn == topic_arn
+            )
+        ]
+
+    def start_instance_refresh(
+        self,
+        auto_scaling_group_name: str,
+        strategy: Optional[str] = None,
+        preferences: Optional[dict[str, Any]] = None,
+    ) -> InstanceRefresh:
+        # Verify the ASG exists
+        if auto_scaling_group_name not in self.autoscaling_groups:
+            raise ValidationError(
+                f"AutoScalingGroup name not found - AutoScalingGroup '{auto_scaling_group_name}' not found"
+            )
+        # Check for in-progress refresh
+        existing = self.instance_refreshes.get(auto_scaling_group_name, [])
+        for refresh in existing:
+            if refresh.status in ("Pending", "InProgress"):
+                raise ResourceContentionError()
+        refresh_id = str(random.uuid4())
+        refresh = InstanceRefresh(
+            instance_refresh_id=refresh_id,
+            auto_scaling_group_name=auto_scaling_group_name,
+            status="Pending",
+            preferences=preferences,
+        )
+        if auto_scaling_group_name not in self.instance_refreshes:
+            self.instance_refreshes[auto_scaling_group_name] = []
+        self.instance_refreshes[auto_scaling_group_name].append(refresh)
+        return refresh
+
+    def describe_instance_refreshes(
+        self,
+        auto_scaling_group_name: str,
+        instance_refresh_ids: Optional[list[str]] = None,
+    ) -> list[InstanceRefresh]:
+        if auto_scaling_group_name not in self.autoscaling_groups:
+            raise ValidationError(
+                f"AutoScalingGroup name not found - AutoScalingGroup '{auto_scaling_group_name}' not found"
+            )
+        refreshes = self.instance_refreshes.get(auto_scaling_group_name, [])
+        if instance_refresh_ids:
+            refreshes = [
+                r for r in refreshes if r.instance_refresh_id in instance_refresh_ids
+            ]
+        return refreshes
+
+    def cancel_instance_refresh(
+        self,
+        auto_scaling_group_name: str,
+    ) -> Optional[str]:
+        if auto_scaling_group_name not in self.autoscaling_groups:
+            raise ValidationError(
+                f"AutoScalingGroup name not found - AutoScalingGroup '{auto_scaling_group_name}' not found"
+            )
+        refreshes = self.instance_refreshes.get(auto_scaling_group_name, [])
+        for refresh in refreshes:
+            if refresh.status in ("Pending", "InProgress"):
+                refresh.status = "Cancelling"
+                refresh.end_time = utcnow()
+                return refresh.instance_refresh_id
+        raise ResourceContentionError()
 
 
 autoscaling_backends = BackendDict(AutoScalingBackend, "autoscaling")
