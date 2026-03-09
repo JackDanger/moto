@@ -1634,6 +1634,59 @@ class ECRBackend(BaseBackend):
         self.account_settings[name] = value
         return {"name": name, "value": value}
 
+    def describe_image_replication_status(
+        self,
+        repository_name: str,
+        image_id: dict[str, str],
+        registry_id: Optional[str] = None,
+    ) -> dict[str, Any]:
+        repo = self._get_repository(repository_name, registry_id or self.account_id)
+        image_tag = image_id.get("imageTag")
+        image_digest = image_id.get("imageDigest")
+        # Find the image
+        image = None
+        for img in repo.images:
+            if image_digest and img.image_digest == image_digest:
+                image = img
+                break
+            if image_tag and img.image_tags and image_tag in img.image_tags:
+                image = img
+                break
+        if image is None:
+            raise ImageNotFoundException(
+                image_id=image_digest or image_tag or "",
+                repository_name=repository_name,
+                registry_id=registry_id or self.account_id,
+            )
+        return {
+            "repositoryName": repository_name,
+            "imageId": {
+                "imageDigest": image.image_digest,
+                "imageTag": (image.image_tags[0] if image.image_tags else None),
+            },
+            "replicationStatuses": [],
+        }
+
+    def update_pull_through_cache_rule(
+        self,
+        ecr_repository_prefix: str,
+        credential_arn: str = "",
+    ) -> dict[str, Any]:
+        if ecr_repository_prefix not in self.pull_through_cache_rules:
+            raise PullThroughCacheRuleNotFoundException(
+                ecr_repository_prefix, self.account_id
+            )
+        rule = self.pull_through_cache_rules[ecr_repository_prefix]
+        if credential_arn:
+            rule["credentialArn"] = credential_arn
+        rule["updatedAt"] = utcnow()
+        return {
+            "ecrRepositoryPrefix": ecr_repository_prefix,
+            "registryId": self.account_id,
+            "updatedAt": rule["updatedAt"],
+            "credentialArn": rule.get("credentialArn", ""),
+        }
+
     def _validate_mutability_exclusion_filters(
         self,
         image_tag_mutability_exclusion_filters: Optional[

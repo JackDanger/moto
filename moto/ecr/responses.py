@@ -505,3 +505,25 @@ class ECRResponse(BaseResponse):
         return ActionResult(
             self.ecr_backend.put_account_setting(name, value)
         )
+
+    def describe_image_replication_status(self) -> ActionResult:
+        repository_name = self._get_param("repositoryName")
+        image_id = self._get_param("imageId")
+        registry_id = self._get_param("registryId")
+        return ActionResult(
+            self.ecr_backend.describe_image_replication_status(
+                repository_name=repository_name,
+                image_id=image_id,
+                registry_id=registry_id,
+            )
+        )
+
+    def update_pull_through_cache_rule(self) -> ActionResult:
+        prefix = self._get_param("ecrRepositoryPrefix")
+        cred = self._get_param("credentialArn", "")
+        return ActionResult(
+            self.ecr_backend.update_pull_through_cache_rule(
+                ecr_repository_prefix=prefix,
+                credential_arn=cred,
+            )
+        )

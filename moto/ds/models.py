@@ -454,6 +454,18 @@ class DirectoryServiceBackend(BaseBackend):
         self.client_auth_settings: dict[str, dict[str, str]] = {}
         # Keyed by directory_id -> list of Computer
         self.computers: dict[str, list[Computer]] = {}
+        # Keyed by assessment_id
+        self.ad_assessments: dict[str, dict[str, Any]] = {}
+        # Keyed by directory_id -> shared directory entries
+        self.shared_directories: dict[str, list[dict[str, Any]]] = {}
+        # Keyed by directory_id -> additional regions
+        self.additional_regions: dict[str, list[dict[str, Any]]] = {}
+        # Keyed by directory_id -> schema extensions
+        self.schema_extensions: dict[str, list[dict[str, Any]]] = {}
+        # Keyed by directory_id -> directory data access enabled
+        self.directory_data_access: dict[str, bool] = {}
+        # Keyed by directory_id -> CA enrollment policy enabled
+        self.ca_enrollment_policy: dict[str, bool] = {}
 
     def _verify_subnets(self, region: str, vpc_settings: dict[str, Any]) -> None:
         """Verify subnets are valid, else raise an exception.
@@ -915,24 +927,6 @@ class DirectoryServiceBackend(BaseBackend):
 
         return directory_id
 
-    def describe_ad_assessment(
-        self, assessment_id: str
-    ) -> dict[str, Any]:
-        """Describe an AD assessment — raises not found."""
-        raise EntityDoesNotExistException(
-            f"Assessment {assessment_id} does not exist"
-        )
-
-    def describe_ca_enrollment_policy(
-        self, directory_id: str
-    ) -> dict[str, Any]:
-        """Describe CA enrollment policy — returns disabled state."""
-        self._validate_directory_id(directory_id)
-        return {
-            "DirectoryId": directory_id,
-            "CaEnrollmentPolicyStatus": "Disabled",
-        }
-
     def create_conditional_forwarder(
         self,
         directory_id: str,
@@ -1129,13 +1123,6 @@ class DirectoryServiceBackend(BaseBackend):
             snapshots = [s for s in snapshots if s.snapshot_id in snapshot_ids]
         return [s.to_dict() for s in snapshots]
 
-    def describe_shared_directories(
-        self, owner_directory_id: str, shared_directory_ids: Optional[list[str]]
-    ) -> list[dict[str, Any]]:
-        """Describe shared directories — returns empty list."""
-        self._validate_directory_id(owner_directory_id)
-        return []
-
     def describe_regions(
         self, directory_id: str, region_name: Optional[str]
     ) -> list[dict[str, Any]]:
@@ -1166,6 +1153,8 @@ class DirectoryServiceBackend(BaseBackend):
                 "LastUpdatedDateTime": directory.stage_last_updated_date_time,
             }
         ]
+        # Include additional regions added via add_region
+        regions_info.extend(self.additional_regions.get(directory_id, []))
         if region_name:
             regions_info = [r for r in regions_info if r["RegionName"] == region_name]
         return regions_info
@@ -1381,11 +1370,6 @@ class DirectoryServiceBackend(BaseBackend):
         ]
         return routes
 
-    def list_schema_extensions(self, directory_id: str) -> list[dict[str, Any]]:
-        """List schema extensions — returns empty list."""
-        self._validate_directory_id(directory_id)
-        return []
-
     def create_computer(
         self,
         directory_id: str,
@@ -1453,6 +1437,300 @@ class DirectoryServiceBackend(BaseBackend):
                 f"Log subscription for {directory_id} does not exist"
             )
         return
+
+
+    # ---- Shared Directories ----
+
+    def share_directory(
+        self,
+        directory_id: str,
+        share_target: dict[str, str],
+        share_method: str,
+        share_notes: Optional[str] = None,
+    ) -> str:
+        """Share a directory with another AWS account."""
+        self._validate_directory_id(directory_id)
+        shared_directory_id = f"d-{mock_random.get_random_hex(10)}"
+        entry: dict[str, Any] = {
+            "OwnerDirectoryId": directory_id,
+            "OwnerAccountId": self.account_id,
+            "SharedDirectoryId": shared_directory_id,
+            "SharedAccountId": share_target.get("Id", ""),
+            "ShareMethod": share_method,
+            "ShareStatus": "Shared",
+            "ShareNotes": share_notes or "",
+            "CreatedDateTime": unix_time(),
+            "LastUpdatedDateTime": unix_time(),
+        }
+        if directory_id not in self.shared_directories:
+            self.shared_directories[directory_id] = []
+        self.shared_directories[directory_id].append(entry)
+        return shared_directory_id
+
+    def unshare_directory(
+        self,
+        directory_id: str,
+        unshare_target: dict[str, str],
+    ) -> str:
+        """Unshare a directory."""
+        self._validate_directory_id(directory_id)
+        shared_dirs = self.shared_directories.get(directory_id, [])
+        target_id = unshare_target.get("Id", "")
+        for sd in shared_dirs:
+            if sd["SharedAccountId"] == target_id:
+                sd["ShareStatus"] = "Deleted"
+                shared_dir_id = sd["SharedDirectoryId"]
+                self.shared_directories[directory_id] = [
+                    s for s in shared_dirs if s["SharedAccountId"] != target_id
+                ]
+                return shared_dir_id
+        raise EntityDoesNotExistException(
+            f"No shared directory found for target {target_id}"
+        )
+
+    def accept_shared_directory(
+        self,
+        shared_directory_id: str,
+    ) -> dict[str, Any]:
+        """Accept a shared directory invitation."""
+        for entries in self.shared_directories.values():
+            for entry in entries:
+                if entry["SharedDirectoryId"] == shared_directory_id:
+                    entry["ShareStatus"] = "Shared"
+                    return entry
+        raise EntityDoesNotExistException(
+            f"Shared directory {shared_directory_id} does not exist"
+        )
+
+    def reject_shared_directory(
+        self,
+        shared_directory_id: str,
+    ) -> str:
+        """Reject a shared directory invitation."""
+        for entries in self.shared_directories.values():
+            for entry in entries:
+                if entry["SharedDirectoryId"] == shared_directory_id:
+                    entry["ShareStatus"] = "Rejected"
+                    return shared_directory_id
+        raise EntityDoesNotExistException(
+            f"Shared directory {shared_directory_id} does not exist"
+        )
+
+    def describe_shared_directories(
+        self, owner_directory_id: str, shared_directory_ids: Optional[list[str]]
+    ) -> list[dict[str, Any]]:
+        """Describe shared directories."""
+        self._validate_directory_id(owner_directory_id)
+        entries = self.shared_directories.get(owner_directory_id, [])
+        if shared_directory_ids:
+            entries = [
+                e for e in entries if e["SharedDirectoryId"] in shared_directory_ids
+            ]
+        return entries
+
+    # ---- Regions ----
+
+    def add_region(
+        self,
+        directory_id: str,
+        region_name: str,
+        vpc_settings: dict[str, Any],
+    ) -> None:
+        """Add a region replication to the directory."""
+        self._validate_directory_id(directory_id)
+        directory = self.directories[directory_id]
+        if directory.directory_type != "MicrosoftAD":
+            raise UnsupportedOperationException(
+                "Multi-region replication is only supported for Microsoft AD directories."
+            )
+        entry: dict[str, Any] = {
+            "DirectoryId": directory_id,
+            "RegionName": region_name,
+            "RegionType": "Additional",
+            "Status": "Active",
+            "VpcSettings": vpc_settings,
+            "DesiredNumberOfDomainControllers": directory.desired_number_of_domain_controllers,
+            "LaunchTime": unix_time(),
+            "StatusLastUpdatedDateTime": unix_time(),
+            "LastUpdatedDateTime": unix_time(),
+        }
+        if directory_id not in self.additional_regions:
+            self.additional_regions[directory_id] = []
+        self.additional_regions[directory_id].append(entry)
+
+    def remove_region(
+        self,
+        directory_id: str,
+    ) -> None:
+        """Remove a region replication from the directory."""
+        self._validate_directory_id(directory_id)
+        self.additional_regions.pop(directory_id, None)
+
+    # ---- Schema Extensions ----
+
+    def start_schema_extension(
+        self,
+        directory_id: str,
+        create_snapshot_before_schema_extension: bool,
+        ldif_content: str,
+        description: str,
+    ) -> str:
+        """Start a schema extension."""
+        self._validate_directory_id(directory_id)
+        schema_extension_id = f"e-{mock_random.get_random_hex(10)}"
+        entry: dict[str, Any] = {
+            "DirectoryId": directory_id,
+            "SchemaExtensionId": schema_extension_id,
+            "Description": description,
+            "SchemaExtensionStatus": "Completed",
+            "SchemaExtensionStatusReason": "",
+            "StartDateTime": unix_time(),
+            "EndDateTime": unix_time(),
+        }
+        if directory_id not in self.schema_extensions:
+            self.schema_extensions[directory_id] = []
+        self.schema_extensions[directory_id].append(entry)
+        return schema_extension_id
+
+    def cancel_schema_extension(
+        self,
+        directory_id: str,
+        schema_extension_id: str,
+    ) -> None:
+        """Cancel a schema extension."""
+        self._validate_directory_id(directory_id)
+        extensions = self.schema_extensions.get(directory_id, [])
+        for ext in extensions:
+            if ext["SchemaExtensionId"] == schema_extension_id:
+                ext["SchemaExtensionStatus"] = "CancelInProgress"
+                return
+        raise EntityDoesNotExistException(
+            f"Schema extension {schema_extension_id} does not exist"
+        )
+
+    def list_schema_extensions(self, directory_id: str) -> list[dict[str, Any]]:
+        """List schema extensions."""
+        self._validate_directory_id(directory_id)
+        return self.schema_extensions.get(directory_id, [])
+
+    # ---- Directory Setup / Domain Controllers ----
+
+    def update_directory_setup(
+        self,
+        directory_id: str,
+        update_type: str,
+        os_update_settings: Optional[dict[str, Any]] = None,
+        create_snapshot_before_update: bool = False,
+    ) -> None:
+        """Update directory setup (e.g., OS update)."""
+        self._validate_directory_id(directory_id)
+        # No-op in mock — just validate the directory exists
+
+    def update_number_of_domain_controllers(
+        self,
+        directory_id: str,
+        desired_number: int,
+    ) -> None:
+        """Update the number of domain controllers for the directory."""
+        self._validate_directory_id(directory_id)
+        directory = self.directories[directory_id]
+        if directory.directory_type != "MicrosoftAD":
+            raise UnsupportedOperationException(
+                "Domain controllers are only supported for Microsoft AD directories."
+            )
+        directory.desired_number_of_domain_controllers = desired_number
+
+    # ---- AD Assessments ----
+
+    def start_ad_assessment(
+        self,
+        directory_id: str,
+    ) -> str:
+        """Start an AD assessment."""
+        self._validate_directory_id(directory_id)
+        assessment_id = f"assess-{mock_random.get_random_hex(10)}"
+        assessment: dict[str, Any] = {
+            "AssessmentId": assessment_id,
+            "DirectoryId": directory_id,
+            "Status": "Completed",
+            "CreatedDateTime": unix_time(),
+            "LastUpdatedDateTime": unix_time(),
+        }
+        self.ad_assessments[assessment_id] = assessment
+        return assessment_id
+
+    def describe_ad_assessment(
+        self, assessment_id: str
+    ) -> dict[str, Any]:
+        """Describe an AD assessment."""
+        if assessment_id not in self.ad_assessments:
+            raise EntityDoesNotExistException(
+                f"Assessment {assessment_id} does not exist"
+            )
+        return self.ad_assessments[assessment_id]
+
+    def delete_ad_assessment(self, assessment_id: str) -> None:
+        """Delete an AD assessment."""
+        if assessment_id not in self.ad_assessments:
+            raise EntityDoesNotExistException(
+                f"Assessment {assessment_id} does not exist"
+            )
+        self.ad_assessments.pop(assessment_id)
+
+    def list_ad_assessments(
+        self, directory_id: Optional[str] = None
+    ) -> list[dict[str, Any]]:
+        """List AD assessments."""
+        assessments = list(self.ad_assessments.values())
+        if directory_id:
+            assessments = [
+                a for a in assessments if a["DirectoryId"] == directory_id
+            ]
+        return assessments
+
+    # ---- Directory Data Access ----
+
+    def enable_directory_data_access(self, directory_id: str) -> None:
+        """Enable directory data access."""
+        self._validate_directory_id(directory_id)
+        self.directory_data_access[directory_id] = True
+
+    def disable_directory_data_access(self, directory_id: str) -> None:
+        """Disable directory data access."""
+        self._validate_directory_id(directory_id)
+        self.directory_data_access[directory_id] = False
+
+    def describe_directory_data_access(self, directory_id: str) -> dict[str, Any]:
+        """Describe directory data access status."""
+        self._validate_directory_id(directory_id)
+        enabled = self.directory_data_access.get(directory_id, False)
+        return {
+            "DirectoryId": directory_id,
+            "DataAccessStatus": "Enabled" if enabled else "Disabled",
+        }
+
+    # ---- CA Enrollment Policy ----
+
+    def enable_ca_enrollment_policy(self, directory_id: str) -> None:
+        """Enable CA enrollment policy."""
+        self._validate_directory_id(directory_id)
+        self.ca_enrollment_policy[directory_id] = True
+
+    def disable_ca_enrollment_policy(self, directory_id: str) -> None:
+        """Disable CA enrollment policy."""
+        self._validate_directory_id(directory_id)
+        self.ca_enrollment_policy[directory_id] = False
+
+    def describe_ca_enrollment_policy(
+        self, directory_id: str
+    ) -> dict[str, Any]:
+        """Describe CA enrollment policy."""
+        self._validate_directory_id(directory_id)
+        enabled = self.ca_enrollment_policy.get(directory_id, False)
+        return {
+            "DirectoryId": directory_id,
+            "CaEnrollmentPolicyStatus": "Enabled" if enabled else "Disabled",
+        }
 
 
 ds_backends = BackendDict(DirectoryServiceBackend, service_name="ds")

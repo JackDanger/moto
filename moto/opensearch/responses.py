@@ -677,10 +677,131 @@ class OpenSearchServiceResponse(BaseResponse):
     def get_default_application_setting(self) -> str:
         return json.dumps({})
 
+    # ---- Applications (CRUD) ----
+
+    def create_application(self) -> str:
+        app = self.opensearch_backend.create_application(
+            name=self._get_param("name"),
+            endpoint=self._get_param("endpoint"),
+            iam_identity_center_options=self._get_param("iamIdentityCenterOptions"),
+            data_sources=self._get_param("dataSources"),
+            app_configs=self._get_param("appConfigs"),
+        )
+        return json.dumps(app)
+
+    def get_application(self) -> str:
+        parts = self.path.rstrip("/").split("/")
+        app_id = parts[-1]
+        app = self.opensearch_backend.get_application(app_id)
+        return json.dumps(app)
+
+    def delete_application(self) -> str:
+        parts = self.path.rstrip("/").split("/")
+        app_id = parts[-1]
+        self.opensearch_backend.delete_application(app_id)
+        return "{}"
+
+    def update_application(self) -> str:
+        parts = self.path.rstrip("/").split("/")
+        app_id = parts[-1]
+        app = self.opensearch_backend.update_application(
+            app_id=app_id,
+            data_sources=self._get_param("dataSources"),
+            app_configs=self._get_param("appConfigs"),
+        )
+        return json.dumps(app)
+
     def list_applications(self) -> str:
         applications = self.opensearch_backend.list_applications()
         return json.dumps({"ApplicationSummaries": applications})
 
-    def list_direct_query_data_sources(self) -> str:
-        data_sources = self.opensearch_backend.list_direct_query_data_sources()
-        return json.dumps({"DataSources": data_sources})
+    # ---- Direct Query Data Sources ----
+
+    def create_direct_query_data_source(self) -> str:
+        result = self.opensearch_backend.create_direct_query_data_source(
+            data_source_name=self._get_param("DataSourceName"),
+            data_source_type=self._get_param("DataSourceType"),
+            description=self._get_param("Description", ""),
+            open_data_filter_pattern=self._get_param("OpenDataFilterPattern", ""),
+        )
+        return json.dumps(result)
+
+    def get_direct_query_data_source(self) -> str:
+        parts = self.path.rstrip("/").split("/")
+        data_source_name = parts[-1]
+        ds = self.opensearch_backend.get_direct_query_data_source(data_source_name)
+        return json.dumps(ds)
+
+    def delete_direct_query_data_source(self) -> str:
+        parts = self.path.rstrip("/").split("/")
+        data_source_name = parts[-1]
+        self.opensearch_backend.delete_direct_query_data_source(data_source_name)
+        return "{}"
+
+    # ---- VPC Endpoint Access ----
+
+    def authorize_vpc_endpoint_access(self) -> str:
+        parts = self.path.rstrip("/").split("/")
+        # /2021-01-01/opensearch/domain/{domain_name}/authorizeVpcEndpointAccess
+        domain_name = parts[-2]
+        result = self.opensearch_backend.authorize_vpc_endpoint_access(
+            domain_name=domain_name,
+            account=self._get_param("Account"),
+        )
+        return json.dumps(result)
+
+    def revoke_vpc_endpoint_access(self) -> str:
+        parts = self.path.rstrip("/").split("/")
+        domain_name = parts[-2]
+        self.opensearch_backend.revoke_vpc_endpoint_access(
+            domain_name=domain_name,
+            account=self._get_param("Account"),
+        )
+        return "{}"
+
+    # ---- Scheduled Actions ----
+
+    def update_scheduled_action(self) -> str:
+        parts = self.path.rstrip("/").split("/")
+        domain_name = parts[-2]
+        result = self.opensearch_backend.update_scheduled_action(
+            domain_name=domain_name,
+            action_id=self._get_param("ActionID"),
+            action_type=self._get_param("ActionType"),
+            schedule_at=self._get_param("ScheduleAt"),
+            desired_start_time=self._get_param("DesiredStartTime"),
+        )
+        return json.dumps(result)
+
+    def list_scheduled_actions(self) -> str:
+        parts = self.path.rstrip("/").split("/")
+        domain_name = parts[-2]
+        actions = self.opensearch_backend.list_scheduled_actions(domain_name)
+        return json.dumps({"ScheduledActions": actions})
+
+    # ---- Domain Maintenances ----
+
+    def start_domain_maintenance(self) -> str:
+        parts = self.path.rstrip("/").split("/")
+        domain_name = parts[-2]
+        result = self.opensearch_backend.start_domain_maintenance(
+            domain_name=domain_name,
+            action=self._get_param("Action"),
+            node_id=self._get_param("NodeId"),
+        )
+        return json.dumps(result)
+
+    def get_domain_maintenance_status(self) -> str:
+        parts = self.path.rstrip("/").split("/")
+        domain_name = parts[-2]
+        maintenance_id = self._get_param("maintenanceId")
+        result = self.opensearch_backend.get_domain_maintenance_status(
+            domain_name, maintenance_id
+        )
+        return json.dumps(result)
+
+    def list_domain_maintenances(self) -> str:
+        parts = self.path.rstrip("/").split("/")
+        domain_name = parts[-2]
+        maintenances = self.opensearch_backend.list_domain_maintenances(domain_name)
+        return json.dumps({"DomainMaintenances": maintenances})

@@ -268,20 +268,6 @@ class DirectoryServiceResponse(BaseResponse):
         )
         return json.dumps({"DirectoryId": directory_id})
 
-    def describe_ad_assessment(self) -> str:
-        assessment_id = self._get_param("AssessmentId")
-        assessment = self.ds_backend.describe_ad_assessment(
-            assessment_id=assessment_id,
-        )
-        return json.dumps({"Assessment": assessment})
-
-    def describe_ca_enrollment_policy(self) -> str:
-        directory_id = self._get_param("DirectoryId")
-        policy = self.ds_backend.describe_ca_enrollment_policy(
-            directory_id=directory_id,
-        )
-        return json.dumps(policy)
-
     def create_conditional_forwarder(self) -> str:
         directory_id = self._get_param("DirectoryId")
         remote_domain_name = self._get_param("RemoteDomainName")
@@ -609,3 +595,161 @@ class DirectoryServiceResponse(BaseResponse):
             directory_id=directory_id,
         )
         return json.dumps({})
+
+    def share_directory(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        share_target = self._get_param("ShareTarget")
+        share_method = self._get_param("ShareMethod")
+        share_notes = self._get_param("ShareNotes")
+        shared_directory_id = self.ds_backend.share_directory(
+            directory_id=directory_id,
+            share_target=share_target,
+            share_method=share_method,
+            share_notes=share_notes,
+        )
+        return json.dumps({"SharedDirectoryId": shared_directory_id})
+
+    def unshare_directory(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        unshare_target = self._get_param("UnshareTarget")
+        shared_directory_id = self.ds_backend.unshare_directory(
+            directory_id=directory_id,
+            unshare_target=unshare_target,
+        )
+        return json.dumps({"SharedDirectoryId": shared_directory_id})
+
+    def accept_shared_directory(self) -> str:
+        shared_directory_id = self._get_param("SharedDirectoryId")
+        shared_directory = self.ds_backend.accept_shared_directory(
+            shared_directory_id=shared_directory_id,
+        )
+        return json.dumps({"SharedDirectory": shared_directory})
+
+    def reject_shared_directory(self) -> str:
+        shared_directory_id = self._get_param("SharedDirectoryId")
+        shared_directory_id = self.ds_backend.reject_shared_directory(
+            shared_directory_id=shared_directory_id,
+        )
+        return json.dumps({"SharedDirectoryId": shared_directory_id})
+
+    def add_region(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        region_name = self._get_param("RegionName")
+        vpc_settings = self._get_param("VPCSettings")
+        self.ds_backend.add_region(
+            directory_id=directory_id,
+            region_name=region_name,
+            vpc_settings=vpc_settings,
+        )
+        return json.dumps({})
+
+    def remove_region(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        self.ds_backend.remove_region(directory_id=directory_id)
+        return json.dumps({})
+
+    def start_schema_extension(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        create_snapshot = self._get_param(
+            "CreateSnapshotBeforeSchemaExtension", False
+        )
+        ldif_content = self._get_param("LdifContent")
+        description = self._get_param("Description")
+        schema_extension_id = self.ds_backend.start_schema_extension(
+            directory_id=directory_id,
+            create_snapshot_before_schema_extension=create_snapshot,
+            ldif_content=ldif_content,
+            description=description,
+        )
+        return json.dumps({"SchemaExtensionId": schema_extension_id})
+
+    def cancel_schema_extension(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        schema_extension_id = self._get_param("SchemaExtensionId")
+        self.ds_backend.cancel_schema_extension(
+            directory_id=directory_id,
+            schema_extension_id=schema_extension_id,
+        )
+        return json.dumps({})
+
+    def update_directory_setup(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        update_type = self._get_param("UpdateType")
+        os_update_settings = self._get_param("OSUpdateSettings")
+        create_snapshot = self._get_param("CreateSnapshotBeforeUpdate", False)
+        self.ds_backend.update_directory_setup(
+            directory_id=directory_id,
+            update_type=update_type,
+            os_update_settings=os_update_settings,
+            create_snapshot_before_update=create_snapshot,
+        )
+        return json.dumps({})
+
+    def update_number_of_domain_controllers(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        desired_number = self._get_int_param("DesiredNumber")
+        self.ds_backend.update_number_of_domain_controllers(
+            directory_id=directory_id,
+            desired_number=desired_number,
+        )
+        return json.dumps({})
+
+    def start_ad_assessment(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        assessment_id = self.ds_backend.start_ad_assessment(
+            directory_id=directory_id,
+        )
+        return json.dumps({"AssessmentId": assessment_id})
+
+    def describe_ad_assessment(self) -> str:
+        assessment_id = self._get_param("AssessmentId")
+        assessment = self.ds_backend.describe_ad_assessment(
+            assessment_id=assessment_id,
+        )
+        return json.dumps({"Assessment": assessment})
+
+    def delete_ad_assessment(self) -> str:
+        assessment_id = self._get_param("AssessmentId")
+        self.ds_backend.delete_ad_assessment(assessment_id=assessment_id)
+        return json.dumps({})
+
+    def list_ad_assessments(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        assessments = self.ds_backend.list_ad_assessments(
+            directory_id=directory_id,
+        )
+        return json.dumps({"Assessments": assessments})
+
+    def enable_directory_data_access(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        self.ds_backend.enable_directory_data_access(directory_id=directory_id)
+        return json.dumps({})
+
+    def disable_directory_data_access(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        self.ds_backend.disable_directory_data_access(directory_id=directory_id)
+        return json.dumps({})
+
+    def describe_directory_data_access(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        result = self.ds_backend.describe_directory_data_access(
+            directory_id=directory_id,
+        )
+        return json.dumps(result)
+
+    def enable_ca_enrollment_policy(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        self.ds_backend.enable_ca_enrollment_policy(directory_id=directory_id)
+        return json.dumps({})
+
+    def disable_ca_enrollment_policy(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        self.ds_backend.disable_ca_enrollment_policy(directory_id=directory_id)
+        return json.dumps({})
+
+    def describe_ca_enrollment_policy(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        policy = self.ds_backend.describe_ca_enrollment_policy(
+            directory_id=directory_id,
+        )
+        return json.dumps(policy)
