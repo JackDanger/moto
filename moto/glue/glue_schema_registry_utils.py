@@ -111,6 +111,8 @@ def validate_schema_version_metadata_value_pattern_and_length(param_value: str) 
 def validate_param_pattern_and_length(
     param_value: str, param_name: str, max_name_length: int, pattern: Pattern[str]
 ) -> None:
+    if param_value is None:
+        raise ParamValueContainsInvalidCharactersException(param_name)
     if len(param_value.encode("utf-8")) > max_name_length:
         raise ResourceNameTooLongException(param_name)
 

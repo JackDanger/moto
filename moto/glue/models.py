@@ -24,6 +24,7 @@ from .exceptions import (
     DatabaseNotFoundException,
     EntityNotFoundException,
     IllegalSessionStateException,
+    InvalidInputException,
     JobNotFoundException,
     JobRunNotFoundException,
     JsonRESTError,
@@ -727,6 +728,10 @@ class GlueBackend(BaseBackend):
 
     def get_registry(self, registry_id: dict[str, Any]) -> dict[str, Any]:
         registry_name = validate_registry_id(registry_id, self.registries)
+        if registry_name not in self.registries:
+            raise EntityNotFoundException(
+                f"Registry is not found. RegistryName: {registry_name}"
+            )
         return self.registries[registry_name].as_dict()
 
     def list_registries(self) -> list[dict[str, Any]]:

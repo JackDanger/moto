@@ -66,6 +66,10 @@ class GlueResponse(BaseResponse):
     def create_table(self) -> ActionResult:
         database_name = self.parameters.get("DatabaseName")
         table_input = self.parameters.get("TableInput")
+        if not table_input:
+            raise InvalidInputException(
+                "CreateTable", "TableInput is required."
+            )
         table_name = table_input.get("Name")  # type: ignore
         self.glue_backend.create_table(database_name, table_name, table_input)  # type: ignore[arg-type]
         return EmptyResult()
@@ -80,6 +84,10 @@ class GlueResponse(BaseResponse):
     def update_table(self) -> ActionResult:
         database_name = self.parameters.get("DatabaseName")
         table_input = self.parameters.get("TableInput")
+        if not table_input:
+            raise InvalidInputException(
+                "UpdateTable", "TableInput is required."
+            )
         table_name = table_input.get("Name")  # type: ignore
         self.glue_backend.update_table(database_name, table_name, table_input)  # type: ignore[arg-type]
         return EmptyResult()
