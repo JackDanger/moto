@@ -207,3 +207,43 @@ class ResourceRecordAlreadyExists(Route53ClientError):
             "InvalidChangeBatch",
             f"Tried to create resource record set [name='{name}', type='{_type}'] but it already exists",
         )
+
+
+class NoSuchCidrCollectionException(Route53ClientError):
+    """CIDR collection does not exist."""
+
+    code = 404
+
+    def __init__(self, collection_id: str):
+        message = f"The CIDR collection with ID {collection_id} does not exist."
+        super().__init__("NoSuchCidrCollectionException", message)
+
+
+class CidrCollectionAlreadyExistsException(Route53ClientError):
+    """CIDR collection with this name already exists."""
+
+    code = 409
+
+    def __init__(self, name: str):
+        message = f"A CIDR collection with name '{name}' already exists."
+        super().__init__("CidrCollectionAlreadyExistsException", message)
+
+
+class CidrCollectionInUseException(Route53ClientError):
+    """CIDR collection is in use."""
+
+    code = 400
+
+    def __init__(self) -> None:
+        message = "The CIDR collection is in use and cannot be deleted."
+        super().__init__("CidrCollectionInUseException", message)
+
+
+class NoSuchCidrLocationException(Route53ClientError):
+    """CIDR location does not exist."""
+
+    code = 404
+
+    def __init__(self, location_name: str):
+        message = f"The CIDR location with name '{location_name}' does not exist."
+        super().__init__("NoSuchCidrLocationException", message)

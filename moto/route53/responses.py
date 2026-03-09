@@ -486,6 +486,135 @@ class Route53(BaseResponse):
         template = self.response_template(DELETE_REUSABLE_DELEGATION_SET_TEMPLATE)
         return template.render()
 
+    def get_account_limit(self) -> str:
+        limit_type = self.parsed_url.path.rstrip("/").rsplit("/", 1)[1]
+        value = self.backend.get_account_limit(limit_type)
+        count = 0
+        if limit_type == "MAX_HEALTH_CHECKS_BY_OWNER":
+            count = len(self.backend.health_checks)
+        elif limit_type == "MAX_HOSTED_ZONES_BY_OWNER":
+            count = len(self.backend.zones)
+        elif limit_type == "MAX_REUSABLE_DELEGATION_SETS_BY_OWNER":
+            count = len(self.backend.delegation_sets)
+        template = Template(GET_ACCOUNT_LIMIT_RESPONSE)
+        return template.render(limit_type=limit_type, value=value, count=count)
+
+    def get_hosted_zone_limit(self) -> str:
+        parts = self.parsed_url.path.rstrip("/").rsplit("/", 2)
+        zone_id = parts[-2]
+        limit_type = parts[-1]
+        value = self.backend.get_hosted_zone_limit(zone_id, limit_type)
+        count = 0
+        zone = self.backend.get_hosted_zone(zone_id)
+        if limit_type == "MAX_RRSETS_BY_ZONE":
+            count = len(zone.rrsets)
+        elif limit_type == "MAX_VPCS_ASSOCIATED_BY_ZONE":
+            count = len(zone.vpcs)
+        template = Template(GET_HOSTED_ZONE_LIMIT_RESPONSE)
+        return template.render(limit_type=limit_type, value=value, count=count)
+
+    def get_reusable_delegation_set_limit(self) -> str:
+        parts = self.parsed_url.path.rstrip("/").rsplit("/", 2)
+        ds_id = parts[-2]
+        limit_type = parts[-1]
+        value = self.backend.get_reusable_delegation_set_limit(ds_id, limit_type)
+        count = 0
+        template = Template(GET_REUSABLE_DELEGATION_SET_LIMIT_RESPONSE)
+        return template.render(limit_type=limit_type, value=value, count=count)
+
+    def get_health_check_last_failure_reason(self) -> str:
+        health_check_match = re.search(
+            r"healthcheck/(?P<health_check_id>[^/]+)/lastfailurereason$",
+            self.parsed_url.path,
+        )
+        health_check_id = health_check_match.group("health_check_id")  # type: ignore[union-attr]
+        self.backend.get_health_check_last_failure_reason(health_check_id)
+        template = Template(GET_HEALTH_CHECK_LAST_FAILURE_REASON_RESPONSE)
+        return template.render()
+
+    def create_cidr_collection(self) -> TYPE_RESPONSE:
+        elements = xmltodict.parse(self.body)
+        req = elements["CreateCidrCollectionRequest"]
+        name = req["Name"]
+        caller_reference = req["CallerReference"]
+        collection = self.backend.create_cidr_collection(name, caller_reference)
+        template = Template(CREATE_CIDR_COLLECTION_RESPONSE)
+        return (
+            201,
+            {
+                "status": 201,
+                "Location": f"https://route53.amazonaws.com/2013-04-01/cidrcollection/{collection.id}",
+            },
+            template.render(collection=collection),
+        )
+
+    def list_cidr_collections(self) -> str:
+        collections = self.backend.list_cidr_collections()
+        template = Template(LIST_CIDR_COLLECTIONS_RESPONSE)
+        return template.render(collections=collections)
+
+    def delete_cidr_collection(self) -> str:
+        collection_id = self.parsed_url.path.rstrip("/").rsplit("/", 1)[1]
+        self.backend.delete_cidr_collection(collection_id)
+        return ""
+
+    def change_cidr_collection(self) -> str:
+        collection_id = self.parsed_url.path.rstrip("/").rsplit("/", 1)[1]
+        elements = xmltodict.parse(self.body)
+        req = elements["ChangeCidrCollectionRequest"]
+        changes = req["Changes"]["Change"]
+        if not isinstance(changes, list):
+            changes = [changes]
+        version = self.backend.change_cidr_collection(collection_id, changes)
+        template = Template(CHANGE_CIDR_COLLECTION_RESPONSE)
+        return template.render(version=version)
+
+    def list_cidr_blocks(self) -> str:
+        collection_id = self.parsed_url.path.rstrip("/").rsplit("/", 2)[1]
+        query_params = parse_qs(self.parsed_url.query)
+        location_name = query_params.get("location", [None])[0]
+        blocks = self.backend.list_cidr_blocks(collection_id, location_name)
+        template = Template(LIST_CIDR_BLOCKS_RESPONSE)
+        return template.render(blocks=blocks)
+
+    def list_cidr_locations(self) -> str:
+        collection_id = self.parsed_url.path.rstrip("/").rsplit("/", 1)[1]
+        locations = self.backend.list_cidr_locations(collection_id)
+        template = Template(LIST_CIDR_LOCATIONS_RESPONSE)
+        return template.render(locations=locations)
+
+    def create_vpc_association_authorization(self) -> TYPE_RESPONSE:
+        zone_id = self.parsed_url.path.rstrip("/").rsplit("/", 2)[1]
+        elements = xmltodict.parse(self.body)
+        req = elements["CreateVPCAssociationAuthorizationRequest"]
+        vpc = req["VPC"]
+        vpc_id = vpc["VPCId"]
+        vpc_region = vpc.get("VPCRegion", "us-east-1")
+        auth = self.backend.create_vpc_association_authorization(
+            zone_id, vpc_id, vpc_region
+        )
+        template = Template(CREATE_VPC_ASSOCIATION_AUTHORIZATION_RESPONSE)
+        return 200, {}, template.render(zone_id=zone_id, auth=auth)
+
+    def delete_vpc_association_authorization(self) -> str:
+        zone_id = self.parsed_url.path.rstrip("/").rsplit("/", 2)[1]
+        elements = xmltodict.parse(self.body)
+        req = elements["DeleteVPCAssociationAuthorizationRequest"]
+        vpc = req["VPC"]
+        vpc_id = vpc["VPCId"]
+        vpc_region = vpc.get("VPCRegion", "us-east-1")
+        self.backend.delete_vpc_association_authorization(
+            zone_id, vpc_id, vpc_region
+        )
+        template = Template(DELETE_VPC_ASSOCIATION_AUTHORIZATION_RESPONSE)
+        return template.render()
+
+    def list_vpc_association_authorizations(self) -> str:
+        zone_id = self.parsed_url.path.rstrip("/").rsplit("/", 2)[1]
+        auths = self.backend.list_vpc_association_authorizations(zone_id)
+        template = Template(LIST_VPC_ASSOCIATION_AUTHORIZATIONS_RESPONSE)
+        return template.render(zone_id=zone_id, auths=auths)
+
 
 LIST_TAGS_FOR_RESOURCE_RESPONSE = """
 <ListTagsForResourceResponse xmlns="https://route53.amazonaws.com/doc/2015-01-01/">
@@ -912,4 +1041,127 @@ DISASSOCIATE_VPC_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
       <SubmittedAt>2017-03-31T01:36:41.958Z</SubmittedAt>
    </ChangeInfo>
 </DisassociateVPCFromHostedZoneResponse>
+"""
+
+GET_HEALTH_CHECK_LAST_FAILURE_REASON_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<GetHealthCheckLastFailureReasonResponse>
+   <HealthCheckObservations/>
+</GetHealthCheckLastFailureReasonResponse>
+"""
+
+GET_ACCOUNT_LIMIT_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<GetAccountLimitResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+   <Limit>
+      <Type>{{ limit_type }}</Type>
+      <Value>{{ value }}</Value>
+   </Limit>
+   <Count>{{ count }}</Count>
+</GetAccountLimitResponse>
+"""
+
+GET_HOSTED_ZONE_LIMIT_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<GetHostedZoneLimitResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+   <Limit>
+      <Type>{{ limit_type }}</Type>
+      <Value>{{ value }}</Value>
+   </Limit>
+   <Count>{{ count }}</Count>
+</GetHostedZoneLimitResponse>
+"""
+
+GET_REUSABLE_DELEGATION_SET_LIMIT_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<GetReusableDelegationSetLimitResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+   <Limit>
+      <Type>{{ limit_type }}</Type>
+      <Value>{{ value }}</Value>
+   </Limit>
+   <Count>{{ count }}</Count>
+</GetReusableDelegationSetLimitResponse>
+"""
+
+CREATE_CIDR_COLLECTION_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<CreateCidrCollectionResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+   <Collection>
+      <Arn>{{ collection.arn }}</Arn>
+      <Id>{{ collection.id }}</Id>
+      <Name>{{ collection.name }}</Name>
+      <Version>{{ collection.version }}</Version>
+   </Collection>
+   <Location>https://route53.amazonaws.com/2013-04-01/cidrcollection/{{ collection.id }}</Location>
+</CreateCidrCollectionResponse>
+"""
+
+LIST_CIDR_COLLECTIONS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<ListCidrCollectionsResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+   <CidrCollections>
+      {% for collection in collections %}
+      <CidrCollection>
+         <Arn>{{ collection.arn }}</Arn>
+         <Id>{{ collection.id }}</Id>
+         <Name>{{ collection.name }}</Name>
+         <Version>{{ collection.version }}</Version>
+      </CidrCollection>
+      {% endfor %}
+   </CidrCollections>
+</ListCidrCollectionsResponse>
+"""
+
+CHANGE_CIDR_COLLECTION_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<ChangeCidrCollectionResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+   <Id>{{ version }}</Id>
+</ChangeCidrCollectionResponse>
+"""
+
+LIST_CIDR_BLOCKS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<ListCidrBlocksResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+   <CidrBlocks>
+      {% for block in blocks %}
+      <CidrBlock>
+         <CidrBlock>{{ block.CidrBlock }}</CidrBlock>
+         <LocationName>{{ block.LocationName }}</LocationName>
+      </CidrBlock>
+      {% endfor %}
+   </CidrBlocks>
+</ListCidrBlocksResponse>
+"""
+
+LIST_CIDR_LOCATIONS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<ListCidrLocationsResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+   <CidrLocations>
+      {% for location in locations %}
+      <LocationSummary>
+         <LocationName>{{ location.LocationName }}</LocationName>
+      </LocationSummary>
+      {% endfor %}
+   </CidrLocations>
+</ListCidrLocationsResponse>
+"""
+
+CREATE_VPC_ASSOCIATION_AUTHORIZATION_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<CreateVPCAssociationAuthorizationResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+   <HostedZoneId>{{ zone_id }}</HostedZoneId>
+   <VPC>
+      <VPCId>{{ auth.VPCId }}</VPCId>
+      <VPCRegion>{{ auth.VPCRegion }}</VPCRegion>
+   </VPC>
+</CreateVPCAssociationAuthorizationResponse>
+"""
+
+DELETE_VPC_ASSOCIATION_AUTHORIZATION_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<DeleteVPCAssociationAuthorizationResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+</DeleteVPCAssociationAuthorizationResponse>
+"""
+
+LIST_VPC_ASSOCIATION_AUTHORIZATIONS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<ListVPCAssociationAuthorizationsResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+   <HostedZoneId>{{ zone_id }}</HostedZoneId>
+   <VPCs>
+      {% for auth in auths %}
+      <VPC>
+         <VPCId>{{ auth.VPCId }}</VPCId>
+         <VPCRegion>{{ auth.VPCRegion }}</VPCRegion>
+      </VPC>
+      {% endfor %}
+   </VPCs>
+</ListVPCAssociationAuthorizationsResponse>
 """
