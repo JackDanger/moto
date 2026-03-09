@@ -38,7 +38,10 @@ from moto.config.exceptions import (
     NoSuchConfigurationRecorderException,
     NoSuchConformancePackException,
     NoSuchDeliveryChannelException,
+    NoSuchOrganizationConfigRuleException,
     NoSuchOrganizationConformancePackException,
+    NoSuchRemediationConfigurationException,
+    NoSuchRemediationExceptionException,
     NoSuchRetentionConfigurationException,
     ResourceInUseException,
     ResourceNotDiscoveredException,
@@ -925,6 +928,10 @@ class ConfigBackend(BaseBackend):
         self.config_rules: dict[str, ConfigRule] = {}
         self.stored_queries: dict[str, dict[str, Any]] = {}
         self.conformance_packs: dict[str, dict[str, Any]] = {}
+        self.organization_config_rules: dict[str, dict[str, Any]] = {}
+        self.remediation_configurations: dict[str, dict[str, Any]] = {}
+        self.remediation_exceptions: dict[str, list[dict[str, Any]]] = {}
+        self.remediation_executions: dict[str, list[dict[str, Any]]] = {}
 
     def _validate_resource_types(self, resource_list: list[str]) -> None:
         shape = self.config_schema.shape_for("ResourceType")
@@ -2346,13 +2353,66 @@ class ConfigBackend(BaseBackend):
             raise NoSuchConformancePackException(name)
         del self.conformance_packs[name]
 
+    def put_organization_config_rule(
+        self,
+        name: str,
+        managed_rule_identifier: Optional[dict[str, Any]],
+        custom_rule_identifier: Optional[dict[str, Any]],
+        custom_policy_identifier: Optional[dict[str, Any]],
+        excluded_accounts: Optional[list[str]],
+    ) -> dict[str, str]:
+        """Create or update an organization config rule."""
+        now = datetime2int(utcnow())
+        rule_arn = (
+            f"arn:{get_partition(self.region_name)}:config:{self.region_name}:"
+            f"{self.account_id}:organization-config-rule/o-{random_string()}"
+        )
+
+        existing = self.organization_config_rules.get(name)
+        if existing:
+            rule_arn = existing["OrganizationConfigRuleArn"]
+
+        rule: dict[str, Any] = {
+            "OrganizationConfigRuleName": name,
+            "OrganizationConfigRuleArn": rule_arn,
+            "ExcludedAccounts": excluded_accounts or [],
+            "LastUpdateTime": now,
+        }
+        if managed_rule_identifier:
+            rule["OrganizationManagedRuleMetadata"] = managed_rule_identifier
+        if custom_rule_identifier:
+            rule["OrganizationCustomRuleMetadata"] = custom_rule_identifier
+        if custom_policy_identifier:
+            rule["OrganizationCustomPolicyRuleMetadata"] = custom_policy_identifier
+
+        self.organization_config_rules[name] = rule
+        return {"OrganizationConfigRuleArn": rule_arn}
+
     def describe_organization_config_rule_statuses(
         self,
         names: Optional[list[str]],
         limit: Optional[int],
         next_token: Optional[str],
     ) -> dict[str, Any]:
-        return {"OrganizationConfigRuleStatuses": []}
+        statuses = []
+        target_names = names if names else list(self.organization_config_rules.keys())
+        for name in target_names:
+            rule = self.organization_config_rules.get(name)
+            if not rule:
+                if names:
+                    raise NoSuchOrganizationConfigRuleException(
+                        "One or more organization config rules with specified names are not present. "
+                        "Ensure your names are correct and try your request again later."
+                    )
+                continue
+            statuses.append(
+                {
+                    "OrganizationConfigRuleName": name,
+                    "OrganizationRuleStatus": "CREATE_SUCCESSFUL",
+                    "LastUpdateTime": rule["LastUpdateTime"],
+                }
+            )
+        return {"OrganizationConfigRuleStatuses": statuses}
 
     def describe_organization_config_rules(
         self,
@@ -2360,7 +2420,44 @@ class ConfigBackend(BaseBackend):
         limit: Optional[int],
         next_token: Optional[str],
     ) -> dict[str, Any]:
-        return {"OrganizationConfigRules": []}
+        rules = []
+        target_names = names if names else list(self.organization_config_rules.keys())
+        for name in target_names:
+            rule = self.organization_config_rules.get(name)
+            if not rule:
+                raise NoSuchOrganizationConfigRuleException(
+                    "One or more organization config rules with specified names are not present. "
+                    "Ensure your names are correct and try your request again later."
+                )
+            rules.append(rule)
+        return {"OrganizationConfigRules": rules}
+
+    def get_organization_config_rule_detailed_status(
+        self,
+        name: str,
+    ) -> dict[str, Any]:
+        rule = self.organization_config_rules.get(name)
+        if not rule:
+            raise NoSuchOrganizationConfigRuleException(
+                "One or more organization config rules with specified names are not present. "
+                "Ensure your names are correct and try your request again later."
+            )
+        statuses = [
+            {
+                "AccountId": self.account_id,
+                "ConfigRuleName": name,
+                "MemberAccountRuleStatus": "CREATE_SUCCESSFUL",
+                "LastUpdateTime": datetime2int(utcnow()),
+            }
+        ]
+        return {"OrganizationConfigRuleDetailedStatus": statuses}
+
+    def delete_organization_config_rule(self, name: str) -> None:
+        if name not in self.organization_config_rules:
+            raise NoSuchOrganizationConfigRuleException(
+                f"Could not find an OrganizationConfigRule for given request with resourceName {name}"
+            )
+        del self.organization_config_rules[name]
 
     def describe_pending_aggregation_requests(
         self,
@@ -2496,6 +2593,225 @@ class ConfigBackend(BaseBackend):
         if query_name not in self.stored_queries:
             raise ResourceNotFoundException2(query_name)
         del self.stored_queries[query_name]
+
+    def get_conformance_pack_compliance_summary(
+        self,
+        names: list[str],
+        limit: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Return compliance summary for conformance packs."""
+        summaries = []
+        for name in names:
+            pack = self.conformance_packs.get(name)
+            if not pack:
+                raise NoSuchConformancePackException(name)
+            summaries.append(
+                {
+                    "ConformancePackName": name,
+                    "ConformancePackComplianceStatus": "COMPLIANT",
+                }
+            )
+        return {"ConformancePackComplianceSummaryList": summaries}
+
+    def describe_conformance_pack_compliance(
+        self,
+        name: str,
+        filters: Optional[dict[str, Any]],
+        limit: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Return compliance details for rules in a conformance pack."""
+        pack = self.conformance_packs.get(name)
+        if not pack:
+            raise NoSuchConformancePackException(name)
+        return {"ConformancePackName": name, "ConformancePackRuleComplianceList": []}
+
+    def get_conformance_pack_compliance_details(
+        self,
+        name: str,
+        filters: Optional[dict[str, Any]],
+        limit: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Return detailed compliance results for a conformance pack."""
+        pack = self.conformance_packs.get(name)
+        if not pack:
+            raise NoSuchConformancePackException(name)
+        return {"ConformancePackName": name, "ConformancePackRuleEvaluationResults": []}
+
+    def put_remediation_configurations(
+        self,
+        remediation_configurations: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        """Create or update remediation configurations."""
+        failed = []
+        for config in remediation_configurations:
+            rule_name = config.get("ConfigRuleName", "")
+            self.remediation_configurations[rule_name] = config
+        return {"FailedBatches": failed}
+
+    def describe_remediation_configurations(
+        self,
+        config_rule_names: list[str],
+    ) -> dict[str, Any]:
+        """Return remediation configurations for the given config rule names."""
+        configs = []
+        for name in config_rule_names:
+            config = self.remediation_configurations.get(name)
+            if config:
+                configs.append(config)
+        return {"RemediationConfigurations": configs}
+
+    def delete_remediation_configuration(
+        self,
+        config_rule_name: str,
+        resource_type: Optional[str],
+    ) -> None:
+        """Delete a remediation configuration."""
+        if config_rule_name not in self.remediation_configurations:
+            raise NoSuchRemediationConfigurationException(config_rule_name)
+        del self.remediation_configurations[config_rule_name]
+
+    def put_remediation_exceptions(
+        self,
+        config_rule_name: str,
+        resource_keys: list[dict[str, str]],
+        message: Optional[str],
+        expiration_time: Optional[int],
+    ) -> dict[str, Any]:
+        """Create or update remediation exceptions."""
+        now = datetime2int(utcnow())
+        exceptions = self.remediation_exceptions.setdefault(config_rule_name, [])
+
+        failed = []
+        for key in resource_keys:
+            exc_entry: dict[str, Any] = {
+                "ConfigRuleName": config_rule_name,
+                "ResourceType": key.get("ResourceType", ""),
+                "ResourceId": key.get("ResourceId", ""),
+                "Message": message or "",
+                "ExpirationTime": expiration_time or 0,
+                "PerformAutoRemediation": False,
+            }
+            # Update existing or append
+            found = False
+            for i, existing in enumerate(exceptions):
+                if (
+                    existing["ResourceType"] == exc_entry["ResourceType"]
+                    and existing["ResourceId"] == exc_entry["ResourceId"]
+                ):
+                    exceptions[i] = exc_entry
+                    found = True
+                    break
+            if not found:
+                exceptions.append(exc_entry)
+
+        return {"FailedBatches": failed}
+
+    def describe_remediation_exceptions(
+        self,
+        config_rule_name: str,
+        resource_keys: Optional[list[dict[str, str]]],
+        limit: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Return remediation exceptions for the given config rule."""
+        exceptions = self.remediation_exceptions.get(config_rule_name, [])
+        if resource_keys:
+            filtered = []
+            for exc in exceptions:
+                for key in resource_keys:
+                    if (
+                        exc["ResourceType"] == key.get("ResourceType", "")
+                        and exc["ResourceId"] == key.get("ResourceId", "")
+                    ):
+                        filtered.append(exc)
+                        break
+            exceptions = filtered
+        return {"RemediationExceptions": exceptions}
+
+    def delete_remediation_exceptions(
+        self,
+        config_rule_name: str,
+        resource_keys: list[dict[str, str]],
+    ) -> dict[str, Any]:
+        """Delete remediation exceptions."""
+        exceptions = self.remediation_exceptions.get(config_rule_name, [])
+        if not exceptions:
+            raise NoSuchRemediationExceptionException(config_rule_name)
+        failed = []
+        for key in resource_keys:
+            rt = key.get("ResourceType", "")
+            rid = key.get("ResourceId", "")
+            found = False
+            for i, exc in enumerate(exceptions):
+                if exc["ResourceType"] == rt and exc["ResourceId"] == rid:
+                    exceptions.pop(i)
+                    found = True
+                    break
+            if not found:
+                failed.append(
+                    {
+                        "FailureMessage": f"No remediation exception for resource type '{rt}' and resource id '{rid}'.",
+                        "FailedItems": [key],
+                    }
+                )
+        return {"FailedBatches": failed}
+
+    def start_remediation_execution(
+        self,
+        config_rule_name: str,
+        resource_keys: list[dict[str, str]],
+    ) -> dict[str, Any]:
+        """Start remediation execution for resources."""
+        if config_rule_name not in self.remediation_configurations:
+            raise NoSuchRemediationConfigurationException(config_rule_name)
+
+        now = datetime2int(utcnow())
+        failed = []
+        for key in resource_keys:
+            execution: dict[str, Any] = {
+                "ResourceKey": key,
+                "State": "QUEUED",
+                "InvocationTime": now,
+            }
+            executions = self.remediation_executions.setdefault(config_rule_name, [])
+            executions.append(execution)
+
+        return {
+            "FailureMessage": "",
+            "FailedItems": failed,
+        }
+
+    def describe_remediation_execution_status(
+        self,
+        config_rule_name: str,
+        resource_keys: Optional[list[dict[str, str]]],
+        limit: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Return remediation execution status."""
+        executions = self.remediation_executions.get(config_rule_name, [])
+        if resource_keys:
+            filtered = []
+            for ex in executions:
+                for key in resource_keys:
+                    if ex["ResourceKey"] == key:
+                        filtered.append(ex)
+                        break
+            executions = filtered
+
+        statuses = []
+        for ex in executions:
+            statuses.append(
+                {
+                    "ResourceKey": ex["ResourceKey"],
+                    "State": ex.get("State", "QUEUED"),
+                    "InvocationTime": ex.get("InvocationTime"),
+                }
+            )
+        return {"RemediationExecutionStatuses": statuses}
 
     def start_config_rules_evaluation(
         self, config_rule_names: Optional[list[str]]

@@ -422,3 +422,37 @@ class ResourceNotFoundException2(JsonRESTError):
             "ResourceNotFoundException",
             f"The stored query '{query_name}' does not exist.",
         )
+
+
+class NoSuchOrganizationConfigRuleException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message: str):
+        super().__init__("NoSuchOrganizationConfigRuleException", message)
+
+
+class NoSuchRemediationConfigurationException(JsonRESTError):
+    code = 400
+
+    def __init__(self, config_rule_name: str):
+        message = (
+            f"No remediation configuration found for the config rule: '{config_rule_name}'."
+        )
+        super().__init__("NoSuchRemediationConfigurationException", message)
+
+
+class NoSuchRemediationExceptionException(JsonRESTError):
+    code = 400
+
+    def __init__(self, config_rule_name: str):
+        message = (
+            f"No remediation exception found for the config rule: '{config_rule_name}'."
+        )
+        super().__init__("NoSuchRemediationExceptionException", message)
+
+
+class RemediationInProgressException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message: str):
+        super().__init__("RemediationInProgressException", message)

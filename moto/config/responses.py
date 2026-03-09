@@ -329,6 +329,18 @@ class ConfigResponse(BaseResponse):
         )
         return json.dumps(result)
 
+    def put_organization_config_rule(self) -> str:
+        result = self.config_backend.put_organization_config_rule(
+            name=self._get_param("OrganizationConfigRuleName"),
+            managed_rule_identifier=self._get_param("OrganizationManagedRuleMetadata"),
+            custom_rule_identifier=self._get_param("OrganizationCustomRuleMetadata"),
+            custom_policy_identifier=self._get_param(
+                "OrganizationCustomPolicyRuleMetadata"
+            ),
+            excluded_accounts=self._get_param("ExcludedAccounts"),
+        )
+        return json.dumps(result)
+
     def describe_organization_config_rule_statuses(self) -> str:
         result = self.config_backend.describe_organization_config_rule_statuses(
             self._get_param("OrganizationConfigRuleNames"),
@@ -344,6 +356,18 @@ class ConfigResponse(BaseResponse):
             self._get_param("NextToken"),
         )
         return json.dumps(result)
+
+    def get_organization_config_rule_detailed_status(self) -> str:
+        result = self.config_backend.get_organization_config_rule_detailed_status(
+            self._get_param("OrganizationConfigRuleName"),
+        )
+        return json.dumps(result)
+
+    def delete_organization_config_rule(self) -> str:
+        self.config_backend.delete_organization_config_rule(
+            self._get_param("OrganizationConfigRuleName"),
+        )
+        return ""
 
     def describe_pending_aggregation_requests(self) -> str:
         result = self.config_backend.describe_pending_aggregation_requests(
@@ -451,6 +475,92 @@ class ConfigResponse(BaseResponse):
             self._get_param("ConformancePackName"),
         )
         return json.dumps({})
+
+    def get_conformance_pack_compliance_summary(self) -> str:
+        result = self.config_backend.get_conformance_pack_compliance_summary(
+            self._get_param("ConformancePackNames"),
+            self._get_param("Limit"),
+            self._get_param("NextToken"),
+        )
+        return json.dumps(result)
+
+    def describe_conformance_pack_compliance(self) -> str:
+        result = self.config_backend.describe_conformance_pack_compliance(
+            self._get_param("ConformancePackName"),
+            self._get_param("Filters"),
+            self._get_param("Limit"),
+            self._get_param("NextToken"),
+        )
+        return json.dumps(result)
+
+    def get_conformance_pack_compliance_details(self) -> str:
+        result = self.config_backend.get_conformance_pack_compliance_details(
+            self._get_param("ConformancePackName"),
+            self._get_param("Filters"),
+            self._get_param("Limit"),
+            self._get_param("NextToken"),
+        )
+        return json.dumps(result)
+
+    def put_remediation_configurations(self) -> str:
+        result = self.config_backend.put_remediation_configurations(
+            self._get_param("RemediationConfigurations"),
+        )
+        return json.dumps(result)
+
+    def describe_remediation_configurations(self) -> str:
+        result = self.config_backend.describe_remediation_configurations(
+            self._get_param("ConfigRuleNames"),
+        )
+        return json.dumps(result)
+
+    def delete_remediation_configuration(self) -> str:
+        self.config_backend.delete_remediation_configuration(
+            self._get_param("ConfigRuleName"),
+            self._get_param("ResourceType"),
+        )
+        return json.dumps({})
+
+    def put_remediation_exceptions(self) -> str:
+        result = self.config_backend.put_remediation_exceptions(
+            self._get_param("ConfigRuleName"),
+            self._get_param("ResourceKeys"),
+            self._get_param("Message"),
+            self._get_param("ExpirationTime"),
+        )
+        return json.dumps(result)
+
+    def describe_remediation_exceptions(self) -> str:
+        result = self.config_backend.describe_remediation_exceptions(
+            self._get_param("ConfigRuleName"),
+            self._get_param("ResourceKeys"),
+            self._get_param("Limit"),
+            self._get_param("NextToken"),
+        )
+        return json.dumps(result)
+
+    def delete_remediation_exceptions(self) -> str:
+        result = self.config_backend.delete_remediation_exceptions(
+            self._get_param("ConfigRuleName"),
+            self._get_param("ResourceKeys"),
+        )
+        return json.dumps(result)
+
+    def start_remediation_execution(self) -> str:
+        result = self.config_backend.start_remediation_execution(
+            self._get_param("ConfigRuleName"),
+            self._get_param("ResourceKeys"),
+        )
+        return json.dumps(result)
+
+    def describe_remediation_execution_status(self) -> str:
+        result = self.config_backend.describe_remediation_execution_status(
+            self._get_param("ConfigRuleName"),
+            self._get_param("ResourceKeys"),
+            self._get_param("Limit"),
+            self._get_param("NextToken"),
+        )
+        return json.dumps(result)
 
     def start_config_rules_evaluation(self) -> str:
         self.config_backend.start_config_rules_evaluation(
