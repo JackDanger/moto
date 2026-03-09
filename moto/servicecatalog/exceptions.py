@@ -13,3 +13,17 @@ class InvalidParametersException(JsonRESTError):
 
     def __init__(self, message: str):
         super().__init__("InvalidParametersException", message)
+
+
+class DuplicateResourceException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message: str):
+        super().__init__("DuplicateResourceException", message)
+
+
+class ResourceInUseException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message: str):
+        super().__init__("ResourceInUseException", message)
