@@ -631,6 +631,93 @@ class ComprehendResponse(BaseResponse):
         job_list = [job.to_dict() for job in jobs]
         return self._list_jobs_to_dict_resp(job_list, "DocumentClassification")
 
+    def detect_dominant_language(self) -> str:
+        params = json.loads(self.body)
+        text = params.get("Text")
+        resp = self.comprehend_backend.detect_dominant_language(text)
+        return json.dumps({"Languages": resp})
+
+    def detect_entities(self) -> str:
+        params = json.loads(self.body)
+        text = params.get("Text")
+        language = params.get("LanguageCode")
+        resp = self.comprehend_backend.detect_entities(text, language)
+        return json.dumps(resp)
+
+    def detect_syntax(self) -> str:
+        params = json.loads(self.body)
+        text = params.get("Text")
+        language = params.get("LanguageCode")
+        resp = self.comprehend_backend.detect_syntax(text, language)
+        return json.dumps({"SyntaxTokens": resp})
+
+    def detect_targeted_sentiment(self) -> str:
+        params = json.loads(self.body)
+        text = params.get("Text")
+        language = params.get("LanguageCode")
+        resp = self.comprehend_backend.detect_targeted_sentiment(text, language)
+        return json.dumps(resp)
+
+    def contains_pii_entities(self) -> str:
+        params = json.loads(self.body)
+        text = params.get("Text")
+        language = params.get("LanguageCode")
+        resp = self.comprehend_backend.contains_pii_entities(text, language)
+        return json.dumps({"Labels": resp})
+
+    def classify_document(self) -> str:
+        params = json.loads(self.body)
+        text = params.get("Text")
+        endpoint_arn = params.get("EndpointArn")
+        resp = self.comprehend_backend.classify_document(text, endpoint_arn)
+        return json.dumps(resp)
+
+    def create_dataset(self) -> str:
+        params = json.loads(self.body)
+        flywheel_arn = params.get("FlywheelArn")
+        dataset_name = params.get("DatasetName")
+        dataset_type = params.get("DatasetType")
+        description = params.get("Description")
+        input_data_config = params.get("InputDataConfig")
+        client_request_token = params.get("ClientRequestToken")
+        tags = params.get("Tags")
+        dataset_arn = self.comprehend_backend.create_dataset(
+            flywheel_arn=flywheel_arn,
+            dataset_name=dataset_name,
+            dataset_type=dataset_type,
+            description=description,
+            input_data_config=input_data_config,
+            client_request_token=client_request_token,
+            tags=tags,
+        )
+        return json.dumps({"DatasetArn": dataset_arn})
+
+    def update_flywheel(self) -> str:
+        params = json.loads(self.body)
+        flywheel_arn = params.get("FlywheelArn")
+        active_model_arn = params.get("ActiveModelArn")
+        data_access_role_arn = params.get("DataAccessRoleArn")
+        data_security_config = params.get("DataSecurityConfig")
+        flywheel_properties = self.comprehend_backend.update_flywheel(
+            flywheel_arn=flywheel_arn,
+            active_model_arn=active_model_arn,
+            data_access_role_arn=data_access_role_arn,
+            data_security_config=data_security_config,
+        )
+        return json.dumps({"FlywheelProperties": flywheel_properties})
+
+    def import_model(self) -> str:
+        params = json.loads(self.body)
+        source_model_arn = params.get("SourceModelArn")
+        model_name = params.get("ModelName")
+        # Generate a mock ARN for the imported model
+        partition = "aws"
+        region = self.region
+        account = self.current_account
+        name = model_name or source_model_arn.split("/")[-1]
+        model_arn = f"arn:{partition}:comprehend:{region}:{account}:document-classifier/{name}"
+        return json.dumps({"ModelArn": model_arn})
+
     def list_document_classifier_summaries(self) -> str:
         summaries, next_token = (
             self.comprehend_backend.list_document_classifier_summaries()
