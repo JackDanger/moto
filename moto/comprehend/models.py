@@ -867,4 +867,98 @@ class ComprehendBackend(BaseBackend):
         return self._list_jobs("TargetedSentimentDetection", filter)
 
 
+    def list_document_classifier_summaries(
+        self,
+    ) -> tuple[list[dict[str, Any]], None]:
+        """
+        Return summary info for all document classifiers.
+        Pagination is not yet implemented.
+        """
+        summaries = []
+        for classifier in self.classifiers.values():
+            summaries.append(
+                {
+                    "DocumentClassifierName": classifier.name,
+                    "NumberOfVersions": 1,
+                    "LatestVersionCreatedAt": None,
+                    "LatestVersionName": classifier.version_name,
+                    "LatestVersionStatus": classifier.status,
+                }
+            )
+        return summaries, None
+
+    def list_entity_recognizer_summaries(
+        self,
+    ) -> tuple[list[dict[str, Any]], None]:
+        """
+        Return summary info for all entity recognizers.
+        Pagination is not yet implemented.
+        """
+        summaries = []
+        for recognizer in self.recognizers.values():
+            summaries.append(
+                {
+                    "RecognizerName": recognizer.name,
+                    "NumberOfVersions": 1,
+                    "LatestVersionCreatedAt": None,
+                    "LatestVersionName": recognizer.version_name,
+                    "LatestVersionStatus": recognizer.status,
+                }
+            )
+        return summaries, None
+
+    def list_datasets(
+        self,
+        flywheel_arn: Optional[str] = None,
+        filter: Optional[dict[str, Any]] = None,
+        next_token: Optional[str] = None,
+        max_results: Optional[int] = None,
+    ) -> tuple[list[dict[str, Any]], None]:
+        """
+        Datasets are not yet modeled; always returns an empty list.
+        Pagination is not yet implemented.
+        """
+        if flywheel_arn and flywheel_arn not in self.flywheels:
+            raise ResourceNotFound
+        return [], None
+
+    def describe_dataset(self, dataset_arn: str) -> dict[str, Any]:
+        """
+        Datasets are not yet modeled; always raises ResourceNotFound.
+        """
+        raise ResourceNotFound
+
+    def describe_flywheel_iteration(
+        self, flywheel_arn: str, flywheel_iteration_id: str
+    ) -> dict[str, Any]:
+        """
+        Flywheel iterations are not fully modeled.
+        Returns a stub iteration description if the flywheel exists.
+        """
+        if flywheel_arn not in self.flywheels:
+            raise ResourceNotFound
+        return {
+            "FlywheelIterationProperties": {
+                "FlywheelArn": flywheel_arn,
+                "FlywheelIterationId": flywheel_iteration_id,
+                "Status": "COMPLETED",
+            }
+        }
+
+    def list_flywheel_iteration_history(
+        self,
+        flywheel_arn: str,
+        filter: Optional[dict[str, Any]] = None,
+        next_token: Optional[str] = None,
+        max_results: Optional[int] = None,
+    ) -> tuple[list[dict[str, Any]], None]:
+        """
+        Flywheel iterations are not fully modeled; returns empty list.
+        Pagination is not yet implemented.
+        """
+        if flywheel_arn not in self.flywheels:
+            raise ResourceNotFound
+        return [], None
+
+
 comprehend_backends = BackendDict(ComprehendBackend, "comprehend")

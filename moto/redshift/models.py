@@ -1717,6 +1717,70 @@ class RedshiftBackend(BaseBackend):
         auth.status = "Revoking"
         return self._endpoint_auth_to_dict(auth)
 
+    def describe_node_configuration_options(
+        self,
+        action_type: str,
+        cluster_identifier: Optional[str] = None,
+        snapshot_identifier: Optional[str] = None,
+        filters: Optional[list[dict[str, Any]]] = None,
+    ) -> list[dict[str, Any]]:
+        """
+        Returns stub node configuration options.
+        Filtering is not yet implemented.
+        """
+        return []
+
+    def describe_partners(
+        self,
+        account_id: str,
+        cluster_identifier: str,
+        database_name: Optional[str] = None,
+        partner_name: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        """
+        Partners are not modeled; returns empty list.
+        """
+        return []
+
+    def describe_resize(self, cluster_identifier: str) -> dict[str, Any]:
+        """
+        Returns a stub resize response for an existing cluster.
+        """
+        if cluster_identifier not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier)
+        cluster = self.clusters[cluster_identifier]
+        cluster_type = "multi-node" if cluster.number_of_nodes > 1 else "single-node"
+        return {
+            "TargetNodeType": cluster.node_type,
+            "TargetNumberOfNodes": int(cluster.number_of_nodes or 1),
+            "TargetClusterType": cluster_type,
+            "Status": "NONE",
+            "ResizeType": "ClassicResize",
+        }
+
+    def get_identity_center_auth_token(
+        self,
+        cluster_ids: list[str],
+    ) -> dict[str, Any]:
+        """
+        Identity Center integration is not modeled; returns empty stub.
+        """
+        return {
+            "Token": "mock-token-placeholder",
+            "ExpirationTime": utcnow().isoformat(),
+        }
+
+    def get_reserved_node_exchange_configuration_options(
+        self,
+        action_type: str,
+        cluster_identifier: Optional[str] = None,
+        snapshot_identifier: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        """
+        Returns empty list of reserved node exchange configuration options.
+        """
+        return []
+
     # --- Helper methods ---
 
     def _scheduled_action_to_dict(self, action: ScheduledAction) -> dict[str, Any]:

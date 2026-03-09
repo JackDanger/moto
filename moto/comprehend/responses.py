@@ -631,6 +631,84 @@ class ComprehendResponse(BaseResponse):
         job_list = [job.to_dict() for job in jobs]
         return self._list_jobs_to_dict_resp(job_list, "DocumentClassification")
 
+    def list_document_classifier_summaries(self) -> str:
+        summaries, next_token = (
+            self.comprehend_backend.list_document_classifier_summaries()
+        )
+        return json.dumps(
+            {
+                "DocumentClassifierSummariesList": summaries,
+                "NextToken": next_token,
+            }
+        )
+
+    def list_entity_recognizer_summaries(self) -> str:
+        summaries, next_token = (
+            self.comprehend_backend.list_entity_recognizer_summaries()
+        )
+        return json.dumps(
+            {
+                "EntityRecognizerSummariesList": summaries,
+                "NextToken": next_token,
+            }
+        )
+
+    def list_datasets(self) -> str:
+        params = json.loads(self.body)
+        flywheel_arn = params.get("FlywheelArn")
+        filter = params.get("Filter")
+        next_token = params.get("NextToken")
+        max_results = params.get("MaxResults")
+        dataset_properties_list, next_token = self.comprehend_backend.list_datasets(
+            flywheel_arn=flywheel_arn,
+            filter=filter,
+            next_token=next_token,
+            max_results=max_results,
+        )
+        return json.dumps(
+            {
+                "DatasetPropertiesList": dataset_properties_list,
+                "NextToken": next_token,
+            }
+        )
+
+    def describe_dataset(self) -> str:
+        params = json.loads(self.body)
+        dataset_arn = params.get("DatasetArn")
+        dataset_properties = self.comprehend_backend.describe_dataset(
+            dataset_arn=dataset_arn,
+        )
+        return json.dumps({"DatasetProperties": dataset_properties})
+
+    def describe_flywheel_iteration(self) -> str:
+        params = json.loads(self.body)
+        flywheel_arn = params.get("FlywheelArn")
+        flywheel_iteration_id = params.get("FlywheelIterationId")
+        result = self.comprehend_backend.describe_flywheel_iteration(
+            flywheel_arn=flywheel_arn,
+            flywheel_iteration_id=flywheel_iteration_id,
+        )
+        return json.dumps(result)
+
+    def list_flywheel_iteration_history(self) -> str:
+        params = json.loads(self.body)
+        flywheel_arn = params.get("FlywheelArn")
+        filter = params.get("Filter")
+        next_token = params.get("NextToken")
+        max_results = params.get("MaxResults")
+        iteration_list, next_token = self.comprehend_backend.list_flywheel_iteration_history(
+            flywheel_arn=flywheel_arn,
+            filter=filter,
+            next_token=next_token,
+            max_results=max_results,
+        )
+        return json.dumps(
+            {
+                "FlywheelIterationPropertiesList": iteration_list,
+                "NextToken": next_token,
+            }
+        )
+
     def start_events_detection_job(self) -> str:
         params = json.loads(self.body)
         job = self.comprehend_backend.start_events_detection_job(**params)

@@ -802,6 +802,57 @@ class RedshiftResponse(BaseResponse):
         )
         return ActionResult(result)
 
+    def describe_node_configuration_options(self) -> ActionResult:
+        action_type = self._get_param("ActionType")
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        snapshot_identifier = self._get_param("SnapshotIdentifier")
+        filters = self._get_param("Filter", [])
+        options = self.redshift_backend.describe_node_configuration_options(
+            action_type=action_type,
+            cluster_identifier=cluster_identifier,
+            snapshot_identifier=snapshot_identifier,
+            filters=filters,
+        )
+        return ActionResult({"NodeConfigurationOptionList": options})
+
+    def describe_partners(self) -> ActionResult:
+        account_id = self._get_param("AccountId")
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        database_name = self._get_param("DatabaseName")
+        partner_name = self._get_param("PartnerName")
+        partners = self.redshift_backend.describe_partners(
+            account_id=account_id,
+            cluster_identifier=cluster_identifier,
+            database_name=database_name,
+            partner_name=partner_name,
+        )
+        return ActionResult({"PartnerIntegrationInfoList": partners})
+
+    def describe_resize(self) -> ActionResult:
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        result = self.redshift_backend.describe_resize(
+            cluster_identifier=cluster_identifier,
+        )
+        return ActionResult(result)
+
+    def get_identity_center_auth_token(self) -> ActionResult:
+        cluster_ids = self._get_param("ClusterIds", [])
+        result = self.redshift_backend.get_identity_center_auth_token(
+            cluster_ids=cluster_ids,
+        )
+        return ActionResult(result)
+
+    def get_reserved_node_exchange_configuration_options(self) -> ActionResult:
+        action_type = self._get_param("ActionType")
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        snapshot_identifier = self._get_param("SnapshotIdentifier")
+        options = self.redshift_backend.get_reserved_node_exchange_configuration_options(
+            action_type=action_type,
+            cluster_identifier=cluster_identifier,
+            snapshot_identifier=snapshot_identifier,
+        )
+        return ActionResult({"ReservedNodeConfigurationOptionList": options})
+
     def authorize_endpoint_access(self) -> ActionResult:
         cluster_identifier = self._get_param("ClusterIdentifier")
         account = self._get_param("Account")
