@@ -1537,3 +1537,94 @@ class GlueResponse(BaseResponse):
                 "NextToken": next_token,
             }
         )
+
+    def list_schemas(self) -> ActionResult:
+        registry_id = self.parameters.get("RegistryId")
+        schemas = self.glue_backend.list_schemas(registry_id=registry_id)
+        return ActionResult({"Schemas": schemas})
+
+    def list_schema_versions(self) -> ActionResult:
+        schema_id = self.parameters.get("SchemaId")
+        versions = self.glue_backend.list_schema_versions(schema_id=schema_id)
+        return ActionResult({"Schemas": versions})
+
+    def list_dev_endpoints(self) -> ActionResult:
+        dev_endpoints = self.glue_backend.list_dev_endpoints()
+        return ActionResult(
+            {
+                "DevEndpointNames": [ep.endpoint_name for ep in dev_endpoints],
+            }
+        )
+
+    def list_ml_transforms(self) -> ActionResult:
+        next_token = self._get_param("NextToken")
+        max_results = self._get_int_param("MaxResults")
+        transforms, next_token = self.glue_backend.list_ml_transforms(
+            next_token=next_token, max_results=max_results
+        )
+        return ActionResult(
+            {
+                "TransformIds": [t.transform_id for t in transforms],
+                "NextToken": next_token,
+            }
+        )
+
+    def search_tables(self) -> ActionResult:
+        catalog_id = self.parameters.get("CatalogId")
+        search_text = self.parameters.get("SearchText")
+        filters = self.parameters.get("Filters")
+        max_results = self.parameters.get("MaxResults")
+        next_token = self.parameters.get("NextToken")
+        tables, new_token = self.glue_backend.search_tables(
+            catalog_id=catalog_id,
+            search_text=search_text,
+            filters=filters,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return ActionResult(
+            {
+                "TableList": [table.as_dict() for table in tables],
+                "NextToken": new_token,
+            }
+        )
+
+    def list_statements(self) -> ActionResult:
+        session_id = self.parameters.get("SessionId")
+        statements = self.glue_backend.list_statements(session_id=session_id)
+        return ActionResult({"Statements": statements})
+
+    def list_custom_entity_types(self) -> ActionResult:
+        result = self.glue_backend.list_custom_entity_types(
+            max_results=self.parameters.get("MaxResults"),
+            next_token=self.parameters.get("NextToken"),
+        )
+        return ActionResult(result)
+
+    def list_column_statistics_task_runs(self) -> ActionResult:
+        result = self.glue_backend.list_column_statistics_task_runs(
+            max_results=self.parameters.get("MaxResults"),
+            next_token=self.parameters.get("NextToken"),
+        )
+        return ActionResult(result)
+
+    def list_data_quality_results(self) -> ActionResult:
+        result = self.glue_backend.list_data_quality_results(
+            max_results=self.parameters.get("MaxResults"),
+            next_token=self.parameters.get("NextToken"),
+        )
+        return ActionResult(result)
+
+    def list_data_quality_rule_recommendation_runs(self) -> ActionResult:
+        result = self.glue_backend.list_data_quality_rule_recommendation_runs(
+            max_results=self.parameters.get("MaxResults"),
+            next_token=self.parameters.get("NextToken"),
+        )
+        return ActionResult(result)
+
+    def list_data_quality_ruleset_evaluation_runs(self) -> ActionResult:
+        result = self.glue_backend.list_data_quality_ruleset_evaluation_runs(
+            max_results=self.parameters.get("MaxResults"),
+            next_token=self.parameters.get("NextToken"),
+        )
+        return ActionResult(result)

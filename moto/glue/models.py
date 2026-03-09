@@ -1894,6 +1894,121 @@ class GlueBackend(BaseBackend):
     def list_ml_transforms(self) -> list["FakeMLTransform"]:
         return list(self.ml_transforms.values())
 
+    def list_schemas(
+        self, registry_id: Optional[dict[str, Any]] = None
+    ) -> list[dict[str, Any]]:
+        """List schemas, optionally filtered by registry."""
+        schemas = []
+        if registry_id:
+            registry_name = validate_registry_id(registry_id, self.registries)
+            registry = self.registries[registry_name]
+            for schema in registry.schemas.values():
+                schemas.append(schema.as_dict())
+        else:
+            for registry in self.registries.values():
+                for schema in registry.schemas.values():
+                    schemas.append(schema.as_dict())
+        return schemas
+
+    def list_schema_versions(
+        self, schema_id: dict[str, str]
+    ) -> list[dict[str, Any]]:
+        """List versions of a schema."""
+        registry_name, schema_name, _ = validate_schema_id(
+            schema_id, self.registries
+        )
+        schema = self.registries[registry_name].schemas[schema_name]
+        return [sv.as_dict() for sv in schema.schema_versions.values()]
+
+    def list_dev_endpoints(self) -> list["FakeDevEndpoint"]:
+        return list(self.dev_endpoints.values())
+
+    def search_tables(
+        self,
+        catalog_id: Optional[str],
+        search_text: Optional[str],
+        filters: Optional[list[dict[str, Any]]],
+        max_results: Optional[int],
+        next_token: Optional[str],
+    ) -> tuple[list["FakeTable"], Optional[str]]:
+        """Search tables across all databases."""
+        all_tables: list["FakeTable"] = []
+        for database in self.databases.values():
+            for table in database.tables.values():
+                if search_text:
+                    # Simple text search in table name
+                    if search_text.lower() in table.name.lower():
+                        all_tables.append(table)
+                else:
+                    all_tables.append(table)
+
+        # Apply filters if provided
+        if filters:
+            for f in filters:
+                key = f.get("Key", "")
+                value = f.get("Value", "")
+                if key == "DatabaseName" and value:
+                    all_tables = [t for t in all_tables if t.database_name == value]
+
+        # Pagination
+        max_results = max_results or 100
+        start = 0
+        if next_token:
+            try:
+                start = int(next_token)
+            except (ValueError, TypeError):
+                start = 0
+        end = start + max_results
+        page = all_tables[start:end]
+        new_token = str(end) if end < len(all_tables) else None
+        return page, new_token
+
+    def list_statements(self, session_id: str) -> list[dict[str, Any]]:
+        """Return empty statements list (interactive sessions statements not yet implemented)."""
+        # Validate session exists
+        self.get_session(session_id)
+        return []
+
+    def list_custom_entity_types(
+        self,
+        max_results: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Return empty custom entity types list (not yet implemented)."""
+        return {"CustomEntityTypes": [], "NextToken": None}
+
+    def list_column_statistics_task_runs(
+        self,
+        max_results: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Return empty column statistics task run IDs list (not yet implemented)."""
+        return {"ColumnStatisticsTaskRunIds": [], "NextToken": None}
+
+    def list_data_quality_results(
+        self,
+        max_results: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Return empty data quality results list (not yet implemented)."""
+        return {"Results": [], "NextToken": None}
+
+    def list_data_quality_rule_recommendation_runs(
+        self,
+        max_results: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Return empty data quality rule recommendation runs list."""
+        return {"Runs": [], "NextToken": None}
+
+    def list_data_quality_ruleset_evaluation_runs(
+        self,
+        max_results: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Return empty data quality ruleset evaluation runs list."""
+        return {"Runs": [], "NextToken": None}
+
     # --- Classifiers ---
 
     def create_classifier(
