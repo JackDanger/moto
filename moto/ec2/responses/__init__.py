@@ -1,5 +1,9 @@
 from .account_attributes import AccountAttributes
 from .amis import AmisResponse
+from .instance_connect_endpoint import InstanceConnectEndpointResponse
+from .network_insights import NetworkInsightsResponse
+from .transit_gateway_connect import TransitGatewayConnectResponse
+from .verified_access import VerifiedAccessResponse
 from .availability_zones_and_regions import AvailabilityZonesAndRegions
 from .carrier_gateways import CarrierGateway
 from .customer_gateways import CustomerGateways
@@ -45,6 +49,10 @@ from .gap_stubs import GapStubs
 class EC2Response(
     ClientVpnEndpoints,
     IpamResponse,
+    TransitGatewayConnectResponse,
+    NetworkInsightsResponse,
+    VerifiedAccessResponse,
+    InstanceConnectEndpointResponse,
     GapStubs,
     AccountAttributes,
     AmisResponse,

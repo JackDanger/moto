@@ -24,6 +24,7 @@ from .fleets import FleetsBackend
 from .flow_logs import FlowLogsBackend
 from .hosts import HostsBackend
 from .iam_instance_profile import IamInstanceProfileAssociationBackend
+from .instance_connect_endpoint import InstanceConnectEndpointBackend
 from .instance_types import InstanceTypeBackend, InstanceTypeOfferingBackend
 from .ipam import IpamBackend
 from .instances import InstanceBackend
@@ -36,6 +37,7 @@ from .launch_templates import LaunchTemplateBackend
 from .managed_prefixes import ManagedPrefixListBackend
 from .nat_gateways import NatGatewayBackend
 from .network_acls import NetworkAclBackend
+from .network_insights import NetworkInsightsBackend
 from .reserved_instances import ReservedInstancesBackend
 from .route_tables import RouteBackend
 from .security_groups import SecurityGroupBackend
@@ -44,7 +46,9 @@ from .subnets import SubnetBackend
 from .tags import TagBackend
 from .transit_gateway import TransitGatewayBackend
 from .transit_gateway_attachments import TransitGatewayAttachmentBackend
+from .transit_gateway_connect import TransitGatewayConnectBackend
 from .transit_gateway_route_tables import TransitGatewayRouteTableBackend
+from .verified_access import VerifiedAccessBackend
 from .vpc_peering_connections import VPCPeeringConnectionBackend
 from .vpc_service_configuration import VPCServiceConfigurationBackend
 from .vpcs import VPCBackend
@@ -112,6 +116,7 @@ class EC2Backend(
     TransitGatewayBackend,
     TransitGatewayRouteTableBackend,
     TransitGatewayAttachmentBackend,
+    TransitGatewayConnectBackend,
     LaunchTemplateBackend,
     IamInstanceProfileAssociationBackend,
     CarrierGatewayBackend,
@@ -121,6 +126,9 @@ class EC2Backend(
     ReservedInstancesBackend,
     ClientVpnEndpointBackend,
     IpamBackend,
+    NetworkInsightsBackend,
+    VerifiedAccessBackend,
+    InstanceConnectEndpointBackend,
 ):
     """
     moto includes a limited set of AMIs in `moto/ec2/resources/amis.json`.
