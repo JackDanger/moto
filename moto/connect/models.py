@@ -288,6 +288,135 @@ class ConnectBackend(BaseBackend):
         if not self.analytics_data_associations[instance_id]:
             del self.analytics_data_associations[instance_id]
 
+    def list_agent_statuses(self, instance_id: str) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_approved_origins(self, instance_id: str) -> list[str]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_bots(self, instance_id: str) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_contact_evaluations(self, instance_id: str) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_contact_flow_modules(self, instance_id: str) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_contact_flow_versions(
+        self, instance_id: str, contact_flow_id: str
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_contact_flows(self, instance_id: str) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_contact_references(self, instance_id: str) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_default_vocabularies(self, instance_id: str) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_evaluation_form_versions(
+        self, instance_id: str, evaluation_form_id: str
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_evaluation_forms(self, instance_id: str) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_flow_associations(self, instance_id: str) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_hours_of_operation_overrides(
+        self, instance_id: str, hours_of_operation_id: str
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_hours_of_operations(self, instance_id: str) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_instance_attributes(self, instance_id: str) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_instance_storage_configs(self, instance_id: str) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_lambda_functions(self, instance_id: str) -> list[str]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_phone_numbers(self, instance_id: str) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_phone_numbers_v2(self) -> list[dict[str, Any]]:
+        return []
+
+    def list_prompts(self, instance_id: str) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_queue_quick_connects(
+        self, instance_id: str, queue_id: str
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_queues(self, instance_id: str) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_quick_connects(self, instance_id: str) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_routing_profiles(self, instance_id: str) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_security_keys(self, instance_id: str) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_security_profile_applications(
+        self, instance_id: str, security_profile_id: str
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_security_profile_permissions(
+        self, instance_id: str, security_profile_id: str
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_security_profiles(self, instance_id: str) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_use_cases(
+        self, instance_id: str, integration_association_id: str
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_analytics_data_associations(
         self,

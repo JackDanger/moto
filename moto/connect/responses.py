@@ -25,6 +25,174 @@ class ConnectResponse(BaseResponse):
         instance_id = self._get_param("InstanceId")
         return unquote(instance_id) if instance_id else ""
 
+    def list_agent_statuses(self) -> str:
+        instance_id = self._get_instance_id()
+        results = self.connect_backend.list_agent_statuses(instance_id=instance_id)
+        return json.dumps({"AgentStatusSummaryList": results})
+
+    def list_approved_origins(self) -> str:
+        instance_id = self._get_instance_id()
+        results = self.connect_backend.list_approved_origins(instance_id=instance_id)
+        return json.dumps({"Origins": results})
+
+    def list_bots(self) -> str:
+        instance_id = self._get_instance_id()
+        results = self.connect_backend.list_bots(instance_id=instance_id)
+        return json.dumps({"LexBots": results})
+
+    def list_contact_evaluations(self) -> str:
+        instance_id = self._get_instance_id()
+        results = self.connect_backend.list_contact_evaluations(instance_id=instance_id)
+        return json.dumps({"EvaluationSummaryList": results})
+
+    def list_contact_flow_modules(self) -> str:
+        instance_id = self._get_instance_id()
+        results = self.connect_backend.list_contact_flow_modules(instance_id=instance_id)
+        return json.dumps({"ContactFlowModulesSummaryList": results})
+
+    def list_contact_flow_versions(self) -> str:
+        instance_id = self._get_instance_id()
+        contact_flow_id = self._get_param("ContactFlowId")
+        results = self.connect_backend.list_contact_flow_versions(
+            instance_id=instance_id, contact_flow_id=contact_flow_id
+        )
+        return json.dumps({"ContactFlowVersionSummaryList": results})
+
+    def list_contact_flows(self) -> str:
+        instance_id = self._get_instance_id()
+        results = self.connect_backend.list_contact_flows(instance_id=instance_id)
+        return json.dumps({"ContactFlowSummaryList": results})
+
+    def list_contact_references(self) -> str:
+        instance_id = self._get_instance_id()
+        results = self.connect_backend.list_contact_references(instance_id=instance_id)
+        return json.dumps({"ReferenceSummaryList": results})
+
+    def list_default_vocabularies(self) -> str:
+        instance_id = self._get_instance_id()
+        results = self.connect_backend.list_default_vocabularies(instance_id=instance_id)
+        return json.dumps({"DefaultVocabularyList": results})
+
+    def list_evaluation_form_versions(self) -> str:
+        instance_id = self._get_instance_id()
+        evaluation_form_id = self._get_param("EvaluationFormId")
+        results = self.connect_backend.list_evaluation_form_versions(
+            instance_id=instance_id, evaluation_form_id=evaluation_form_id
+        )
+        return json.dumps({"EvaluationFormVersionSummaryList": results})
+
+    def list_evaluation_forms(self) -> str:
+        instance_id = self._get_instance_id()
+        results = self.connect_backend.list_evaluation_forms(instance_id=instance_id)
+        return json.dumps({"EvaluationFormSummaryList": results})
+
+    def list_flow_associations(self) -> str:
+        instance_id = self._get_instance_id()
+        results = self.connect_backend.list_flow_associations(instance_id=instance_id)
+        return json.dumps({"FlowAssociationSummaryList": results})
+
+    def list_hours_of_operation_overrides(self) -> str:
+        instance_id = self._get_instance_id()
+        hours_of_operation_id = self._get_param("HoursOfOperationId")
+        results = self.connect_backend.list_hours_of_operation_overrides(
+            instance_id=instance_id, hours_of_operation_id=hours_of_operation_id
+        )
+        return json.dumps({"HoursOfOperationOverrideList": results})
+
+    def list_hours_of_operations(self) -> str:
+        instance_id = self._get_instance_id()
+        results = self.connect_backend.list_hours_of_operations(instance_id=instance_id)
+        return json.dumps({"HoursOfOperationSummaryList": results})
+
+    def list_instance_attributes(self) -> str:
+        instance_id = self._get_instance_id()
+        results = self.connect_backend.list_instance_attributes(instance_id=instance_id)
+        return json.dumps({"Attributes": results})
+
+    def list_instance_storage_configs(self) -> str:
+        instance_id = self._get_instance_id()
+        results = self.connect_backend.list_instance_storage_configs(
+            instance_id=instance_id
+        )
+        return json.dumps({"StorageConfigs": results})
+
+    def list_lambda_functions(self) -> str:
+        instance_id = self._get_instance_id()
+        results = self.connect_backend.list_lambda_functions(instance_id=instance_id)
+        return json.dumps({"LambdaFunctions": results})
+
+    def list_phone_numbers(self) -> str:
+        instance_id = self._get_instance_id()
+        results = self.connect_backend.list_phone_numbers(instance_id=instance_id)
+        return json.dumps({"PhoneNumberSummaryList": results})
+
+    def list_phone_numbers_v2(self) -> str:
+        results = self.connect_backend.list_phone_numbers_v2()
+        return json.dumps({"ListPhoneNumbersSummaryList": results})
+
+    def list_prompts(self) -> str:
+        instance_id = self._get_instance_id()
+        results = self.connect_backend.list_prompts(instance_id=instance_id)
+        return json.dumps({"PromptSummaryList": results})
+
+    def list_queue_quick_connects(self) -> str:
+        instance_id = self._get_instance_id()
+        queue_id = self._get_param("QueueId")
+        results = self.connect_backend.list_queue_quick_connects(
+            instance_id=instance_id, queue_id=queue_id
+        )
+        return json.dumps({"QuickConnectSummaryList": results})
+
+    def list_queues(self) -> str:
+        instance_id = self._get_instance_id()
+        results = self.connect_backend.list_queues(instance_id=instance_id)
+        return json.dumps({"QueueSummaryList": results})
+
+    def list_quick_connects(self) -> str:
+        instance_id = self._get_instance_id()
+        results = self.connect_backend.list_quick_connects(instance_id=instance_id)
+        return json.dumps({"QuickConnectSummaryList": results})
+
+    def list_routing_profiles(self) -> str:
+        instance_id = self._get_instance_id()
+        results = self.connect_backend.list_routing_profiles(instance_id=instance_id)
+        return json.dumps({"RoutingProfileSummaryList": results})
+
+    def list_security_keys(self) -> str:
+        instance_id = self._get_instance_id()
+        results = self.connect_backend.list_security_keys(instance_id=instance_id)
+        return json.dumps({"SecurityKeys": results})
+
+    def list_security_profile_applications(self) -> str:
+        instance_id = self._get_instance_id()
+        security_profile_id = self._get_param("SecurityProfileId")
+        results = self.connect_backend.list_security_profile_applications(
+            instance_id=instance_id, security_profile_id=security_profile_id
+        )
+        return json.dumps({"Applications": results})
+
+    def list_security_profile_permissions(self) -> str:
+        instance_id = self._get_instance_id()
+        security_profile_id = self._get_param("SecurityProfileId")
+        results = self.connect_backend.list_security_profile_permissions(
+            instance_id=instance_id, security_profile_id=security_profile_id
+        )
+        return json.dumps({"Permissions": results})
+
+    def list_security_profiles(self) -> str:
+        instance_id = self._get_instance_id()
+        results = self.connect_backend.list_security_profiles(instance_id=instance_id)
+        return json.dumps({"SecurityProfileSummaryList": results})
+
+    def list_use_cases(self) -> str:
+        instance_id = self._get_instance_id()
+        integration_association_id = self._get_param("IntegrationAssociationId")
+        results = self.connect_backend.list_use_cases(
+            instance_id=instance_id,
+            integration_association_id=integration_association_id,
+        )
+        return json.dumps({"UseCaseSummaryList": results})
+
     def associate_analytics_data_set(self) -> str:
         instance_id = self._get_instance_id()
         params = json.loads(self.body) if self.body else {}
