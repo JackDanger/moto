@@ -861,6 +861,85 @@ class APIGatewayResponse(BaseResponse):
         )
         return 202, {}, json.dumps({})
 
+    # Documentation Parts
+    def create_documentation_part(self) -> TYPE_RESPONSE:
+        rest_api_id = self.path.split("/")[2]
+        location = self._get_param("location")
+        properties = self._get_param("properties")
+        doc_part = self.backend.create_documentation_part(
+            rest_api_id, location, properties
+        )
+        return 201, {"status": 201}, json.dumps(doc_part.to_json())
+
+    def get_documentation_parts(self) -> str:
+        rest_api_id = self.path.split("/")[2]
+        doc_parts = self.backend.get_documentation_parts(rest_api_id)
+        return json.dumps({"item": [d.to_json() for d in doc_parts]})
+
+    def get_documentation_part(self) -> str:
+        url_path_parts = self.path.split("/")
+        rest_api_id = url_path_parts[2]
+        doc_part_id = url_path_parts[5]
+        doc_part = self.backend.get_documentation_part(rest_api_id, doc_part_id)
+        return json.dumps(doc_part.to_json())
+
+    def update_documentation_part(self) -> str:
+        url_path_parts = self.path.split("/")
+        rest_api_id = url_path_parts[2]
+        doc_part_id = url_path_parts[5]
+        patch_operations = self._get_param("patchOperations")
+        doc_part = self.backend.update_documentation_part(
+            rest_api_id, doc_part_id, patch_operations
+        )
+        return json.dumps(doc_part.to_json())
+
+    def delete_documentation_part(self) -> TYPE_RESPONSE:
+        url_path_parts = self.path.split("/")
+        rest_api_id = url_path_parts[2]
+        doc_part_id = url_path_parts[5]
+        self.backend.delete_documentation_part(rest_api_id, doc_part_id)
+        return 202, {"status": 202}, "{}"
+
+    # Documentation Versions
+    def create_documentation_version(self) -> TYPE_RESPONSE:
+        rest_api_id = self.path.split("/")[2]
+        version = self._get_param("documentationVersion")
+        description = self._get_param("description") or ""
+        doc_version = self.backend.create_documentation_version(
+            rest_api_id, version, description
+        )
+        return 201, {"status": 201}, json.dumps(doc_version.to_json())
+
+    def get_documentation_versions(self) -> str:
+        rest_api_id = self.path.split("/")[2]
+        doc_versions = self.backend.get_documentation_versions(rest_api_id)
+        return json.dumps({"item": [d.to_json() for d in doc_versions]})
+
+    def get_documentation_version(self) -> str:
+        url_path_parts = self.path.split("/")
+        rest_api_id = url_path_parts[2]
+        version = url_path_parts[5]
+        doc_version = self.backend.get_documentation_version(rest_api_id, version)
+        return json.dumps(doc_version.to_json())
+
+    # Client Certificates
+    def generate_client_certificate(self) -> TYPE_RESPONSE:
+        description = self._get_param("description") or ""
+        tags = self._get_param("tags")
+        cert = self.backend.generate_client_certificate(
+            description=description, tags=tags
+        )
+        return 201, {"status": 201}, json.dumps(cert.to_json())
+
+    def get_client_certificates(self) -> str:
+        certs = self.backend.get_client_certificates()
+        return json.dumps({"item": [c.to_json() for c in certs]})
+
+    def get_client_certificate(self) -> str:
+        cert_id = self.path.split("/")[2]
+        cert = self.backend.get_client_certificate(cert_id)
+        return json.dumps(cert.to_json())
+
     def update_account(self) -> str:
         patch_operations = self._get_param("patchOperations")
         account = self.backend.update_account(patch_operations)

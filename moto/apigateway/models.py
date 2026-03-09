@@ -36,9 +36,12 @@ from .exceptions import (
     BadRequestException,
     BasePathConflictException,
     BasePathNotFoundException,
+    ClientCertificateNotFoundException,
     ConflictException,
     CrossAccountNotAllowed,
     DeploymentNotFoundException,
+    DocumentationPartNotFoundException,
+    DocumentationVersionNotFoundException,
     DomainNameNotFound,
     GatewayResponseNotFound,
     IntegrationMethodNotDefined,
@@ -72,7 +75,9 @@ from .exceptions import (
 from .utils import (
     ApigwApiKeyIdentifier,
     ApigwAuthorizerIdentifier,
+    ApigwClientCertificateIdentifier,
     ApigwDeploymentIdentifier,
+    ApigwDocumentationPartIdentifier,
     ApigwModelIdentifier,
     ApigwRequestValidatorIdentifier,
     ApigwResourceIdentifier,
@@ -1024,6 +1029,81 @@ class VpcLink(BaseModel):
         }
 
 
+class DocumentationPart(BaseModel):
+    def __init__(
+        self,
+        doc_id: str,
+        location: dict[str, str],
+        properties: str,
+    ):
+        self.id = doc_id
+        self.location = location
+        self.properties = properties
+
+    def apply_patch_operations(self, operations: list[dict[str, Any]]) -> None:
+        for operation in operations:
+            path = operation.get("path", "")
+            value = operation.get("value", "")
+            op = operation.get("op", "")
+            if op == "replace":
+                if "/properties" in path:
+                    self.properties = value
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "location": self.location,
+            "properties": self.properties,
+        }
+
+
+class DocumentationVersion(BaseModel):
+    def __init__(
+        self,
+        version: str,
+        description: str = "",
+    ):
+        self.version = version
+        self.description = description
+        self.created_date = int(time.time())
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "version": self.version,
+            "description": self.description,
+            "createdDate": self.created_date,
+        }
+
+
+class ClientCertificate(BaseModel):
+    def __init__(
+        self,
+        cert_id: str,
+        description: str = "",
+        tags: Optional[dict[str, str]] = None,
+    ):
+        self.client_certificate_id = cert_id
+        self.description = description
+        self.tags = tags or {}
+        self.created_date = int(time.time())
+        self.expiration_date = int(time.time()) + 365 * 24 * 3600
+        self.pem_encoded_certificate = (
+            "-----BEGIN CERTIFICATE-----\nMIICmock...\n-----END CERTIFICATE-----"
+        )
+
+    def to_json(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "clientCertificateId": self.client_certificate_id,
+            "description": self.description,
+            "pemEncodedCertificate": self.pem_encoded_certificate,
+            "createdDate": self.created_date,
+            "expirationDate": self.expiration_date,
+        }
+        if self.tags:
+            result["tags"] = self.tags
+        return result
+
+
 class RestAPI(CloudFormationModel):
     PROP_ID = "id"
     PROP_NAME = "name"
@@ -1081,6 +1161,8 @@ class RestAPI(CloudFormationModel):
         self.resources: dict[str, Resource] = {}
         self.models: dict[str, Model] = {}
         self.request_validators: dict[str, RequestValidator] = {}
+        self.documentation_parts: dict[str, DocumentationPart] = {}
+        self.documentation_versions: dict[str, DocumentationVersion] = {}
         self.default = self.add_child("/")  # Add default child
         self.root_resource_id = self.default.id
 
@@ -1417,6 +1499,60 @@ class RestAPI(CloudFormationModel):
     def delete_gateway_response(self, response_type: str) -> None:
         self.gateway_responses.pop(response_type, None)
 
+    def create_documentation_part(
+        self, location: dict[str, str], properties: str
+    ) -> DocumentationPart:
+        doc_id = ApigwDocumentationPartIdentifier(
+            self.account_id, self.region_name, str(location)
+        ).generate()
+        doc_part = DocumentationPart(
+            doc_id=doc_id,
+            location=location,
+            properties=properties,
+        )
+        self.documentation_parts[doc_id] = doc_part
+        return doc_part
+
+    def get_documentation_parts(self) -> list[DocumentationPart]:
+        return list(self.documentation_parts.values())
+
+    def get_documentation_part(self, doc_part_id: str) -> DocumentationPart:
+        doc_part = self.documentation_parts.get(doc_part_id)
+        if doc_part is None:
+            raise DocumentationPartNotFoundException()
+        return doc_part
+
+    def update_documentation_part(
+        self, doc_part_id: str, patch_operations: list[dict[str, Any]]
+    ) -> DocumentationPart:
+        doc_part = self.get_documentation_part(doc_part_id)
+        doc_part.apply_patch_operations(patch_operations)
+        return doc_part
+
+    def delete_documentation_part(self, doc_part_id: str) -> None:
+        if doc_part_id not in self.documentation_parts:
+            raise DocumentationPartNotFoundException()
+        self.documentation_parts.pop(doc_part_id)
+
+    def create_documentation_version(
+        self, version: str, description: str = ""
+    ) -> DocumentationVersion:
+        doc_version = DocumentationVersion(
+            version=version,
+            description=description,
+        )
+        self.documentation_versions[version] = doc_version
+        return doc_version
+
+    def get_documentation_versions(self) -> list[DocumentationVersion]:
+        return list(self.documentation_versions.values())
+
+    def get_documentation_version(self, version: str) -> DocumentationVersion:
+        doc_version = self.documentation_versions.get(version)
+        if doc_version is None:
+            raise DocumentationVersionNotFoundException()
+        return doc_version
+
 
 class DomainName(BaseModel):
     def __init__(self, domain_name: str, **kwargs: Any):
@@ -1649,6 +1785,7 @@ class APIGatewayBackend(BaseBackend):
         self.models: dict[str, Model] = {}
         self.base_path_mappings: dict[str, dict[str, BasePathMapping]] = {}
         self.vpc_links: dict[str, VpcLink] = {}
+        self.client_certificates: dict[str, ClientCertificate] = {}
 
     def create_rest_api(
         self,
@@ -2635,6 +2772,81 @@ class APIGatewayBackend(BaseBackend):
     def delete_gateway_response(self, rest_api_id: str, response_type: str) -> None:
         api = self.get_rest_api(rest_api_id)
         api.delete_gateway_response(response_type)
+
+    # Documentation Parts
+    def create_documentation_part(
+        self, rest_api_id: str, location: dict[str, str], properties: str
+    ) -> DocumentationPart:
+        api = self.get_rest_api(rest_api_id)
+        return api.create_documentation_part(location, properties)
+
+    def get_documentation_parts(self, rest_api_id: str) -> list[DocumentationPart]:
+        api = self.get_rest_api(rest_api_id)
+        return api.get_documentation_parts()
+
+    def get_documentation_part(
+        self, rest_api_id: str, doc_part_id: str
+    ) -> DocumentationPart:
+        api = self.get_rest_api(rest_api_id)
+        return api.get_documentation_part(doc_part_id)
+
+    def update_documentation_part(
+        self,
+        rest_api_id: str,
+        doc_part_id: str,
+        patch_operations: list[dict[str, Any]],
+    ) -> DocumentationPart:
+        api = self.get_rest_api(rest_api_id)
+        return api.update_documentation_part(doc_part_id, patch_operations)
+
+    def delete_documentation_part(
+        self, rest_api_id: str, doc_part_id: str
+    ) -> None:
+        api = self.get_rest_api(rest_api_id)
+        api.delete_documentation_part(doc_part_id)
+
+    # Documentation Versions
+    def create_documentation_version(
+        self, rest_api_id: str, version: str, description: str = ""
+    ) -> DocumentationVersion:
+        api = self.get_rest_api(rest_api_id)
+        return api.create_documentation_version(version, description)
+
+    def get_documentation_versions(
+        self, rest_api_id: str
+    ) -> list[DocumentationVersion]:
+        api = self.get_rest_api(rest_api_id)
+        return api.get_documentation_versions()
+
+    def get_documentation_version(
+        self, rest_api_id: str, version: str
+    ) -> DocumentationVersion:
+        api = self.get_rest_api(rest_api_id)
+        return api.get_documentation_version(version)
+
+    # Client Certificates
+    def generate_client_certificate(
+        self, description: str = "", tags: Optional[dict[str, str]] = None
+    ) -> ClientCertificate:
+        cert_id = ApigwClientCertificateIdentifier(
+            self.account_id, self.region_name, description or "cert"
+        ).generate()
+        cert = ClientCertificate(
+            cert_id=cert_id,
+            description=description,
+            tags=tags,
+        )
+        self.client_certificates[cert_id] = cert
+        return cert
+
+    def get_client_certificates(self) -> list[ClientCertificate]:
+        return list(self.client_certificates.values())
+
+    def get_client_certificate(self, cert_id: str) -> ClientCertificate:
+        cert = self.client_certificates.get(cert_id)
+        if cert is None:
+            raise ClientCertificateNotFoundException()
+        return cert
 
     def update_account(self, patch_operations: list[dict[str, Any]]) -> Account:
         account = self.account.apply_patch_operations(patch_operations)

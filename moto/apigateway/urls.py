@@ -41,6 +41,12 @@ url_paths = {
     "{0}/restapis/(?P<api_id>[^/]+)/gatewayresponses/(?P<response_type>[^/]+)/?$": APIGatewayResponse.dispatch,
     "{0}/vpclinks$": APIGatewayResponse.dispatch,
     "{0}/vpclinks/(?P<vpclink_id>[^/]+)": APIGatewayResponse.dispatch,
+    "{0}/restapis/(?P<function_id>[^/]+)/documentation/parts$": APIGatewayResponse.dispatch,
+    "{0}/restapis/(?P<function_id>[^/]+)/documentation/parts/(?P<part_id>[^/]+)$": APIGatewayResponse.dispatch,
+    "{0}/restapis/(?P<function_id>[^/]+)/documentation/versions$": APIGatewayResponse.dispatch,
+    "{0}/restapis/(?P<function_id>[^/]+)/documentation/versions/(?P<doc_version>[^/]+)$": APIGatewayResponse.dispatch,
+    "{0}/clientcertificates$": APIGatewayResponse.dispatch,
+    "{0}/clientcertificates/(?P<clientcertificate_id>[^/]+)$": APIGatewayResponse.dispatch,
     "{0}/account$": APIGatewayResponse.dispatch,
 }
 
