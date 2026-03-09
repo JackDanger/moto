@@ -513,6 +513,8 @@ class OpenSearchServiceServerlessBackend(BaseBackend):
     def create_access_policy(
         self, description: str, name: str, policy: str, type: str
     ) -> AccessPolicy:
+        if not policy:
+            raise ValidationException(msg="Policy document is required")
         key = (name, type)
         for ap in self.access_policies.values():
             if (ap.name, ap.type) == key:
@@ -563,6 +565,8 @@ class OpenSearchServiceServerlessBackend(BaseBackend):
     def create_lifecycle_policy(
         self, description: str, name: str, policy: str, type: str
     ) -> LifecyclePolicy:
+        if not policy:
+            raise ValidationException(msg="Policy document is required")
         key = f"{name}:{type}"
         if key in self.lifecycle_policies:
             raise ConflictException(
