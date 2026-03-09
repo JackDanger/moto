@@ -23,12 +23,19 @@ from .exceptions import (
     ClusterSnapshotAlreadyExistsError,
     ClusterSnapshotNotFoundError,
     ClusterSubnetGroupNotFoundError,
+    EndpointAlreadyExistsError,
     EndpointAuthorizationAlreadyExistsError,
     EndpointAuthorizationNotFoundError,
+    EndpointNotFoundError,
+    HsmClientCertificateAlreadyExistsError,
+    HsmClientCertificateNotFoundError,
+    HsmConfigurationAlreadyExistsError,
+    HsmConfigurationNotFoundError,
     InvalidClusterSnapshotStateFaultError,
     InvalidParameterCombinationError,
     InvalidParameterValueError,
     InvalidSubnetError,
+    PartnerNotFoundError,
     ResourceNotFoundFaultError,
     ScheduledActionAlreadyExistsError,
     ScheduledActionNotFoundError,
@@ -37,6 +44,8 @@ from .exceptions import (
     SnapshotCopyDisabledFaultError,
     SnapshotCopyGrantAlreadyExistsFaultError,
     SnapshotCopyGrantNotFoundFaultError,
+    SubscriptionAlreadyExistError,
+    SubscriptionNotFoundError,
     UnknownSnapshotCopyRegionFaultError,
     UsageLimitNotFoundError,
 )
@@ -614,6 +623,133 @@ class EndpointAuthorization(BaseModel):
         self.allowed_vpcs = vpc_ids or []
 
 
+class EventSubscription(TaggableResourceMixin, BaseModel):
+    resource_type = "eventsubscription"
+
+    def __init__(
+        self,
+        subscription_name: str,
+        sns_topic_arn: str,
+        account_id: str,
+        region_name: str,
+        source_type: Optional[str] = None,
+        source_ids: Optional[list[str]] = None,
+        event_categories: Optional[list[str]] = None,
+        severity: str = "ERROR",
+        enabled: bool = True,
+        tags: Optional[list[dict[str, str]]] = None,
+    ):
+        super().__init__(account_id, region_name, tags)
+        self.subscription_name = subscription_name
+        self.sns_topic_arn = sns_topic_arn
+        self.source_type = source_type or ""
+        self.source_ids = source_ids or []
+        self.event_categories = event_categories or []
+        self.severity = severity
+        self.enabled = enabled
+        self.status = "active"
+        self.subscription_creation_time = utcnow()
+
+    @property
+    def resource_id(self) -> str:
+        return self.subscription_name
+
+
+class HsmClientCertificate(TaggableResourceMixin, BaseModel):
+    resource_type = "hsmclientcertificate"
+
+    def __init__(
+        self,
+        hsm_client_certificate_identifier: str,
+        account_id: str,
+        region_name: str,
+        tags: Optional[list[dict[str, str]]] = None,
+    ):
+        super().__init__(account_id, region_name, tags)
+        self.hsm_client_certificate_identifier = hsm_client_certificate_identifier
+        self.hsm_client_certificate_public_key = (
+            f"-----BEGIN CERTIFICATE-----\nMOCK{mock_random.get_random_hex(20)}\n-----END CERTIFICATE-----"
+        )
+
+    @property
+    def resource_id(self) -> str:
+        return self.hsm_client_certificate_identifier
+
+
+class HsmConfiguration(TaggableResourceMixin, BaseModel):
+    resource_type = "hsmconfiguration"
+
+    def __init__(
+        self,
+        hsm_configuration_identifier: str,
+        description: str,
+        hsm_ip_address: str,
+        hsm_partition_name: str,
+        hsm_partition_password: str,
+        hsm_server_public_certificate: str,
+        account_id: str,
+        region_name: str,
+        tags: Optional[list[dict[str, str]]] = None,
+    ):
+        super().__init__(account_id, region_name, tags)
+        self.hsm_configuration_identifier = hsm_configuration_identifier
+        self.description = description
+        self.hsm_ip_address = hsm_ip_address
+        self.hsm_partition_name = hsm_partition_name
+        self.hsm_partition_password = hsm_partition_password
+        self.hsm_server_public_certificate = hsm_server_public_certificate
+
+    @property
+    def resource_id(self) -> str:
+        return self.hsm_configuration_identifier
+
+
+class EndpointAccess(BaseModel):
+    def __init__(
+        self,
+        cluster_identifier: str,
+        resource_owner: str,
+        endpoint_name: str,
+        subnet_group_name: str,
+        region_name: str,
+        vpc_security_group_ids: Optional[list[str]] = None,
+    ):
+        self.cluster_identifier = cluster_identifier
+        self.resource_owner = resource_owner
+        self.endpoint_name = endpoint_name
+        self.subnet_group_name = subnet_group_name
+        self.endpoint_status = "active"
+        self.endpoint_create_time = utcnow()
+        self.port = 5439
+        self.address = f"{endpoint_name}.{mock_random.get_random_hex(8)}.{region_name}.redshift-serverless.amazonaws.com"
+        self.vpc_security_groups = [
+            {"VpcSecurityGroupId": sg_id, "Status": "active"}
+            for sg_id in (vpc_security_group_ids or [])
+        ]
+        self.vpc_endpoint = {
+            "VpcEndpointId": f"vpce-{mock_random.get_random_hex(8)}",
+            "VpcId": f"vpc-{mock_random.get_random_hex(8)}",
+            "NetworkInterfaces": [],
+        }
+
+
+class Partner(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        cluster_identifier: str,
+        database_name: str,
+        partner_name: str,
+    ):
+        self.account_id = account_id
+        self.cluster_identifier = cluster_identifier
+        self.database_name = database_name
+        self.partner_name = partner_name
+        self.status = "Active"
+        self.status_message = ""
+        self.created_at = utcnow()
+
+
 class RedshiftBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -648,6 +784,12 @@ class RedshiftBackend(BaseBackend):
         self.authentication_profiles: dict[str, AuthenticationProfile] = {}
         self.usage_limits: dict[str, UsageLimit] = {}
         self.endpoint_authorizations: dict[str, EndpointAuthorization] = {}
+        self.event_subscriptions: dict[str, EventSubscription] = {}
+        self.hsm_client_certificates: dict[str, HsmClientCertificate] = {}
+        self.hsm_configurations: dict[str, HsmConfiguration] = {}
+        self.endpoint_access: dict[str, EndpointAccess] = {}
+        self.partners: dict[str, Partner] = {}
+        self.resource_policies: dict[str, dict[str, Any]] = {}
         self.default_params = {
             "auto_analyze": "true",
             "datestyle": "ISO, MDY",
@@ -1274,9 +1416,51 @@ class RedshiftBackend(BaseBackend):
         return []
 
     def describe_endpoint_access(
-        self, cluster_identifier: Optional[str] = None
+        self,
+        cluster_identifier: Optional[str] = None,
+        endpoint_name: Optional[str] = None,
     ) -> list[dict[str, Any]]:
-        return []
+        if endpoint_name:
+            if endpoint_name not in self.endpoint_access:
+                raise EndpointNotFoundError(endpoint_name)
+            return [
+                self._endpoint_access_to_dict(self.endpoint_access[endpoint_name])
+            ]
+        results = []
+        for ep in self.endpoint_access.values():
+            if cluster_identifier and ep.cluster_identifier != cluster_identifier:
+                continue
+            results.append(self._endpoint_access_to_dict(ep))
+        return results
+
+    def create_endpoint_access(
+        self,
+        cluster_identifier: str,
+        endpoint_name: str,
+        subnet_group_name: str,
+        vpc_security_group_ids: Optional[list[str]] = None,
+    ) -> dict[str, Any]:
+        if cluster_identifier not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier)
+        if endpoint_name in self.endpoint_access:
+            raise EndpointAlreadyExistsError(endpoint_name)
+        ep = EndpointAccess(
+            cluster_identifier=cluster_identifier,
+            resource_owner=self.account_id,
+            endpoint_name=endpoint_name,
+            subnet_group_name=subnet_group_name,
+            region_name=self.region_name,
+            vpc_security_group_ids=vpc_security_group_ids,
+        )
+        self.endpoint_access[endpoint_name] = ep
+        return self._endpoint_access_to_dict(ep)
+
+    def delete_endpoint_access(self, endpoint_name: str) -> dict[str, Any]:
+        if endpoint_name not in self.endpoint_access:
+            raise EndpointNotFoundError(endpoint_name)
+        ep = self.endpoint_access.pop(endpoint_name)
+        ep.endpoint_status = "deleting"
+        return self._endpoint_access_to_dict(ep)
 
     def describe_endpoint_authorization(
         self,
@@ -1298,17 +1482,172 @@ class RedshiftBackend(BaseBackend):
     def describe_event_categories(self) -> list[dict[str, Any]]:
         return []
 
-    def describe_event_subscriptions(self) -> list[dict[str, Any]]:
-        return []
+    def describe_event_subscriptions(
+        self, subscription_name: Optional[str] = None
+    ) -> list[dict[str, Any]]:
+        if subscription_name:
+            if subscription_name not in self.event_subscriptions:
+                raise SubscriptionNotFoundError(subscription_name)
+            return [
+                self._event_subscription_to_dict(
+                    self.event_subscriptions[subscription_name]
+                )
+            ]
+        return [
+            self._event_subscription_to_dict(s)
+            for s in self.event_subscriptions.values()
+        ]
+
+    def create_event_subscription(
+        self,
+        subscription_name: str,
+        sns_topic_arn: str,
+        source_type: Optional[str] = None,
+        source_ids: Optional[list[str]] = None,
+        event_categories: Optional[list[str]] = None,
+        severity: str = "ERROR",
+        enabled: bool = True,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> dict[str, Any]:
+        if subscription_name in self.event_subscriptions:
+            raise SubscriptionAlreadyExistError(subscription_name)
+        sub = EventSubscription(
+            subscription_name=subscription_name,
+            sns_topic_arn=sns_topic_arn,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            source_type=source_type,
+            source_ids=source_ids,
+            event_categories=event_categories,
+            severity=severity,
+            enabled=enabled,
+            tags=tags,
+        )
+        self.event_subscriptions[subscription_name] = sub
+        return self._event_subscription_to_dict(sub)
+
+    def delete_event_subscription(self, subscription_name: str) -> None:
+        if subscription_name not in self.event_subscriptions:
+            raise SubscriptionNotFoundError(subscription_name)
+        del self.event_subscriptions[subscription_name]
+
+    def modify_event_subscription(
+        self,
+        subscription_name: str,
+        sns_topic_arn: Optional[str] = None,
+        source_type: Optional[str] = None,
+        source_ids: Optional[list[str]] = None,
+        event_categories: Optional[list[str]] = None,
+        severity: Optional[str] = None,
+        enabled: Optional[bool] = None,
+    ) -> dict[str, Any]:
+        if subscription_name not in self.event_subscriptions:
+            raise SubscriptionNotFoundError(subscription_name)
+        sub = self.event_subscriptions[subscription_name]
+        if sns_topic_arn is not None:
+            sub.sns_topic_arn = sns_topic_arn
+        if source_type is not None:
+            sub.source_type = source_type
+        if source_ids is not None:
+            sub.source_ids = source_ids
+        if event_categories is not None:
+            sub.event_categories = event_categories
+        if severity is not None:
+            sub.severity = severity
+        if enabled is not None:
+            sub.enabled = enabled
+        return self._event_subscription_to_dict(sub)
 
     def describe_events(self) -> list[dict[str, Any]]:
         return []
 
-    def describe_hsm_client_certificates(self) -> list[dict[str, Any]]:
-        return []
+    def describe_hsm_client_certificates(
+        self, hsm_client_certificate_identifier: Optional[str] = None
+    ) -> list[dict[str, Any]]:
+        if hsm_client_certificate_identifier:
+            if hsm_client_certificate_identifier not in self.hsm_client_certificates:
+                raise HsmClientCertificateNotFoundError(
+                    hsm_client_certificate_identifier
+                )
+            cert = self.hsm_client_certificates[hsm_client_certificate_identifier]
+            return [self._hsm_client_certificate_to_dict(cert)]
+        return [
+            self._hsm_client_certificate_to_dict(c)
+            for c in self.hsm_client_certificates.values()
+        ]
 
-    def describe_hsm_configurations(self) -> list[dict[str, Any]]:
-        return []
+    def create_hsm_client_certificate(
+        self,
+        hsm_client_certificate_identifier: str,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> dict[str, Any]:
+        if hsm_client_certificate_identifier in self.hsm_client_certificates:
+            raise HsmClientCertificateAlreadyExistsError(
+                hsm_client_certificate_identifier
+            )
+        cert = HsmClientCertificate(
+            hsm_client_certificate_identifier=hsm_client_certificate_identifier,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            tags=tags,
+        )
+        self.hsm_client_certificates[hsm_client_certificate_identifier] = cert
+        return self._hsm_client_certificate_to_dict(cert)
+
+    def delete_hsm_client_certificate(
+        self, hsm_client_certificate_identifier: str
+    ) -> None:
+        if hsm_client_certificate_identifier not in self.hsm_client_certificates:
+            raise HsmClientCertificateNotFoundError(
+                hsm_client_certificate_identifier
+            )
+        del self.hsm_client_certificates[hsm_client_certificate_identifier]
+
+    def describe_hsm_configurations(
+        self, hsm_configuration_identifier: Optional[str] = None
+    ) -> list[dict[str, Any]]:
+        if hsm_configuration_identifier:
+            if hsm_configuration_identifier not in self.hsm_configurations:
+                raise HsmConfigurationNotFoundError(hsm_configuration_identifier)
+            config = self.hsm_configurations[hsm_configuration_identifier]
+            return [self._hsm_configuration_to_dict(config)]
+        return [
+            self._hsm_configuration_to_dict(c)
+            for c in self.hsm_configurations.values()
+        ]
+
+    def create_hsm_configuration(
+        self,
+        hsm_configuration_identifier: str,
+        description: str,
+        hsm_ip_address: str,
+        hsm_partition_name: str,
+        hsm_partition_password: str,
+        hsm_server_public_certificate: str,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> dict[str, Any]:
+        if hsm_configuration_identifier in self.hsm_configurations:
+            raise HsmConfigurationAlreadyExistsError(hsm_configuration_identifier)
+        config = HsmConfiguration(
+            hsm_configuration_identifier=hsm_configuration_identifier,
+            description=description,
+            hsm_ip_address=hsm_ip_address,
+            hsm_partition_name=hsm_partition_name,
+            hsm_partition_password=hsm_partition_password,
+            hsm_server_public_certificate=hsm_server_public_certificate,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            tags=tags,
+        )
+        self.hsm_configurations[hsm_configuration_identifier] = config
+        return self._hsm_configuration_to_dict(config)
+
+    def delete_hsm_configuration(
+        self, hsm_configuration_identifier: str
+    ) -> None:
+        if hsm_configuration_identifier not in self.hsm_configurations:
+            raise HsmConfigurationNotFoundError(hsm_configuration_identifier)
+        del self.hsm_configurations[hsm_configuration_identifier]
 
     def describe_inbound_integrations(self) -> list[dict[str, Any]]:
         return []
@@ -1737,10 +2076,75 @@ class RedshiftBackend(BaseBackend):
         database_name: Optional[str] = None,
         partner_name: Optional[str] = None,
     ) -> list[dict[str, Any]]:
-        """
-        Partners are not modeled; returns empty list.
-        """
-        return []
+        results = []
+        for p in self.partners.values():
+            if p.cluster_identifier != cluster_identifier:
+                continue
+            if database_name and p.database_name != database_name:
+                continue
+            if partner_name and p.partner_name != partner_name:
+                continue
+            results.append(self._partner_to_dict(p))
+        return results
+
+    def add_partner(
+        self,
+        account_id: str,
+        cluster_identifier: str,
+        database_name: str,
+        partner_name: str,
+    ) -> dict[str, Any]:
+        if cluster_identifier not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier)
+        key = f"{cluster_identifier}:{database_name}:{partner_name}"
+        partner = Partner(
+            account_id=account_id,
+            cluster_identifier=cluster_identifier,
+            database_name=database_name,
+            partner_name=partner_name,
+        )
+        self.partners[key] = partner
+        return {
+            "DatabaseName": database_name,
+            "PartnerName": partner_name,
+        }
+
+    def delete_partner(
+        self,
+        account_id: str,
+        cluster_identifier: str,
+        database_name: str,
+        partner_name: str,
+    ) -> dict[str, Any]:
+        key = f"{cluster_identifier}:{database_name}:{partner_name}"
+        if key not in self.partners:
+            raise PartnerNotFoundError(partner_name)
+        del self.partners[key]
+        return {
+            "DatabaseName": database_name,
+            "PartnerName": partner_name,
+        }
+
+    def update_partner_status(
+        self,
+        account_id: str,
+        cluster_identifier: str,
+        database_name: str,
+        partner_name: str,
+        status: str,
+        status_message: Optional[str] = None,
+    ) -> dict[str, Any]:
+        key = f"{cluster_identifier}:{database_name}:{partner_name}"
+        if key not in self.partners:
+            raise PartnerNotFoundError(partner_name)
+        partner = self.partners[key]
+        partner.status = status
+        if status_message is not None:
+            partner.status_message = status_message
+        return {
+            "DatabaseName": database_name,
+            "PartnerName": partner_name,
+        }
 
     def describe_resize(self, cluster_identifier: str) -> dict[str, Any]:
         """
@@ -1781,6 +2185,50 @@ class RedshiftBackend(BaseBackend):
         """
         return []
 
+    def put_resource_policy(
+        self, resource_arn: str, policy: str
+    ) -> dict[str, Any]:
+        self.resource_policies[resource_arn] = {
+            "ResourceArn": resource_arn,
+            "Policy": policy,
+        }
+        return self.resource_policies[resource_arn]
+
+    def get_resource_policy(self, resource_arn: str) -> dict[str, Any]:
+        if resource_arn not in self.resource_policies:
+            raise ResourceNotFoundFaultError(
+                message=f"Resource policy for {resource_arn} not found."
+            )
+        return self.resource_policies[resource_arn]
+
+    def delete_resource_policy(self, resource_arn: str) -> None:
+        if resource_arn not in self.resource_policies:
+            raise ResourceNotFoundFaultError(
+                message=f"Resource policy for {resource_arn} not found."
+            )
+        del self.resource_policies[resource_arn]
+
+    def rotate_encryption_key(self, cluster_identifier: str) -> Cluster:
+        if cluster_identifier not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier)
+        cluster = self.clusters[cluster_identifier]
+        return cluster
+
+    def cancel_resize(self, cluster_identifier: str) -> dict[str, Any]:
+        if cluster_identifier not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier)
+        cluster = self.clusters[cluster_identifier]
+        cluster_type = (
+            "multi-node" if cluster.number_of_nodes > 1 else "single-node"
+        )
+        return {
+            "TargetNodeType": cluster.node_type,
+            "TargetNumberOfNodes": int(cluster.number_of_nodes or 1),
+            "TargetClusterType": cluster_type,
+            "Status": "NONE",
+            "ResizeType": "ClassicResize",
+        }
+
     # --- Helper methods ---
 
     def _scheduled_action_to_dict(self, action: ScheduledAction) -> dict[str, Any]:
@@ -1818,6 +2266,66 @@ class RedshiftBackend(BaseBackend):
             "Status": auth.status,
             "AllowedAllVPCs": auth.allowed_all_vpcs,
             "AllowedVPCs": auth.allowed_vpcs,
+        }
+
+    def _event_subscription_to_dict(
+        self, sub: EventSubscription
+    ) -> dict[str, Any]:
+        return {
+            "CustomerAwsId": sub.account_id,
+            "CustSubscriptionId": sub.subscription_name,
+            "SnsTopicArn": sub.sns_topic_arn,
+            "Status": sub.status,
+            "SubscriptionCreationTime": sub.subscription_creation_time.isoformat(),
+            "SourceType": sub.source_type,
+            "SourceIdsList": sub.source_ids,
+            "EventCategoriesList": sub.event_categories,
+            "Severity": sub.severity,
+            "Enabled": sub.enabled,
+            "Tags": sub.tags,
+        }
+
+    def _hsm_client_certificate_to_dict(
+        self, cert: HsmClientCertificate
+    ) -> dict[str, Any]:
+        return {
+            "HsmClientCertificateIdentifier": cert.hsm_client_certificate_identifier,
+            "HsmClientCertificatePublicKey": cert.hsm_client_certificate_public_key,
+            "Tags": cert.tags,
+        }
+
+    def _hsm_configuration_to_dict(
+        self, config: HsmConfiguration
+    ) -> dict[str, Any]:
+        return {
+            "HsmConfigurationIdentifier": config.hsm_configuration_identifier,
+            "Description": config.description,
+            "HsmIpAddress": config.hsm_ip_address,
+            "HsmPartitionName": config.hsm_partition_name,
+            "Tags": config.tags,
+        }
+
+    def _endpoint_access_to_dict(self, ep: EndpointAccess) -> dict[str, Any]:
+        return {
+            "ClusterIdentifier": ep.cluster_identifier,
+            "ResourceOwner": ep.resource_owner,
+            "SubnetGroupName": ep.subnet_group_name,
+            "EndpointStatus": ep.endpoint_status,
+            "EndpointName": ep.endpoint_name,
+            "EndpointCreateTime": ep.endpoint_create_time.isoformat(),
+            "Port": ep.port,
+            "Address": ep.address,
+            "VpcSecurityGroups": ep.vpc_security_groups,
+            "VpcEndpoint": ep.vpc_endpoint,
+        }
+
+    def _partner_to_dict(self, partner: Partner) -> dict[str, Any]:
+        return {
+            "DatabaseName": partner.database_name,
+            "PartnerName": partner.partner_name,
+            "Status": partner.status,
+            "StatusMessage": partner.status_message,
+            "CreatedAt": partner.created_at.isoformat(),
         }
 
 

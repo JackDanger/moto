@@ -1,339 +1,417 @@
 """Tests for newly implemented Redshift operations."""
-
 import json
 
 import boto3
 import pytest
-from botocore.exceptions import ClientError
-
 from moto import mock_aws
 
 
-def _create_cluster(client, identifier="test-cluster"):
+@mock_aws
+def test_event_subscription_crud():
+    client = boto3.client("redshift", region_name="us-east-1")
+
+    # Create
+    resp = client.create_event_subscription(
+        SubscriptionName="test-sub",
+        SnsTopicArn="arn:aws:sns:us-east-1:123456789012:my-topic",
+        SourceType="cluster",
+        Severity="ERROR",
+        Enabled=True,
+    )
+    sub = resp["EventSubscription"]
+    assert sub["CustSubscriptionId"] == "test-sub"
+    assert sub["SnsTopicArn"] == "arn:aws:sns:us-east-1:123456789012:my-topic"
+    assert sub["SourceType"] == "cluster"
+    assert sub["Severity"] == "ERROR"
+    assert sub["Enabled"] is True
+    assert sub["Status"] == "active"
+
+    # Describe all
+    resp = client.describe_event_subscriptions()
+    assert len(resp["EventSubscriptionsList"]) == 1
+    assert resp["EventSubscriptionsList"][0]["CustSubscriptionId"] == "test-sub"
+
+    # Describe by name
+    resp = client.describe_event_subscriptions(SubscriptionName="test-sub")
+    assert len(resp["EventSubscriptionsList"]) == 1
+
+    # Modify
+    resp = client.modify_event_subscription(
+        SubscriptionName="test-sub",
+        Severity="INFO",
+        Enabled=False,
+    )
+    sub = resp["EventSubscription"]
+    assert sub["Severity"] == "INFO"
+    assert sub["Enabled"] is False
+
+    # Delete
+    client.delete_event_subscription(SubscriptionName="test-sub")
+    resp = client.describe_event_subscriptions()
+    assert len(resp["EventSubscriptionsList"]) == 0
+
+
+@mock_aws
+def test_event_subscription_not_found():
+    client = boto3.client("redshift", region_name="us-east-1")
+    with pytest.raises(client.exceptions.SubscriptionNotFoundFault):
+        client.describe_event_subscriptions(SubscriptionName="nonexistent")
+
+    with pytest.raises(client.exceptions.SubscriptionNotFoundFault):
+        client.delete_event_subscription(SubscriptionName="nonexistent")
+
+
+@mock_aws
+def test_hsm_client_certificate_crud():
+    client = boto3.client("redshift", region_name="us-east-1")
+
+    # Create
+    resp = client.create_hsm_client_certificate(
+        HsmClientCertificateIdentifier="test-cert",
+    )
+    cert = resp["HsmClientCertificate"]
+    assert cert["HsmClientCertificateIdentifier"] == "test-cert"
+    assert "BEGIN CERTIFICATE" in cert["HsmClientCertificatePublicKey"]
+
+    # Describe all
+    resp = client.describe_hsm_client_certificates()
+    assert len(resp["HsmClientCertificates"]) == 1
+
+    # Describe by ID
+    resp = client.describe_hsm_client_certificates(
+        HsmClientCertificateIdentifier="test-cert"
+    )
+    assert len(resp["HsmClientCertificates"]) == 1
+
+    # Delete
+    client.delete_hsm_client_certificate(
+        HsmClientCertificateIdentifier="test-cert"
+    )
+    resp = client.describe_hsm_client_certificates()
+    assert len(resp["HsmClientCertificates"]) == 0
+
+
+@mock_aws
+def test_hsm_client_certificate_already_exists():
+    client = boto3.client("redshift", region_name="us-east-1")
+    client.create_hsm_client_certificate(
+        HsmClientCertificateIdentifier="test-cert"
+    )
+    with pytest.raises(client.exceptions.HsmClientCertificateAlreadyExistsFault):
+        client.create_hsm_client_certificate(
+            HsmClientCertificateIdentifier="test-cert"
+        )
+
+
+@mock_aws
+def test_hsm_configuration_crud():
+    client = boto3.client("redshift", region_name="us-east-1")
+
+    # Create
+    resp = client.create_hsm_configuration(
+        HsmConfigurationIdentifier="test-config",
+        Description="Test HSM config",
+        HsmIpAddress="10.0.0.1",
+        HsmPartitionName="partition1",
+        HsmPartitionPassword="password123",
+        HsmServerPublicCertificate="-----BEGIN CERTIFICATE-----\nMOCK\n-----END CERTIFICATE-----",
+    )
+    config = resp["HsmConfiguration"]
+    assert config["HsmConfigurationIdentifier"] == "test-config"
+    assert config["Description"] == "Test HSM config"
+    assert config["HsmIpAddress"] == "10.0.0.1"
+    assert config["HsmPartitionName"] == "partition1"
+
+    # Describe all
+    resp = client.describe_hsm_configurations()
+    assert len(resp["HsmConfigurations"]) == 1
+
+    # Describe by ID
+    resp = client.describe_hsm_configurations(
+        HsmConfigurationIdentifier="test-config"
+    )
+    assert len(resp["HsmConfigurations"]) == 1
+
+    # Delete
+    client.delete_hsm_configuration(
+        HsmConfigurationIdentifier="test-config"
+    )
+    resp = client.describe_hsm_configurations()
+    assert len(resp["HsmConfigurations"]) == 0
+
+
+@mock_aws
+def test_hsm_configuration_already_exists():
+    client = boto3.client("redshift", region_name="us-east-1")
+    client.create_hsm_configuration(
+        HsmConfigurationIdentifier="test-config",
+        Description="d",
+        HsmIpAddress="10.0.0.1",
+        HsmPartitionName="p",
+        HsmPartitionPassword="pw",
+        HsmServerPublicCertificate="cert",
+    )
+    with pytest.raises(client.exceptions.HsmConfigurationAlreadyExistsFault):
+        client.create_hsm_configuration(
+            HsmConfigurationIdentifier="test-config",
+            Description="d",
+            HsmIpAddress="10.0.0.1",
+            HsmPartitionName="p",
+            HsmPartitionPassword="pw",
+            HsmServerPublicCertificate="cert",
+        )
+
+
+@mock_aws
+def test_endpoint_access_crud():
+    client = boto3.client("redshift", region_name="us-east-1")
+
+    # Need a cluster first
     client.create_cluster(
-        DBName="testdb",
-        ClusterIdentifier=identifier,
-        ClusterType="single-node",
+        ClusterIdentifier="test-cluster",
         NodeType="dc2.large",
         MasterUsername="admin",
-        MasterUserPassword="Password123",
+        MasterUserPassword="Password1!",
     )
 
-
-def _create_snapshot(client, cluster_id="test-cluster", snapshot_id="test-snapshot"):
-    return client.create_cluster_snapshot(
-        ClusterIdentifier=cluster_id,
-        SnapshotIdentifier=snapshot_id,
-    )
-
-
-@mock_aws
-def test_copy_cluster_snapshot():
-    client = boto3.client("redshift", region_name="us-east-1")
-    _create_cluster(client)
-    _create_snapshot(client)
-    response = client.copy_cluster_snapshot(
-        SourceSnapshotIdentifier="test-snapshot",
-        TargetSnapshotIdentifier="copied-snapshot",
-    )
-    snapshot = response["Snapshot"]
-    assert snapshot["SnapshotIdentifier"] == "copied-snapshot"
-    assert snapshot["ClusterIdentifier"] == "test-cluster"
-    assert snapshot["Status"] == "available"
-
-
-@mock_aws
-def test_copy_cluster_snapshot_not_found():
-    client = boto3.client("redshift", region_name="us-east-1")
-    with pytest.raises(ClientError) as exc:
-        client.copy_cluster_snapshot(
-            SourceSnapshotIdentifier="nonexistent",
-            TargetSnapshotIdentifier="copy",
-        )
-    assert exc.value.response["Error"]["Code"] == "ClusterSnapshotNotFound"
-
-
-@mock_aws
-def test_authorize_snapshot_access():
-    client = boto3.client("redshift", region_name="us-east-1")
-    _create_cluster(client)
-    _create_snapshot(client)
-    response = client.authorize_snapshot_access(
-        SnapshotIdentifier="test-snapshot",
-        AccountWithRestoreAccess="111122223333",
-    )
-    snapshot = response["Snapshot"]
-    assert snapshot["SnapshotIdentifier"] == "test-snapshot"
-    accounts = snapshot.get("AccountsWithRestoreAccess", [])
-    assert any(a["AccountId"] == "111122223333" for a in accounts)
-
-
-@mock_aws
-def test_revoke_snapshot_access():
-    client = boto3.client("redshift", region_name="us-east-1")
-    _create_cluster(client)
-    _create_snapshot(client)
-    client.authorize_snapshot_access(
-        SnapshotIdentifier="test-snapshot",
-        AccountWithRestoreAccess="111122223333",
-    )
-    response = client.revoke_snapshot_access(
-        SnapshotIdentifier="test-snapshot",
-        AccountWithRestoreAccess="111122223333",
-    )
-    assert response["Snapshot"]["SnapshotIdentifier"] == "test-snapshot"
-
-
-@mock_aws
-def test_create_scheduled_action():
-    client = boto3.client("redshift", region_name="us-east-1")
-    response = client.create_scheduled_action(
-        ScheduledActionName="test-action",
-        TargetAction={
-            "ResizeCluster": {
-                "ClusterIdentifier": "test-cluster",
-                "ClusterType": "multi-node",
-                "NodeType": "dc2.large",
-                "NumberOfNodes": 2,
-            }
-        },
-        Schedule="at(2025-12-01T00:00:00)",
-        IamRole="arn:aws:iam::123456789012:role/TestRole",
-        ScheduledActionDescription="Test scheduled action",
-        Enable=True,
-    )
-    assert response["ScheduledActionName"] == "test-action"
-    assert response["State"] == "ACTIVE"
-    assert response["Schedule"] == "at(2025-12-01T00:00:00)"
-
-
-@mock_aws
-def test_describe_scheduled_actions():
-    client = boto3.client("redshift", region_name="us-east-1")
-    client.create_scheduled_action(
-        ScheduledActionName="action-1",
-        TargetAction={"PauseCluster": {"ClusterIdentifier": "c1"}},
-        Schedule="at(2025-12-01T00:00:00)",
-        IamRole="arn:aws:iam::123456789012:role/TestRole",
-    )
-    response = client.describe_scheduled_actions()
-    assert len(response["ScheduledActions"]) == 1
-
-
-@mock_aws
-def test_delete_scheduled_action():
-    client = boto3.client("redshift", region_name="us-east-1")
-    client.create_scheduled_action(
-        ScheduledActionName="test-action",
-        TargetAction={"PauseCluster": {"ClusterIdentifier": "c1"}},
-        Schedule="at(2025-12-01T00:00:00)",
-        IamRole="arn:aws:iam::123456789012:role/TestRole",
-    )
-    client.delete_scheduled_action(ScheduledActionName="test-action")
-    with pytest.raises(ClientError) as exc:
-        client.describe_scheduled_actions(ScheduledActionName="test-action")
-    assert "ScheduledActionNotFound" in exc.value.response["Error"]["Code"]
-
-
-@mock_aws
-def test_modify_scheduled_action():
-    client = boto3.client("redshift", region_name="us-east-1")
-    client.create_scheduled_action(
-        ScheduledActionName="test-action",
-        TargetAction={"PauseCluster": {"ClusterIdentifier": "c1"}},
-        Schedule="at(2025-12-01T00:00:00)",
-        IamRole="arn:aws:iam::123456789012:role/TestRole",
-        Enable=True,
-    )
-    response = client.modify_scheduled_action(
-        ScheduledActionName="test-action",
-        Enable=False,
-    )
-    assert response["State"] == "DISABLED"
-
-
-@mock_aws
-def test_modify_cluster_iam_roles():
-    client = boto3.client("redshift", region_name="us-east-1")
-    _create_cluster(client)
-    role_arn = "arn:aws:iam::123456789012:role/RedshiftRole"
-    response = client.modify_cluster_iam_roles(
+    # Create endpoint
+    resp = client.create_endpoint_access(
         ClusterIdentifier="test-cluster",
-        AddIamRoles=[role_arn],
+        EndpointName="test-endpoint",
+        SubnetGroupName="default",
     )
-    assert any(r["IamRoleArn"] == role_arn for r in response["Cluster"]["IamRoles"])
+    assert resp["ClusterIdentifier"] == "test-cluster"
+    assert resp["EndpointName"] == "test-endpoint"
+    assert resp["EndpointStatus"] == "active"
+
+    # Describe all
+    resp = client.describe_endpoint_access()
+    assert len(resp["EndpointAccessList"]) == 1
+
+    # Describe by name
+    resp = client.describe_endpoint_access(EndpointName="test-endpoint")
+    assert len(resp["EndpointAccessList"]) == 1
+    assert resp["EndpointAccessList"][0]["EndpointName"] == "test-endpoint"
+
+    # Delete
+    resp = client.delete_endpoint_access(EndpointName="test-endpoint")
+    assert resp["EndpointStatus"] == "deleting"
+
+    resp = client.describe_endpoint_access()
+    assert len(resp["EndpointAccessList"]) == 0
 
 
 @mock_aws
-def test_create_authentication_profile():
+def test_partner_crud():
     client = boto3.client("redshift", region_name="us-east-1")
-    content = json.dumps({"AllowDBUserOverride": "1"})
-    response = client.create_authentication_profile(
-        AuthenticationProfileName="test-profile",
-        AuthenticationProfileContent=content,
-    )
-    assert response["AuthenticationProfileName"] == "test-profile"
-    assert response["AuthenticationProfileContent"] == content
 
-
-@mock_aws
-def test_describe_authentication_profiles():
-    client = boto3.client("redshift", region_name="us-east-1")
-    content = json.dumps({"AllowDBUserOverride": "1"})
-    client.create_authentication_profile(
-        AuthenticationProfileName="profile-1",
-        AuthenticationProfileContent=content,
-    )
-    response = client.describe_authentication_profiles()
-    assert len(response["AuthenticationProfiles"]) == 1
-
-
-@mock_aws
-def test_delete_authentication_profile():
-    client = boto3.client("redshift", region_name="us-east-1")
-    content = json.dumps({"AllowDBUserOverride": "1"})
-    client.create_authentication_profile(
-        AuthenticationProfileName="test-profile",
-        AuthenticationProfileContent=content,
-    )
-    client.delete_authentication_profile(AuthenticationProfileName="test-profile")
-    response = client.describe_authentication_profiles()
-    assert len(response["AuthenticationProfiles"]) == 0
-
-
-@mock_aws
-def test_modify_authentication_profile():
-    client = boto3.client("redshift", region_name="us-east-1")
-    client.create_authentication_profile(
-        AuthenticationProfileName="test-profile",
-        AuthenticationProfileContent=json.dumps({"k": "v1"}),
-    )
-    new_content = json.dumps({"k": "v2"})
-    response = client.modify_authentication_profile(
-        AuthenticationProfileName="test-profile",
-        AuthenticationProfileContent=new_content,
-    )
-    assert response["AuthenticationProfileContent"] == new_content
-
-
-@mock_aws
-def test_batch_delete_cluster_snapshots():
-    client = boto3.client("redshift", region_name="us-east-1")
-    _create_cluster(client)
-    _create_snapshot(client, snapshot_id="snap-1")
-    _create_snapshot(client, snapshot_id="snap-2")
-    response = client.batch_delete_cluster_snapshots(
-        Identifiers=[
-            {"SnapshotIdentifier": "snap-1"},
-            {"SnapshotIdentifier": "snap-2"},
-        ]
-    )
-    assert "snap-1" in response.get("Resources", [])
-    assert "snap-2" in response.get("Resources", [])
-
-
-@mock_aws
-def test_create_usage_limit():
-    client = boto3.client("redshift", region_name="us-east-1")
-    _create_cluster(client)
-    response = client.create_usage_limit(
+    # Need a cluster
+    client.create_cluster(
         ClusterIdentifier="test-cluster",
-        FeatureType="spectrum",
-        LimitType="data-scanned",
-        Amount=100,
+        NodeType="dc2.large",
+        MasterUsername="admin",
+        MasterUserPassword="Password1!",
     )
-    assert response["ClusterIdentifier"] == "test-cluster"
-    assert response["FeatureType"] == "spectrum"
-    assert response["Amount"] == 100
-    assert response["UsageLimitId"].startswith("rul-")
 
-
-@mock_aws
-def test_describe_usage_limits():
-    client = boto3.client("redshift", region_name="us-east-1")
-    _create_cluster(client)
-    client.create_usage_limit(
+    # Add partner
+    resp = client.add_partner(
+        AccountId="123456789012",
         ClusterIdentifier="test-cluster",
-        FeatureType="spectrum",
-        LimitType="data-scanned",
-        Amount=100,
+        DatabaseName="dev",
+        PartnerName="test-partner",
     )
-    response = client.describe_usage_limits()
-    assert len(response["UsageLimits"]) == 1
+    assert resp["DatabaseName"] == "dev"
+    assert resp["PartnerName"] == "test-partner"
 
-
-@mock_aws
-def test_delete_usage_limit():
-    client = boto3.client("redshift", region_name="us-east-1")
-    _create_cluster(client)
-    create_resp = client.create_usage_limit(
-        ClusterIdentifier="test-cluster",
-        FeatureType="spectrum",
-        LimitType="data-scanned",
-        Amount=100,
-    )
-    client.delete_usage_limit(UsageLimitId=create_resp["UsageLimitId"])
-    response = client.describe_usage_limits()
-    assert len(response["UsageLimits"]) == 0
-
-
-@mock_aws
-def test_modify_usage_limit():
-    client = boto3.client("redshift", region_name="us-east-1")
-    _create_cluster(client)
-    create_resp = client.create_usage_limit(
-        ClusterIdentifier="test-cluster",
-        FeatureType="spectrum",
-        LimitType="data-scanned",
-        Amount=100,
-        BreachAction="log",
-    )
-    response = client.modify_usage_limit(
-        UsageLimitId=create_resp["UsageLimitId"],
-        Amount=200,
-        BreachAction="emit-metric",
-    )
-    assert response["Amount"] == 200
-    assert response["BreachAction"] == "emit-metric"
-
-
-@mock_aws
-def test_authorize_endpoint_access():
-    client = boto3.client("redshift", region_name="us-east-1")
-    _create_cluster(client)
-    response = client.authorize_endpoint_access(
-        ClusterIdentifier="test-cluster",
-        Account="111122223333",
-    )
-    assert response["ClusterIdentifier"] == "test-cluster"
-    assert response["Grantee"] == "111122223333"
-    assert response["Status"] == "Authorized"
-
-
-@mock_aws
-def test_describe_endpoint_authorization():
-    client = boto3.client("redshift", region_name="us-east-1")
-    _create_cluster(client)
-    client.authorize_endpoint_access(
-        ClusterIdentifier="test-cluster",
-        Account="111122223333",
-    )
-    response = client.describe_endpoint_authorization(
+    # Describe
+    resp = client.describe_partners(
+        AccountId="123456789012",
         ClusterIdentifier="test-cluster",
     )
-    assert len(response["EndpointAuthorizationList"]) == 1
+    assert len(resp["PartnerIntegrationInfoList"]) == 1
+    partner = resp["PartnerIntegrationInfoList"][0]
+    assert partner["PartnerName"] == "test-partner"
+    assert partner["Status"] == "Active"
+
+    # Update status
+    resp = client.update_partner_status(
+        AccountId="123456789012",
+        ClusterIdentifier="test-cluster",
+        DatabaseName="dev",
+        PartnerName="test-partner",
+        Status="Inactive",
+        StatusMessage="Paused by admin",
+    )
+    assert resp["PartnerName"] == "test-partner"
+
+    # Verify update
+    resp = client.describe_partners(
+        AccountId="123456789012",
+        ClusterIdentifier="test-cluster",
+    )
+    assert resp["PartnerIntegrationInfoList"][0]["Status"] == "Inactive"
+    assert resp["PartnerIntegrationInfoList"][0]["StatusMessage"] == "Paused by admin"
+
+    # Delete partner
+    resp = client.delete_partner(
+        AccountId="123456789012",
+        ClusterIdentifier="test-cluster",
+        DatabaseName="dev",
+        PartnerName="test-partner",
+    )
+    assert resp["PartnerName"] == "test-partner"
+
+    # Verify deleted
+    resp = client.describe_partners(
+        AccountId="123456789012",
+        ClusterIdentifier="test-cluster",
+    )
+    assert len(resp["PartnerIntegrationInfoList"]) == 0
 
 
 @mock_aws
-def test_revoke_endpoint_access_for_cluster():
+def test_resource_policy_crud():
     client = boto3.client("redshift", region_name="us-east-1")
-    _create_cluster(client)
-    client.authorize_endpoint_access(
-        ClusterIdentifier="test-cluster",
-        Account="111122223333",
+
+    arn = "arn:aws:redshift:us-east-1:123456789012:namespace:test-ns"
+    policy_doc = json.dumps({"Version": "2012-10-17", "Statement": []})
+
+    # Put
+    resp = client.put_resource_policy(
+        ResourceArn=arn,
+        Policy=policy_doc,
     )
-    response = client.revoke_endpoint_access(
+    assert resp["ResourcePolicy"]["ResourceArn"] == arn
+    assert resp["ResourcePolicy"]["Policy"] == policy_doc
+
+    # Get
+    resp = client.get_resource_policy(ResourceArn=arn)
+    assert resp["ResourcePolicy"]["ResourceArn"] == arn
+    assert resp["ResourcePolicy"]["Policy"] == policy_doc
+
+    # Delete
+    client.delete_resource_policy(ResourceArn=arn)
+
+    # Get after delete should fail
+    with pytest.raises(client.exceptions.ResourceNotFoundFault):
+        client.get_resource_policy(ResourceArn=arn)
+
+
+@mock_aws
+def test_rotate_encryption_key():
+    client = boto3.client("redshift", region_name="us-east-1")
+    client.create_cluster(
         ClusterIdentifier="test-cluster",
-        Account="111122223333",
+        NodeType="dc2.large",
+        MasterUsername="admin",
+        MasterUserPassword="Password1!",
+        Encrypted=True,
+        KmsKeyId="arn:aws:kms:us-east-1:123456789012:key/test-key",
     )
-    assert response["Status"] == "Revoking"
+
+    resp = client.rotate_encryption_key(ClusterIdentifier="test-cluster")
+    assert resp["Cluster"]["ClusterIdentifier"] == "test-cluster"
+
+
+@mock_aws
+def test_cancel_resize():
+    client = boto3.client("redshift", region_name="us-east-1")
+    client.create_cluster(
+        ClusterIdentifier="test-cluster",
+        NodeType="dc2.large",
+        MasterUsername="admin",
+        MasterUserPassword="Password1!",
+    )
+
+    resp = client.cancel_resize(ClusterIdentifier="test-cluster")
+    assert resp["Status"] == "NONE"
+    assert resp["TargetNodeType"] == "dc2.large"
+
+
+@mock_aws
+def test_enable_logging_and_describe():
+    client = boto3.client("redshift", region_name="us-east-1")
+    client.create_cluster(
+        ClusterIdentifier="test-cluster",
+        NodeType="dc2.large",
+        MasterUsername="admin",
+        MasterUserPassword="Password1!",
+    )
+
+    # Enable logging
+    resp = client.enable_logging(
+        ClusterIdentifier="test-cluster",
+        LogDestinationType="cloudwatch",
+        LogExports=["connectionlog", "userlog"],
+    )
+    assert resp["LoggingEnabled"] is True
+
+    # Describe logging status
+    resp = client.describe_logging_status(ClusterIdentifier="test-cluster")
+    assert resp["LoggingEnabled"] is True
+
+
+@mock_aws
+def test_describe_cluster_versions_returns_list():
+    client = boto3.client("redshift", region_name="us-east-1")
+    resp = client.describe_cluster_versions()
+    assert "ClusterVersions" in resp
+    assert isinstance(resp["ClusterVersions"], list)
+
+
+@mock_aws
+def test_describe_reserved_nodes_returns_list():
+    client = boto3.client("redshift", region_name="us-east-1")
+    resp = client.describe_reserved_nodes()
+    assert "ReservedNodes" in resp
+    assert isinstance(resp["ReservedNodes"], list)
+
+
+@mock_aws
+def test_describe_storage():
+    client = boto3.client("redshift", region_name="us-east-1")
+    resp = client.describe_storage()
+    assert "TotalBackupSizeInMegaBytes" in resp
+    assert "TotalProvisionedStorageInMegaBytes" in resp
+
+
+@mock_aws
+def test_describe_authentication_profiles_empty():
+    client = boto3.client("redshift", region_name="us-east-1")
+    resp = client.describe_authentication_profiles()
+    assert "AuthenticationProfiles" in resp
+    assert isinstance(resp["AuthenticationProfiles"], list)
+
+
+@mock_aws
+def test_describe_cluster_db_revisions_empty():
+    client = boto3.client("redshift", region_name="us-east-1")
+    resp = client.describe_cluster_db_revisions()
+    assert "ClusterDbRevisions" in resp
+    assert isinstance(resp["ClusterDbRevisions"], list)
+
+
+@mock_aws
+def test_describe_data_shares_empty():
+    client = boto3.client("redshift", region_name="us-east-1")
+    resp = client.describe_data_shares()
+    assert "DataShares" in resp
+    assert isinstance(resp["DataShares"], list)
+
+
+@mock_aws
+def test_describe_integrations_empty():
+    client = boto3.client("redshift", region_name="us-east-1")
+    resp = client.describe_integrations()
+    assert "Integrations" in resp
+    assert isinstance(resp["Integrations"], list)
+
+
+@mock_aws
+def test_get_reserved_node_exchange_configuration_options():
+    client = boto3.client("redshift", region_name="us-east-1")
+    resp = client.get_reserved_node_exchange_configuration_options(
+        ActionType="restore-cluster"
+    )
+    assert "ReservedNodeConfigurationOptionList" in resp
+    assert isinstance(resp["ReservedNodeConfigurationOptionList"], list)

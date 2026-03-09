@@ -494,7 +494,12 @@ class RedshiftResponse(BaseResponse):
         return ActionResult({"DataShares": data_shares})
 
     def describe_endpoint_access(self) -> ActionResult:
-        endpoints = self.redshift_backend.describe_endpoint_access()
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        endpoint_name = self._get_param("EndpointName")
+        endpoints = self.redshift_backend.describe_endpoint_access(
+            cluster_identifier=cluster_identifier,
+            endpoint_name=endpoint_name,
+        )
         return ActionResult({"EndpointAccessList": endpoints})
 
     def describe_endpoint_authorization(self) -> ActionResult:
@@ -513,7 +518,10 @@ class RedshiftResponse(BaseResponse):
         return ActionResult({"EventCategoriesMapList": categories})
 
     def describe_event_subscriptions(self) -> ActionResult:
-        subscriptions = self.redshift_backend.describe_event_subscriptions()
+        subscription_name = self._get_param("SubscriptionName")
+        subscriptions = self.redshift_backend.describe_event_subscriptions(
+            subscription_name=subscription_name,
+        )
         return ActionResult({"EventSubscriptionsList": subscriptions})
 
     def describe_events(self) -> ActionResult:
@@ -521,11 +529,21 @@ class RedshiftResponse(BaseResponse):
         return ActionResult({"Events": events})
 
     def describe_hsm_client_certificates(self) -> ActionResult:
-        certificates = self.redshift_backend.describe_hsm_client_certificates()
+        hsm_client_certificate_identifier = self._get_param(
+            "HsmClientCertificateIdentifier"
+        )
+        certificates = self.redshift_backend.describe_hsm_client_certificates(
+            hsm_client_certificate_identifier=hsm_client_certificate_identifier,
+        )
         return ActionResult({"HsmClientCertificates": certificates})
 
     def describe_hsm_configurations(self) -> ActionResult:
-        configurations = self.redshift_backend.describe_hsm_configurations()
+        hsm_configuration_identifier = self._get_param(
+            "HsmConfigurationIdentifier"
+        )
+        configurations = self.redshift_backend.describe_hsm_configurations(
+            hsm_configuration_identifier=hsm_configuration_identifier,
+        )
         return ActionResult({"HsmConfigurations": configurations})
 
     def describe_inbound_integrations(self) -> ActionResult:
@@ -861,5 +879,202 @@ class RedshiftResponse(BaseResponse):
             cluster_identifier=cluster_identifier,
             account=account,
             vpc_ids=vpc_ids if vpc_ids else None,
+        )
+        return ActionResult(result)
+
+    def create_event_subscription(self) -> ActionResult:
+        subscription_name = self._get_param("SubscriptionName")
+        sns_topic_arn = self._get_param("SnsTopicArn")
+        source_type = self._get_param("SourceType")
+        source_ids = self._get_param("SourceIds", [])
+        event_categories = self._get_param("EventCategories", [])
+        severity = self._get_param("Severity", "ERROR")
+        enabled = self._get_bool_param("Enabled", True)
+        tags = self._get_param("Tags", [])
+        result = self.redshift_backend.create_event_subscription(
+            subscription_name=subscription_name,
+            sns_topic_arn=sns_topic_arn,
+            source_type=source_type,
+            source_ids=source_ids if source_ids else None,
+            event_categories=event_categories if event_categories else None,
+            severity=severity,
+            enabled=enabled,
+            tags=tags,
+        )
+        return ActionResult({"EventSubscription": result})
+
+    def delete_event_subscription(self) -> ActionResult:
+        subscription_name = self._get_param("SubscriptionName")
+        self.redshift_backend.delete_event_subscription(subscription_name)
+        return EmptyResult()
+
+    def modify_event_subscription(self) -> ActionResult:
+        subscription_name = self._get_param("SubscriptionName")
+        sns_topic_arn = self._get_param("SnsTopicArn")
+        source_type = self._get_param("SourceType")
+        source_ids = self._get_param("SourceIds")
+        event_categories = self._get_param("EventCategories")
+        severity = self._get_param("Severity")
+        enabled = self._get_bool_param("Enabled")
+        result = self.redshift_backend.modify_event_subscription(
+            subscription_name=subscription_name,
+            sns_topic_arn=sns_topic_arn,
+            source_type=source_type,
+            source_ids=source_ids,
+            event_categories=event_categories,
+            severity=severity,
+            enabled=enabled,
+        )
+        return ActionResult({"EventSubscription": result})
+
+    def create_hsm_client_certificate(self) -> ActionResult:
+        hsm_client_certificate_identifier = self._get_param(
+            "HsmClientCertificateIdentifier"
+        )
+        tags = self._get_param("Tags", [])
+        result = self.redshift_backend.create_hsm_client_certificate(
+            hsm_client_certificate_identifier=hsm_client_certificate_identifier,
+            tags=tags,
+        )
+        return ActionResult({"HsmClientCertificate": result})
+
+    def delete_hsm_client_certificate(self) -> ActionResult:
+        hsm_client_certificate_identifier = self._get_param(
+            "HsmClientCertificateIdentifier"
+        )
+        self.redshift_backend.delete_hsm_client_certificate(
+            hsm_client_certificate_identifier
+        )
+        return EmptyResult()
+
+    def create_hsm_configuration(self) -> ActionResult:
+        hsm_configuration_identifier = self._get_param(
+            "HsmConfigurationIdentifier"
+        )
+        description = self._get_param("Description")
+        hsm_ip_address = self._get_param("HsmIpAddress")
+        hsm_partition_name = self._get_param("HsmPartitionName")
+        hsm_partition_password = self._get_param("HsmPartitionPassword")
+        hsm_server_public_certificate = self._get_param(
+            "HsmServerPublicCertificate"
+        )
+        tags = self._get_param("Tags", [])
+        result = self.redshift_backend.create_hsm_configuration(
+            hsm_configuration_identifier=hsm_configuration_identifier,
+            description=description,
+            hsm_ip_address=hsm_ip_address,
+            hsm_partition_name=hsm_partition_name,
+            hsm_partition_password=hsm_partition_password,
+            hsm_server_public_certificate=hsm_server_public_certificate,
+            tags=tags,
+        )
+        return ActionResult({"HsmConfiguration": result})
+
+    def delete_hsm_configuration(self) -> ActionResult:
+        hsm_configuration_identifier = self._get_param(
+            "HsmConfigurationIdentifier"
+        )
+        self.redshift_backend.delete_hsm_configuration(
+            hsm_configuration_identifier
+        )
+        return EmptyResult()
+
+    def create_endpoint_access(self) -> ActionResult:
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        endpoint_name = self._get_param("EndpointName")
+        subnet_group_name = self._get_param("SubnetGroupName")
+        vpc_security_group_ids = self._get_param("VpcSecurityGroupIds", [])
+        result = self.redshift_backend.create_endpoint_access(
+            cluster_identifier=cluster_identifier,
+            endpoint_name=endpoint_name,
+            subnet_group_name=subnet_group_name,
+            vpc_security_group_ids=vpc_security_group_ids
+            if vpc_security_group_ids
+            else None,
+        )
+        return ActionResult(result)
+
+    def delete_endpoint_access(self) -> ActionResult:
+        endpoint_name = self._get_param("EndpointName")
+        result = self.redshift_backend.delete_endpoint_access(endpoint_name)
+        return ActionResult(result)
+
+    def add_partner(self) -> ActionResult:
+        account_id = self._get_param("AccountId")
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        database_name = self._get_param("DatabaseName")
+        partner_name = self._get_param("PartnerName")
+        result = self.redshift_backend.add_partner(
+            account_id=account_id,
+            cluster_identifier=cluster_identifier,
+            database_name=database_name,
+            partner_name=partner_name,
+        )
+        return ActionResult(result)
+
+    def delete_partner(self) -> ActionResult:
+        account_id = self._get_param("AccountId")
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        database_name = self._get_param("DatabaseName")
+        partner_name = self._get_param("PartnerName")
+        result = self.redshift_backend.delete_partner(
+            account_id=account_id,
+            cluster_identifier=cluster_identifier,
+            database_name=database_name,
+            partner_name=partner_name,
+        )
+        return ActionResult(result)
+
+    def update_partner_status(self) -> ActionResult:
+        account_id = self._get_param("AccountId")
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        database_name = self._get_param("DatabaseName")
+        partner_name = self._get_param("PartnerName")
+        status = self._get_param("Status")
+        status_message = self._get_param("StatusMessage")
+        result = self.redshift_backend.update_partner_status(
+            account_id=account_id,
+            cluster_identifier=cluster_identifier,
+            database_name=database_name,
+            partner_name=partner_name,
+            status=status,
+            status_message=status_message,
+        )
+        return ActionResult(result)
+
+    def put_resource_policy(self) -> ActionResult:
+        resource_arn = self._get_param("ResourceArn")
+        policy = self._get_param("Policy")
+        result = self.redshift_backend.put_resource_policy(
+            resource_arn=resource_arn,
+            policy=policy,
+        )
+        return ActionResult({"ResourcePolicy": result})
+
+    def get_resource_policy(self) -> ActionResult:
+        resource_arn = self._get_param("ResourceArn")
+        result = self.redshift_backend.get_resource_policy(
+            resource_arn=resource_arn,
+        )
+        return ActionResult({"ResourcePolicy": result})
+
+    def delete_resource_policy(self) -> ActionResult:
+        resource_arn = self._get_param("ResourceArn")
+        self.redshift_backend.delete_resource_policy(
+            resource_arn=resource_arn,
+        )
+        return EmptyResult()
+
+    def rotate_encryption_key(self) -> ActionResult:
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        cluster = self.redshift_backend.rotate_encryption_key(
+            cluster_identifier=cluster_identifier,
+        )
+        return ActionResult({"Cluster": cluster})
+
+    def cancel_resize(self) -> ActionResult:
+        cluster_identifier = self._get_param("ClusterIdentifier")
+        result = self.redshift_backend.cancel_resize(
+            cluster_identifier=cluster_identifier,
         )
         return ActionResult(result)
