@@ -833,3 +833,97 @@ class ElastiCacheResponse(BaseResponse):
             tags=tags,
         )
         return ActionResult({"Snapshot": snapshot})
+
+    # --- IncreaseReplicaCount / DecreaseReplicaCount ---
+
+    def increase_replica_count(self) -> ActionResult:
+        rg_id = self._get_param("ReplicationGroupId")
+        new_replica_count = self._get_int_param("NewReplicaCount")
+        replica_configuration = self._get_param("ReplicaConfiguration")
+        apply_immediately = self._get_bool_param("ApplyImmediately") or True
+        rg = self.elasticache_backend.increase_replica_count(
+            replication_group_id=rg_id,
+            new_replica_count=new_replica_count,
+            replica_configuration=replica_configuration,
+            apply_immediately=apply_immediately,
+        )
+        return ActionResult({"ReplicationGroup": rg})
+
+    def decrease_replica_count(self) -> ActionResult:
+        rg_id = self._get_param("ReplicationGroupId")
+        new_replica_count = self._get_int_param("NewReplicaCount")
+        replica_configuration = self._get_param("ReplicaConfiguration")
+        replicas_to_remove = self._get_param("ReplicasToRemove")
+        apply_immediately = self._get_bool_param("ApplyImmediately") or True
+        rg = self.elasticache_backend.decrease_replica_count(
+            replication_group_id=rg_id,
+            new_replica_count=new_replica_count,
+            replica_configuration=replica_configuration,
+            replicas_to_remove=replicas_to_remove,
+            apply_immediately=apply_immediately,
+        )
+        return ActionResult({"ReplicationGroup": rg})
+
+    # --- TestFailover ---
+
+    def test_failover(self) -> ActionResult:
+        rg_id = self._get_param("ReplicationGroupId")
+        node_group_id = self._get_param("NodeGroupId")
+        rg = self.elasticache_backend.test_failover(
+            replication_group_id=rg_id,
+            node_group_id=node_group_id,
+        )
+        return ActionResult({"ReplicationGroup": rg})
+
+    # --- TestMigration / CompleteMigration ---
+
+    def test_migration(self) -> ActionResult:
+        rg_id = self._get_param("ReplicationGroupId")
+        endpoints = self._get_param("CustomerNodeEndpointList", [])
+        rg = self.elasticache_backend.test_migration(
+            replication_group_id=rg_id,
+            customer_node_endpoint_list=endpoints,
+        )
+        return ActionResult({"ReplicationGroup": rg})
+
+    def complete_migration(self) -> ActionResult:
+        rg_id = self._get_param("ReplicationGroupId")
+        force = self._get_bool_param("Force") or False
+        rg = self.elasticache_backend.complete_migration(
+            replication_group_id=rg_id,
+            force=force,
+        )
+        return ActionResult({"ReplicationGroup": rg})
+
+    # --- GlobalReplicationGroup advanced ops ---
+
+    def failover_global_replication_group(self) -> ActionResult:
+        grg_id = self._get_param("GlobalReplicationGroupId")
+        primary_region = self._get_param("PrimaryRegion")
+        primary_rg_id = self._get_param("PrimaryReplicationGroupId")
+        grg = self.elasticache_backend.failover_global_replication_group(
+            global_replication_group_id=grg_id,
+            primary_region=primary_region,
+            primary_replication_group_id=primary_rg_id,
+        )
+        return ActionResult({"GlobalReplicationGroup": grg})
+
+    def rebalance_slots_in_global_replication_group(self) -> ActionResult:
+        grg_id = self._get_param("GlobalReplicationGroupId")
+        apply_immediately = self._get_bool_param("ApplyImmediately") or True
+        grg = self.elasticache_backend.rebalance_slots_in_global_replication_group(
+            global_replication_group_id=grg_id,
+            apply_immediately=apply_immediately,
+        )
+        return ActionResult({"GlobalReplicationGroup": grg})
+
+    def disassociate_global_replication_group(self) -> ActionResult:
+        grg_id = self._get_param("GlobalReplicationGroupId")
+        rg_id = self._get_param("ReplicationGroupId")
+        rg_region = self._get_param("ReplicationGroupRegion")
+        grg = self.elasticache_backend.disassociate_global_replication_group(
+            global_replication_group_id=grg_id,
+            replication_group_id=rg_id,
+            replication_group_region=rg_region,
+        )
+        return ActionResult({"GlobalReplicationGroup": grg})

@@ -501,6 +501,106 @@ class ElasticMapReduceResponse(BaseResponse):
         self.backend.remove_auto_termination_policy(cluster_id)
         return EmptyResult()
 
+    def add_instance_fleet(self) -> ActionResult:
+        cluster_id = self._get_param("ClusterId")
+        instance_fleet = self._get_param("InstanceFleet", {})
+        fleet = self.backend.add_instance_fleet(cluster_id, instance_fleet)
+        result = {
+            "ClusterId": cluster_id,
+            "InstanceFleetId": fleet.id,
+            "ClusterArn": self.backend.describe_cluster(cluster_id).arn,
+        }
+        return ActionResult(result)
+
+    def modify_instance_fleet(self) -> ActionResult:
+        cluster_id = self._get_param("ClusterId")
+        instance_fleet = self._get_param("InstanceFleet", {})
+        self.backend.modify_instance_fleet(cluster_id, instance_fleet)
+        return EmptyResult()
+
+    def list_instance_fleets(self) -> ActionResult:
+        cluster_id = self._get_param("ClusterId")
+        fleets = self.backend.list_instance_fleets(cluster_id)
+        result = {
+            "InstanceFleets": [
+                {
+                    "Id": f.id,
+                    "Name": f.name,
+                    "Status": f.status,
+                    "InstanceFleetType": f.instance_fleet_type,
+                    "TargetOnDemandCapacity": f.target_on_demand_capacity,
+                    "TargetSpotCapacity": f.target_spot_capacity,
+                    "ProvisionedOnDemandCapacity": f.provisioned_on_demand_capacity,
+                    "ProvisionedSpotCapacity": f.provisioned_spot_capacity,
+                    "InstanceTypeSpecifications": f.instance_type_configs,
+                    "LaunchSpecifications": f.launch_specifications,
+                }
+                for f in fleets
+            ]
+        }
+        return PaginatedResult(result)
+
+    def create_studio_session_mapping(self) -> ActionResult:
+        studio_id = self._get_param("StudioId")
+        identity_id = self._get_param("IdentityId", "")
+        identity_name = self._get_param("IdentityName", "")
+        identity_type = self._get_param("IdentityType")
+        session_policy_arn = self._get_param("SessionPolicyArn")
+        self.backend.create_studio_session_mapping(
+            studio_id=studio_id,
+            identity_id=identity_id,
+            identity_name=identity_name,
+            identity_type=identity_type,
+            session_policy_arn=session_policy_arn,
+        )
+        return EmptyResult()
+
+    def get_studio_session_mapping(self) -> ActionResult:
+        studio_id = self._get_param("StudioId")
+        identity_id = self._get_param("IdentityId")
+        identity_type = self._get_param("IdentityType")
+        mapping = self.backend.get_studio_session_mapping(
+            studio_id=studio_id,
+            identity_id=identity_id,
+            identity_type=identity_type,
+        )
+        result = {
+            "SessionMapping": {
+                "StudioId": mapping.studio_id,
+                "IdentityId": mapping.identity_id,
+                "IdentityName": mapping.identity_name,
+                "IdentityType": mapping.identity_type,
+                "SessionPolicyArn": mapping.session_policy_arn,
+                "CreationTime": mapping.creation_time,
+                "LastModifiedTime": mapping.last_modified_time,
+            }
+        }
+        return ActionResult(result)
+
+    def update_studio_session_mapping(self) -> ActionResult:
+        studio_id = self._get_param("StudioId")
+        identity_id = self._get_param("IdentityId")
+        identity_type = self._get_param("IdentityType")
+        session_policy_arn = self._get_param("SessionPolicyArn")
+        self.backend.update_studio_session_mapping(
+            studio_id=studio_id,
+            identity_id=identity_id,
+            identity_type=identity_type,
+            session_policy_arn=session_policy_arn,
+        )
+        return EmptyResult()
+
+    def delete_studio_session_mapping(self) -> ActionResult:
+        studio_id = self._get_param("StudioId")
+        identity_id = self._get_param("IdentityId")
+        identity_type = self._get_param("IdentityType")
+        self.backend.delete_studio_session_mapping(
+            studio_id=studio_id,
+            identity_id=identity_id,
+            identity_type=identity_type,
+        )
+        return EmptyResult()
+
     def create_notebook_execution(self) -> ActionResult:
         editor_id = self._get_param("EditorId")
         relative_path = self._get_param("RelativePath")

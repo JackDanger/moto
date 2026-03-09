@@ -2234,159 +2234,143 @@ class ElastiCacheBackend(BaseBackend):
         self.snapshots[target_snapshot_name] = new_snapshot
         return new_snapshot
 
+    # --- IncreaseReplicaCount / DecreaseReplicaCount ---
 
-    def describe_cache_engine_versions(
+    def increase_replica_count(
         self,
-        engine: Optional[str] = None,
-        engine_version: Optional[str] = None,
-        cache_parameter_group_family: Optional[str] = None,
-        default_only: bool = False,
-    ) -> list[dict[str, Any]]:
-        versions = [
-            {
-                "Engine": "redis",
-                "EngineVersion": "7.1.0",
-                "CacheParameterGroupFamily": "redis7",
-                "CacheEngineDescription": "Redis",
-                "CacheEngineVersionDescription": "redis version 7.1.0",
-            },
-            {
-                "Engine": "redis",
-                "EngineVersion": "7.0.7",
-                "CacheParameterGroupFamily": "redis7.0",
-                "CacheEngineDescription": "Redis",
-                "CacheEngineVersionDescription": "redis version 7.0.7",
-            },
-            {
-                "Engine": "redis",
-                "EngineVersion": "6.2.6",
-                "CacheParameterGroupFamily": "redis6.x",
-                "CacheEngineDescription": "Redis",
-                "CacheEngineVersionDescription": "redis version 6.2.6",
-            },
-            {
-                "Engine": "memcached",
-                "EngineVersion": "1.6.22",
-                "CacheParameterGroupFamily": "memcached1.6",
-                "CacheEngineDescription": "memcached",
-                "CacheEngineVersionDescription": "memcached version 1.6.22",
-            },
+        replication_group_id: str,
+        new_replica_count: Optional[int] = None,
+        replica_configuration: Optional[list[dict[str, Any]]] = None,
+        apply_immediately: bool = True,
+    ) -> ReplicationGroup:
+        if replication_group_id not in self.replication_groups:
+            raise ReplicationGroupNotFound(replication_group_id)
+        rg = self.replication_groups[replication_group_id]
+        if new_replica_count is not None:
+            for ng in rg.node_groups:
+                current_count = len(ng.get("node_group_members", []))
+                while current_count < new_replica_count + 1:
+                    new_member: dict[str, Any] = {
+                        "cache_cluster_id": (
+                            f"{replication_group_id}-"
+                            f"{ng['node_group_id']}-{current_count + 1:0>3}"
+                        ),
+                        "cache_node_id": ng["node_group_id"],
+                        "preferred_availability_zone": "us-east-1b",
+                    }
+                    ng.setdefault("node_group_members", []).append(new_member)
+                    if new_member["cache_cluster_id"] not in rg.member_clusters:
+                        rg.member_clusters.append(new_member["cache_cluster_id"])
+                    current_count += 1
+        return rg
+
+    def decrease_replica_count(
+        self,
+        replication_group_id: str,
+        new_replica_count: Optional[int] = None,
+        replica_configuration: Optional[list[dict[str, Any]]] = None,
+        replicas_to_remove: Optional[list[str]] = None,
+        apply_immediately: bool = True,
+    ) -> ReplicationGroup:
+        if replication_group_id not in self.replication_groups:
+            raise ReplicationGroupNotFound(replication_group_id)
+        rg = self.replication_groups[replication_group_id]
+        if replicas_to_remove:
+            for cluster_id in replicas_to_remove:
+                if cluster_id in rg.member_clusters:
+                    rg.member_clusters.remove(cluster_id)
+                for ng in rg.node_groups:
+                    ng["node_group_members"] = [
+                        m
+                        for m in ng.get("node_group_members", [])
+                        if m.get("cache_cluster_id") != cluster_id
+                    ]
+        elif new_replica_count is not None:
+            for ng in rg.node_groups:
+                members = ng.get("node_group_members", [])
+                while len(members) > new_replica_count + 1:
+                    removed = members.pop()
+                    cc_id = removed.get("cache_cluster_id", "")
+                    if cc_id in rg.member_clusters:
+                        rg.member_clusters.remove(cc_id)
+        return rg
+
+    # --- TestFailover ---
+
+    def test_failover(
+        self,
+        replication_group_id: str,
+        node_group_id: str,
+    ) -> ReplicationGroup:
+        if replication_group_id not in self.replication_groups:
+            raise ReplicationGroupNotFound(replication_group_id)
+        rg = self.replication_groups[replication_group_id]
+        rg.status = "available"
+        return rg
+
+    # --- TestMigration / CompleteMigration ---
+
+    def test_migration(
+        self,
+        replication_group_id: str,
+        customer_node_endpoint_list: list[dict[str, Any]],
+    ) -> ReplicationGroup:
+        if replication_group_id not in self.replication_groups:
+            raise ReplicationGroupNotFound(replication_group_id)
+        return self.replication_groups[replication_group_id]
+
+    def complete_migration(
+        self,
+        replication_group_id: str,
+        force: bool = False,
+    ) -> ReplicationGroup:
+        if replication_group_id not in self.replication_groups:
+            raise ReplicationGroupNotFound(replication_group_id)
+        return self.replication_groups[replication_group_id]
+
+    # --- GlobalReplicationGroup advanced ops ---
+
+    def failover_global_replication_group(
+        self,
+        global_replication_group_id: str,
+        primary_region: str,
+        primary_replication_group_id: str,
+    ) -> GlobalReplicationGroup:
+        if global_replication_group_id not in self.global_replication_groups:
+            raise GlobalReplicationGroupNotFound(global_replication_group_id)
+        grg = self.global_replication_groups[global_replication_group_id]
+        for member in grg.members:
+            if member["Role"] == "PRIMARY":
+                member["Role"] = "SECONDARY"
+            if member.get("ReplicationGroupId") == primary_replication_group_id:
+                member["Role"] = "PRIMARY"
+                member["ReplicationGroupRegion"] = primary_region
+        return grg
+
+    def rebalance_slots_in_global_replication_group(
+        self,
+        global_replication_group_id: str,
+        apply_immediately: bool = True,
+    ) -> GlobalReplicationGroup:
+        if global_replication_group_id not in self.global_replication_groups:
+            raise GlobalReplicationGroupNotFound(global_replication_group_id)
+        return self.global_replication_groups[global_replication_group_id]
+
+    def disassociate_global_replication_group(
+        self,
+        global_replication_group_id: str,
+        replication_group_id: str,
+        replication_group_region: str,
+    ) -> GlobalReplicationGroup:
+        if global_replication_group_id not in self.global_replication_groups:
+            raise GlobalReplicationGroupNotFound(global_replication_group_id)
+        grg = self.global_replication_groups[global_replication_group_id]
+        grg.members = [
+            m
+            for m in grg.members
+            if m.get("ReplicationGroupId") != replication_group_id
         ]
-        if engine:
-            versions = [v for v in versions if v["Engine"] == engine]
-        if engine_version:
-            versions = [v for v in versions if v["EngineVersion"] == engine_version]
-        if cache_parameter_group_family:
-            versions = [
-                v
-                for v in versions
-                if v["CacheParameterGroupFamily"] == cache_parameter_group_family
-            ]
-        if default_only:
-            versions = versions[:1] if versions else []
-        return versions
-
-    def describe_cache_parameter_groups(
-        self,
-        cache_parameter_group_name: Optional[str] = None,
-    ) -> list[dict[str, Any]]:
-        groups = [
-            {
-                "CacheParameterGroupName": "default.redis7",
-                "CacheParameterGroupFamily": "redis7",
-                "Description": "Default parameter group for redis7",
-                "IsGlobal": False,
-                "ARN": f"arn:{get_partition(self.region_name)}:elasticache:{self.region_name}:{self.account_id}:parametergroup:default.redis7",
-            },
-            {
-                "CacheParameterGroupName": "default.redis6.x",
-                "CacheParameterGroupFamily": "redis6.x",
-                "Description": "Default parameter group for redis6.x",
-                "IsGlobal": False,
-                "ARN": f"arn:{get_partition(self.region_name)}:elasticache:{self.region_name}:{self.account_id}:parametergroup:default.redis6.x",
-            },
-            {
-                "CacheParameterGroupName": "default.memcached1.6",
-                "CacheParameterGroupFamily": "memcached1.6",
-                "Description": "Default parameter group for memcached1.6",
-                "IsGlobal": False,
-                "ARN": f"arn:{get_partition(self.region_name)}:elasticache:{self.region_name}:{self.account_id}:parametergroup:default.memcached1.6",
-            },
-        ]
-        if cache_parameter_group_name:
-            groups = [
-                g
-                for g in groups
-                if g["CacheParameterGroupName"] == cache_parameter_group_name
-            ]
-            if not groups:
-                raise InvalidParameterValueException(
-                    f"Cache parameter group {cache_parameter_group_name} not found."
-                )
-        return groups
-
-    def describe_cache_parameters(
-        self,
-        cache_parameter_group_name: str,
-    ) -> list[dict[str, Any]]:
-        return [
-            {
-                "ParameterName": "maxmemory-policy",
-                "ParameterValue": "volatile-lru",
-                "Description": "Max memory policy",
-                "Source": "system",
-                "DataType": "string",
-                "AllowedValues": "volatile-lru,allkeys-lru,volatile-lfu,allkeys-lfu,volatile-random,allkeys-random,volatile-ttl,noeviction",
-                "IsModifiable": True,
-                "MinimumEngineVersion": "6.0.0",
-                "ChangeType": "immediate",
-            },
-            {
-                "ParameterName": "activedefrag",
-                "ParameterValue": "no",
-                "Description": "Enabled active defragmentation",
-                "Source": "system",
-                "DataType": "string",
-                "AllowedValues": "yes,no",
-                "IsModifiable": True,
-                "MinimumEngineVersion": "6.0.0",
-                "ChangeType": "immediate",
-            },
-        ]
-
-    def describe_events(
-        self,
-        source_identifier: Optional[str] = None,
-        source_type: Optional[str] = None,
-        duration: Optional[int] = None,
-    ) -> list[dict[str, Any]]:
-        return []
-
-    def describe_serverless_caches(
-        self,
-        serverless_cache_name: Optional[str] = None,
-    ) -> list[dict[str, Any]]:
-        return []
-
-    def describe_service_updates(
-        self,
-        service_update_name: Optional[str] = None,
-    ) -> list[dict[str, Any]]:
-        return []
-
-    def describe_update_actions(
-        self,
-        replication_group_ids: Optional[list[str]] = None,
-        cache_cluster_ids: Optional[list[str]] = None,
-        service_update_name: Optional[str] = None,
-    ) -> list[dict[str, Any]]:
-        return []
-
-    def describe_user_groups(
-        self,
-        user_group_id: Optional[str] = None,
-    ) -> list[dict[str, Any]]:
-        return []
+        return grg
 
 
 elasticache_backends = BackendDict(ElastiCacheBackend, "elasticache")

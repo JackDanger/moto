@@ -33,6 +33,10 @@ def random_notebook_execution_id() -> str:
     return f"ex-{random_id()}"
 
 
+def random_instance_fleet_id() -> str:
+    return f"if-{random_id()}"
+
+
 class ReleaseLabel:
     version_re = re.compile(r"^emr-(\d+)\.(\d+)\.(\d+)$")
 

@@ -19,6 +19,7 @@ from moto.utilities.utils import CamelToUnderscoresWalker, get_partition, load_r
 from .utils import (
     EmrSecurityGroupManager,
     random_cluster_id,
+    random_instance_fleet_id,
     random_instance_group_id,
     random_notebook_execution_id,
     random_step_id,
@@ -833,6 +834,73 @@ class SecurityConfiguration(CloudFormationModel):
         emr_backend.delete_security_configuration(name)
 
 
+class InstanceFleet(BaseModel):
+    def __init__(
+        self,
+        cluster_id: str,
+        instance_fleet_type: str,
+        name: str = "",
+        target_on_demand_capacity: int = 0,
+        target_spot_capacity: int = 0,
+        instance_type_configs: Optional[list[dict[str, Any]]] = None,
+        launch_specifications: Optional[dict[str, Any]] = None,
+        resize_specifications: Optional[dict[str, Any]] = None,
+    ):
+        self.id = random_instance_fleet_id()
+        self.cluster_id = cluster_id
+        self.name = name or instance_fleet_type
+        self.instance_fleet_type = instance_fleet_type
+        self.target_on_demand_capacity = target_on_demand_capacity
+        self.target_spot_capacity = target_spot_capacity
+        self.provisioned_on_demand_capacity = target_on_demand_capacity
+        self.provisioned_spot_capacity = target_spot_capacity
+        self.instance_type_configs = instance_type_configs or []
+        self.launch_specifications = launch_specifications or {}
+        self.resize_specifications = resize_specifications
+        self.state = "RUNNING"
+        self.state_change_reason = ""
+        self.creation_date_time = utcnow()
+        self.ready_date_time = utcnow()
+        self.end_date_time: Optional[datetime] = None
+
+    @property
+    def status(self) -> dict[str, Any]:
+        return {
+            "State": self.state,
+            "StateChangeReason": {
+                "Message": self.state_change_reason,
+                "Code": "USER_REQUEST",
+            },
+            "Timeline": {
+                "CreationDateTime": self.creation_date_time,
+                "ReadyDateTime": self.ready_date_time,
+                "EndDateTime": self.end_date_time,
+            },
+        }
+
+
+class StudioSessionMapping(BaseModel):
+    def __init__(
+        self,
+        studio_id: str,
+        identity_id: str,
+        identity_name: str,
+        identity_type: str,
+        session_policy_arn: str,
+    ):
+        self.studio_id = studio_id
+        self.identity_id = identity_id
+        self.identity_name = identity_name
+        self.identity_type = identity_type
+        self.session_policy_arn = session_policy_arn
+        self.creation_time = utcnow()
+        self.last_modified_time = utcnow()
+
+    @property
+    def key(self) -> str:
+        return f"{self.studio_id}:{self.identity_type}:{self.identity_id}"
+
+
 class Studio(BaseModel):
     def __init__(
         self,
@@ -917,6 +985,8 @@ class ElasticMapReduceBackend(BaseBackend):
         self.notebook_executions: dict[str, NotebookExecution] = {}
         self.managed_scaling_policies: dict[str, dict[str, Any]] = {}
         self.auto_termination_policies: dict[str, dict[str, Any]] = {}
+        self.instance_fleets: dict[str, InstanceFleet] = {}
+        self.studio_session_mappings: dict[str, StudioSessionMapping] = {}
 
     @cached_property
     def _release_labels(self) -> list[str]:
@@ -1385,6 +1455,118 @@ class ElasticMapReduceBackend(BaseBackend):
     def remove_auto_termination_policy(self, cluster_id: str) -> None:
         self.describe_cluster(cluster_id)
         self.auto_termination_policies.pop(cluster_id, None)
+
+    def add_instance_fleet(
+        self,
+        cluster_id: str,
+        instance_fleet: dict[str, Any],
+    ) -> InstanceFleet:
+        self.describe_cluster(cluster_id)
+        fleet = InstanceFleet(
+            cluster_id=cluster_id,
+            instance_fleet_type=instance_fleet.get("InstanceFleetType", "TASK"),
+            name=instance_fleet.get("Name", ""),
+            target_on_demand_capacity=instance_fleet.get("TargetOnDemandCapacity", 0),
+            target_spot_capacity=instance_fleet.get("TargetSpotCapacity", 0),
+            instance_type_configs=instance_fleet.get("InstanceTypeConfigs", []),
+            launch_specifications=instance_fleet.get("LaunchSpecifications"),
+            resize_specifications=instance_fleet.get("ResizeSpecifications"),
+        )
+        self.instance_fleets[fleet.id] = fleet
+        return fleet
+
+    def modify_instance_fleet(
+        self,
+        cluster_id: str,
+        instance_fleet: dict[str, Any],
+    ) -> None:
+        self.describe_cluster(cluster_id)
+        fleet_id = instance_fleet.get("InstanceFleetId", "")
+        if fleet_id not in self.instance_fleets:
+            raise ResourceNotFoundException(
+                f"Instance fleet '{fleet_id}' is not found."
+            )
+        fleet = self.instance_fleets[fleet_id]
+        if "TargetOnDemandCapacity" in instance_fleet:
+            fleet.target_on_demand_capacity = instance_fleet["TargetOnDemandCapacity"]
+            fleet.provisioned_on_demand_capacity = instance_fleet["TargetOnDemandCapacity"]
+        if "TargetSpotCapacity" in instance_fleet:
+            fleet.target_spot_capacity = instance_fleet["TargetSpotCapacity"]
+            fleet.provisioned_spot_capacity = instance_fleet["TargetSpotCapacity"]
+        if "ResizeSpecifications" in instance_fleet:
+            fleet.resize_specifications = instance_fleet["ResizeSpecifications"]
+
+    def list_instance_fleets(
+        self, cluster_id: str
+    ) -> list[InstanceFleet]:
+        self.describe_cluster(cluster_id)
+        return [
+            f for f in self.instance_fleets.values()
+            if f.cluster_id == cluster_id
+        ]
+
+    def create_studio_session_mapping(
+        self,
+        studio_id: str,
+        identity_id: str,
+        identity_name: str,
+        identity_type: str,
+        session_policy_arn: str,
+    ) -> None:
+        if studio_id not in self.studios:
+            raise InvalidRequestException(
+                message=f"Studio {studio_id} does not exist."
+            )
+        mapping = StudioSessionMapping(
+            studio_id=studio_id,
+            identity_id=identity_id,
+            identity_name=identity_name,
+            identity_type=identity_type,
+            session_policy_arn=session_policy_arn,
+        )
+        self.studio_session_mappings[mapping.key] = mapping
+
+    def get_studio_session_mapping(
+        self,
+        studio_id: str,
+        identity_id: str,
+        identity_type: str,
+    ) -> StudioSessionMapping:
+        key = f"{studio_id}:{identity_type}:{identity_id}"
+        if key not in self.studio_session_mappings:
+            raise InvalidRequestException(
+                message=f"Session mapping for identity {identity_id} does not exist."
+            )
+        return self.studio_session_mappings[key]
+
+    def update_studio_session_mapping(
+        self,
+        studio_id: str,
+        identity_id: str,
+        identity_type: str,
+        session_policy_arn: str,
+    ) -> None:
+        key = f"{studio_id}:{identity_type}:{identity_id}"
+        if key not in self.studio_session_mappings:
+            raise InvalidRequestException(
+                message=f"Session mapping for identity {identity_id} does not exist."
+            )
+        mapping = self.studio_session_mappings[key]
+        mapping.session_policy_arn = session_policy_arn
+        mapping.last_modified_time = utcnow()
+
+    def delete_studio_session_mapping(
+        self,
+        studio_id: str,
+        identity_id: str,
+        identity_type: str,
+    ) -> None:
+        key = f"{studio_id}:{identity_type}:{identity_id}"
+        if key not in self.studio_session_mappings:
+            raise InvalidRequestException(
+                message=f"Session mapping for identity {identity_id} does not exist."
+            )
+        del self.studio_session_mappings[key]
 
     def create_notebook_execution(
         self,
