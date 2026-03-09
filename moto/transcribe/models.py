@@ -442,6 +442,119 @@ class FakeMedicalTranscriptionJob(BaseObject, ManagedState):
             }
 
 
+class FakeVocabularyFilter(BaseObject):
+    def __init__(
+        self,
+        vocabulary_filter_name: str,
+        language_code: str,
+        words: Optional[list[str]],
+        vocabulary_filter_file_uri: Optional[str],
+        tags: Optional[list[dict[str, str]]],
+        data_access_role_arn: Optional[str],
+    ):
+        self.vocabulary_filter_name = vocabulary_filter_name
+        self.language_code = language_code
+        self.words = words
+        self.vocabulary_filter_file_uri = vocabulary_filter_file_uri
+        self.tags = tags
+        self.data_access_role_arn = data_access_role_arn
+        self.last_modified_time = utcnow()
+        self.download_uri: Optional[str] = None
+
+    def response_object(self, response_type: str) -> dict[str, Any]:  # type: ignore
+        response_field_dict = {
+            "CREATE": [
+                "VocabularyFilterName",
+                "LanguageCode",
+                "LastModifiedTime",
+            ],
+            "GET": [
+                "VocabularyFilterName",
+                "LanguageCode",
+                "LastModifiedTime",
+                "DownloadUri",
+            ],
+            "LIST": [
+                "VocabularyFilterName",
+                "LanguageCode",
+                "LastModifiedTime",
+            ],
+            "UPDATE": [
+                "VocabularyFilterName",
+                "LanguageCode",
+                "LastModifiedTime",
+            ],
+        }
+        response_fields = response_field_dict[response_type]
+        response_object = self.gen_response_object()
+        return {
+            k: v
+            for k, v in response_object.items()
+            if k in response_fields and v is not None
+        }
+
+
+class FakeLanguageModel(BaseObject):
+    def __init__(
+        self,
+        language_code: str,
+        base_model_name: str,
+        model_name: str,
+        input_data_config: dict[str, str],
+        tags: Optional[list[dict[str, str]]],
+    ):
+        self.model_name = model_name
+        self.language_code = language_code
+        self.base_model_name = base_model_name
+        self.input_data_config = input_data_config
+        self.tags = tags
+        self.model_status = "COMPLETED"
+        self.create_time = utcnow()
+        self.last_modified_time = utcnow()
+        self.upgrade_availability = False
+        self.failure_reason: Optional[str] = None
+
+    def response_object(self, response_type: str) -> dict[str, Any]:  # type: ignore
+        response_field_dict = {
+            "CREATE": [
+                "LanguageCode",
+                "BaseModelName",
+                "ModelName",
+                "InputDataConfig",
+                "ModelStatus",
+            ],
+            "DESCRIBE": [
+                "ModelName",
+                "CreateTime",
+                "LastModifiedTime",
+                "LanguageCode",
+                "BaseModelName",
+                "ModelStatus",
+                "UpgradeAvailability",
+                "FailureReason",
+                "InputDataConfig",
+            ],
+            "LIST": [
+                "ModelName",
+                "CreateTime",
+                "LastModifiedTime",
+                "LanguageCode",
+                "BaseModelName",
+                "ModelStatus",
+                "UpgradeAvailability",
+                "FailureReason",
+                "InputDataConfig",
+            ],
+        }
+        response_fields = response_field_dict[response_type]
+        response_object = self.gen_response_object()
+        return {
+            k: v
+            for k, v in response_object.items()
+            if k in response_fields and v is not None
+        }
+
+
 class FakeMedicalVocabulary(FakeVocabulary):
     def __init__(
         self,
@@ -476,6 +589,8 @@ class TranscribeBackend(BaseBackend):
         self.transcriptions: dict[str, FakeTranscriptionJob] = {}
         self.medical_vocabularies: dict[str, FakeMedicalVocabulary] = {}
         self.vocabularies: dict[str, FakeVocabulary] = {}
+        self.vocabulary_filters: dict[str, FakeVocabularyFilter] = {}
+        self.language_models: dict[str, FakeLanguageModel] = {}
 
     def start_transcription_job(
         self,
@@ -862,6 +977,176 @@ class TranscribeBackend(BaseBackend):
             response["NextToken"] = str(end_offset)
         if state_equals:
             response["Status"] = state_equals
+        return response
+
+    # --- VocabularyFilter CRUD ---
+
+    def create_vocabulary_filter(
+        self,
+        vocabulary_filter_name: str,
+        language_code: str,
+        words: Optional[list[str]],
+        vocabulary_filter_file_uri: Optional[str],
+        tags: Optional[list[dict[str, str]]],
+        data_access_role_arn: Optional[str],
+    ) -> dict[str, Any]:
+        if vocabulary_filter_name in self.vocabulary_filters:
+            raise ConflictException(
+                message="The requested vocabulary filter name already exists. "
+                "Use a different vocabulary filter name."
+            )
+        if words is None and vocabulary_filter_file_uri is None:
+            raise BadRequestException(
+                message="Either Words or VocabularyFilterFileUri field should be provided."
+            )
+
+        vocabulary_filter = FakeVocabularyFilter(
+            vocabulary_filter_name=vocabulary_filter_name,
+            language_code=language_code,
+            words=words,
+            vocabulary_filter_file_uri=vocabulary_filter_file_uri,
+            tags=tags,
+            data_access_role_arn=data_access_role_arn,
+        )
+        self.vocabulary_filters[vocabulary_filter_name] = vocabulary_filter
+        return vocabulary_filter.response_object("CREATE")
+
+    def get_vocabulary_filter(self, vocabulary_filter_name: str) -> dict[str, Any]:
+        try:
+            vf = self.vocabulary_filters[vocabulary_filter_name]
+            return vf.response_object("GET")
+        except KeyError:
+            raise BadRequestException(
+                message="The requested vocabulary filter couldn't be found. "
+                "Check the vocabulary filter name and try your request again."
+            )
+
+    def delete_vocabulary_filter(self, vocabulary_filter_name: str) -> None:
+        try:
+            del self.vocabulary_filters[vocabulary_filter_name]
+        except KeyError:
+            raise BadRequestException(
+                message="The requested vocabulary filter couldn't be found. "
+                "Check the vocabulary filter name and try your request again."
+            )
+
+    def update_vocabulary_filter(
+        self,
+        vocabulary_filter_name: str,
+        words: Optional[list[str]],
+        vocabulary_filter_file_uri: Optional[str],
+        data_access_role_arn: Optional[str],
+    ) -> dict[str, Any]:
+        if vocabulary_filter_name not in self.vocabulary_filters:
+            raise BadRequestException(
+                message="The requested vocabulary filter couldn't be found. "
+                "Check the vocabulary filter name and try your request again."
+            )
+        vf = self.vocabulary_filters[vocabulary_filter_name]
+        if words is not None:
+            vf.words = words
+        if vocabulary_filter_file_uri is not None:
+            vf.vocabulary_filter_file_uri = vocabulary_filter_file_uri
+        if data_access_role_arn is not None:
+            vf.data_access_role_arn = data_access_role_arn
+        vf.last_modified_time = utcnow()
+        return vf.response_object("UPDATE")
+
+    def list_vocabulary_filters(
+        self,
+        name_contains: Optional[str],
+        next_token: Optional[str],
+        max_results: Optional[int],
+    ) -> dict[str, Any]:
+        filters = list(self.vocabulary_filters.values())
+
+        if name_contains:
+            filters = [
+                f for f in filters if name_contains in f.vocabulary_filter_name
+            ]
+
+        start_offset = int(next_token) if next_token else 0
+        end_offset = start_offset + (max_results if max_results else 100)
+        filters_paginated = filters[start_offset:end_offset]
+
+        response: dict[str, Any] = {
+            "VocabularyFilters": [
+                f.response_object("LIST") for f in filters_paginated
+            ]
+        }
+        if end_offset < len(filters):
+            response["NextToken"] = str(end_offset)
+        return response
+
+    # --- LanguageModel CRUD ---
+
+    def create_language_model(
+        self,
+        language_code: str,
+        base_model_name: str,
+        model_name: str,
+        input_data_config: dict[str, str],
+        tags: Optional[list[dict[str, str]]],
+    ) -> dict[str, Any]:
+        if model_name in self.language_models:
+            raise ConflictException(
+                message="The requested language model name already exists. "
+                "Use a different language model name."
+            )
+
+        language_model = FakeLanguageModel(
+            language_code=language_code,
+            base_model_name=base_model_name,
+            model_name=model_name,
+            input_data_config=input_data_config,
+            tags=tags,
+        )
+        self.language_models[model_name] = language_model
+        return language_model.response_object("CREATE")
+
+    def describe_language_model(self, model_name: str) -> dict[str, Any]:
+        try:
+            model = self.language_models[model_name]
+            return {"LanguageModel": model.response_object("DESCRIBE")}
+        except KeyError:
+            raise BadRequestException(
+                message="The requested language model couldn't be found. "
+                "Check the language model name and try your request again."
+            )
+
+    def delete_language_model(self, model_name: str) -> None:
+        try:
+            del self.language_models[model_name]
+        except KeyError:
+            raise BadRequestException(
+                message="The requested language model couldn't be found. "
+                "Check the language model name and try your request again."
+            )
+
+    def list_language_models(
+        self,
+        status_equals: Optional[str],
+        name_contains: Optional[str],
+        next_token: Optional[str],
+        max_results: Optional[int],
+    ) -> dict[str, Any]:
+        models = list(self.language_models.values())
+
+        if status_equals:
+            models = [m for m in models if m.model_status == status_equals]
+
+        if name_contains:
+            models = [m for m in models if name_contains in m.model_name]
+
+        start_offset = int(next_token) if next_token else 0
+        end_offset = start_offset + (max_results if max_results else 100)
+        models_paginated = models[start_offset:end_offset]
+
+        response: dict[str, Any] = {
+            "Models": [m.response_object("LIST") for m in models_paginated]
+        }
+        if end_offset < len(models):
+            response["NextToken"] = str(end_offset)
         return response
 
 
