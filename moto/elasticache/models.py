@@ -1181,5 +1181,157 @@ class ElastiCacheBackend(BaseBackend):
             return snapshot
         raise SnapshotNotFound(snapshot_name)
 
+    def describe_cache_engine_versions(
+        self,
+        engine: Optional[str] = None,
+        engine_version: Optional[str] = None,
+        cache_parameter_group_family: Optional[str] = None,
+        default_only: bool = False,
+    ) -> list[dict[str, Any]]:
+        versions = [
+            {
+                "Engine": "redis",
+                "EngineVersion": "7.1.0",
+                "CacheParameterGroupFamily": "redis7",
+                "CacheEngineDescription": "Redis",
+                "CacheEngineVersionDescription": "redis version 7.1.0",
+            },
+            {
+                "Engine": "redis",
+                "EngineVersion": "7.0.7",
+                "CacheParameterGroupFamily": "redis7.0",
+                "CacheEngineDescription": "Redis",
+                "CacheEngineVersionDescription": "redis version 7.0.7",
+            },
+            {
+                "Engine": "redis",
+                "EngineVersion": "6.2.6",
+                "CacheParameterGroupFamily": "redis6.x",
+                "CacheEngineDescription": "Redis",
+                "CacheEngineVersionDescription": "redis version 6.2.6",
+            },
+            {
+                "Engine": "memcached",
+                "EngineVersion": "1.6.22",
+                "CacheParameterGroupFamily": "memcached1.6",
+                "CacheEngineDescription": "memcached",
+                "CacheEngineVersionDescription": "memcached version 1.6.22",
+            },
+        ]
+        if engine:
+            versions = [v for v in versions if v["Engine"] == engine]
+        if engine_version:
+            versions = [v for v in versions if v["EngineVersion"] == engine_version]
+        if cache_parameter_group_family:
+            versions = [v for v in versions if v["CacheParameterGroupFamily"] == cache_parameter_group_family]
+        if default_only:
+            versions = versions[:1] if versions else []
+        return versions
+
+    def describe_cache_parameter_groups(
+        self,
+        cache_parameter_group_name: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        groups = [
+            {
+                "CacheParameterGroupName": "default.redis7",
+                "CacheParameterGroupFamily": "redis7",
+                "Description": "Default parameter group for redis7",
+                "IsGlobal": False,
+                "ARN": f"arn:{get_partition(self.region_name)}:elasticache:{self.region_name}:{self.account_id}:parametergroup:default.redis7",
+            },
+            {
+                "CacheParameterGroupName": "default.redis6.x",
+                "CacheParameterGroupFamily": "redis6.x",
+                "Description": "Default parameter group for redis6.x",
+                "IsGlobal": False,
+                "ARN": f"arn:{get_partition(self.region_name)}:elasticache:{self.region_name}:{self.account_id}:parametergroup:default.redis6.x",
+            },
+            {
+                "CacheParameterGroupName": "default.memcached1.6",
+                "CacheParameterGroupFamily": "memcached1.6",
+                "Description": "Default parameter group for memcached1.6",
+                "IsGlobal": False,
+                "ARN": f"arn:{get_partition(self.region_name)}:elasticache:{self.region_name}:{self.account_id}:parametergroup:default.memcached1.6",
+            },
+        ]
+        if cache_parameter_group_name:
+            groups = [g for g in groups if g["CacheParameterGroupName"] == cache_parameter_group_name]
+            if not groups:
+                raise InvalidParameterValueException(
+                    f"Cache parameter group {cache_parameter_group_name} not found."
+                )
+        return groups
+
+    def describe_cache_parameters(
+        self,
+        cache_parameter_group_name: str,
+    ) -> list[dict[str, Any]]:
+        # Return a minimal set of commonly used parameters
+        params = [
+            {
+                "ParameterName": "maxmemory-policy",
+                "ParameterValue": "volatile-lru",
+                "Description": "Max memory policy",
+                "Source": "system",
+                "DataType": "string",
+                "AllowedValues": "volatile-lru,allkeys-lru,volatile-lfu,allkeys-lfu,volatile-random,allkeys-random,volatile-ttl,noeviction",
+                "IsModifiable": True,
+                "MinimumEngineVersion": "6.0.0",
+                "ChangeType": "immediate",
+            },
+            {
+                "ParameterName": "activedefrag",
+                "ParameterValue": "no",
+                "Description": "Enabled active defragmentation",
+                "Source": "system",
+                "DataType": "string",
+                "AllowedValues": "yes,no",
+                "IsModifiable": True,
+                "MinimumEngineVersion": "6.0.0",
+                "ChangeType": "immediate",
+            },
+        ]
+        return params
+
+    def describe_events(
+        self,
+        source_identifier: Optional[str] = None,
+        source_type: Optional[str] = None,
+        duration: Optional[int] = None,
+    ) -> list[dict[str, Any]]:
+        # Return empty events list (no events generated in mock)
+        return []
+
+    def describe_serverless_caches(
+        self,
+        serverless_cache_name: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        # Serverless caches not yet implemented, return empty
+        return []
+
+    def describe_service_updates(
+        self,
+        service_update_name: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        # No service updates in mock
+        return []
+
+    def describe_update_actions(
+        self,
+        replication_group_ids: Optional[list[str]] = None,
+        cache_cluster_ids: Optional[list[str]] = None,
+        service_update_name: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        # No update actions in mock
+        return []
+
+    def describe_user_groups(
+        self,
+        user_group_id: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        # User groups not yet implemented, return empty
+        return []
+
 
 elasticache_backends = BackendDict(ElastiCacheBackend, "elasticache")
