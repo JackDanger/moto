@@ -1950,6 +1950,187 @@ class GlueBackend(BaseBackend):
     def list_classifiers(self) -> list["FakeClassifier"]:
         return list(self.classifiers.values())
 
+    # --- Resource Policies (batch) ---
+
+    def get_resource_policies(self) -> list[dict[str, Any]]:
+        """Return all resource policies."""
+        result = []
+        for arn, policy in self.resource_policies.items():
+            result.append(
+                {
+                    "PolicyInJson": policy["PolicyInJson"],
+                    "PolicyHash": policy["PolicyHash"],
+                    "CreateTime": policy["CreateTime"],
+                    "UpdateTime": policy["UpdateTime"],
+                }
+            )
+        return result
+
+    # --- Catalog Import Status ---
+
+    def get_catalog_import_status(self) -> dict[str, Any]:
+        """Return default catalog import status (always imported)."""
+        return {
+            "ImportCompleted": True,
+            "ImportTime": utcnow(),
+            "ImportedBy": "AWS",
+        }
+
+    # --- Column Statistics ---
+
+    def get_column_statistics_for_table(
+        self,
+        database_name: str,
+        table_name: str,
+        column_names: list[str],
+    ) -> dict[str, Any]:
+        # Verify the table exists
+        self.get_table(database_name, table_name)
+        # We don't store column stats, so return empty
+        return {
+            "ColumnStatisticsList": [],
+            "Errors": [],
+        }
+
+    def get_column_statistics_for_partition(
+        self,
+        database_name: str,
+        table_name: str,
+        partition_values: list[str],
+        column_names: list[str],
+    ) -> dict[str, Any]:
+        # Verify the table exists
+        self.get_table(database_name, table_name)
+        # We don't store column stats, so return empty
+        return {
+            "ColumnStatisticsList": [],
+            "Errors": [],
+        }
+
+    # --- Column Statistics Task Runs ---
+
+    def get_column_statistics_task_run(
+        self,
+        column_statistics_task_run_id: str,
+    ) -> None:
+        raise EntityNotFoundException(
+            f"ColumnStatisticsTaskRun {column_statistics_task_run_id} not found."
+        )
+
+    def get_column_statistics_task_runs(
+        self,
+        database_name: str,
+        table_name: str,
+    ) -> list[Any]:
+        return []
+
+    # --- Crawler Metrics ---
+
+    def get_crawler_metrics(
+        self, crawler_names: Optional[list[str]] = None
+    ) -> list[dict[str, Any]]:
+        metrics = []
+        crawlers = self.crawlers
+        if crawler_names:
+            crawlers = {
+                k: v for k, v in crawlers.items() if k in crawler_names
+            }
+        for name, crawler in crawlers.items():
+            metrics.append(
+                {
+                    "CrawlerName": name,
+                    "TimeLeftSeconds": 0.0,
+                    "StillEstimating": False,
+                    "LastRuntimeSeconds": 0.0,
+                    "MedianRuntimeSeconds": 0.0,
+                    "TablesCreated": 0,
+                    "TablesUpdated": 0,
+                    "TablesDeleted": 0,
+                }
+            )
+        return metrics
+
+    # --- Data Quality Results / Runs ---
+
+    def get_data_quality_result(self, result_id: str) -> None:
+        raise EntityNotFoundException(
+            f"DataQualityResult {result_id} not found."
+        )
+
+    def get_data_quality_rule_recommendation_run(self, run_id: str) -> None:
+        raise EntityNotFoundException(
+            f"DataQualityRuleRecommendationRun {run_id} not found."
+        )
+
+    def get_data_quality_ruleset_evaluation_run(self, run_id: str) -> None:
+        raise EntityNotFoundException(
+            f"DataQualityRulesetEvaluationRun {run_id} not found."
+        )
+
+    # --- Blueprint Runs ---
+
+    def get_blueprint_run(
+        self, blueprint_name: str, run_id: str
+    ) -> None:
+        # Verify the blueprint exists
+        self.get_blueprint(blueprint_name)
+        raise EntityNotFoundException(
+            f"BlueprintRun {run_id} not found."
+        )
+
+    def get_blueprint_runs(
+        self, blueprint_name: str
+    ) -> list[Any]:
+        # Verify the blueprint exists
+        self.get_blueprint(blueprint_name)
+        return []
+
+    # --- ML Task Runs ---
+
+    def get_ml_task_run(
+        self, transform_id: str, task_run_id: str
+    ) -> None:
+        # Verify the transform exists
+        self.get_ml_transform(transform_id)
+        raise EntityNotFoundException(
+            f"MLTaskRun {task_run_id} not found."
+        )
+
+    def get_ml_task_runs(
+        self, transform_id: str
+    ) -> list[Any]:
+        # Verify the transform exists
+        self.get_ml_transform(transform_id)
+        return []
+
+    # --- GetMapping ---
+
+    def get_mapping(
+        self,
+        source: dict[str, Any],
+    ) -> list[dict[str, Any]]:
+        return []
+
+    # --- GetEntityRecords ---
+
+    def get_entity_records(
+        self,
+        entity_name: str,
+    ) -> list[Any]:
+        return []
+
+    # --- GetStatement (Interactive Sessions) ---
+
+    def get_statement(
+        self, session_id: str, statement_id: int
+    ) -> None:
+        # Verify session exists
+        if session_id not in self.sessions:
+            raise SessionNotFoundException(session_id)
+        raise EntityNotFoundException(
+            f"Statement {statement_id} not found."
+        )
+
     # --- Usage Profiles ---
 
     def create_usage_profile(

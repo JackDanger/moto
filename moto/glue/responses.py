@@ -1351,6 +1351,151 @@ class GlueResponse(BaseResponse):
             }
         )
 
+    # --- Resource Policies (batch) ---
+
+    def get_resource_policies(self) -> ActionResult:
+        policies = self.glue_backend.get_resource_policies()
+        return ActionResult(
+            {
+                "GetResourcePoliciesResponseList": policies,
+                "NextToken": None,
+            }
+        )
+
+    # --- Catalog Import Status ---
+
+    def get_catalog_import_status(self) -> ActionResult:
+        status = self.glue_backend.get_catalog_import_status()
+        return ActionResult({"ImportStatus": status})
+
+    # --- Column Statistics ---
+
+    def get_column_statistics_for_table(self) -> ActionResult:
+        database_name = self._get_param("DatabaseName")
+        table_name = self._get_param("TableName")
+        column_names = self._get_param("ColumnNames") or []
+        result = self.glue_backend.get_column_statistics_for_table(
+            database_name, table_name, column_names
+        )
+        return ActionResult(result)
+
+    def get_column_statistics_for_partition(self) -> ActionResult:
+        database_name = self._get_param("DatabaseName")
+        table_name = self._get_param("TableName")
+        partition_values = self._get_param("PartitionValues") or []
+        column_names = self._get_param("ColumnNames") or []
+        result = self.glue_backend.get_column_statistics_for_partition(
+            database_name, table_name, partition_values, column_names
+        )
+        return ActionResult(result)
+
+    # --- Column Statistics Task Runs ---
+
+    def get_column_statistics_task_run(self) -> ActionResult:
+        run_id = self._get_param("ColumnStatisticsTaskRunId")
+        self.glue_backend.get_column_statistics_task_run(run_id)
+        return EmptyResult()  # never reached
+
+    def get_column_statistics_task_runs(self) -> ActionResult:
+        database_name = self._get_param("DatabaseName")
+        table_name = self._get_param("TableName")
+        runs = self.glue_backend.get_column_statistics_task_runs(
+            database_name, table_name
+        )
+        return ActionResult(
+            {
+                "ColumnStatisticsTaskRuns": runs,
+                "NextToken": None,
+            }
+        )
+
+    # --- Crawler Metrics ---
+
+    def get_crawler_metrics(self) -> ActionResult:
+        crawler_names = self._get_param("CrawlerNameList")
+        metrics = self.glue_backend.get_crawler_metrics(crawler_names)
+        return ActionResult(
+            {
+                "CrawlerMetricsList": metrics,
+                "NextToken": None,
+            }
+        )
+
+    # --- Data Quality Results / Runs ---
+
+    def get_data_quality_result(self) -> ActionResult:
+        result_id = self._get_param("ResultId")
+        self.glue_backend.get_data_quality_result(result_id)
+        return EmptyResult()  # never reached
+
+    def get_data_quality_rule_recommendation_run(self) -> ActionResult:
+        run_id = self._get_param("RunId")
+        self.glue_backend.get_data_quality_rule_recommendation_run(run_id)
+        return EmptyResult()  # never reached
+
+    def get_data_quality_ruleset_evaluation_run(self) -> ActionResult:
+        run_id = self._get_param("RunId")
+        self.glue_backend.get_data_quality_ruleset_evaluation_run(run_id)
+        return EmptyResult()  # never reached
+
+    # --- Blueprint Runs ---
+
+    def get_blueprint_run(self) -> ActionResult:
+        blueprint_name = self._get_param("BlueprintName")
+        run_id = self._get_param("RunId")
+        self.glue_backend.get_blueprint_run(blueprint_name, run_id)
+        return EmptyResult()  # never reached
+
+    def get_blueprint_runs(self) -> ActionResult:
+        blueprint_name = self._get_param("BlueprintName")
+        runs = self.glue_backend.get_blueprint_runs(blueprint_name)
+        return ActionResult(
+            {
+                "BlueprintRuns": runs,
+                "NextToken": None,
+            }
+        )
+
+    # --- ML Task Runs ---
+
+    def get_ml_task_run(self) -> ActionResult:
+        transform_id = self._get_param("TransformId")
+        task_run_id = self._get_param("TaskRunId")
+        self.glue_backend.get_ml_task_run(transform_id, task_run_id)
+        return EmptyResult()  # never reached
+
+    def get_ml_task_runs(self) -> ActionResult:
+        transform_id = self._get_param("TransformId")
+        runs = self.glue_backend.get_ml_task_runs(transform_id)
+        return ActionResult(
+            {
+                "TaskRuns": runs,
+                "NextToken": None,
+            }
+        )
+
+    # --- GetMapping ---
+
+    def get_mapping(self) -> ActionResult:
+        source = self._get_param("Source")
+        mapping = self.glue_backend.get_mapping(source)
+        return ActionResult({"Mapping": mapping})
+
+    # --- GetEntityRecords ---
+
+    def get_entity_records(self) -> ActionResult:
+        entity_name = self._get_param("EntityName")
+        records = self.glue_backend.get_entity_records(entity_name)
+        return ActionResult({"Records": records})
+
+    # --- GetStatement ---
+
+    def get_statement(self) -> ActionResult:
+        session_id = self._get_param("SessionId")
+        statement_id = self._get_int_param("Id")
+        self.glue_backend.get_statement(session_id, statement_id)
+        return EmptyResult()  # never reached
+
     # --- Usage Profiles ---
 
     def create_usage_profile(self) -> ActionResult:
