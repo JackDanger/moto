@@ -288,6 +288,36 @@ class StepFunctionResponse(BaseResponse):
         )
         return EmptyResult()
 
+    def validate_state_machine_definition(self) -> ActionResult:
+        definition = self._get_param("definition")
+        type_ = self._get_param("type")
+        result = self.stepfunction_backend.validate_state_machine_definition(
+            definition=definition, type=type_
+        )
+        return ActionResult(result)
+
+    def publish_state_machine_version(self) -> ActionResult:
+        arn = self._get_param("stateMachineArn")
+        description = self._get_param("description")
+        result = self.stepfunction_backend.publish_state_machine_version(
+            arn=arn, description=description
+        )
+        return ActionResult(result)
+
+    def list_state_machine_versions(self) -> ActionResult:
+        arn = self._get_param("stateMachineArn")
+        max_results = self._get_int_param("maxResults")
+        next_token = self._get_param("nextToken")
+        result = self.stepfunction_backend.list_state_machine_versions(
+            arn=arn, max_results=max_results, next_token=next_token
+        )
+        return ActionResult(result)
+
+    def delete_state_machine_version(self) -> ActionResult:
+        arn = self._get_param("stateMachineVersionArn")
+        self.stepfunction_backend.delete_state_machine_version(version_arn=arn)
+        return EmptyResult()
+
     def create_activity(self) -> ActionResult:
         name = self._get_param("name")
         tags = self._get_param("tags")

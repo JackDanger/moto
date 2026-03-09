@@ -760,6 +760,70 @@ class StepFunctionBackend(BaseBackend):
     def get_tags_list_for_state_machine(self, arn: str) -> list[dict[str, str]]:
         return self.list_tags_for_resource(arn)[self.tagger.tag_name]
 
+    def validate_state_machine_definition(
+        self, definition: str, type: Optional[str] = None
+    ) -> dict[str, Any]:
+        # Basic validation: try to parse as JSON
+        result = "OK"
+        diagnostics: list[dict[str, str]] = []
+        try:
+            json.loads(definition)
+        except Exception:
+            result = "FAIL"
+            diagnostics.append(
+                {
+                    "severity": "ERROR",
+                    "code": "INVALID_JSON_DESCRIPTION",
+                    "message": "Could not parse the state machine definition.",
+                }
+            )
+        return {"result": result, "diagnostics": diagnostics, "truncated": False}
+
+    def publish_state_machine_version(
+        self, arn: str, description: Optional[str] = None
+    ) -> dict[str, Any]:
+        sm = self.describe_state_machine(arn)
+        sm.publish(description=description)
+        version = sm.latest_version
+        return {
+            "creationDate": version.creation_date,
+            "stateMachineVersionArn": version.arn,
+        }
+
+    def list_state_machine_versions(
+        self,
+        arn: str,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> dict[str, Any]:
+        sm = self.describe_state_machine(arn)
+        versions = sorted(
+            sm.versions.values(), key=lambda v: v.creation_date, reverse=True
+        )
+        items = [
+            {
+                "stateMachineVersionArn": v.arn,
+                "creationDate": v.creation_date,
+            }
+            for v in versions
+        ]
+        return {"stateMachineVersions": items}
+
+    def delete_state_machine_version(self, version_arn: str) -> None:
+        self._validate_machine_arn(version_arn)
+        # Parse the version ARN: arn:...:stateMachine:name:version_number
+        arn_parts = version_arn.split(":")
+        if len(arn_parts) <= 7 or not arn_parts[-1].isnumeric():
+            raise StateMachineDoesNotExist(
+                f"State Machine Does Not Exist: '{version_arn}'"
+            )
+        source_arn = ":".join(arn_parts[:-1])
+        version_number = int(arn_parts[-1])
+        sm = next((x for x in self.state_machines if x.arn == source_arn), None)
+        if not sm:
+            return  # Idempotent — AWS doesn't error if already gone
+        sm.versions.pop(version_number, None)
+
     def send_task_failure(self, task_token: str, error: Optional[str] = None) -> None:
         pass
 
