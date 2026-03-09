@@ -312,7 +312,9 @@ class Cluster(BaseModel):
 class Network(BaseModel):
     def __init__(self, **kwargs: Any):
         self.arn = kwargs.get("arn")
-        self.associated_cluster_ids: list[str] = kwargs.get("associated_cluster_ids", [])
+        self.associated_cluster_ids: list[str] = kwargs.get(
+            "associated_cluster_ids", []
+        )
         self.network_id = kwargs.get("network_id")
         self.ip_pools = kwargs.get("ip_pools", [])
         self.name = kwargs.get("name")
@@ -342,7 +344,9 @@ class Network(BaseModel):
 class Node(BaseModel):
     def __init__(self, **kwargs: Any):
         self.arn = kwargs.get("arn")
-        self.channel_placement_groups: list[str] = kwargs.get("channel_placement_groups", [])
+        self.channel_placement_groups: list[str] = kwargs.get(
+            "channel_placement_groups", []
+        )
         self.cluster_id = kwargs.get("cluster_id")
         self.connection_state = kwargs.get("connection_state", "DISCONNECTED")
         self.instance_arn = kwargs.get("instance_arn")
@@ -596,7 +600,9 @@ class SignalMap(BaseModel):
 
 
 def _now_iso() -> str:
-    return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+    return datetime.datetime.now(datetime.timezone.utc).strftime(
+        "%Y-%m-%dT%H:%M:%S.%fZ"
+    )
 
 
 class MediaLiveBackend(BaseBackend):
@@ -612,9 +618,13 @@ class MediaLiveBackend(BaseBackend):
         self._nodes: dict[str, dict[str, Node]] = {}  # cluster_id -> {node_id -> Node}
         self._channel_placement_groups: dict[str, dict[str, ChannelPlacementGroup]] = {}
         self._sdi_sources: dict[str, SdiSource] = OrderedDict()
-        self._cw_alarm_template_groups: dict[str, CloudWatchAlarmTemplateGroup] = OrderedDict()
+        self._cw_alarm_template_groups: dict[str, CloudWatchAlarmTemplateGroup] = (
+            OrderedDict()
+        )
         self._cw_alarm_templates: dict[str, CloudWatchAlarmTemplate] = OrderedDict()
-        self._eb_rule_template_groups: dict[str, EventBridgeRuleTemplateGroup] = OrderedDict()
+        self._eb_rule_template_groups: dict[str, EventBridgeRuleTemplateGroup] = (
+            OrderedDict()
+        )
         self._eb_rule_templates: dict[str, EventBridgeRuleTemplate] = OrderedDict()
         self._signal_maps: dict[str, SignalMap] = OrderedDict()
         self._tags: dict[str, dict[str, str]] = {}  # arn -> {key: value}
@@ -1512,9 +1522,7 @@ class MediaLiveBackend(BaseBackend):
             for t in self._cw_alarm_templates.values():
                 if t.name == identifier or t.arn == identifier:
                     return t
-            raise NotFoundException(
-                f"CloudWatchAlarmTemplate {identifier} not found"
-            )
+            raise NotFoundException(f"CloudWatchAlarmTemplate {identifier} not found")
         return self._cw_alarm_templates[identifier]
 
     @paginate(PAGINATION_MODEL)
@@ -1666,9 +1674,7 @@ class MediaLiveBackend(BaseBackend):
             for t in self._eb_rule_templates.values():
                 if t.name == identifier or t.arn == identifier:
                     return t
-            raise NotFoundException(
-                f"EventBridgeRuleTemplate {identifier} not found"
-            )
+            raise NotFoundException(f"EventBridgeRuleTemplate {identifier} not found")
         return self._eb_rule_templates[identifier]
 
     @paginate(PAGINATION_MODEL)
@@ -1785,7 +1791,9 @@ class MediaLiveBackend(BaseBackend):
         self, identifier: str, dry_run: bool = False
     ) -> SignalMap:
         sm = self.get_signal_map(identifier)
-        sm.monitor_deployment = {"status": "DRY_RUN_COMPLETE" if dry_run else "COMPLETE"}
+        sm.monitor_deployment = {
+            "status": "DRY_RUN_COMPLETE" if dry_run else "COMPLETE"
+        }
         sm.monitor_changes_pending_deployment = False
         sm.modified_at = _now_iso()
         return sm
@@ -1873,28 +1881,36 @@ class MediaLiveBackend(BaseBackend):
                 self._channels[cid].state = "DELETING"
                 successful.append({"arn": self._channels[cid].arn, "id": cid})
             else:
-                failed.append({"arn": "", "code": "404", "id": cid, "message": "Not found"})
+                failed.append(
+                    {"arn": "", "code": "404", "id": cid, "message": "Not found"}
+                )
 
         for iid in input_ids or []:
             if iid in self._inputs:
                 self._inputs[iid].state = "DELETING"
                 successful.append({"arn": self._inputs[iid].arn, "id": iid})
             else:
-                failed.append({"arn": "", "code": "404", "id": iid, "message": "Not found"})
+                failed.append(
+                    {"arn": "", "code": "404", "id": iid, "message": "Not found"}
+                )
 
         for gid in input_security_group_ids or []:
             if gid in self._input_security_groups:
                 del self._input_security_groups[gid]
                 successful.append({"id": gid})
             else:
-                failed.append({"arn": "", "code": "404", "id": gid, "message": "Not found"})
+                failed.append(
+                    {"arn": "", "code": "404", "id": gid, "message": "Not found"}
+                )
 
         for mid in multiplex_ids or []:
             if mid in self._multiplexes:
                 self._multiplexes[mid].state = "DELETING"
                 successful.append({"arn": self._multiplexes[mid].arn, "id": mid})
             else:
-                failed.append({"arn": "", "code": "404", "id": mid, "message": "Not found"})
+                failed.append(
+                    {"arn": "", "code": "404", "id": mid, "message": "Not found"}
+                )
 
         return {"failed": failed, "successful": successful}
 
@@ -1911,14 +1927,18 @@ class MediaLiveBackend(BaseBackend):
                 self._channels[cid].state = "STARTING"
                 successful.append({"arn": self._channels[cid].arn, "id": cid})
             else:
-                failed.append({"arn": "", "code": "404", "id": cid, "message": "Not found"})
+                failed.append(
+                    {"arn": "", "code": "404", "id": cid, "message": "Not found"}
+                )
 
         for mid in multiplex_ids or []:
             if mid in self._multiplexes:
                 self._multiplexes[mid].state = "STARTING"
                 successful.append({"arn": self._multiplexes[mid].arn, "id": mid})
             else:
-                failed.append({"arn": "", "code": "404", "id": mid, "message": "Not found"})
+                failed.append(
+                    {"arn": "", "code": "404", "id": mid, "message": "Not found"}
+                )
 
         return {"failed": failed, "successful": successful}
 
@@ -1935,14 +1955,18 @@ class MediaLiveBackend(BaseBackend):
                 self._channels[cid].state = "STOPPING"
                 successful.append({"arn": self._channels[cid].arn, "id": cid})
             else:
-                failed.append({"arn": "", "code": "404", "id": cid, "message": "Not found"})
+                failed.append(
+                    {"arn": "", "code": "404", "id": cid, "message": "Not found"}
+                )
 
         for mid in multiplex_ids or []:
             if mid in self._multiplexes:
                 self._multiplexes[mid].state = "STOPPING"
                 successful.append({"arn": self._multiplexes[mid].arn, "id": mid})
             else:
-                failed.append({"arn": "", "code": "404", "id": mid, "message": "Not found"})
+                failed.append(
+                    {"arn": "", "code": "404", "id": mid, "message": "Not found"}
+                )
 
         return {"failed": failed, "successful": successful}
 
@@ -1990,9 +2014,7 @@ class MediaLiveBackend(BaseBackend):
     def start_input_device_maintenance_window(self, input_device_id: str) -> None:
         raise NotFoundException(f"InputDevice {input_device_id} not found")
 
-    def transfer_input_device(
-        self, input_device_id: str, **kwargs: Any
-    ) -> None:
+    def transfer_input_device(self, input_device_id: str, **kwargs: Any) -> None:
         raise NotFoundException(f"InputDevice {input_device_id} not found")
 
     def describe_input_device_thumbnail(
@@ -2012,9 +2034,7 @@ class MediaLiveBackend(BaseBackend):
     def describe_offering(self, offering_id: str) -> dict[str, Any]:
         raise NotFoundException(f"Offering {offering_id} not found")
 
-    def purchase_offering(
-        self, offering_id: str, **kwargs: Any
-    ) -> dict[str, Any]:
+    def purchase_offering(self, offering_id: str, **kwargs: Any) -> dict[str, Any]:
         raise NotFoundException(f"Offering {offering_id} not found")
 
     def list_reservations(self) -> list[Any]:
@@ -2026,9 +2046,7 @@ class MediaLiveBackend(BaseBackend):
     def delete_reservation(self, reservation_id: str) -> dict[str, Any]:
         raise NotFoundException(f"Reservation {reservation_id} not found")
 
-    def update_reservation(
-        self, reservation_id: str, **kwargs: Any
-    ) -> dict[str, Any]:
+    def update_reservation(self, reservation_id: str, **kwargs: Any) -> dict[str, Any]:
         raise NotFoundException(f"Reservation {reservation_id} not found")
 
     # ---- Misc stubs ----

@@ -209,9 +209,7 @@ class MediaLiveResponse(BaseResponse):
 
     def describe_input_security_group(self) -> str:
         group_id = self._get_param("inputSecurityGroupId")
-        group = self.medialive_backend.describe_input_security_group(
-            group_id=group_id
-        )
+        group = self.medialive_backend.describe_input_security_group(group_id=group_id)
         return json.dumps(group.to_dict())
 
     def list_input_security_groups(self) -> str:
@@ -260,9 +258,7 @@ class MediaLiveResponse(BaseResponse):
 
     def describe_multiplex(self) -> str:
         multiplex_id = self._get_param("multiplexId")
-        multiplex = self.medialive_backend.describe_multiplex(
-            multiplex_id=multiplex_id
-        )
+        multiplex = self.medialive_backend.describe_multiplex(multiplex_id=multiplex_id)
         return json.dumps(multiplex.to_dict())
 
     def list_multiplexes(self) -> str:
@@ -280,23 +276,17 @@ class MediaLiveResponse(BaseResponse):
 
     def delete_multiplex(self) -> str:
         multiplex_id = self._get_param("multiplexId")
-        multiplex = self.medialive_backend.delete_multiplex(
-            multiplex_id=multiplex_id
-        )
+        multiplex = self.medialive_backend.delete_multiplex(multiplex_id=multiplex_id)
         return json.dumps(multiplex.to_dict())
 
     def start_multiplex(self) -> str:
         multiplex_id = self._get_param("multiplexId")
-        multiplex = self.medialive_backend.start_multiplex(
-            multiplex_id=multiplex_id
-        )
+        multiplex = self.medialive_backend.start_multiplex(multiplex_id=multiplex_id)
         return json.dumps(multiplex.to_dict())
 
     def stop_multiplex(self) -> str:
         multiplex_id = self._get_param("multiplexId")
-        multiplex = self.medialive_backend.stop_multiplex(
-            multiplex_id=multiplex_id
-        )
+        multiplex = self.medialive_backend.stop_multiplex(multiplex_id=multiplex_id)
         return json.dumps(multiplex.to_dict())
 
     def update_multiplex(self) -> str:
@@ -485,9 +475,7 @@ class MediaLiveResponse(BaseResponse):
     def list_nodes(self) -> str:
         cluster_id = self._get_param("clusterId")
         nodes = self.medialive_backend.list_nodes(cluster_id=cluster_id)
-        return json.dumps(
-            {"nodes": [n.to_dict() for n in nodes], "nextToken": None}
-        )
+        return json.dumps({"nodes": [n.to_dict() for n in nodes], "nextToken": None})
 
     def delete_node(self) -> str:
         cluster_id = self._get_param("clusterId")
@@ -605,9 +593,7 @@ class MediaLiveResponse(BaseResponse):
 
     def describe_sdi_source(self) -> str:
         sdi_source_id = self._get_param("sdiSourceId")
-        source = self.medialive_backend.describe_sdi_source(
-            sdi_source_id=sdi_source_id
-        )
+        source = self.medialive_backend.describe_sdi_source(sdi_source_id=sdi_source_id)
         return json.dumps(source.to_dict())
 
     def list_sdi_sources(self) -> str:
@@ -716,10 +702,8 @@ class MediaLiveResponse(BaseResponse):
     def list_cloud_watch_alarm_templates(self) -> str:
         max_results = self._get_int_param("maxResults")
         next_token = self._get_param("nextToken")
-        templates, next_token = (
-            self.medialive_backend.list_cloud_watch_alarm_templates(
-                max_results=max_results, next_token=next_token
-            )
+        templates, next_token = self.medialive_backend.list_cloud_watch_alarm_templates(
+            max_results=max_results, next_token=next_token
         )
         return json.dumps(
             {
@@ -730,9 +714,7 @@ class MediaLiveResponse(BaseResponse):
 
     def delete_cloud_watch_alarm_template(self) -> str:
         identifier = self._get_param("identifier")
-        self.medialive_backend.delete_cloud_watch_alarm_template(
-            identifier=identifier
-        )
+        self.medialive_backend.delete_cloud_watch_alarm_template(identifier=identifier)
         return json.dumps({})
 
     def update_cloud_watch_alarm_template(self) -> str:
@@ -824,10 +806,8 @@ class MediaLiveResponse(BaseResponse):
     def list_event_bridge_rule_templates(self) -> str:
         max_results = self._get_int_param("maxResults")
         next_token = self._get_param("nextToken")
-        templates, next_token = (
-            self.medialive_backend.list_event_bridge_rule_templates(
-                max_results=max_results, next_token=next_token
-            )
+        templates, next_token = self.medialive_backend.list_event_bridge_rule_templates(
+            max_results=max_results, next_token=next_token
         )
         return json.dumps(
             {
@@ -838,9 +818,7 @@ class MediaLiveResponse(BaseResponse):
 
     def delete_event_bridge_rule_template(self) -> str:
         identifier = self._get_param("identifier")
-        self.medialive_backend.delete_event_bridge_rule_template(
-            identifier=identifier
-        )
+        self.medialive_backend.delete_event_bridge_rule_template(identifier=identifier)
         return json.dumps({})
 
     def update_event_bridge_rule_template(self) -> str:
@@ -936,16 +914,12 @@ class MediaLiveResponse(BaseResponse):
     def delete_tags(self) -> str:
         resource_arn = self._get_param("resource-arn")
         tag_keys = self._get_param("tagKeys") or []
-        self.medialive_backend.delete_tags(
-            resource_arn=resource_arn, tag_keys=tag_keys
-        )
+        self.medialive_backend.delete_tags(resource_arn=resource_arn, tag_keys=tag_keys)
         return json.dumps({})
 
     def list_tags_for_resource(self) -> str:
         resource_arn = self._get_param("resource-arn")
-        tags = self.medialive_backend.list_tags_for_resource(
-            resource_arn=resource_arn
-        )
+        tags = self.medialive_backend.list_tags_for_resource(resource_arn=resource_arn)
         return json.dumps({"tags": tags})
 
     # ---- Schedule ----
@@ -1017,16 +991,12 @@ class MediaLiveResponse(BaseResponse):
 
     def describe_input_device(self) -> str:
         input_device_id = self._get_param("inputDeviceId")
-        self.medialive_backend.describe_input_device(
-            input_device_id=input_device_id
-        )
+        self.medialive_backend.describe_input_device(input_device_id=input_device_id)
         return json.dumps({})  # unreachable
 
     def update_input_device(self) -> str:
         input_device_id = self._get_param("inputDeviceId")
-        self.medialive_backend.update_input_device(
-            input_device_id=input_device_id
-        )
+        self.medialive_backend.update_input_device(input_device_id=input_device_id)
         return json.dumps({})  # unreachable
 
     def accept_input_device_transfer(self) -> str:
@@ -1052,23 +1022,17 @@ class MediaLiveResponse(BaseResponse):
 
     def reboot_input_device(self) -> str:
         input_device_id = self._get_param("inputDeviceId")
-        self.medialive_backend.reboot_input_device(
-            input_device_id=input_device_id
-        )
+        self.medialive_backend.reboot_input_device(input_device_id=input_device_id)
         return json.dumps({})
 
     def start_input_device(self) -> str:
         input_device_id = self._get_param("inputDeviceId")
-        self.medialive_backend.start_input_device(
-            input_device_id=input_device_id
-        )
+        self.medialive_backend.start_input_device(input_device_id=input_device_id)
         return json.dumps({})
 
     def stop_input_device(self) -> str:
         input_device_id = self._get_param("inputDeviceId")
-        self.medialive_backend.stop_input_device(
-            input_device_id=input_device_id
-        )
+        self.medialive_backend.stop_input_device(input_device_id=input_device_id)
         return json.dumps({})
 
     def start_input_device_maintenance_window(self) -> str:
@@ -1080,9 +1044,7 @@ class MediaLiveResponse(BaseResponse):
 
     def transfer_input_device(self) -> str:
         input_device_id = self._get_param("inputDeviceId")
-        self.medialive_backend.transfer_input_device(
-            input_device_id=input_device_id
-        )
+        self.medialive_backend.transfer_input_device(input_device_id=input_device_id)
         return json.dumps({})
 
     def describe_input_device_thumbnail(self) -> str:
@@ -1123,23 +1085,17 @@ class MediaLiveResponse(BaseResponse):
 
     def describe_reservation(self) -> str:
         reservation_id = self._get_param("reservationId")
-        self.medialive_backend.describe_reservation(
-            reservation_id=reservation_id
-        )
+        self.medialive_backend.describe_reservation(reservation_id=reservation_id)
         return json.dumps({})  # unreachable
 
     def delete_reservation(self) -> str:
         reservation_id = self._get_param("reservationId")
-        self.medialive_backend.delete_reservation(
-            reservation_id=reservation_id
-        )
+        self.medialive_backend.delete_reservation(reservation_id=reservation_id)
         return json.dumps({})  # unreachable
 
     def update_reservation(self) -> str:
         reservation_id = self._get_param("reservationId")
-        self.medialive_backend.update_reservation(
-            reservation_id=reservation_id
-        )
+        self.medialive_backend.update_reservation(reservation_id=reservation_id)
         return json.dumps({})  # unreachable
 
     # ---- Misc stubs ----
