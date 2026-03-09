@@ -1,4 +1,5 @@
 import weakref
+from typing import Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -64,6 +65,28 @@ class Environment(BaseModel):
         return self.application.region
 
 
+class ApplicationVersion(BaseModel):
+    def __init__(
+        self,
+        application_name: str,
+        version_label: str,
+        description: str,
+        source_bundle: Optional[dict[str, str]],
+        region: str,
+        account_id: str,
+    ):
+        self.application_name = application_name
+        self.version_label = version_label
+        self.description = description
+        self.source_bundle = source_bundle or {}
+        self.date_created = utcnow()
+        self.date_updated = utcnow()
+        self.status = "UNPROCESSED"
+        self.arn = make_arn(
+            region, account_id, "applicationversion", f"{application_name}/{version_label}"
+        )
+
+
 class Application(BaseModel):
     def __init__(
         self,
@@ -73,6 +96,7 @@ class Application(BaseModel):
         self.backend = weakref.proxy(backend)  # weakref to break cycles
         self.application_name = application_name
         self.environments: dict[str, Environment] = {}
+        self.versions: dict[str, ApplicationVersion] = {}
         self.account_id = self.backend.account_id
         self.region = self.backend.region_name
         self.arn = make_arn(
@@ -163,6 +187,52 @@ class EBBackend(BaseBackend):
                 if env.environment_arn == arn:
                     return env
         raise KeyError()
+
+    def create_application_version(
+        self,
+        application_name: str,
+        version_label: str,
+        description: str = "",
+        source_bundle: Optional[dict[str, str]] = None,
+    ) -> ApplicationVersion:
+        if application_name not in self.applications:
+            raise InvalidParameterValueError(
+                f"No Application named '{application_name}' found."
+            )
+        app = self.applications[application_name]
+        version = ApplicationVersion(
+            application_name=application_name,
+            version_label=version_label,
+            description=description,
+            source_bundle=source_bundle,
+            region=self.region_name,
+            account_id=self.account_id,
+        )
+        app.versions[version_label] = version
+        return version
+
+    def describe_application_versions(
+        self,
+        application_name: Optional[str] = None,
+        version_labels: Optional[list[str]] = None,
+    ) -> list[ApplicationVersion]:
+        versions: list[ApplicationVersion] = []
+        for app in self.applications.values():
+            if application_name and app.application_name != application_name:
+                continue
+            for v in app.versions.values():
+                if version_labels and v.version_label not in version_labels:
+                    continue
+                versions.append(v)
+        return versions
+
+    def describe_events(
+        self,
+        application_name: Optional[str] = None,
+        environment_name: Optional[str] = None,
+    ) -> list[dict[str, str]]:
+        # Return empty events list - no event tracking yet
+        return []
 
     def delete_application(
         self,

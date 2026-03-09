@@ -304,6 +304,121 @@ class EBResponse(BaseResponse):
         }
         return ActionResult(result)
 
+    def create_application_version(self) -> ActionResult:
+        application_name = self._get_param("ApplicationName")
+        version_label = self._get_param("VersionLabel")
+        description = self._get_param("Description", "")
+        source_bundle = self._get_param("SourceBundle")
+        version = self.elasticbeanstalk_backend.create_application_version(
+            application_name=application_name,
+            version_label=version_label,
+            description=description,
+            source_bundle=source_bundle,
+        )
+        result = {"ApplicationVersion": version}
+        return ActionResult(result)
+
+    def describe_application_versions(self) -> ActionResult:
+        application_name = self._get_param("ApplicationName")
+        version_labels = self._get_param("VersionLabels", [])
+        versions = self.elasticbeanstalk_backend.describe_application_versions(
+            application_name=application_name,
+            version_labels=version_labels or None,
+        )
+        result = {"ApplicationVersions": versions}
+        return ActionResult(result)
+
+    def describe_account_attributes(self) -> ActionResult:
+        result = {
+            "ResourceQuotas": {
+                "ApplicationQuota": {"Maximum": 75},
+                "ApplicationVersionQuota": {"Maximum": 1000},
+                "EnvironmentQuota": {"Maximum": 200},
+                "ConfigurationTemplateQuota": {"Maximum": 2000},
+                "CustomPlatformQuota": {"Maximum": 50},
+            }
+        }
+        return ActionResult(result)
+
+    def describe_configuration_options(self) -> ActionResult:
+        result = {"Options": [], "SolutionStackName": self._get_param("SolutionStackName", "")}
+        return ActionResult(result)
+
+    def describe_configuration_settings(self) -> ActionResult:
+        result = {"ConfigurationSettings": []}
+        return ActionResult(result)
+
+    def describe_environment_health(self) -> ActionResult:
+        environment_name = self._get_param("EnvironmentName")
+        result = {
+            "EnvironmentName": environment_name or "",
+            "HealthStatus": "Ok",
+            "Status": "Ready",
+            "Color": "Green",
+        }
+        return ActionResult(result)
+
+    def describe_environment_managed_action_history(self) -> ActionResult:
+        result = {"ManagedActionHistoryItems": []}
+        return ActionResult(result)
+
+    def describe_environment_managed_actions(self) -> ActionResult:
+        result = {"ManagedActions": []}
+        return ActionResult(result)
+
+    def describe_environment_resources(self) -> ActionResult:
+        environment_name = self._get_param("EnvironmentName")
+        result = {
+            "EnvironmentResources": {
+                "EnvironmentName": environment_name or "",
+                "AutoScalingGroups": [],
+                "Instances": [],
+                "LaunchConfigurations": [],
+                "LaunchTemplates": [],
+                "LoadBalancers": [],
+                "Triggers": [],
+                "Queues": [],
+            }
+        }
+        return ActionResult(result)
+
+    def describe_events(self) -> ActionResult:
+        application_name = self._get_param("ApplicationName")
+        environment_name = self._get_param("EnvironmentName")
+        events = self.elasticbeanstalk_backend.describe_events(
+            application_name=application_name,
+            environment_name=environment_name,
+        )
+        result = {"Events": events}
+        return ActionResult(result)
+
+    def describe_instances_health(self) -> ActionResult:
+        result = {"InstanceHealthList": []}
+        return ActionResult(result)
+
+    def describe_platform_version(self) -> ActionResult:
+        result = {
+            "PlatformDescription": {
+                "PlatformArn": self._get_param("PlatformArn", ""),
+                "PlatformStatus": "Ready",
+                "PlatformCategory": "Custom",
+                "OperatingSystemName": "Amazon Linux 2023",
+                "OperatingSystemVersion": "2023",
+                "ProgrammingLanguages": [],
+                "Frameworks": [],
+                "CustomAmiList": [],
+            }
+        }
+        return ActionResult(result)
+
+    def list_platform_branches(self) -> ActionResult:
+        result = {"PlatformBranchSummaryList": []}
+        return ActionResult(result)
+
+    def list_platform_versions(self) -> ActionResult:
+        result = {"PlatformSummaryList": []}
+        return ActionResult(result)
+
     def delete_application(self) -> ActionResult:
         application_name = self._get_param("ApplicationName")
         self.elasticbeanstalk_backend.delete_application(

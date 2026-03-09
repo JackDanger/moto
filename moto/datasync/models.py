@@ -8,6 +8,23 @@ from moto.utilities.utils import get_partition
 from .exceptions import InvalidRequestException
 
 
+class Agent(BaseModel):
+    def __init__(
+        self,
+        activation_key: str,
+        agent_name: str,
+        region_name: str,
+        tags: Optional[list[dict[str, str]]],
+        arn_counter: int = 0,
+    ):
+        self.activation_key = activation_key
+        self.agent_name = agent_name
+        self.region_name = region_name
+        self.tags = tags or []
+        self.status = "ONLINE"
+        self.arn = f"arn:{get_partition(region_name)}:datasync:{region_name}:111222333444:agent/agent-{str(arn_counter).zfill(17)}"
+
+
 class Location(BaseModel):
     def __init__(
         self,
@@ -100,9 +117,32 @@ class DataSyncBackend(BaseBackend):
         # Always increase when new things are created
         # This ensures uniqueness
         self.arn_counter = 0
+        self.agents: dict[str, Agent] = OrderedDict()
         self.locations: dict[str, Location] = OrderedDict()
         self.tasks: dict[str, Task] = OrderedDict()
         self.task_executions: dict[str, TaskExecution] = OrderedDict()
+
+    def create_agent(
+        self,
+        activation_key: str,
+        agent_name: str,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> str:
+        self.arn_counter += 1
+        agent = Agent(
+            activation_key=activation_key,
+            agent_name=agent_name,
+            region_name=self.region_name,
+            tags=tags,
+            arn_counter=self.arn_counter,
+        )
+        self.agents[agent.arn] = agent
+        return agent.arn
+
+    def describe_agent(self, agent_arn: str) -> Agent:
+        if agent_arn not in self.agents:
+            raise InvalidRequestException(f"Agent {agent_arn} is not found.")
+        return self.agents[agent_arn]
 
     def create_location(
         self, location_uri: str, typ: str, metadata: dict[str, Any]
