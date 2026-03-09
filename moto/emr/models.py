@@ -20,7 +20,9 @@ from .utils import (
     EmrSecurityGroupManager,
     random_cluster_id,
     random_instance_group_id,
+    random_notebook_execution_id,
     random_step_id,
+    random_studio_id,
 )
 
 EXAMPLE_AMI_ID = "ami-12c6146b"
@@ -831,6 +833,79 @@ class SecurityConfiguration(CloudFormationModel):
         emr_backend.delete_security_configuration(name)
 
 
+class Studio(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        name: str,
+        auth_mode: str,
+        vpc_id: str,
+        subnet_ids: list[str],
+        service_role: str,
+        workspace_security_group_id: str,
+        engine_security_group_id: str,
+        default_s3_location: str = "",
+        description: str = "",
+        user_role: str = "",
+        tags: Optional[dict[str, str]] = None,
+    ):
+        self.studio_id = random_studio_id()
+        self.name = name
+        self.auth_mode = auth_mode
+        self.vpc_id = vpc_id
+        self.subnet_ids = subnet_ids
+        self.service_role = service_role
+        self.user_role = user_role
+        self.workspace_security_group_id = workspace_security_group_id
+        self.engine_security_group_id = engine_security_group_id
+        self.default_s3_location = default_s3_location
+        self.description = description
+        self.creation_time = utcnow()
+        self._tags = tags or {}
+        partition = get_partition(region_name)
+        self.arn = (
+            f"arn:{partition}:elasticmapreduce:{region_name}:"
+            f"{account_id}:studio/{self.studio_id}"
+        )
+        self.url = (
+            f"https://{self.studio_id}.emrstudio-prod."
+            f"{region_name}.amazonaws.com"
+        )
+
+    @property
+    def tags(self) -> list[dict[str, str]]:
+        return [{"Key": k, "Value": v} for k, v in self._tags.items()]
+
+
+class NotebookExecution(BaseModel):
+    def __init__(
+        self,
+        editor_id: str,
+        relative_path: str,
+        execution_engine: dict[str, Any],
+        service_role: str,
+        notebook_execution_name: str = "",
+        notebook_params: str = "",
+        tags: Optional[dict[str, str]] = None,
+    ):
+        self.notebook_execution_id = random_notebook_execution_id()
+        self.notebook_execution_name = notebook_execution_name
+        self.editor_id = editor_id
+        self.relative_path = relative_path
+        self.execution_engine = execution_engine
+        self.service_role = service_role
+        self.notebook_params = notebook_params
+        self.status = "STARTING"
+        self.start_time = utcnow()
+        self.end_time: Optional[datetime] = None
+        self._tags = tags or {}
+
+    @property
+    def tags(self) -> list[dict[str, str]]:
+        return [{"Key": k, "Value": v} for k, v in self._tags.items()]
+
+
 class ElasticMapReduceBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -838,6 +913,10 @@ class ElasticMapReduceBackend(BaseBackend):
         self.instance_groups: dict[str, InstanceGroup] = {}
         self.security_configurations: dict[str, SecurityConfiguration] = {}
         self.block_public_access_configuration: dict[str, Any] = {}
+        self.studios: dict[str, Studio] = {}
+        self.notebook_executions: dict[str, NotebookExecution] = {}
+        self.managed_scaling_policies: dict[str, dict[str, Any]] = {}
+        self.auto_termination_policies: dict[str, dict[str, Any]] = {}
 
     @cached_property
     def _release_labels(self) -> list[str]:
@@ -1189,6 +1268,183 @@ class ElasticMapReduceBackend(BaseBackend):
             for name, details in self._instance_types.items()
             if name in instance_type_names
         ]
+
+    def list_security_configurations(self) -> list[SecurityConfiguration]:
+        return list(self.security_configurations.values())
+
+    def cancel_steps(
+        self, cluster_id: str, step_ids: list[str]
+    ) -> list[dict[str, Any]]:
+        cluster = self.describe_cluster(cluster_id)
+        results = []
+        for step_id in step_ids:
+            step = None
+            for s in cluster.steps:
+                if s.id == step_id:
+                    step = s
+                    break
+            if step is None:
+                results.append({
+                    "StepId": step_id,
+                    "Status": "FAILED",
+                    "Reason": f"Step {step_id} is not found.",
+                })
+            elif step.state in ("COMPLETED", "FAILED", "CANCELLED"):
+                results.append({
+                    "StepId": step_id,
+                    "Status": "FAILED",
+                    "Reason": f"Step {step_id} could not be cancelled.",
+                })
+            else:
+                step.state = "CANCELLED"
+                step.end_date_time = utcnow()
+                results.append({
+                    "StepId": step_id,
+                    "Status": "SUCCESS",
+                    "Reason": "NONE",
+                })
+        return results
+
+    def create_studio(
+        self,
+        name: str,
+        auth_mode: str,
+        vpc_id: str,
+        subnet_ids: list[str],
+        service_role: str,
+        workspace_security_group_id: str,
+        engine_security_group_id: str,
+        default_s3_location: str = "",
+        description: str = "",
+        user_role: str = "",
+        tags: Optional[dict[str, str]] = None,
+    ) -> Studio:
+        studio = Studio(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            name=name,
+            auth_mode=auth_mode,
+            vpc_id=vpc_id,
+            subnet_ids=subnet_ids,
+            service_role=service_role,
+            workspace_security_group_id=workspace_security_group_id,
+            engine_security_group_id=engine_security_group_id,
+            default_s3_location=default_s3_location,
+            description=description,
+            user_role=user_role,
+            tags=tags,
+        )
+        self.studios[studio.studio_id] = studio
+        return studio
+
+    def describe_studio(self, studio_id: str) -> Studio:
+        if studio_id not in self.studios:
+            raise InvalidRequestException(
+                message=f"Studio {studio_id} does not exist."
+            )
+        return self.studios[studio_id]
+
+    def delete_studio(self, studio_id: str) -> None:
+        if studio_id not in self.studios:
+            raise InvalidRequestException(
+                message=f"Studio {studio_id} does not exist."
+            )
+        del self.studios[studio_id]
+
+    def list_studios(self) -> list[Studio]:
+        return list(self.studios.values())
+
+    def put_managed_scaling_policy(
+        self, cluster_id: str, managed_scaling_policy: dict[str, Any]
+    ) -> None:
+        self.describe_cluster(cluster_id)
+        self.managed_scaling_policies[cluster_id] = managed_scaling_policy
+
+    def get_managed_scaling_policy(
+        self, cluster_id: str
+    ) -> Optional[dict[str, Any]]:
+        self.describe_cluster(cluster_id)
+        return self.managed_scaling_policies.get(cluster_id)
+
+    def remove_managed_scaling_policy(self, cluster_id: str) -> None:
+        self.describe_cluster(cluster_id)
+        self.managed_scaling_policies.pop(cluster_id, None)
+
+    def put_auto_termination_policy(
+        self, cluster_id: str, auto_termination_policy: dict[str, Any]
+    ) -> None:
+        self.describe_cluster(cluster_id)
+        self.auto_termination_policies[cluster_id] = auto_termination_policy
+
+    def get_auto_termination_policy(
+        self, cluster_id: str
+    ) -> Optional[dict[str, Any]]:
+        self.describe_cluster(cluster_id)
+        return self.auto_termination_policies.get(cluster_id)
+
+    def remove_auto_termination_policy(self, cluster_id: str) -> None:
+        self.describe_cluster(cluster_id)
+        self.auto_termination_policies.pop(cluster_id, None)
+
+    def create_notebook_execution(
+        self,
+        editor_id: str,
+        relative_path: str,
+        execution_engine: dict[str, Any],
+        service_role: str,
+        notebook_execution_name: str = "",
+        notebook_params: str = "",
+        tags: Optional[dict[str, str]] = None,
+    ) -> NotebookExecution:
+        execution = NotebookExecution(
+            editor_id=editor_id,
+            relative_path=relative_path,
+            execution_engine=execution_engine,
+            service_role=service_role,
+            notebook_execution_name=notebook_execution_name,
+            notebook_params=notebook_params,
+            tags=tags,
+        )
+        self.notebook_executions[execution.notebook_execution_id] = execution
+        return execution
+
+    def describe_notebook_execution(
+        self, notebook_execution_id: str
+    ) -> NotebookExecution:
+        if notebook_execution_id not in self.notebook_executions:
+            raise InvalidRequestException(
+                message=(
+                    f"Notebook execution {notebook_execution_id} "
+                    f"does not exist."
+                )
+            )
+        return self.notebook_executions[notebook_execution_id]
+
+    def list_notebook_executions(
+        self, status: Optional[str] = None
+    ) -> list[NotebookExecution]:
+        executions = list(self.notebook_executions.values())
+        if status:
+            executions = [e for e in executions if e.status == status]
+        return executions
+
+    def stop_notebook_execution(self, notebook_execution_id: str) -> None:
+        execution = self.describe_notebook_execution(notebook_execution_id)
+        execution.status = "STOPPED"
+        execution.end_time = utcnow()
+
+    def describe_release_label(
+        self, release_label: str
+    ) -> dict[str, Any]:
+        if release_label not in self._release_labels:
+            raise InvalidRequestException(
+                message=f"Release label {release_label} not found."
+            )
+        return {
+            "ReleaseLabel": release_label,
+            "Applications": [],
+            "AvailableOSReleases": [],
+        }
 
 
 emr_backends = BackendDict(ElasticMapReduceBackend, "emr")

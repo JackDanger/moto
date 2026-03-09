@@ -358,3 +358,150 @@ class ECRResponse(BaseResponse):
 
     def describe_registry(self) -> ActionResult:
         return ActionResult(self.ecr_backend.describe_registry())
+
+    def describe_replication_configuration(self) -> ActionResult:
+        return ActionResult(
+            self.ecr_backend.describe_replication_configuration()
+        )
+
+    def start_lifecycle_policy_preview(self) -> ActionResult:
+        registry_id = self._get_param("registryId")
+        repository_name = self._get_param("repositoryName")
+        lifecycle_policy_text = self._get_param("lifecyclePolicyText")
+        return ActionResult(
+            self.ecr_backend.start_lifecycle_policy_preview(
+                registry_id=registry_id,
+                repository_name=repository_name,
+                lifecycle_policy_text=lifecycle_policy_text,
+            )
+        )
+
+    def get_lifecycle_policy_preview(self) -> ActionResult:
+        registry_id = self._get_param("registryId")
+        repository_name = self._get_param("repositoryName")
+        return ActionResult(
+            self.ecr_backend.get_lifecycle_policy_preview(
+                registry_id=registry_id,
+                repository_name=repository_name,
+            )
+        )
+
+    def create_pull_through_cache_rule(self) -> ActionResult:
+        prefix = self._get_param("ecrRepositoryPrefix")
+        url = self._get_param("upstreamRegistryUrl")
+        registry = self._get_param("upstreamRegistry", "")
+        cred = self._get_param("credentialArn", "")
+        return ActionResult(
+            self.ecr_backend.create_pull_through_cache_rule(
+                ecr_repository_prefix=prefix,
+                upstream_registry_url=url,
+                upstream_registry=registry,
+                credential_arn=cred,
+            )
+        )
+
+    def delete_pull_through_cache_rule(self) -> ActionResult:
+        prefix = self._get_param("ecrRepositoryPrefix")
+        return ActionResult(
+            self.ecr_backend.delete_pull_through_cache_rule(
+                ecr_repository_prefix=prefix,
+            )
+        )
+
+    def describe_pull_through_cache_rules(self) -> ActionResult:
+        prefixes = self._get_param("ecrRepositoryPrefixes")
+        rules = self.ecr_backend.describe_pull_through_cache_rules(
+            ecr_repository_prefixes=prefixes,
+        )
+        return ActionResult({"pullThroughCacheRules": rules})
+
+    def validate_pull_through_cache_rule(self) -> ActionResult:
+        prefix = self._get_param("ecrRepositoryPrefix")
+        return ActionResult(
+            self.ecr_backend.validate_pull_through_cache_rule(
+                ecr_repository_prefix=prefix,
+            )
+        )
+
+    def create_repository_creation_template(self) -> ActionResult:
+        prefix = self._get_param("prefix")
+        description = self._get_param("description", "")
+        enc = self._get_param("encryptionConfiguration")
+        tags = self._get_param("resourceTags")
+        mutability = self._get_param("imageTagMutability", "MUTABLE")
+        repo_policy = self._get_param("repositoryPolicy", "")
+        lc_policy = self._get_param("lifecyclePolicy", "")
+        applied_for = self._get_param("appliedFor")
+        template = self.ecr_backend.create_repository_creation_template(
+            prefix=prefix,
+            description=description,
+            encryption_configuration=enc,
+            resource_tags=tags,
+            image_tag_mutability=mutability,
+            repository_policy=repo_policy,
+            lifecycle_policy=lc_policy,
+            applied_for=applied_for,
+        )
+        return ActionResult({
+            "registryId": self.current_account,
+            "repositoryCreationTemplate": template,
+        })
+
+    def delete_repository_creation_template(self) -> ActionResult:
+        prefix = self._get_param("prefix")
+        template = self.ecr_backend.delete_repository_creation_template(
+            prefix=prefix
+        )
+        return ActionResult({
+            "registryId": self.current_account,
+            "repositoryCreationTemplate": template,
+        })
+
+    def describe_repository_creation_templates(self) -> ActionResult:
+        prefixes = self._get_param("prefixes")
+        templates = (
+            self.ecr_backend.describe_repository_creation_templates(
+                prefixes=prefixes,
+            )
+        )
+        return ActionResult({
+            "registryId": self.current_account,
+            "repositoryCreationTemplates": templates,
+        })
+
+    def update_repository_creation_template(self) -> ActionResult:
+        prefix = self._get_param("prefix")
+        description = self._get_param("description")
+        enc = self._get_param("encryptionConfiguration")
+        tags = self._get_param("resourceTags")
+        mutability = self._get_param("imageTagMutability")
+        repo_policy = self._get_param("repositoryPolicy")
+        lc_policy = self._get_param("lifecyclePolicy")
+        applied_for = self._get_param("appliedFor")
+        template = self.ecr_backend.update_repository_creation_template(
+            prefix=prefix,
+            description=description,
+            encryption_configuration=enc,
+            resource_tags=tags,
+            image_tag_mutability=mutability,
+            repository_policy=repo_policy,
+            lifecycle_policy=lc_policy,
+            applied_for=applied_for,
+        )
+        return ActionResult({
+            "registryId": self.current_account,
+            "repositoryCreationTemplate": template,
+        })
+
+    def get_account_setting(self) -> ActionResult:
+        name = self._get_param("name")
+        return ActionResult(
+            self.ecr_backend.get_account_setting(name)
+        )
+
+    def put_account_setting(self) -> ActionResult:
+        name = self._get_param("name")
+        value = self._get_param("value")
+        return ActionResult(
+            self.ecr_backend.put_account_setting(name, value)
+        )
