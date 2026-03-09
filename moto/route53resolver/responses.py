@@ -429,21 +429,260 @@ class Route53ResolverResponse(BaseResponse):
 
         return json.dumps(response)
 
+    def delete_resolver_query_log_config(self) -> str:
+        """Delete a resolver query logging configuration."""
+        resolver_query_log_config_id = self._get_param("ResolverQueryLogConfigId")
+        config = self.route53resolver_backend.delete_resolver_query_log_config(
+            resolver_query_log_config_id=resolver_query_log_config_id
+        )
+        return json.dumps({"ResolverQueryLogConfig": config.description()})
+
+    def disassociate_resolver_query_log_config(self) -> str:
+        """Disassociate a VPC from a query logging configuration."""
+        resolver_query_log_config_id = self._get_param("ResolverQueryLogConfigId")
+        resource_id = self._get_param("ResourceId")
+        association = (
+            self.route53resolver_backend.disassociate_resolver_query_log_config(
+                resolver_query_log_config_id=resolver_query_log_config_id,
+                resource_id=resource_id,
+            )
+        )
+        return json.dumps(
+            {"ResolverQueryLogConfigAssociation": association.description()}
+        )
+
+    # --- DNS Firewall Domain Lists ---
+
+    def create_firewall_domain_list(self) -> str:
+        """Create a DNS Firewall domain list."""
+        name = self._get_param("Name")
+        tags = self._get_param("Tags", [])
+        domain_list = self.route53resolver_backend.create_firewall_domain_list(
+            name=name,
+            tags=tags if tags else None,
+        )
+        return json.dumps({"FirewallDomainList": domain_list.description()})
+
+    def get_firewall_domain_list(self) -> str:
+        """Get a DNS Firewall domain list."""
+        firewall_domain_list_id = self._get_param("FirewallDomainListId")
+        domain_list = self.route53resolver_backend.get_firewall_domain_list(
+            firewall_domain_list_id=firewall_domain_list_id
+        )
+        return json.dumps({"FirewallDomainList": domain_list.description()})
+
+    def delete_firewall_domain_list(self) -> str:
+        """Delete a DNS Firewall domain list."""
+        firewall_domain_list_id = self._get_param("FirewallDomainListId")
+        domain_list = self.route53resolver_backend.delete_firewall_domain_list(
+            firewall_domain_list_id=firewall_domain_list_id
+        )
+        return json.dumps({"FirewallDomainList": domain_list.description()})
+
+    def list_firewall_domain_lists(self) -> str:
+        """List all DNS Firewall domain lists."""
+        domain_lists = self.route53resolver_backend.list_firewall_domain_lists()
+        return json.dumps(
+            {"FirewallDomainLists": [x.metadata() for x in domain_lists]}
+        )
+
+    def update_firewall_domains(self) -> str:
+        """Update domains in a DNS Firewall domain list."""
+        firewall_domain_list_id = self._get_param("FirewallDomainListId")
+        operation = self._get_param("Operation")
+        domains = self._get_param("Domains", [])
+        domain_list = self.route53resolver_backend.update_firewall_domains(
+            firewall_domain_list_id=firewall_domain_list_id,
+            operation=operation,
+            domains=domains,
+        )
+        return json.dumps({
+            "Id": domain_list.id,
+            "Name": domain_list.name,
+            "Status": domain_list.status,
+            "StatusMessage": domain_list.status_message,
+        })
+
+    def list_firewall_domains(self) -> str:
+        """List domains in a DNS Firewall domain list."""
+        firewall_domain_list_id = self._get_param("FirewallDomainListId")
+        domains = self.route53resolver_backend.list_firewall_domains(
+            firewall_domain_list_id=firewall_domain_list_id
+        )
+        return json.dumps({"Domains": domains})
+
+    # --- DNS Firewall Rule Groups ---
+
+    def create_firewall_rule_group(self) -> str:
+        """Create a DNS Firewall rule group."""
+        name = self._get_param("Name")
+        tags = self._get_param("Tags", [])
+        rule_group = self.route53resolver_backend.create_firewall_rule_group(
+            name=name,
+            tags=tags if tags else None,
+        )
+        return json.dumps({"FirewallRuleGroup": rule_group.description()})
+
+    def get_firewall_rule_group(self) -> str:
+        """Get a DNS Firewall rule group."""
+        firewall_rule_group_id = self._get_param("FirewallRuleGroupId")
+        rule_group = self.route53resolver_backend.get_firewall_rule_group(
+            firewall_rule_group_id=firewall_rule_group_id
+        )
+        return json.dumps({"FirewallRuleGroup": rule_group.description()})
+
+    def delete_firewall_rule_group(self) -> str:
+        """Delete a DNS Firewall rule group."""
+        firewall_rule_group_id = self._get_param("FirewallRuleGroupId")
+        rule_group = self.route53resolver_backend.delete_firewall_rule_group(
+            firewall_rule_group_id=firewall_rule_group_id
+        )
+        return json.dumps({"FirewallRuleGroup": rule_group.description()})
+
+    def list_firewall_rule_groups(self) -> str:
+        """List all DNS Firewall rule groups."""
+        rule_groups = self.route53resolver_backend.list_firewall_rule_groups()
+        return json.dumps(
+            {"FirewallRuleGroups": [x.metadata() for x in rule_groups]}
+        )
+
+    # --- DNS Firewall Rules ---
+
+    def create_firewall_rule(self) -> str:
+        """Create a DNS Firewall rule."""
+        firewall_rule_group_id = self._get_param("FirewallRuleGroupId")
+        firewall_domain_list_id = self._get_param("FirewallDomainListId")
+        name = self._get_param("Name")
+        priority = self._get_int_param("Priority")
+        action = self._get_param("Action")
+        block_response = self._get_param("BlockResponse")
+        block_override_domain = self._get_param("BlockOverrideDomain")
+        block_override_dns_type = self._get_param("BlockOverrideDnsType")
+        block_override_ttl = self._get_int_param("BlockOverrideTtl")
+        rule = self.route53resolver_backend.create_firewall_rule(
+            firewall_rule_group_id=firewall_rule_group_id,
+            firewall_domain_list_id=firewall_domain_list_id,
+            name=name,
+            priority=priority,
+            action=action,
+            block_response=block_response,
+            block_override_domain=block_override_domain,
+            block_override_dns_type=block_override_dns_type,
+            block_override_ttl=block_override_ttl,
+        )
+        return json.dumps({"FirewallRule": rule.description()})
+
+    def delete_firewall_rule(self) -> str:
+        """Delete a DNS Firewall rule."""
+        firewall_rule_group_id = self._get_param("FirewallRuleGroupId")
+        firewall_domain_list_id = self._get_param("FirewallDomainListId")
+        rule = self.route53resolver_backend.delete_firewall_rule(
+            firewall_rule_group_id=firewall_rule_group_id,
+            firewall_domain_list_id=firewall_domain_list_id,
+        )
+        return json.dumps({"FirewallRule": rule.description()})
+
+    def update_firewall_rule(self) -> str:
+        """Update a DNS Firewall rule."""
+        firewall_rule_group_id = self._get_param("FirewallRuleGroupId")
+        firewall_domain_list_id = self._get_param("FirewallDomainListId")
+        name = self._get_param("Name")
+        priority = self._get_int_param("Priority")
+        action = self._get_param("Action")
+        block_response = self._get_param("BlockResponse")
+        block_override_domain = self._get_param("BlockOverrideDomain")
+        block_override_dns_type = self._get_param("BlockOverrideDnsType")
+        block_override_ttl = self._get_int_param("BlockOverrideTtl")
+        rule = self.route53resolver_backend.update_firewall_rule(
+            firewall_rule_group_id=firewall_rule_group_id,
+            firewall_domain_list_id=firewall_domain_list_id,
+            name=name,
+            priority=priority,
+            action=action,
+            block_response=block_response,
+            block_override_domain=block_override_domain,
+            block_override_dns_type=block_override_dns_type,
+            block_override_ttl=block_override_ttl,
+        )
+        return json.dumps({"FirewallRule": rule.description()})
+
+    def list_firewall_rules(self) -> str:
+        """List all DNS Firewall rules in a rule group."""
+        firewall_rule_group_id = self._get_param("FirewallRuleGroupId")
+        rules = self.route53resolver_backend.list_firewall_rules(
+            firewall_rule_group_id=firewall_rule_group_id
+        )
+        return json.dumps({"FirewallRules": [x.description() for x in rules]})
+
+    # --- DNS Firewall Rule Group Associations ---
+
+    def associate_firewall_rule_group(self) -> str:
+        """Associate a DNS Firewall rule group with a VPC."""
+        firewall_rule_group_id = self._get_param("FirewallRuleGroupId")
+        vpc_id = self._get_param("VpcId")
+        name = self._get_param("Name")
+        priority = self._get_int_param("Priority")
+        mutation_protection = self._get_param("MutationProtection", "DISABLED")
+        tags = self._get_param("Tags", [])
+        association = self.route53resolver_backend.associate_firewall_rule_group(
+            firewall_rule_group_id=firewall_rule_group_id,
+            vpc_id=vpc_id,
+            name=name,
+            priority=priority,
+            mutation_protection=mutation_protection,
+            tags=tags if tags else None,
+        )
+        return json.dumps(
+            {"FirewallRuleGroupAssociation": association.description()}
+        )
+
+    def disassociate_firewall_rule_group(self) -> str:
+        """Disassociate a DNS Firewall rule group from a VPC."""
+        firewall_rule_group_association_id = self._get_param(
+            "FirewallRuleGroupAssociationId"
+        )
+        association = self.route53resolver_backend.disassociate_firewall_rule_group(
+            firewall_rule_group_association_id=firewall_rule_group_association_id
+        )
+        return json.dumps(
+            {"FirewallRuleGroupAssociation": association.description()}
+        )
+
+    def get_firewall_rule_group_association(self) -> str:
+        """Get a DNS Firewall rule group association."""
+        firewall_rule_group_association_id = self._get_param(
+            "FirewallRuleGroupAssociationId"
+        )
+        association = (
+            self.route53resolver_backend.get_firewall_rule_group_association(
+                firewall_rule_group_association_id=firewall_rule_group_association_id
+            )
+        )
+        return json.dumps(
+            {"FirewallRuleGroupAssociation": association.description()}
+        )
+
+    def list_firewall_rule_group_associations(self) -> str:
+        """List all DNS Firewall rule group associations."""
+        firewall_rule_group_id = self._get_param("FirewallRuleGroupId")
+        vpc_id = self._get_param("VpcId")
+        associations = (
+            self.route53resolver_backend.list_firewall_rule_group_associations(
+                firewall_rule_group_id=firewall_rule_group_id,
+                vpc_id=vpc_id,
+            )
+        )
+        return json.dumps(
+            {
+                "FirewallRuleGroupAssociations": [
+                    x.description() for x in associations
+                ]
+            }
+        )
+
     def list_firewall_configs(self) -> str:
         """List all firewall configs."""
         return json.dumps({"FirewallConfigs": []})
-
-    def list_firewall_domain_lists(self) -> str:
-        """List all firewall domain lists."""
-        return json.dumps({"FirewallDomainLists": []})
-
-    def list_firewall_rule_group_associations(self) -> str:
-        """List all firewall rule group associations."""
-        return json.dumps({"FirewallRuleGroupAssociations": []})
-
-    def list_firewall_rule_groups(self) -> str:
-        """List all firewall rule groups."""
-        return json.dumps({"FirewallRuleGroups": []})
 
     def list_outpost_resolvers(self) -> str:
         """List all outpost resolvers."""
