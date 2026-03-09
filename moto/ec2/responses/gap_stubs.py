@@ -16,10 +16,6 @@ class GapStubs(EC2BaseResponse):
         template = self.response_template(EC2_CREATE_INSTANCE_EVENT_WINDOW)
         return template.render()
 
-    def create_ipam(self) -> str:
-        template = self.response_template(EC2_CREATE_IPAM)
-        return template.render()
-
     def create_ipam_resource_discovery(self) -> str:
         template = self.response_template(EC2_CREATE_IPAM_RESOURCE_DISCOVERY)
         return template.render()
@@ -106,10 +102,6 @@ class GapStubs(EC2BaseResponse):
 
     def describe_client_vpn_connections(self) -> str:
         template = self.response_template(EC2_DESCRIBE_CLIENT_VPN_CONNECTIONS)
-        return template.render()
-
-    def describe_client_vpn_endpoints(self) -> str:
-        template = self.response_template(EC2_DESCRIBE_CLIENT_VPN_ENDPOINTS)
         return template.render()
 
     def describe_client_vpn_routes(self) -> str:
@@ -228,10 +220,6 @@ class GapStubs(EC2BaseResponse):
         template = self.response_template(EC2_DESCRIBE_IPAM_POLICIES)
         return template.render()
 
-    def describe_ipam_pools(self) -> str:
-        template = self.response_template(EC2_DESCRIBE_IPAM_POOLS)
-        return template.render()
-
     def describe_ipam_prefix_list_resolver_targets(self) -> str:
         template = self.response_template(EC2_DESCRIBE_IPAM_PREFIX_LIST_RESOLVER_TARGETS)
         return template.render()
@@ -250,10 +238,6 @@ class GapStubs(EC2BaseResponse):
 
     def describe_ipam_scopes(self) -> str:
         template = self.response_template(EC2_DESCRIBE_IPAM_SCOPES)
-        return template.render()
-
-    def describe_ipams(self) -> str:
-        template = self.response_template(EC2_DESCRIBE_IPAMS)
         return template.render()
 
     def describe_ipv6_pools(self) -> str:
@@ -374,6 +358,10 @@ class GapStubs(EC2BaseResponse):
 
     def describe_service_link_virtual_interfaces(self) -> str:
         template = self.response_template(EC2_DESCRIBE_SERVICE_LINK_VIRTUAL_INTERFACES)
+        return template.render()
+
+    def describe_stale_security_groups(self) -> str:
+        template = self.response_template(EC2_DESCRIBE_STALE_SECURITY_GROUPS)
         return template.render()
 
     def describe_snapshot_tier_status(self) -> str:
@@ -609,10 +597,6 @@ EC2_CREATE_INSTANCE_EVENT_WINDOW = """<CreateInstanceEventWindowResponse xmlns="
     <requestId>{{ request_id }}</requestId>
 </CreateInstanceEventWindowResponse>"""
 
-EC2_CREATE_IPAM = """<CreateIpamResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
-    <requestId>{{ request_id }}</requestId>
-</CreateIpamResponse>"""
-
 EC2_CREATE_IPAM_RESOURCE_DISCOVERY = """<CreateIpamResourceDiscoveryResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>{{ request_id }}</requestId>
 </CreateIpamResourceDiscoveryResponse>"""
@@ -716,11 +700,6 @@ EC2_DESCRIBE_CLIENT_VPN_CONNECTIONS = """<DescribeClientVpnConnectionsResponse x
     <requestId>{{ request_id }}</requestId>
     <connectionSet/>
 </DescribeClientVpnConnectionsResponse>"""
-
-EC2_DESCRIBE_CLIENT_VPN_ENDPOINTS = """<DescribeClientVpnEndpointsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
-    <requestId>{{ request_id }}</requestId>
-    <clientVpnEndpointsSet/>
-</DescribeClientVpnEndpointsResponse>"""
 
 EC2_DESCRIBE_CLIENT_VPN_ROUTES = """<DescribeClientVpnRoutesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>{{ request_id }}</requestId>
@@ -867,11 +846,6 @@ EC2_DESCRIBE_IPAM_POLICIES = """<DescribeIpamPoliciesResponse xmlns="http://ec2.
     <ipamPoliciesSet/>
 </DescribeIpamPoliciesResponse>"""
 
-EC2_DESCRIBE_IPAM_POOLS = """<DescribeIpamPoolsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
-    <requestId>{{ request_id }}</requestId>
-    <ipamPoolsSet/>
-</DescribeIpamPoolsResponse>"""
-
 EC2_DESCRIBE_IPAM_PREFIX_LIST_RESOLVER_TARGETS = """<DescribeIpamPrefixListResolverTargetsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>{{ request_id }}</requestId>
     <ipamPrefixResolverTargetsSet/>
@@ -896,11 +870,6 @@ EC2_DESCRIBE_IPAM_SCOPES = """<DescribeIpamScopesResponse xmlns="http://ec2.amaz
     <requestId>{{ request_id }}</requestId>
     <ipamScopesSet/>
 </DescribeIpamScopesResponse>"""
-
-EC2_DESCRIBE_IPAMS = """<DescribeIpamsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
-    <requestId>{{ request_id }}</requestId>
-    <ipamsSet/>
-</DescribeIpamsResponse>"""
 
 EC2_DESCRIBE_IPV6_POOLS = """<DescribeIpv6PoolsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>{{ request_id }}</requestId>
@@ -1051,6 +1020,11 @@ EC2_DESCRIBE_SERVICE_LINK_VIRTUAL_INTERFACES = """<DescribeServiceLinkVirtualInt
     <requestId>{{ request_id }}</requestId>
     <serviceLinkVirtualInterfacesSet/>
 </DescribeServiceLinkVirtualInterfacesResponse>"""
+
+EC2_DESCRIBE_STALE_SECURITY_GROUPS = """<DescribeStaleSecurityGroupsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <staleSecurityGroupSet/>
+</DescribeStaleSecurityGroupsResponse>"""
 
 EC2_DESCRIBE_SNAPSHOT_TIER_STATUS = """<DescribeSnapshotTierStatusResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>{{ request_id }}</requestId>

@@ -157,6 +157,10 @@ def random_vpn_connection_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["vpn-connection"])
 
 
+def random_client_vpn_endpoint_id() -> str:
+    return f"cvpn-endpoint-{random_resource_id(size=17)}"
+
+
 def random_customer_gateway_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["customer-gateway"])
 
@@ -191,6 +195,18 @@ def random_eip_association_id() -> str:
 
 def random_internet_gateway_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["internet-gateway"])
+
+
+def random_ipam_id() -> str:
+    return f"ipam-{random_resource_id(size=17)}"
+
+
+def random_ipam_pool_id() -> str:
+    return f"ipam-pool-{random_resource_id(size=17)}"
+
+
+def random_ipam_scope_id() -> str:
+    return f"ipam-scope-{random_resource_id(size=17)}"
 
 
 def random_egress_only_internet_gateway_id() -> str:
