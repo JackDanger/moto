@@ -790,3 +790,23 @@ class WorkflowExecution(BaseModel):
     @property
     def open(self) -> bool:
         return self.execution_status == "OPEN"
+
+    def request_cancel(self) -> None:
+        self.cancel_requested = True
+        self._add_event(
+            "WorkflowExecutionCancelRequested",
+            cause="UNKNOWN",
+        )
+        self.schedule_decision_task()
+
+    def cancel_activity_task(self, task_token: str, details: Any = None) -> None:
+        task = self._find_activity_task(task_token)
+        self._add_event(
+            "ActivityTaskCanceled",
+            scheduled_event_id=task.scheduled_event_id,
+            started_event_id=task.started_event_id,
+            details=details,
+        )
+        task.cancel()
+        self.open_counts["openActivityTasks"] -= 1
+        self.schedule_decision_task()

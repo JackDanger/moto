@@ -7,8 +7,8 @@ url_bases = [
 ]
 
 url_paths = {
-    "{0}/tags/(?P<profile_arn>[^/]+)$": SignerResponse.dispatch,
     "{0}/tags/(?P<arn_prefix>[^/]+)/signing-profiles/(?P<profile_name>[^/]+)$": SignerResponse.dispatch,
+    "{0}/tags/(?P<resource_arn>.+)$": SignerResponse.dispatch,
     "{0}/signing-profiles$": SignerResponse.dispatch,
     "{0}/signing-profiles/(?P<profile_name>[^/]+)$": SignerResponse.dispatch,
     "{0}/signing-profiles/(?P<profile_name>[^/]+)/revoke$": SignerResponse.dispatch,
