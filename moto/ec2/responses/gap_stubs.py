@@ -64,6 +64,10 @@ class GapStubs(EC2BaseResponse):
         template = self.response_template(EC2_DESCRIBE_AWS_NETWORK_PERFORMANCE_METRIC_SUBSCRIPTIONS)
         return template.render()
 
+    def describe_byoip_cidrs(self) -> str:
+        template = self.response_template(EC2_DESCRIBE_BYOIP_CIDRS)
+        return template.render()
+
     def describe_capacity_block_extension_history(self) -> str:
         template = self.response_template(EC2_DESCRIBE_CAPACITY_BLOCK_EXTENSION_HISTORY)
         return template.render()
@@ -96,8 +100,24 @@ class GapStubs(EC2BaseResponse):
         template = self.response_template(EC2_DESCRIBE_CLASSIC_LINK_INSTANCES)
         return template.render()
 
+    def describe_client_vpn_authorization_rules(self) -> str:
+        template = self.response_template(EC2_DESCRIBE_CLIENT_VPN_AUTHORIZATION_RULES)
+        return template.render()
+
+    def describe_client_vpn_connections(self) -> str:
+        template = self.response_template(EC2_DESCRIBE_CLIENT_VPN_CONNECTIONS)
+        return template.render()
+
     def describe_client_vpn_endpoints(self) -> str:
         template = self.response_template(EC2_DESCRIBE_CLIENT_VPN_ENDPOINTS)
+        return template.render()
+
+    def describe_client_vpn_routes(self) -> str:
+        template = self.response_template(EC2_DESCRIBE_CLIENT_VPN_ROUTES)
+        return template.render()
+
+    def describe_client_vpn_target_networks(self) -> str:
+        template = self.response_template(EC2_DESCRIBE_CLIENT_VPN_TARGET_NETWORKS)
         return template.render()
 
     def describe_coip_pools(self) -> str:
@@ -130,6 +150,10 @@ class GapStubs(EC2BaseResponse):
 
     def describe_fast_snapshot_restores(self) -> str:
         template = self.response_template(EC2_DESCRIBE_FAST_SNAPSHOT_RESTORES)
+        return template.render()
+
+    def describe_fleet_history(self) -> str:
+        template = self.response_template(EC2_DESCRIBE_FLEET_HISTORY)
         return template.render()
 
     def describe_fpga_images(self) -> str:
@@ -638,6 +662,11 @@ EC2_DESCRIBE_AWS_NETWORK_PERFORMANCE_METRIC_SUBSCRIPTIONS = """<DescribeAwsNetwo
     <awsNetworkPerformanceMetricSubscriptionsSet/>
 </DescribeAwsNetworkPerformanceMetricSubscriptionsResponse>"""
 
+EC2_DESCRIBE_BYOIP_CIDRS = """<DescribeByoipCidrsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <byoipCidrSet/>
+</DescribeByoipCidrsResponse>"""
+
 EC2_DESCRIBE_CAPACITY_BLOCK_EXTENSION_HISTORY = """<DescribeCapacityBlockExtensionHistoryResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>{{ request_id }}</requestId>
     <capacityBlockExtensionHistorySet/>
@@ -678,10 +707,30 @@ EC2_DESCRIBE_CLASSIC_LINK_INSTANCES = """<DescribeClassicLinkInstancesResponse x
     <classicLinkInstancesSet/>
 </DescribeClassicLinkInstancesResponse>"""
 
+EC2_DESCRIBE_CLIENT_VPN_AUTHORIZATION_RULES = """<DescribeClientVpnAuthorizationRulesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <authorizationRuleSet/>
+</DescribeClientVpnAuthorizationRulesResponse>"""
+
+EC2_DESCRIBE_CLIENT_VPN_CONNECTIONS = """<DescribeClientVpnConnectionsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <connectionSet/>
+</DescribeClientVpnConnectionsResponse>"""
+
 EC2_DESCRIBE_CLIENT_VPN_ENDPOINTS = """<DescribeClientVpnEndpointsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>{{ request_id }}</requestId>
     <clientVpnEndpointsSet/>
 </DescribeClientVpnEndpointsResponse>"""
+
+EC2_DESCRIBE_CLIENT_VPN_ROUTES = """<DescribeClientVpnRoutesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <routeSet/>
+</DescribeClientVpnRoutesResponse>"""
+
+EC2_DESCRIBE_CLIENT_VPN_TARGET_NETWORKS = """<DescribeClientVpnTargetNetworksResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <targetNetworkSet/>
+</DescribeClientVpnTargetNetworksResponse>"""
 
 EC2_DESCRIBE_COIP_POOLS = """<DescribeCoipPoolsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>{{ request_id }}</requestId>
@@ -722,6 +771,11 @@ EC2_DESCRIBE_FAST_SNAPSHOT_RESTORES = """<DescribeFastSnapshotRestoresResponse x
     <requestId>{{ request_id }}</requestId>
     <fastSnapshotRestoresSet/>
 </DescribeFastSnapshotRestoresResponse>"""
+
+EC2_DESCRIBE_FLEET_HISTORY = """<DescribeFleetHistoryResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <historyRecordSet/>
+</DescribeFleetHistoryResponse>"""
 
 EC2_DESCRIBE_FPGA_IMAGES = """<DescribeFpgaImagesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>{{ request_id }}</requestId>
