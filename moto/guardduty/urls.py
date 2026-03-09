@@ -11,6 +11,11 @@ url_paths = {
     "{0}/detector/(?P<detector_id>[^/]+)/administrator$": GuardDutyResponse.dispatch,
     "{0}/detector/(?P<detector_id>[^/]+)/filter$": GuardDutyResponse.dispatch,
     "{0}/detector/(?P<detector_id>[^/]+)/filter/(?P<filter_name>[^/]+)$": GuardDutyResponse.dispatch,
+    "{0}/detector/(?P<detector_id>[^/]+)/ipset$": GuardDutyResponse.dispatch,
+    "{0}/detector/(?P<detector_id>[^/]+)/ipset/(?P<ip_set_id>[^/]+)$": GuardDutyResponse.dispatch,
+    "{0}/detector/(?P<detector_id>[^/]+)/threatintelset$": GuardDutyResponse.dispatch,
+    "{0}/detector/(?P<detector_id>[^/]+)/threatintelset/(?P<threat_intel_set_id>[^/]+)$": GuardDutyResponse.dispatch,
     "{0}/admin/enable$": GuardDutyResponse.dispatch,
     "{0}/admin$": GuardDutyResponse.dispatch,
+    "{0}/tags/(?P<resource_arn>.+)$": GuardDutyResponse.dispatch,
 }

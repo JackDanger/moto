@@ -6,7 +6,13 @@ from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random
 from moto.utilities.utils import get_partition
 
-from .exceptions import DetectorNotFoundException, FilterNotFoundException
+from .exceptions import (
+    DetectorNotFoundException,
+    FilterNotFoundException,
+    IPSetNotFoundException,
+    ResourceNotFoundException,
+    ThreatIntelSetNotFoundException,
+)
 
 
 class GuardDutyBackend(BaseBackend):
@@ -107,6 +113,10 @@ class GuardDutyBackend(BaseBackend):
         detector = self.get_detector(detector_id)
         return detector.get_filter(filter_name)
 
+    def list_filters(self, detector_id: str) -> list[str]:
+        detector = self.get_detector(detector_id)
+        return list(detector.filters.keys())
+
     def update_detector(
         self,
         detector_id: str,
@@ -135,6 +145,152 @@ class GuardDutyBackend(BaseBackend):
             finding_criteria=finding_criteria,
             rank=rank,
         )
+
+    # IPSet operations
+    def create_ip_set(
+        self,
+        detector_id: str,
+        name: str,
+        ip_format: str,
+        location: str,
+        activate: bool,
+        tags: Optional[dict[str, str]] = None,
+    ) -> str:
+        detector = self.get_detector(detector_id)
+        ip_set = IPSet(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            detector_id=detector_id,
+            name=name,
+            ip_format=ip_format,
+            location=location,
+            activate=activate,
+            tags=tags,
+        )
+        detector.ip_sets[ip_set.id] = ip_set
+        return ip_set.id
+
+    def get_ip_set(self, detector_id: str, ip_set_id: str) -> "IPSet":
+        detector = self.get_detector(detector_id)
+        if ip_set_id not in detector.ip_sets:
+            raise IPSetNotFoundException
+        return detector.ip_sets[ip_set_id]
+
+    def update_ip_set(
+        self,
+        detector_id: str,
+        ip_set_id: str,
+        name: Optional[str] = None,
+        location: Optional[str] = None,
+        activate: Optional[bool] = None,
+    ) -> None:
+        ip_set = self.get_ip_set(detector_id, ip_set_id)
+        if name is not None:
+            ip_set.name = name
+        if location is not None:
+            ip_set.location = location
+        if activate is not None:
+            ip_set.status = "ACTIVE" if activate else "INACTIVE"
+
+    def delete_ip_set(self, detector_id: str, ip_set_id: str) -> None:
+        detector = self.get_detector(detector_id)
+        if ip_set_id not in detector.ip_sets:
+            raise IPSetNotFoundException
+        del detector.ip_sets[ip_set_id]
+
+    def list_ip_sets(self, detector_id: str) -> list[str]:
+        detector = self.get_detector(detector_id)
+        return list(detector.ip_sets.keys())
+
+    # ThreatIntelSet operations
+    def create_threat_intel_set(
+        self,
+        detector_id: str,
+        name: str,
+        tis_format: str,
+        location: str,
+        activate: bool,
+        tags: Optional[dict[str, str]] = None,
+    ) -> str:
+        detector = self.get_detector(detector_id)
+        threat_intel_set = ThreatIntelSet(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            detector_id=detector_id,
+            name=name,
+            tis_format=tis_format,
+            location=location,
+            activate=activate,
+            tags=tags,
+        )
+        detector.threat_intel_sets[threat_intel_set.id] = threat_intel_set
+        return threat_intel_set.id
+
+    def get_threat_intel_set(
+        self, detector_id: str, threat_intel_set_id: str
+    ) -> "ThreatIntelSet":
+        detector = self.get_detector(detector_id)
+        if threat_intel_set_id not in detector.threat_intel_sets:
+            raise ThreatIntelSetNotFoundException
+        return detector.threat_intel_sets[threat_intel_set_id]
+
+    def update_threat_intel_set(
+        self,
+        detector_id: str,
+        threat_intel_set_id: str,
+        name: Optional[str] = None,
+        location: Optional[str] = None,
+        activate: Optional[bool] = None,
+    ) -> None:
+        tis = self.get_threat_intel_set(detector_id, threat_intel_set_id)
+        if name is not None:
+            tis.name = name
+        if location is not None:
+            tis.location = location
+        if activate is not None:
+            tis.status = "ACTIVE" if activate else "INACTIVE"
+
+    def delete_threat_intel_set(
+        self, detector_id: str, threat_intel_set_id: str
+    ) -> None:
+        detector = self.get_detector(detector_id)
+        if threat_intel_set_id not in detector.threat_intel_sets:
+            raise ThreatIntelSetNotFoundException
+        del detector.threat_intel_sets[threat_intel_set_id]
+
+    def list_threat_intel_sets(self, detector_id: str) -> list[str]:
+        detector = self.get_detector(detector_id)
+        return list(detector.threat_intel_sets.keys())
+
+    # Tagging operations
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
+        resource = self._get_resource_by_arn(resource_arn)
+        resource.tags.update(tags)
+
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
+        resource = self._get_resource_by_arn(resource_arn)
+        for key in tag_keys:
+            resource.tags.pop(key, None)
+
+    def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
+        resource = self._get_resource_by_arn(resource_arn)
+        return dict(resource.tags)
+
+    def _get_resource_by_arn(self, resource_arn: str) -> Any:
+        """Find a resource (detector, ipset, threatintelset) by its ARN."""
+        # Try detectors
+        for detector in self.detectors.values():
+            if detector.arn == resource_arn:
+                return detector
+            # Try ipsets within detector
+            for ip_set in detector.ip_sets.values():
+                if ip_set.arn == resource_arn:
+                    return ip_set
+            # Try threatintelsets within detector
+            for tis in detector.threat_intel_sets.values():
+                if tis.arn == resource_arn:
+                    return tis
+        raise ResourceNotFoundException(resource_arn)
 
 
 class Filter(BaseModel):
@@ -178,6 +334,74 @@ class Filter(BaseModel):
         }
 
 
+class IPSet(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        detector_id: str,
+        name: str,
+        ip_format: str,
+        location: str,
+        activate: bool,
+        tags: Optional[dict[str, str]] = None,
+    ):
+        self.id = mock_random.get_random_hex(length=32)
+        self.name = name
+        self.format = ip_format
+        self.location = location
+        self.status = "ACTIVE" if activate else "INACTIVE"
+        self.tags: dict[str, str] = tags or {}
+        partition = get_partition(region_name)
+        self.arn = (
+            f"arn:{partition}:guardduty:{region_name}:{account_id}"
+            f":detector/{detector_id}/ipset/{self.id}"
+        )
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "format": self.format,
+            "location": self.location,
+            "status": self.status,
+            "tags": self.tags,
+        }
+
+
+class ThreatIntelSet(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        detector_id: str,
+        name: str,
+        tis_format: str,
+        location: str,
+        activate: bool,
+        tags: Optional[dict[str, str]] = None,
+    ):
+        self.id = mock_random.get_random_hex(length=32)
+        self.name = name
+        self.format = tis_format
+        self.location = location
+        self.status = "ACTIVE" if activate else "INACTIVE"
+        self.tags: dict[str, str] = tags or {}
+        partition = get_partition(region_name)
+        self.arn = (
+            f"arn:{partition}:guardduty:{region_name}:{account_id}"
+            f":detector/{detector_id}/threatintelset/{self.id}"
+        )
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "name": self.name,
+            "format": self.format,
+            "location": self.location,
+            "status": self.status,
+            "tags": self.tags,
+        }
+
+
 class Detector(BaseModel):
     def __init__(
         self,
@@ -193,16 +417,23 @@ class Detector(BaseModel):
         self.id = mock_random.get_random_hex(length=32)
         self.created_at = created_at
         self.finding_publish_freq = finding_publish_freq
-        self.service_role = f"arn:{get_partition(region_name)}:iam::{account_id}:role/aws-service-role/guardduty.amazonaws.com/AWSServiceRoleForAmazonGuardDuty"
+        partition = get_partition(region_name)
+        self.service_role = (
+            f"arn:{partition}:iam::{account_id}:role/aws-service-role"
+            f"/guardduty.amazonaws.com/AWSServiceRoleForAmazonGuardDuty"
+        )
+        self.arn = f"arn:{partition}:guardduty:{region_name}:{account_id}:detector/{self.id}"
         self.enabled = enabled
         self.updated_at = created_at
         self.datasources = datasources or {}
-        self.tags = tags or {}
+        self.tags: dict[str, str] = tags or {}
         # TODO: Implement feature configuration object and validation
         # https://docs.aws.amazon.com/guardduty/latest/APIReference/API_DetectorFeatureConfiguration.html
         self.features = features or []
 
         self.filters: dict[str, Filter] = {}
+        self.ip_sets: dict[str, IPSet] = {}
+        self.threat_intel_sets: dict[str, ThreatIntelSet] = {}
 
     def add_filter(self, _filter: Filter) -> None:
         self.filters[_filter.name] = _filter

@@ -12,6 +12,7 @@ url_paths = {
     "{0}/accounts/describe$": SecurityHubResponse.dispatch,
     "{0}/findings$": SecurityHubResponse.dispatch,
     "{0}/findings/import$": SecurityHubResponse.dispatch,
+    "{0}/findings/batchupdate$": SecurityHubResponse.dispatch,
     "{0}/organization/admin/enable$": SecurityHubResponse.dispatch,
     "{0}/organization/configuration$": SecurityHubResponse.dispatch,
     "{0}/administrator$": SecurityHubResponse.dispatch,
@@ -21,4 +22,10 @@ url_paths = {
     "{0}/members$": SecurityHubResponse.dispatch,
     "{0}/members/get$": SecurityHubResponse.dispatch,
     "{0}/master$": SecurityHubResponse.dispatch,
+    "{0}/actionTargets$": SecurityHubResponse.dispatch,
+    "{0}/actionTargets/get$": SecurityHubResponse.dispatch,
+    "{0}/actionTargets/(?P<ActionTargetArn>.+)$": SecurityHubResponse.dispatch,
+    "{0}/productSubscriptions$": SecurityHubResponse.dispatch,
+    "{0}/productSubscriptions/(?P<ProductSubscriptionArn>.+)$": SecurityHubResponse.dispatch,
+    "{0}/tags/(?P<ResourceArn>.+)$": SecurityHubResponse.dispatch,
 }
