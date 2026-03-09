@@ -186,6 +186,82 @@ class AthenaResponse(BaseResponse):
             }
         )
 
+    def delete_named_query(self) -> str:
+        query_id = self._get_param("NamedQueryId")
+        self.athena_backend.delete_named_query(query_id)
+        return json.dumps({})
+
+    def batch_get_named_query(self) -> str:
+        named_query_ids = self._get_param("NamedQueryIds")
+        named_queries, unprocessed = self.athena_backend.batch_get_named_query(
+            named_query_ids
+        )
+        return json.dumps(
+            {
+                "NamedQueries": [
+                    {
+                        "Name": nq.name,
+                        "Description": nq.description,
+                        "Database": nq.database,
+                        "QueryString": nq.query_string,
+                        "NamedQueryId": nq.id,
+                        "WorkGroup": nq.workgroup.name,
+                    }
+                    for nq in named_queries
+                ],
+                "UnprocessedNamedQueryIds": unprocessed,
+            }
+        )
+
+    def batch_get_query_execution(self) -> str:
+        query_execution_ids = self._get_param("QueryExecutionIds")
+        executions, unprocessed = self.athena_backend.batch_get_query_execution(
+            query_execution_ids
+        )
+        result_executions = []
+        for execution in executions:
+            ddl_commands = ("ALTER", "CREATE", "DESCRIBE", "DROP", "MSCK", "SHOW")
+            statement_type = "DML"
+            if execution.query.upper().startswith(ddl_commands):
+                statement_type = "DDL"
+            exec_dict = {
+                "QueryExecutionId": execution.id,
+                "Query": execution.query,
+                "StatementType": statement_type,
+                "ResultConfiguration": execution.config,
+                "ResultReuseConfiguration": {
+                    "ResultReuseByAgeConfiguration": {"Enabled": False}
+                },
+                "QueryExecutionContext": execution.context,
+                "Status": {
+                    "State": execution.status,
+                    "SubmissionDateTime": execution.start_time,
+                    "CompletionDateTime": execution.end_time,
+                },
+                "Statistics": {
+                    "EngineExecutionTimeInMillis": 0,
+                    "DataScannedInBytes": 0,
+                    "TotalExecutionTimeInMillis": 0,
+                    "QueryQueueTimeInMillis": 0,
+                    "ServicePreProcessingTimeInMillis": 0,
+                    "QueryPlanningTimeInMillis": 0,
+                    "ServiceProcessingTimeInMillis": 0,
+                    "ResultReuseInformation": {"ReusedPreviousResult": False},
+                },
+                "WorkGroup": (
+                    execution.workgroup.name if execution.workgroup else None
+                ),
+            }
+            if execution.execution_parameters is not None:
+                exec_dict["ExecutionParameters"] = execution.execution_parameters
+            result_executions.append(exec_dict)
+        return json.dumps(
+            {
+                "QueryExecutions": result_executions,
+                "UnprocessedQueryExecutionIds": unprocessed,
+            }
+        )
+
     def list_data_catalogs(self) -> str:
         return json.dumps(
             {"DataCatalogsSummary": self.athena_backend.list_data_catalogs()}
@@ -216,6 +292,19 @@ class AthenaResponse(BaseResponse):
         name = self._get_param("Name")
         return json.dumps({"DataCatalog": self.athena_backend.get_data_catalog(name)})
 
+    def delete_data_catalog(self) -> str:
+        name = self._get_param("Name")
+        self.athena_backend.delete_data_catalog(name)
+        return json.dumps({})
+
+    def update_data_catalog(self) -> str:
+        name = self._get_param("Name")
+        catalog_type = self._get_param("Type")
+        description = self._get_param("Description")
+        parameters = self._get_param("Parameters")
+        self.athena_backend.update_data_catalog(name, catalog_type, description, parameters)
+        return json.dumps({})
+
     def create_data_catalog(self) -> Union[tuple[str, dict[str, int]], str]:
         name = self._get_param("Name")
         catalog_type = self._get_param("Type")
@@ -241,9 +330,10 @@ class AthenaResponse(BaseResponse):
         next_token = self._get_param("NextToken")
         max_results = self._get_param("MaxResults")
         work_group = self._get_param("WorkGroup") or "primary"
-        named_query_ids, next_token = self.athena_backend.list_named_queries(
+        named_queries, next_token = self.athena_backend.list_named_queries(
             next_token=next_token, max_results=max_results, work_group=work_group
         )
+        named_query_ids = [nq.id for nq in named_queries]
         return json.dumps({"NamedQueryIds": named_query_ids, "NextToken": next_token})
 
     def create_prepared_statement(self) -> Union[str, tuple[str, dict[str, int]]]:
@@ -259,6 +349,45 @@ class AthenaResponse(BaseResponse):
             query_statement=query_statement,
             description=description,
         )
+        return json.dumps({})
+
+    def delete_prepared_statement(self) -> str:
+        statement_name = self._get_param("StatementName")
+        work_group = self._get_param("WorkGroup")
+        self.athena_backend.delete_prepared_statement(statement_name, work_group)
+        return json.dumps({})
+
+    def batch_get_prepared_statement(self) -> str:
+        prepared_statement_names = self._get_param("PreparedStatementNames")
+        work_group = self._get_param("WorkGroup")
+        prepared_statements, unprocessed = (
+            self.athena_backend.batch_get_prepared_statement(
+                prepared_statement_names, work_group
+            )
+        )
+        return json.dumps(
+            {
+                "PreparedStatements": [
+                    {
+                        "StatementName": ps.statement_name,
+                        "QueryStatement": ps.query_statement,
+                        "WorkGroupName": ps.workgroup,
+                        "Description": ps.description,
+                    }
+                    for ps in prepared_statements
+                ],
+                "UnprocessedPreparedStatementNames": unprocessed,
+            }
+        )
+
+    def cancel_capacity_reservation(self) -> str:
+        name = self._get_param("Name")
+        self.athena_backend.cancel_capacity_reservation(name)
+        return json.dumps({})
+
+    def delete_capacity_reservation(self) -> str:
+        name = self._get_param("Name")
+        self.athena_backend.delete_capacity_reservation(name)
         return json.dumps({})
 
     def get_prepared_statement(self) -> str:

@@ -454,6 +454,48 @@ class AthenaBackend(BaseBackend):
     def get_named_query(self, query_id: str) -> Optional[NamedQuery]:
         return self.named_queries[query_id] if query_id in self.named_queries else None
 
+    def delete_named_query(self, query_id: str) -> None:
+        self.named_queries.pop(query_id, None)
+
+    def batch_get_named_query(
+        self, named_query_ids: list[str]
+    ) -> tuple[list[NamedQuery], list[dict[str, str]]]:
+        named_queries = []
+        unprocessed = []
+        for query_id in named_query_ids:
+            nq = self.named_queries.get(query_id)
+            if nq:
+                named_queries.append(nq)
+            else:
+                unprocessed.append(
+                    {
+                        "NamedQueryId": query_id,
+                        "ErrorCode": "INVALID_INPUT",
+                        "ErrorMessage": "INVALID_INPUT",
+                    }
+                )
+        return named_queries, unprocessed
+
+    def batch_get_query_execution(
+        self, query_execution_ids: list[str]
+    ) -> tuple[list[Execution], list[dict[str, str]]]:
+        executions = []
+        unprocessed = []
+        for exec_id in query_execution_ids:
+            execution = self.executions.get(exec_id)
+            if execution:
+                execution.advance()
+                executions.append(execution)
+            else:
+                unprocessed.append(
+                    {
+                        "QueryExecutionId": exec_id,
+                        "ErrorCode": "INVALID_INPUT",
+                        "ErrorMessage": "INVALID_INPUT",
+                    }
+                )
+        return executions, unprocessed
+
     def list_data_catalogs(self) -> list[dict[str, str]]:
         return [
             {"CatalogName": dc.name, "Type": dc.type}
@@ -488,12 +530,31 @@ class AthenaBackend(BaseBackend):
         self.tagger.tag_resource(data_catalog.arn, tags)
         return data_catalog
 
+    def delete_data_catalog(self, name: str) -> None:
+        if name not in self.data_catalogs:
+            raise InvalidArgumentException(f"DataCatalog {name} is not found")
+        dc = self.data_catalogs.pop(name)
+        self.tagger.delete_all_tags_for_resource(dc.arn)
+
+    def update_data_catalog(
+        self,
+        name: str,
+        catalog_type: str,
+        description: str,
+        parameters: str,
+    ) -> None:
+        if name not in self.data_catalogs:
+            raise InvalidArgumentException(f"DataCatalog {name} is not found")
+        dc = self.data_catalogs[name]
+        dc.type = catalog_type
+        dc.description = description
+        dc.parameters = parameters
+
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_named_queries(self, work_group: str) -> list[str]:
-        named_query_ids = [
-            q.id for q in self.named_queries.values() if q.workgroup.name == work_group
+    def list_named_queries(self, work_group: str) -> list[NamedQuery]:
+        return [
+            q for q in self.named_queries.values() if q.workgroup.name == work_group
         ]
-        return named_query_ids
 
     def create_prepared_statement(
         self,
@@ -519,6 +580,48 @@ class AthenaBackend(BaseBackend):
             if ps.workgroup == work_group:
                 return ps
         return None
+
+    def delete_prepared_statement(
+        self, statement_name: str, work_group: str
+    ) -> None:
+        if statement_name in self.prepared_statements:
+            ps = self.prepared_statements[statement_name]
+            if ps.workgroup == work_group:
+                del self.prepared_statements[statement_name]
+                return
+        raise InvalidArgumentException(
+            f"PreparedStatement {statement_name} was not found"
+        )
+
+    def batch_get_prepared_statement(
+        self, prepared_statement_names: list[str], work_group: str
+    ) -> tuple[list[PreparedStatement], list[dict[str, str]]]:
+        prepared_statements = []
+        unprocessed = []
+        for name in prepared_statement_names:
+            ps = self.prepared_statements.get(name)
+            if ps and ps.workgroup == work_group:
+                prepared_statements.append(ps)
+            else:
+                unprocessed.append(
+                    {
+                        "StatementName": name,
+                        "ErrorCode": "INVALID_INPUT",
+                        "ErrorMessage": "INVALID_INPUT",
+                    }
+                )
+        return prepared_statements, unprocessed
+
+    def cancel_capacity_reservation(self, name: str) -> None:
+        if name not in self.capacity_reservations:
+            raise InvalidArgumentException("Capacity Reservation does not exist")
+        self.capacity_reservations[name].target_dpus = 0
+
+    def delete_capacity_reservation(self, name: str) -> None:
+        if name not in self.capacity_reservations:
+            raise InvalidArgumentException("Capacity Reservation does not exist")
+        cr = self.capacity_reservations.pop(name)
+        self.tagger.delete_all_tags_for_resource(cr.arn)
 
     def get_query_runtime_statistics(
         self, query_execution_id: str
