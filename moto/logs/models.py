@@ -2248,13 +2248,19 @@ class LogsBackend(BaseBackend):
         enabled: bool,
     ) -> None:
         # Verify log group exists
-        self._find_log_group(log_group_identifier)
+        self._find_log_group(log_group_name=log_group_identifier)
 
-    def _find_log_group(self, identifier: str) -> "LogGroup":
+    def _find_log_group(
+        self,
+        log_group_id: Optional[str] = None,
+        log_group_name: Optional[str] = None,
+    ) -> "LogGroup":
         """Find a log group by name or ARN."""
-        for group in self.groups.values():
-            if group.name == identifier or group.arn == identifier:
-                return group
+        identifier = log_group_name or log_group_id
+        if identifier:
+            for group in self.groups.values():
+                if group.name == identifier or group.arn == identifier:
+                    return group
         raise ResourceNotFoundException()
 
     def put_data_protection_policy(
@@ -2262,7 +2268,7 @@ class LogsBackend(BaseBackend):
         log_group_identifier: str,
         policy_document: str,
     ) -> dict[str, Any]:
-        log_group = self._find_log_group(log_group_identifier)
+        log_group = self._find_log_group(log_group_name=log_group_identifier)
         log_group.data_protection_policy = {
             "logGroupIdentifier": log_group.name,
             "policyDocument": policy_document,
@@ -2274,7 +2280,7 @@ class LogsBackend(BaseBackend):
         self,
         log_group_identifier: str,
     ) -> None:
-        log_group = self._find_log_group(log_group_identifier)
+        log_group = self._find_log_group(log_group_name=log_group_identifier)
         if log_group.data_protection_policy is None:
             raise ResourceNotFoundException(
                 msg="The specified data protection policy does not exist."
@@ -2287,7 +2293,7 @@ class LogsBackend(BaseBackend):
     ) -> dict[str, Any]:
         if not log_group_identifier:
             return {}
-        log_group = self._find_log_group(log_group_identifier)
+        log_group = self._find_log_group(log_group_name=log_group_identifier)
         if log_group.data_protection_policy is None:
             return {}
         return log_group.data_protection_policy
@@ -2320,7 +2326,7 @@ class LogsBackend(BaseBackend):
         log_group_identifier: str,
         transformer_config: list[dict[str, Any]],
     ) -> None:
-        log_group = self._find_log_group(log_group_identifier)
+        log_group = self._find_log_group(log_group_name=log_group_identifier)
         now = int(unix_time_millis())
         creation_time = now
         if log_group.transformer is not None:
@@ -2336,7 +2342,7 @@ class LogsBackend(BaseBackend):
         self,
         log_group_identifier: str,
     ) -> None:
-        log_group = self._find_log_group(log_group_identifier)
+        log_group = self._find_log_group(log_group_name=log_group_identifier)
         if log_group.transformer is None:
             raise ResourceNotFoundException(
                 msg="No transformer found for the specified log group."
@@ -2351,7 +2357,7 @@ class LogsBackend(BaseBackend):
             raise ResourceNotFoundException(
                 msg="No transformer found for the specified log group."
             )
-        log_group = self._find_log_group(log_group_identifier)
+        log_group = self._find_log_group(log_group_name=log_group_identifier)
         if log_group.transformer is None:
             raise ResourceNotFoundException(
                 msg="No transformer found for the specified log group."
