@@ -1355,6 +1355,76 @@ class IoTResponse(BaseResponse):
         )
         return ActionResult(result)
 
+    def describe_thing_registration_task(self) -> ActionResult:
+        task_id = self._get_param("taskId")
+        self.iot_backend.describe_thing_registration_task(task_id=task_id)
+        return EmptyResult()
+
+    def get_statistics(self) -> ActionResult:
+        index_name = self._get_param("indexName")
+        query_string = self._get_param("queryString")
+        aggregation_field = self._get_param("aggregationField")
+        query_version = self._get_param("queryVersion")
+        statistics = self.iot_backend.get_statistics(
+            index_name=index_name,
+            query_string=query_string,
+            aggregation_field=aggregation_field,
+            query_version=query_version,
+        )
+        return ActionResult({"statistics": statistics})
+
+    def get_topic_rule_destination(self) -> ActionResult:
+        arn = self._get_param("arn")
+        destination = self.iot_backend.get_topic_rule_destination(arn=arn)
+        return ActionResult({"topicRuleDestination": destination})
+
+    def get_v2_logging_options(self) -> ActionResult:
+        options = self.iot_backend.get_v2_logging_options()
+        return ActionResult(options)
+
+    def list_audit_findings(self) -> ActionResult:
+        result = self.iot_backend.list_audit_findings(
+            task_id=self._get_param("taskId"),
+            check_name=self._get_param("checkName"),
+            max_results=self._get_int_param("maxResults"),
+            next_token=self._get_param("nextToken"),
+        )
+        return ActionResult(result)
+
+    def list_audit_mitigation_actions_executions(self) -> ActionResult:
+        result = self.iot_backend.list_audit_mitigation_actions_executions(
+            task_id=self._get_param("taskId"),
+            finding_id=self._get_param("findingId"),
+            max_results=self._get_int_param("maxResults"),
+            next_token=self._get_param("nextToken"),
+        )
+        return ActionResult(result)
+
+    def list_audit_mitigation_actions_tasks(self) -> ActionResult:
+        result = self.iot_backend.list_audit_mitigation_actions_tasks(
+            start_time=self._get_param("startTime"),
+            end_time=self._get_param("endTime"),
+            max_results=self._get_int_param("maxResults"),
+            next_token=self._get_param("nextToken"),
+        )
+        return ActionResult(result)
+
+    def list_audit_suppressions(self) -> ActionResult:
+        result = self.iot_backend.list_audit_suppressions(
+            max_results=self._get_int_param("maxResults"),
+            next_token=self._get_param("nextToken"),
+        )
+        return ActionResult(result)
+
+    def list_audit_tasks(self) -> ActionResult:
+        result = self.iot_backend.list_audit_tasks(
+            start_time=self._get_param("startTime"),
+            end_time=self._get_param("endTime"),
+            max_results=self._get_int_param("maxResults"),
+            next_token=self._get_param("nextToken"),
+        )
+        return ActionResult(result)
+
     def list_detect_mitigation_actions_executions(self) -> ActionResult:
         result = self.iot_backend.list_detect_mitigation_actions_executions(
             task_id=self._get_param("taskId"),

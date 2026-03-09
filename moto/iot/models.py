@@ -3826,5 +3826,109 @@ class IoTBackend(BaseBackend):
         """Return empty detect mitigation actions tasks list."""
         return {"tasks": [], "nextToken": None}
 
+    def get_statistics(
+        self,
+        index_name: Optional[str],
+        query_string: str,
+        aggregation_field: Optional[str],
+        query_version: Optional[str],
+    ) -> dict[str, Any]:
+        """Return mock statistics for fleet indexing queries."""
+        # Count things matching the query (simplified: return total thing count)
+        count = len(self.things)
+        statistics = {"count": count}
+        if aggregation_field:
+            statistics.update(
+                {
+                    "average": 0.0,
+                    "sum": 0.0,
+                    "minimum": 0.0,
+                    "maximum": 0.0,
+                    "sumOfSquares": 0.0,
+                    "variance": 0.0,
+                    "stdDeviation": 0.0,
+                }
+            )
+        return statistics
+
+    def get_topic_rule_destination(self, arn: str) -> dict[str, Any]:
+        """Return a topic rule destination by ARN. Not yet stored, so always raises."""
+        raise ResourceNotFoundException()
+
+    def get_v2_logging_options(self) -> dict[str, Any]:
+        """Return default V2 logging options."""
+        return {
+            "roleArn": "",
+            "defaultLogLevel": "WARN",
+            "disableAllLogs": False,
+        }
+
+    def list_audit_findings(
+        self,
+        task_id: Optional[str],
+        check_name: Optional[str],
+        max_results: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Return empty audit findings list (auditing not yet implemented)."""
+        return {"findings": [], "nextToken": None}
+
+    def list_audit_mitigation_actions_executions(
+        self,
+        task_id: str,
+        finding_id: str,
+        max_results: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Return empty audit mitigation actions executions list."""
+        return {"actionsExecutions": [], "nextToken": None}
+
+    def list_audit_mitigation_actions_tasks(
+        self,
+        start_time: str,
+        end_time: str,
+        max_results: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Return empty audit mitigation actions tasks list."""
+        return {"tasks": [], "nextToken": None}
+
+    def list_audit_suppressions(
+        self,
+        max_results: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Return empty audit suppressions list."""
+        return {"suppressions": [], "nextToken": None}
+
+    def list_audit_tasks(
+        self,
+        start_time: str,
+        end_time: str,
+        max_results: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Return empty audit tasks list."""
+        return {"tasks": [], "nextToken": None}
+
+    def list_detect_mitigation_actions_executions(
+        self,
+        task_id: Optional[str],
+        max_results: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Return empty detect mitigation actions executions list."""
+        return {"actionsExecutions": [], "nextToken": None}
+
+    def list_detect_mitigation_actions_tasks(
+        self,
+        start_time: str,
+        end_time: str,
+        max_results: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Return empty detect mitigation actions tasks list."""
+        return {"tasks": [], "nextToken": None}
+
 
 iot_backends = BackendDict(IoTBackend, "iot")
