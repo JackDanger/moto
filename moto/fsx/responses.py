@@ -135,14 +135,57 @@ class FSxResponse(BaseResponse):
         list_backups = [backup.to_dict() for backup in backups]
         return json.dumps({"Backups": list_backups, "NextToken": next_token})
 
-    def describe_volumes(self) -> str:
+    def update_file_system(self) -> str:
         params = json.loads(self.body)
-        volume_ids = params.get("VolumeIds")
-        filters = params.get("Filters")
-        volumes = self.fsx_backend.describe_volumes(
-            volume_ids=volume_ids, filters=filters
+        fs = self.fsx_backend.update_file_system(
+            file_system_id=params.get("FileSystemId"),
+            client_request_token=params.get("ClientRequestToken"),
+            storage_capacity=params.get("StorageCapacity"),
+            windows_configuration=params.get("WindowsConfiguration"),
+            lustre_configuration=params.get("LustreConfiguration"),
+            ontap_configuration=params.get("OntapConfiguration"),
+            open_zfs_configuration=params.get("OpenZFSConfiguration"),
+            storage_type=params.get("StorageType"),
         )
-        return json.dumps({"Volumes": volumes, "NextToken": None})
+        return json.dumps({"FileSystem": fs.to_dict()})
+
+    def create_file_system_from_backup(self) -> str:
+        params = json.loads(self.body)
+        fs = self.fsx_backend.create_file_system_from_backup(
+            backup_id=params.get("BackupId"),
+            client_request_token=params.get("ClientRequestToken"),
+            subnet_ids=params.get("SubnetIds", []),
+            security_group_ids=params.get("SecurityGroupIds"),
+            tags=params.get("Tags"),
+            windows_configuration=params.get("WindowsConfiguration"),
+            lustre_configuration=params.get("LustreConfiguration"),
+            storage_type=params.get("StorageType"),
+            kms_key_id=params.get("KmsKeyId"),
+            file_system_type_version=params.get("FileSystemTypeVersion"),
+            open_zfs_configuration=params.get("OpenZFSConfiguration"),
+            storage_capacity=params.get("StorageCapacity"),
+        )
+        return json.dumps({"FileSystem": fs.to_dict()})
+
+    # --- Storage Virtual Machine ---
+
+    def create_storage_virtual_machine(self) -> str:
+        params = json.loads(self.body)
+        svm = self.fsx_backend.create_storage_virtual_machine(
+            file_system_id=params.get("FileSystemId"),
+            name=params.get("Name"),
+            active_directory_configuration=params.get("ActiveDirectoryConfiguration"),
+            root_volume_security_style=params.get("RootVolumeSecurityStyle"),
+            tags=params.get("Tags"),
+        )
+        return json.dumps({"StorageVirtualMachine": svm.to_dict()})
+
+    def delete_storage_virtual_machine(self) -> str:
+        params = json.loads(self.body)
+        resp = self.fsx_backend.delete_storage_virtual_machine(
+            storage_virtual_machine_id=params.get("StorageVirtualMachineId"),
+        )
+        return json.dumps(resp)
 
     def describe_storage_virtual_machines(self) -> str:
         params = json.loads(self.body)
@@ -151,7 +194,133 @@ class FSxResponse(BaseResponse):
         svms = self.fsx_backend.describe_storage_virtual_machines(
             storage_virtual_machine_ids=svm_ids, filters=filters
         )
-        return json.dumps({"StorageVirtualMachines": svms, "NextToken": None})
+        return json.dumps(
+            {"StorageVirtualMachines": [s.to_dict() for s in svms], "NextToken": None}
+        )
+
+    # --- Volume ---
+
+    def create_volume(self) -> str:
+        params = json.loads(self.body)
+        vol = self.fsx_backend.create_volume(
+            volume_type=params.get("VolumeType"),
+            name=params.get("Name"),
+            ontap_configuration=params.get("OntapConfiguration"),
+            open_zfs_configuration=params.get("OpenZFSConfiguration"),
+            tags=params.get("Tags"),
+        )
+        return json.dumps({"Volume": vol.to_dict()})
+
+    def create_volume_from_backup(self) -> str:
+        params = json.loads(self.body)
+        vol = self.fsx_backend.create_volume_from_backup(
+            backup_id=params.get("BackupId"),
+            name=params.get("Name"),
+            ontap_configuration=params.get("OntapConfiguration"),
+            tags=params.get("Tags"),
+        )
+        return json.dumps({"Volume": vol.to_dict()})
+
+    def delete_volume(self) -> str:
+        params = json.loads(self.body)
+        resp = self.fsx_backend.delete_volume(volume_id=params.get("VolumeId"))
+        return json.dumps(resp)
+
+    def describe_volumes(self) -> str:
+        params = json.loads(self.body)
+        volume_ids = params.get("VolumeIds")
+        filters = params.get("Filters")
+        volumes = self.fsx_backend.describe_volumes(
+            volume_ids=volume_ids, filters=filters
+        )
+        return json.dumps(
+            {"Volumes": [v.to_dict() for v in volumes], "NextToken": None}
+        )
+
+    # --- Snapshot ---
+
+    def create_snapshot(self) -> str:
+        params = json.loads(self.body)
+        snap = self.fsx_backend.create_snapshot(
+            name=params.get("Name"),
+            volume_id=params.get("VolumeId"),
+            tags=params.get("Tags"),
+        )
+        return json.dumps({"Snapshot": snap.to_dict()})
+
+    def delete_snapshot(self) -> str:
+        params = json.loads(self.body)
+        resp = self.fsx_backend.delete_snapshot(snapshot_id=params.get("SnapshotId"))
+        return json.dumps(resp)
+
+    def update_snapshot(self) -> str:
+        params = json.loads(self.body)
+        snap = self.fsx_backend.update_snapshot(
+            snapshot_id=params.get("SnapshotId"),
+            name=params.get("Name"),
+        )
+        return json.dumps({"Snapshot": snap.to_dict()})
+
+    def describe_snapshots(self) -> str:
+        params = json.loads(self.body)
+        snapshot_ids = params.get("SnapshotIds")
+        filters = params.get("Filters")
+        snapshots = self.fsx_backend.describe_snapshots(
+            snapshot_ids=snapshot_ids, filters=filters
+        )
+        return json.dumps(
+            {"Snapshots": [s.to_dict() for s in snapshots], "NextToken": None}
+        )
+
+    # --- File System Aliases ---
+
+    def associate_file_system_aliases(self) -> str:
+        params = json.loads(self.body)
+        aliases = self.fsx_backend.associate_file_system_aliases(
+            file_system_id=params.get("FileSystemId"),
+            aliases=params.get("Aliases", []),
+        )
+        return json.dumps({"Aliases": aliases})
+
+    def disassociate_file_system_aliases(self) -> str:
+        params = json.loads(self.body)
+        aliases = self.fsx_backend.disassociate_file_system_aliases(
+            file_system_id=params.get("FileSystemId"),
+            aliases=params.get("Aliases", []),
+        )
+        return json.dumps({"Aliases": aliases})
+
+    # --- Data Repository Association ---
+
+    def create_data_repository_association(self) -> str:
+        params = json.loads(self.body)
+        assoc = self.fsx_backend.create_data_repository_association(
+            file_system_id=params.get("FileSystemId"),
+            file_system_path=params.get("FileSystemPath"),
+            data_repository_path=params.get("DataRepositoryPath"),
+            batch_import_meta_data_on_create=params.get("BatchImportMetaDataOnCreate"),
+            imported_file_chunk_size=params.get("ImportedFileChunkSize"),
+            s3=params.get("S3"),
+            tags=params.get("Tags"),
+        )
+        return json.dumps({"Association": assoc.to_dict()})
+
+    def update_data_repository_association(self) -> str:
+        params = json.loads(self.body)
+        assoc = self.fsx_backend.update_data_repository_association(
+            association_id=params.get("AssociationId"),
+            imported_file_chunk_size=params.get("ImportedFileChunkSize"),
+            s3=params.get("S3"),
+        )
+        return json.dumps({"Association": assoc.to_dict()})
+
+    def delete_data_repository_association(self) -> str:
+        params = json.loads(self.body)
+        resp = self.fsx_backend.delete_data_repository_association(
+            association_id=params.get("AssociationId"),
+            delete_data_in_file_system=params.get("DeleteDataInFileSystem"),
+        )
+        return json.dumps(resp)
 
     def describe_data_repository_associations(self) -> str:
         params = json.loads(self.body)
@@ -160,7 +329,9 @@ class FSxResponse(BaseResponse):
         associations = self.fsx_backend.describe_data_repository_associations(
             association_ids=association_ids, filters=filters
         )
-        return json.dumps({"Associations": associations, "NextToken": None})
+        return json.dumps(
+            {"Associations": [a.to_dict() for a in associations], "NextToken": None}
+        )
 
     def describe_data_repository_tasks(self) -> str:
         params = json.loads(self.body)
@@ -190,15 +361,6 @@ class FSxResponse(BaseResponse):
     def describe_shared_vpc_configuration(self) -> str:
         config = self.fsx_backend.describe_shared_vpc_configuration()
         return json.dumps(config)
-
-    def describe_snapshots(self) -> str:
-        params = json.loads(self.body)
-        snapshot_ids = params.get("SnapshotIds")
-        filters = params.get("Filters")
-        snapshots = self.fsx_backend.describe_snapshots(
-            snapshot_ids=snapshot_ids, filters=filters
-        )
-        return json.dumps({"Snapshots": snapshots, "NextToken": None})
 
     def describe_s3_access_point_attachments(self) -> str:
         params = json.loads(self.body)
