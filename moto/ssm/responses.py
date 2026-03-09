@@ -742,7 +742,17 @@ class SimpleSystemManagerResponse(BaseResponse):
         return ActionResult({"Summaries": events})
 
     def list_ops_item_related_items(self) -> ActionResult:
-        items = self.ssm_backend.list_ops_item_related_items()
+        filters = self._get_param("Filters")
+        ops_item_id = None
+        if filters:
+            for f in filters:
+                if f.get("Key") == "OpsItemId":
+                    vals = f.get("Values", [])
+                    if vals:
+                        ops_item_id = vals[0]
+        if not ops_item_id:
+            ops_item_id = self._get_param("OpsItemId")
+        items = self.ssm_backend.list_ops_item_related_items(ops_item_id=ops_item_id)
         return ActionResult({"Summaries": items})
 
     def list_ops_metadata(self) -> ActionResult:
@@ -961,6 +971,231 @@ class SimpleSystemManagerResponse(BaseResponse):
         ops_metadata_arn = self._get_param("OpsMetadataArn")
         result = self.ssm_backend.get_ops_metadata(ops_metadata_arn)
         return ActionResult(result)
+
+    def create_ops_metadata(self) -> ActionResult:
+        resource_id = self._get_param("ResourceId")
+        metadata = self._get_param("Metadata")
+        tags = self._get_param("Tags")
+        ops_meta = self.ssm_backend.create_ops_metadata(
+            resource_id=resource_id,
+            metadata=metadata,
+            tags=tags,
+        )
+        return ActionResult({"OpsMetadataArn": ops_meta.ops_metadata_arn})
+
+    def update_ops_metadata(self) -> ActionResult:
+        ops_metadata_arn = self._get_param("OpsMetadataArn")
+        metadata_to_update = self._get_param("MetadataToUpdate")
+        keys_to_delete = self._get_param("KeysToDelete")
+        result_arn = self.ssm_backend.update_ops_metadata(
+            ops_metadata_arn=ops_metadata_arn,
+            metadata_to_update=metadata_to_update,
+            keys_to_delete=keys_to_delete,
+        )
+        return ActionResult({"OpsMetadataArn": result_arn})
+
+    def delete_ops_metadata(self) -> ActionResult:
+        ops_metadata_arn = self._get_param("OpsMetadataArn")
+        self.ssm_backend.delete_ops_metadata(ops_metadata_arn)
+        return EmptyResult()
+
+    def delete_ops_item(self) -> ActionResult:
+        ops_item_id = self._get_param("OpsItemId")
+        self.ssm_backend.delete_ops_item(ops_item_id)
+        return EmptyResult()
+
+    def associate_ops_item_related_item(self) -> ActionResult:
+        ops_item_id = self._get_param("OpsItemId")
+        association_type = self._get_param("AssociationType")
+        resource_type = self._get_param("ResourceType")
+        resource_uri = self._get_param("ResourceUri")
+        association_id = self.ssm_backend.associate_ops_item_related_item(
+            ops_item_id=ops_item_id,
+            association_type=association_type,
+            resource_type=resource_type,
+            resource_uri=resource_uri,
+        )
+        return ActionResult({"AssociationId": association_id})
+
+    def disassociate_ops_item_related_item(self) -> ActionResult:
+        ops_item_id = self._get_param("OpsItemId")
+        association_id = self._get_param("AssociationId")
+        self.ssm_backend.disassociate_ops_item_related_item(
+            ops_item_id=ops_item_id,
+            association_id=association_id,
+        )
+        return EmptyResult()
+
+    def delete_inventory(self) -> ActionResult:
+        type_name = self._get_param("TypeName")
+        schema_delete_option = self._get_param("SchemaDeleteOption")
+        result = self.ssm_backend.delete_inventory(
+            type_name=type_name,
+            schema_delete_option=schema_delete_option,
+        )
+        return ActionResult(result)
+
+    def list_inventory_entries(self) -> ActionResult:
+        instance_id = self._get_param("InstanceId")
+        type_name = self._get_param("TypeName")
+        result = self.ssm_backend.list_inventory_entries(
+            instance_id=instance_id,
+            type_name=type_name,
+        )
+        return ActionResult(result)
+
+    def describe_instance_patches(self) -> ActionResult:
+        instance_id = self._get_param("InstanceId")
+        patches = self.ssm_backend.describe_instance_patches(instance_id)
+        return ActionResult({"Patches": patches})
+
+    def describe_maintenance_windows_for_target(self) -> ActionResult:
+        targets = self._get_param("Targets")
+        resource_type = self._get_param("ResourceType")
+        windows = self.ssm_backend.describe_maintenance_windows_for_target(
+            targets=targets,
+            resource_type=resource_type,
+        )
+        return ActionResult({"WindowIdentities": windows})
+
+    def list_association_versions(self) -> ActionResult:
+        association_id = self._get_param("AssociationId")
+        versions = self.ssm_backend.list_association_versions(association_id)
+        return ActionResult({"AssociationVersions": versions})
+
+    def list_document_versions(self) -> ActionResult:
+        name = self._get_param("Name")
+        versions = self.ssm_backend.list_document_versions(name)
+        return ActionResult({"DocumentVersions": versions})
+
+    def list_document_metadata_history(self) -> ActionResult:
+        name = self._get_param("Name")
+        document_version = self._get_param("DocumentVersion")
+        result = self.ssm_backend.list_document_metadata_history(
+            name=name,
+            document_version=document_version,
+        )
+        return ActionResult(result)
+
+    def update_association_status(self) -> ActionResult:
+        name = self._get_param("Name")
+        instance_id = self._get_param("InstanceId")
+        association_status = self._get_param("AssociationStatus")
+        result = self.ssm_backend.update_association_status(
+            name=name,
+            instance_id=instance_id,
+            association_status=association_status,
+        )
+        return ActionResult({"AssociationDescription": result})
+
+    def update_maintenance_window_target(self) -> ActionResult:
+        window_id = self._get_param("WindowId")
+        window_target_id = self._get_param("WindowTargetId")
+        targets = self._get_param("Targets")
+        owner_information = self._get_param("OwnerInformation")
+        name = self._get_param("Name")
+        description = self._get_param("Description")
+        replace = self._get_param("Replace", False)
+        result = self.ssm_backend.update_maintenance_window_target(
+            window_id=window_id,
+            window_target_id=window_target_id,
+            targets=targets,
+            owner_information=owner_information,
+            name=name,
+            description=description,
+            replace=replace,
+        )
+        return ActionResult(result)
+
+    def update_maintenance_window_task(self) -> ActionResult:
+        window_id = self._get_param("WindowId")
+        window_task_id = self._get_param("WindowTaskId")
+        targets = self._get_param("Targets")
+        task_arn = self._get_param("TaskArn")
+        service_role_arn = self._get_param("ServiceRoleArn")
+        task_parameters = self._get_param("TaskParameters")
+        task_invocation_parameters = self._get_param("TaskInvocationParameters")
+        priority = self._get_param("Priority")
+        max_concurrency = self._get_param("MaxConcurrency")
+        max_errors = self._get_param("MaxErrors")
+        logging_info = self._get_param("LoggingInfo")
+        name = self._get_param("Name")
+        description = self._get_param("Description")
+        replace = self._get_param("Replace", False)
+        cutoff_behavior = self._get_param("CutoffBehavior")
+        alarm_configurations = self._get_param("AlarmConfigurations")
+        result = self.ssm_backend.update_maintenance_window_task(
+            window_id=window_id,
+            window_task_id=window_task_id,
+            targets=targets,
+            task_arn=task_arn,
+            service_role_arn=service_role_arn,
+            task_parameters=task_parameters,
+            task_invocation_parameters=task_invocation_parameters,
+            priority=priority,
+            max_concurrency=max_concurrency,
+            max_errors=max_errors,
+            logging_info=logging_info,
+            name=name,
+            description=description,
+            replace=replace,
+            cutoff_behavior=cutoff_behavior,
+            alarm_configurations=alarm_configurations,
+        )
+        return ActionResult(result)
+
+    def update_managed_instance_role(self) -> ActionResult:
+        instance_id = self._get_param("InstanceId")
+        iam_role = self._get_param("IamRole")
+        self.ssm_backend.update_managed_instance_role(
+            instance_id=instance_id,
+            iam_role=iam_role,
+        )
+        return EmptyResult()
+
+    def delete_resource_policy(self) -> ActionResult:
+        resource_arn = self._get_param("ResourceArn")
+        policy_id = self._get_param("PolicyId")
+        policy_hash = self._get_param("PolicyHash")
+        self.ssm_backend.delete_resource_policy(
+            resource_arn=resource_arn,
+            policy_id=policy_id,
+            policy_hash=policy_hash,
+        )
+        return EmptyResult()
+
+    def get_resource_policies(self) -> ActionResult:
+        resource_arn = self._get_param("ResourceArn")
+        policies = self.ssm_backend.get_resource_policies(resource_arn)
+        return ActionResult({"Policies": policies})
+
+    def put_resource_policy(self) -> ActionResult:
+        resource_arn = self._get_param("ResourceArn")
+        policy = self._get_param("Policy")
+        policy_id = self._get_param("PolicyId")
+        policy_hash = self._get_param("PolicyHash")
+        result = self.ssm_backend.put_resource_policy(
+            resource_arn=resource_arn,
+            policy=policy,
+            policy_id=policy_id,
+            policy_hash=policy_hash,
+        )
+        return ActionResult(result)
+
+    def start_change_request_execution(self) -> ActionResult:
+        document_name = self._get_param("DocumentName")
+        document_version = self._get_param("DocumentVersion")
+        parameters = self._get_param("Parameters")
+        change_request_name = self._get_param("ChangeRequestName")
+        runbooks = self._get_param("Runbooks")
+        execution_id = self.ssm_backend.start_change_request_execution(
+            document_name=document_name,
+            document_version=document_version,
+            parameters=parameters,
+            change_request_name=change_request_name,
+            runbooks=runbooks,
+        )
+        return ActionResult({"AutomationExecutionId": execution_id})
 
     def get_patch_baseline(self) -> ActionResult:
         baseline_id = self._get_param("BaselineId")

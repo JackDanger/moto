@@ -1359,6 +1359,41 @@ class FakeAssociation:
         return result
 
 
+class FakeOpsMetadata:
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        partition: str,
+        resource_id: str,
+        metadata: Optional[dict[str, dict[str, str]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+    ):
+        self.resource_id = resource_id
+        self.metadata = metadata or {}
+        self.tags = tags or []
+        self.account_id = account_id
+        self.region_name = region_name
+        self.partition = partition
+        now = utcnow()
+        self.creation_date = now
+        self.last_modified_date = now
+        self.last_modified_user = f"arn:{partition}:iam::{account_id}:root"
+
+    @property
+    def ops_metadata_arn(self) -> str:
+        return f"arn:{self.partition}:ssm:{self.region_name}:{self.account_id}:opsmetadata/{self.resource_id}"
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "OpsMetadataArn": self.ops_metadata_arn,
+            "ResourceId": self.resource_id,
+            "CreationDate": self.creation_date.isoformat(),
+            "LastModifiedDate": self.last_modified_date.isoformat(),
+            "LastModifiedUser": self.last_modified_user,
+        }
+
+
 class FakeOpsItem:
     def __init__(
         self,
@@ -1395,6 +1430,7 @@ class FakeOpsItem:
         self.created_by = f"arn:{partition}:iam::{account_id}:root"
         self.last_modified_by = self.created_by
         self.version = "1"
+        self.related_items: list[dict[str, Any]] = []
 
     @property
     def arn(self) -> str:
@@ -1614,6 +1650,9 @@ class SimpleSystemManagerBackend(BaseBackend):
         self.default_parameter_tier = "Standard"
         self.associations: dict[str, FakeAssociation] = {}
         self.ops_items: dict[str, FakeOpsItem] = {}
+        self.ops_metadata: dict[str, FakeOpsMetadata] = {}
+        self.resource_policies: dict[str, dict[str, Any]] = {}
+        self.inventory_entries: dict[str, dict[str, list[dict[str, Any]]]] = {}
         self.activations: dict[str, FakeActivation] = {}
         self.resource_data_syncs: dict[str, FakeResourceDataSync] = {}
         self.automation_executions: dict[str, FakeAutomationExecution] = {}
@@ -3234,11 +3273,20 @@ class SimpleSystemManagerBackend(BaseBackend):
     def list_ops_item_events(self) -> list[Any]:
         return []
 
-    def list_ops_item_related_items(self) -> list[Any]:
-        return []
+    def list_ops_item_related_items(
+        self, ops_item_id: Optional[str] = None
+    ) -> list[dict[str, Any]]:
+        if ops_item_id:
+            if ops_item_id not in self.ops_items:
+                raise DoesNotExistException(ops_item_id)
+            return self.ops_items[ops_item_id].related_items
+        all_items: list[dict[str, Any]] = []
+        for item in self.ops_items.values():
+            all_items.extend(item.related_items)
+        return all_items
 
-    def list_ops_metadata(self) -> list[Any]:
-        return []
+    def list_ops_metadata(self) -> list[dict[str, Any]]:
+        return [m.to_json() for m in self.ops_metadata.values()]
 
     def list_resource_compliance_summaries(self) -> list[Any]:
         return []
@@ -3554,10 +3602,378 @@ class SimpleSystemManagerBackend(BaseBackend):
     def get_ops_metadata(
         self, ops_metadata_arn: str
     ) -> dict[str, Any]:
+        for meta in self.ops_metadata.values():
+            if meta.ops_metadata_arn == ops_metadata_arn:
+                return {
+                    "ResourceId": meta.resource_id,
+                    "Metadata": meta.metadata,
+                    "OpsMetadataArn": meta.ops_metadata_arn,
+                }
+        raise DoesNotExistException(ops_metadata_arn)
+
+    def create_ops_metadata(
+        self,
+        resource_id: str,
+        metadata: Optional[dict[str, dict[str, str]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> FakeOpsMetadata:
+        if resource_id in self.ops_metadata:
+            raise ValidationException(
+                f"An OpsMetadata entry already exists for ResourceId: {resource_id}."
+            )
+        ops_meta = FakeOpsMetadata(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            partition=self.partition,
+            resource_id=resource_id,
+            metadata=metadata,
+            tags=tags,
+        )
+        self.ops_metadata[resource_id] = ops_meta
+        return ops_meta
+
+    def update_ops_metadata(
+        self,
+        ops_metadata_arn: str,
+        metadata_to_update: Optional[dict[str, dict[str, str]]] = None,
+        keys_to_delete: Optional[list[str]] = None,
+    ) -> str:
+        target = None
+        for meta in self.ops_metadata.values():
+            if meta.ops_metadata_arn == ops_metadata_arn:
+                target = meta
+                break
+        if target is None:
+            raise DoesNotExistException(ops_metadata_arn)
+        if metadata_to_update:
+            target.metadata.update(metadata_to_update)
+        if keys_to_delete:
+            for key in keys_to_delete:
+                target.metadata.pop(key, None)
+        target.last_modified_date = utcnow()
+        return target.ops_metadata_arn
+
+    def delete_ops_metadata(self, ops_metadata_arn: str) -> None:
+        target_key = None
+        for key, meta in self.ops_metadata.items():
+            if meta.ops_metadata_arn == ops_metadata_arn:
+                target_key = key
+                break
+        if target_key is None:
+            raise DoesNotExistException(ops_metadata_arn)
+        del self.ops_metadata[target_key]
+
+    def delete_ops_item(self, ops_item_id: str) -> None:
+        self.ops_items.pop(ops_item_id, None)
+
+    def associate_ops_item_related_item(
+        self,
+        ops_item_id: str,
+        association_type: str,
+        resource_type: str,
+        resource_uri: str,
+    ) -> str:
+        if ops_item_id not in self.ops_items:
+            raise DoesNotExistException(ops_item_id)
+        association_id = str(random.uuid4())
+        self.ops_items[ops_item_id].related_items.append({
+            "AssociationId": association_id,
+            "OpsItemId": ops_item_id,
+            "AssociationType": association_type,
+            "ResourceType": resource_type,
+            "ResourceUri": resource_uri,
+            "CreatedBy": f"arn:{self.partition}:iam::{self.account_id}:root",
+            "CreatedTime": utcnow().isoformat(),
+            "LastModifiedBy": f"arn:{self.partition}:iam::{self.account_id}:root",
+            "LastModifiedTime": utcnow().isoformat(),
+        })
+        return association_id
+
+    def disassociate_ops_item_related_item(
+        self,
+        ops_item_id: str,
+        association_id: str,
+    ) -> None:
+        if ops_item_id not in self.ops_items:
+            raise DoesNotExistException(ops_item_id)
+        item = self.ops_items[ops_item_id]
+        item.related_items = [
+            ri for ri in item.related_items
+            if ri["AssociationId"] != association_id
+        ]
+
+    def delete_inventory(
+        self,
+        type_name: str,
+        schema_delete_option: Optional[str] = None,
+    ) -> dict[str, Any]:
+        deletion_id = str(random.uuid4())
         return {
-            "ResourceId": ops_metadata_arn,
-            "Metadata": {},
+            "DeletionId": deletion_id,
+            "TypeName": type_name,
+            "DeletionSummary": {
+                "TotalCount": 0,
+                "RemainingCount": 0,
+                "SummaryItems": [],
+            },
         }
+
+    def list_inventory_entries(
+        self,
+        instance_id: str,
+        type_name: str,
+    ) -> dict[str, Any]:
+        entries = (
+            self.inventory_entries
+            .get(instance_id, {})
+            .get(type_name, [])
+        )
+        return {
+            "TypeName": type_name,
+            "InstanceId": instance_id,
+            "SchemaVersion": "1.0",
+            "CaptureTime": utcnow().isoformat(),
+            "Entries": entries,
+        }
+
+    def describe_instance_patches(
+        self,
+        instance_id: str,
+    ) -> list[dict[str, Any]]:
+        return []
+
+    def describe_maintenance_windows_for_target(
+        self,
+        targets: list[dict[str, Any]],
+        resource_type: str,
+    ) -> list[dict[str, Any]]:
+        results = []
+        for window in self.windows.values():
+            for target in window.targets.values():
+                if target.resource_type == resource_type:
+                    results.append({
+                        "WindowId": window.id,
+                        "Name": window.name,
+                    })
+                    break
+        return results
+
+    def list_association_versions(
+        self,
+        association_id: str,
+    ) -> list[dict[str, Any]]:
+        if association_id not in self.associations:
+            raise DoesNotExistException(association_id)
+        assoc = self.associations[association_id]
+        versions = []
+        for v in range(1, int(assoc.association_version) + 1):
+            versions.append({
+                "AssociationId": assoc.association_id,
+                "AssociationVersion": str(v),
+                "Name": assoc.name,
+                "DocumentVersion": assoc.document_version,
+                "Targets": assoc.targets,
+                "Parameters": assoc.parameters,
+                "CreatedDate": assoc.date.isoformat(),
+            })
+        return versions
+
+    def list_document_versions(
+        self,
+        name: str,
+    ) -> list[dict[str, Any]]:
+        documents = self._get_documents(name)
+        result = []
+        for version, doc in documents.versions.items():
+            entry: dict[str, Any] = {
+                "Name": doc.name,
+                "DocumentVersion": version,
+                "CreatedDate": doc.created_date.isoformat(),
+                "IsDefaultVersion": version == documents.default_version,
+                "DocumentFormat": doc.document_format,
+                "Status": doc.status,
+            }
+            if doc.version_name:
+                entry["VersionName"] = doc.version_name
+            result.append(entry)
+        return result
+
+    def list_document_metadata_history(
+        self,
+        name: str,
+        document_version: Optional[str] = None,
+    ) -> dict[str, Any]:
+        documents = self._get_documents(name)
+        if document_version:
+            doc = documents.find(document_version)
+        else:
+            doc = documents.get_default_version()
+        return {
+            "Name": doc.name,
+            "DocumentVersion": doc.document_version,
+            "Author": doc.owner,
+            "Metadata": [],
+        }
+
+    def update_association_status(
+        self,
+        name: str,
+        instance_id: str,
+        association_status: dict[str, Any],
+    ) -> dict[str, Any]:
+        for assoc in self.associations.values():
+            if assoc.name == name and assoc.instance_id == instance_id:
+                assoc.status = association_status.get("Name", "Success")
+                assoc.last_update_association_date = utcnow()
+                return assoc.describe()
+        raise DoesNotExistException(f"{name}-{instance_id}")
+
+    def update_maintenance_window_target(
+        self,
+        window_id: str,
+        window_target_id: str,
+        targets: Optional[list[dict[str, Any]]] = None,
+        owner_information: Optional[str] = None,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        replace: bool = False,
+    ) -> dict[str, Any]:
+        if window_id not in self.windows:
+            raise DoesNotExistException(window_id)
+        window = self.windows[window_id]
+        if window_target_id not in window.targets:
+            raise DoesNotExistException(window_target_id)
+        target = window.targets[window_target_id]
+        if targets is not None:
+            target.targets = targets
+        if owner_information is not None:
+            target.owner_information = owner_information
+        if name is not None:
+            target.name = name
+        if description is not None:
+            target.description = description
+        return target.to_json()
+
+    def update_maintenance_window_task(
+        self,
+        window_id: str,
+        window_task_id: str,
+        targets: Optional[list[dict[str, Any]]] = None,
+        task_arn: Optional[str] = None,
+        service_role_arn: Optional[str] = None,
+        task_parameters: Optional[dict[str, Any]] = None,
+        task_invocation_parameters: Optional[dict[str, Any]] = None,
+        priority: Optional[int] = None,
+        max_concurrency: Optional[str] = None,
+        max_errors: Optional[str] = None,
+        logging_info: Optional[dict[str, Any]] = None,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        replace: bool = False,
+        cutoff_behavior: Optional[str] = None,
+        alarm_configurations: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any]:
+        if window_id not in self.windows:
+            raise DoesNotExistException(window_id)
+        window = self.windows[window_id]
+        task = None
+        for t in window.tasks.values():
+            if t.window_task_id == window_task_id:
+                task = t
+                break
+        if task is None:
+            raise DoesNotExistException(window_task_id)
+        if targets is not None:
+            task.targets = targets
+        if task_arn is not None:
+            task.task_arn = task_arn
+        if service_role_arn is not None:
+            task.service_role_arn = service_role_arn
+        if task_parameters is not None:
+            task.task_parameters = task_parameters
+        if task_invocation_parameters is not None:
+            task.task_invocation_parameters = task_invocation_parameters
+        if priority is not None:
+            task.priority = priority
+        if max_concurrency is not None:
+            task.max_concurrency = max_concurrency
+        if max_errors is not None:
+            task.max_errors = max_errors
+        if logging_info is not None:
+            task.logging_info = logging_info
+        if name is not None:
+            task.name = name
+        if description is not None:
+            task.description = description
+        if cutoff_behavior is not None:
+            task.cutoff_behavior = cutoff_behavior
+        if alarm_configurations is not None:
+            task.alarm_configurations = alarm_configurations
+        return task.to_json()
+
+    def update_managed_instance_role(
+        self,
+        instance_id: str,
+        iam_role: str,
+    ) -> None:
+        pass
+
+    def delete_resource_policy(
+        self,
+        resource_arn: str,
+        policy_id: str,
+        policy_hash: str,
+    ) -> None:
+        if resource_arn in self.resource_policies:
+            policy = self.resource_policies[resource_arn]
+            if policy.get("PolicyId") == policy_id:
+                del self.resource_policies[resource_arn]
+                return
+        raise DoesNotExistException(resource_arn)
+
+    def get_resource_policies(
+        self,
+        resource_arn: str,
+    ) -> list[dict[str, Any]]:
+        if resource_arn in self.resource_policies:
+            return [self.resource_policies[resource_arn]]
+        return []
+
+    def put_resource_policy(
+        self,
+        resource_arn: str,
+        policy: str,
+        policy_id: Optional[str] = None,
+        policy_hash: Optional[str] = None,
+    ) -> dict[str, str]:
+        new_policy_id = policy_id or str(random.uuid4())
+        new_policy_hash = hashlib.sha256(policy.encode("utf-8")).hexdigest()
+        self.resource_policies[resource_arn] = {
+            "PolicyId": new_policy_id,
+            "PolicyHash": new_policy_hash,
+            "Policy": policy,
+        }
+        return {"PolicyId": new_policy_id, "PolicyHash": new_policy_hash}
+
+    def start_change_request_execution(
+        self,
+        document_name: str,
+        document_version: Optional[str] = None,
+        parameters: Optional[dict[str, list[str]]] = None,
+        change_request_name: Optional[str] = None,
+        runbooks: Optional[list[dict[str, Any]]] = None,
+    ) -> str:
+        execution = FakeAutomationExecution(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            partition=self.partition,
+            document_name=document_name,
+            document_version=document_version,
+            parameters=parameters,
+        )
+        execution.automation_execution_status = "Pending"
+        self.automation_executions[execution.automation_execution_id] = execution
+        return execution.automation_execution_id
 
     def get_patch_baseline(
         self, baseline_id: str
