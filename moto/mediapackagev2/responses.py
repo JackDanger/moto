@@ -24,7 +24,6 @@ class mediapackagev2Response(BaseResponse):
 
     def _get_uri_param(self, name: str) -> str:
         """Extract a parameter from the URL path."""
-        val = self.parsed_url.path.split("/")
         # Find the param after its key segment
         # URL pattern: /channelGroup/{CG}/channel/{CH}/originEndpoint/{OE}/harvestJob/{HJ}
         segments = {
@@ -32,8 +31,14 @@ class mediapackagev2Response(BaseResponse):
             "ChannelName": "channel",
             "OriginEndpointName": "originEndpoint",
             "HarvestJobName": "harvestJob",
-            "ResourceArn": "tags",
         }
+        if name == "ResourceArn":
+            # ARN comes after /tags/ and may contain slashes
+            path = self.parsed_url.path
+            idx = path.find("/tags/")
+            if idx >= 0:
+                return unquote(path[idx + 6:])
+            return ""
         key_segment = segments.get(name)
         if key_segment:
             parts = self.parsed_url.path.strip("/").split("/")
@@ -45,7 +50,7 @@ class mediapackagev2Response(BaseResponse):
     def create_channel_group(self) -> ActionResult:
         channel_group_name = self._get_param("ChannelGroupName")
         description = self._get_param("Description", "")
-        tags = self._get_param("Tags")
+        tags = self._get_param("tags")
         group = self.mediapackagev2_backend.create_channel_group(
             channel_group_name=channel_group_name,
             description=description,
@@ -67,7 +72,7 @@ class mediapackagev2Response(BaseResponse):
         channel_name = self._get_param("ChannelName")
         description = self._get_param("Description", "")
         input_type = self._get_param("InputType", "HLS")
-        tags = self._get_param("Tags")
+        tags = self._get_param("tags")
         channel = self.mediapackagev2_backend.create_channel(
             channel_group_name=channel_group_name,
             channel_name=channel_name,
@@ -191,7 +196,7 @@ class mediapackagev2Response(BaseResponse):
         force_endpoint_error_configuration = self._get_param(
             "ForceEndpointErrorConfiguration"
         )
-        tags = self._get_param("Tags")
+        tags = self._get_param("tags")
         endpoint = self.mediapackagev2_backend.create_origin_endpoint(
             channel_group_name=channel_group_name,
             channel_name=channel_name,
@@ -323,7 +328,7 @@ class mediapackagev2Response(BaseResponse):
         destination = self._get_param("Destination")
         description = self._get_param("Description", "")
         harvest_job_name = self._get_param("HarvestJobName")
-        tags = self._get_param("Tags")
+        tags = self._get_param("tags")
         job = self.mediapackagev2_backend.create_harvest_job(
             channel_group_name=channel_group_name,
             channel_name=channel_name,
@@ -400,7 +405,7 @@ class mediapackagev2Response(BaseResponse):
     # Tagging
     def tag_resource(self) -> ActionResult:
         resource_arn = self._get_uri_param("ResourceArn")
-        tags = self._get_param("Tags")
+        tags = self._get_param("tags")
         if tags:
             self.mediapackagev2_backend.tag_resource(
                 resource_arn=resource_arn,
