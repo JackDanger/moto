@@ -849,7 +849,14 @@ class ElasticMapReduceBackend(BaseBackend):
     @cache
     def _get_instance_type_names(self, release_label: str) -> list[str]:
         """Returns all instance type names that can be used with this release label"""
-        return load_resource(__name__, f"resources/instance-types-{release_label}.json")
+        try:
+            return load_resource(__name__, f"resources/instance-types-{release_label}.json")
+        except (FileNotFoundError, OSError):
+            from .exceptions import ValidationException
+
+            raise ValidationException(
+                f"Release label {release_label} is not supported."
+            )
 
     @cached_property
     def _instance_types(self) -> dict[str, Any]:
@@ -875,7 +882,7 @@ class ElasticMapReduceBackend(BaseBackend):
     def add_instance_groups(
         self, cluster_id: str, instance_groups: list[dict[str, Any]]
     ) -> list[InstanceGroup]:
-        cluster = self.clusters[cluster_id]
+        cluster = self.describe_cluster(cluster_id)
         result_groups = []
         for instance_group in instance_groups:
             group = InstanceGroup(cluster_id=cluster_id, **instance_group)
@@ -902,7 +909,7 @@ class ElasticMapReduceBackend(BaseBackend):
     def add_job_flow_steps(
         self, job_flow_id: str, steps: list[dict[str, Any]]
     ) -> list[Step]:
-        cluster = self.clusters[job_flow_id]
+        cluster = self.describe_cluster(job_flow_id)
         return cluster.add_steps(steps)
 
     def add_tags(self, cluster_id: str, tags: dict[str, str]) -> None:
@@ -934,7 +941,7 @@ class ElasticMapReduceBackend(BaseBackend):
         return sorted(clusters, key=lambda x: x.id)[:512]
 
     def describe_step(self, cluster_id: str, step_id: str) -> Optional[Step]:
-        cluster = self.clusters[cluster_id]
+        cluster = self.describe_cluster(cluster_id)
         for step in cluster.steps:
             if step.id == step_id:
                 return step
@@ -953,7 +960,7 @@ class ElasticMapReduceBackend(BaseBackend):
         ]
 
     def list_bootstrap_actions(self, cluster_id: str) -> list[BootstrapAction]:
-        actions = self.clusters[cluster_id].bootstrap_actions
+        actions = self.describe_cluster(cluster_id).bootstrap_actions
         return actions
 
     def list_clusters(
@@ -973,7 +980,7 @@ class ElasticMapReduceBackend(BaseBackend):
         return clusters
 
     def list_instance_groups(self, cluster_id: str) -> list[InstanceGroup]:
-        groups = sorted(self.clusters[cluster_id].instance_groups, key=lambda x: x.id)
+        groups = sorted(self.describe_cluster(cluster_id).instance_groups, key=lambda x: x.id)
         return groups
 
     def list_instances(
@@ -982,7 +989,7 @@ class ElasticMapReduceBackend(BaseBackend):
         instance_group_id: Optional[str] = None,
         instance_group_types: Optional[list[str]] = None,
     ) -> list[Instance]:
-        groups = sorted(self.clusters[cluster_id].ec2_instances, key=lambda x: x.id)
+        groups = sorted(self.describe_cluster(cluster_id).ec2_instances, key=lambda x: x.id)
         if instance_group_id:
             groups = [g for g in groups if g.instance_group.id == instance_group_id]
         if instance_group_types:
@@ -998,7 +1005,7 @@ class ElasticMapReduceBackend(BaseBackend):
         step_states: Optional[list[str]] = None,
     ) -> list[Step]:
         steps = sorted(
-            self.clusters[cluster_id].steps,
+            self.describe_cluster(cluster_id).steps,
             key=lambda o: o.creation_date_time,
             reverse=True,
         )
@@ -1009,7 +1016,7 @@ class ElasticMapReduceBackend(BaseBackend):
         return steps
 
     def modify_cluster(self, cluster_id: str, step_concurrency_level: int) -> Cluster:
-        cluster = self.clusters[cluster_id]
+        cluster = self.describe_cluster(cluster_id)
         cluster.step_concurrency_level = step_concurrency_level
         return cluster
 
