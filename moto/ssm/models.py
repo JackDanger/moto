@@ -3409,5 +3409,173 @@ class SimpleSystemManagerBackend(BaseBackend):
             execution.automation_execution_status = "Cancelled"
         execution.execution_end_time = utcnow()
 
+    def describe_association_execution_targets(
+        self, association_id: str, execution_id: str
+    ) -> list[dict[str, Any]]:
+        if association_id not in self.associations:
+            raise DoesNotExistException(association_id)
+        return []
+
+    def describe_association_executions(
+        self, association_id: str
+    ) -> list[dict[str, Any]]:
+        if association_id not in self.associations:
+            raise DoesNotExistException(association_id)
+        assoc = self.associations[association_id]
+        return [
+            {
+                "AssociationId": association_id,
+                "AssociationVersion": assoc.association_version,
+                "ExecutionId": str(uuid4()),
+                "Status": "Success",
+                "DetailedStatus": "Success",
+                "CreatedTime": assoc.last_execution_date.isoformat(),
+                "ResourceCountByStatus": json.dumps({"Success": 1}),
+            }
+        ]
+
+    def describe_effective_instance_associations(
+        self, instance_id: str
+    ) -> list[dict[str, Any]]:
+        results = []
+        for assoc in self.associations.values():
+            if assoc.instance_id == instance_id:
+                results.append({
+                    "AssociationId": assoc.association_id,
+                    "InstanceId": instance_id,
+                    "Content": assoc.name,
+                    "AssociationVersion": assoc.association_version,
+                })
+            for target in assoc.targets:
+                if target.get("Key") == "InstanceIds" and instance_id in target.get("Values", []):
+                    results.append({
+                        "AssociationId": assoc.association_id,
+                        "InstanceId": instance_id,
+                        "Content": assoc.name,
+                        "AssociationVersion": assoc.association_version,
+                    })
+        return results
+
+    def describe_instance_associations_status(
+        self, instance_id: str
+    ) -> list[dict[str, Any]]:
+        results = []
+        for assoc in self.associations.values():
+            match = False
+            if assoc.instance_id == instance_id:
+                match = True
+            for target in assoc.targets:
+                if target.get("Key") == "InstanceIds" and instance_id in target.get("Values", []):
+                    match = True
+            if match:
+                results.append({
+                    "AssociationId": assoc.association_id,
+                    "Name": assoc.name,
+                    "DocumentVersion": assoc.document_version,
+                    "AssociationVersion": assoc.association_version,
+                    "InstanceId": instance_id,
+                    "ExecutionDate": assoc.last_execution_date.isoformat(),
+                    "ExecutionSummary": assoc.status,
+                    "Status": assoc.status,
+                    "DetailedStatus": "Success",
+                    "OutputUrl": {},
+                })
+        return results
+
+    def describe_instance_patch_states(
+        self, instance_ids: list[str]
+    ) -> list[dict[str, Any]]:
+        return [
+            {
+                "InstanceId": iid,
+                "PatchGroup": "",
+                "BaselineId": "",
+                "OperationStartTime": utcnow().isoformat(),
+                "OperationEndTime": utcnow().isoformat(),
+                "Operation": "Scan",
+                "InstalledCount": 0,
+                "InstalledOtherCount": 0,
+                "MissingCount": 0,
+                "FailedCount": 0,
+                "NotApplicableCount": 0,
+            }
+            for iid in instance_ids
+        ]
+
+    def describe_instance_patch_states_for_patch_group(
+        self, patch_group: str
+    ) -> list[dict[str, Any]]:
+        return []
+
+    def describe_patch_group_state(
+        self, patch_group: str
+    ) -> dict[str, int]:
+        return {
+            "Instances": 0,
+            "InstancesWithInstalledPatches": 0,
+            "InstancesWithInstalledOtherPatches": 0,
+            "InstancesWithInstalledRejectedPatches": 0,
+            "InstancesWithMissingPatches": 0,
+            "InstancesWithFailedPatches": 0,
+            "InstancesWithNotApplicablePatches": 0,
+            "InstancesWithInstalledPendingRebootPatches": 0,
+            "InstancesWithCriticalNonCompliantPatches": 0,
+            "InstancesWithSecurityNonCompliantPatches": 0,
+            "InstancesWithOtherNonCompliantPatches": 0,
+        }
+
+    def describe_patch_properties(
+        self, operating_system: str, property_: str, patch_set: Optional[str] = None
+    ) -> list[dict[str, str]]:
+        return []
+
+    def describe_sessions(
+        self, state: str
+    ) -> list[dict[str, Any]]:
+        return []
+
+    def get_calendar_state(
+        self, calendar_names: list[str]
+    ) -> dict[str, Any]:
+        return {
+            "State": "OPEN",
+            "AtTime": utcnow().isoformat(),
+            "NextTransitionTime": "",
+        }
+
+    def get_connection_status(
+        self, target: str
+    ) -> dict[str, str]:
+        return {
+            "Target": target,
+            "Status": "notconnected",
+        }
+
+    def get_ops_metadata(
+        self, ops_metadata_arn: str
+    ) -> dict[str, Any]:
+        return {
+            "ResourceId": ops_metadata_arn,
+            "Metadata": {},
+        }
+
+    def get_patch_baseline(
+        self, baseline_id: str
+    ) -> dict[str, Any]:
+        if baseline_id not in self.baselines:
+            raise BaselineDoesNotExistException()
+        baseline = self.baselines[baseline_id]
+        result = baseline.to_json()
+        result["Name"] = result.pop("BaselineName", baseline.name)
+        result["Description"] = result.pop("BaselineDescription", baseline.description)
+        result["CreatedDate"] = utcnow().isoformat()
+        result["ModifiedDate"] = utcnow().isoformat()
+        result["PatchGroups"] = [
+            pg_name
+            for pg_name, pg in self.patch_groups.items()
+            if baseline_id in pg.associations.values()
+        ]
+        return result
+
 
 ssm_backends = BackendDict(SimpleSystemManagerBackend, "ssm")

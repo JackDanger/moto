@@ -890,3 +890,79 @@ class SimpleSystemManagerResponse(BaseResponse):
             )
         )
         return ActionResult({"BaselineId": baseline_id, "PatchGroup": patch_group})
+
+    def describe_association_execution_targets(self) -> ActionResult:
+        association_id = self._get_param("AssociationId")
+        execution_id = self._get_param("ExecutionId")
+        targets = self.ssm_backend.describe_association_execution_targets(
+            association_id, execution_id
+        )
+        return ActionResult({"AssociationExecutionTargets": targets})
+
+    def describe_association_executions(self) -> ActionResult:
+        association_id = self._get_param("AssociationId")
+        executions = self.ssm_backend.describe_association_executions(association_id)
+        return ActionResult({"AssociationExecutions": executions})
+
+    def describe_effective_instance_associations(self) -> ActionResult:
+        instance_id = self._get_param("InstanceId")
+        associations = self.ssm_backend.describe_effective_instance_associations(
+            instance_id
+        )
+        return ActionResult({"Associations": associations})
+
+    def describe_instance_associations_status(self) -> ActionResult:
+        instance_id = self._get_param("InstanceId")
+        statuses = self.ssm_backend.describe_instance_associations_status(instance_id)
+        return ActionResult({"InstanceAssociationStatusInfos": statuses})
+
+    def describe_instance_patch_states(self) -> ActionResult:
+        instance_ids = self._get_param("InstanceIds")
+        states = self.ssm_backend.describe_instance_patch_states(instance_ids)
+        return ActionResult({"InstancePatchStates": states})
+
+    def describe_instance_patch_states_for_patch_group(self) -> ActionResult:
+        patch_group = self._get_param("PatchGroup")
+        states = self.ssm_backend.describe_instance_patch_states_for_patch_group(
+            patch_group
+        )
+        return ActionResult({"InstancePatchStates": states})
+
+    def describe_patch_group_state(self) -> ActionResult:
+        patch_group = self._get_param("PatchGroup")
+        result = self.ssm_backend.describe_patch_group_state(patch_group)
+        return ActionResult(result)
+
+    def describe_patch_properties(self) -> ActionResult:
+        operating_system = self._get_param("OperatingSystem")
+        property_ = self._get_param("Property")
+        patch_set = self._get_param("PatchSet")
+        properties = self.ssm_backend.describe_patch_properties(
+            operating_system, property_, patch_set
+        )
+        return ActionResult({"Properties": properties})
+
+    def describe_sessions(self) -> ActionResult:
+        state = self._get_param("State")
+        sessions = self.ssm_backend.describe_sessions(state)
+        return ActionResult({"Sessions": sessions})
+
+    def get_calendar_state(self) -> ActionResult:
+        calendar_names = self._get_param("CalendarNames")
+        result = self.ssm_backend.get_calendar_state(calendar_names)
+        return ActionResult(result)
+
+    def get_connection_status(self) -> ActionResult:
+        target = self._get_param("Target")
+        result = self.ssm_backend.get_connection_status(target)
+        return ActionResult(result)
+
+    def get_ops_metadata(self) -> ActionResult:
+        ops_metadata_arn = self._get_param("OpsMetadataArn")
+        result = self.ssm_backend.get_ops_metadata(ops_metadata_arn)
+        return ActionResult(result)
+
+    def get_patch_baseline(self) -> ActionResult:
+        baseline_id = self._get_param("BaselineId")
+        result = self.ssm_backend.get_patch_baseline(baseline_id)
+        return ActionResult(result)
