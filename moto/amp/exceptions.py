@@ -8,6 +8,8 @@ class AmpException(JsonRESTError):
 
 
 class ResourceNotFoundException(AmpException):
+    code = 404
+
     def __init__(self, message: str, resource_id: str, resource_type: str):
         super().__init__("ResourceNotFoundException", message)
         self.description = json.dumps(
