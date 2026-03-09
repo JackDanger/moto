@@ -570,11 +570,29 @@ class EventsHandler(BaseResponse):
         self.events_backend.put_partner_events(entries)
         return json.dumps({"Entries": [], "FailedEntryCount": 0})
 
+    def describe_endpoint(self) -> tuple[str, dict[str, Any]]:
+        name = self._get_param("Name") or "default"
+        region = self.region
+        account_id = self.current_account
+        result = {
+            "Name": name,
+            "State": "ACTIVE",
+            "Arn": f"arn:aws:events:{region}:{account_id}:endpoint/{name}",
+            "EndpointUrl": f"https://events.{region}.amazonaws.com",
+        }
+        return json.dumps(result), self.response_headers
+
     def list_endpoints(self) -> tuple[str, dict[str, Any]]:
         return json.dumps({"Endpoints": []}), self.response_headers
 
     def list_event_sources(self) -> tuple[str, dict[str, Any]]:
         return json.dumps({"EventSources": []}), self.response_headers
+
+    def list_partner_event_source_accounts(self) -> tuple[str, dict[str, Any]]:
+        return json.dumps({"PartnerEventSourceAccounts": []}), self.response_headers
+
+    def list_partner_event_sources(self) -> tuple[str, dict[str, Any]]:
+        return json.dumps({"PartnerEventSources": []}), self.response_headers
 
     def update_event_bus(self) -> tuple[str, dict[str, Any]]:
         name = self._get_param("Name")
