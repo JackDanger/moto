@@ -659,6 +659,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
 
         self.metrics: list[str] = []
         self.warm_pool: Optional[FakeWarmPool] = None
+        self.traffic_sources: list[dict[str, str]] = []
         self.created_time = datetime.now().isoformat()
 
     @property
@@ -1155,6 +1156,12 @@ class FakeAutoScalingGroup(CloudFormationModel):
 
     def enable_metrics_collection(self, metrics: list[str]) -> None:
         self.metrics = metrics or []
+
+    def disable_metrics_collection(self, metrics: Optional[list[str]]) -> None:
+        if metrics:
+            self.metrics = [m for m in self.metrics if m not in metrics]
+        else:
+            self.metrics = []
 
     def put_warm_pool(
         self,
@@ -1980,6 +1987,12 @@ class AutoScalingBackend(BaseBackend):
         group = self.describe_auto_scaling_groups([group_name])[0]
         group.enable_metrics_collection(metrics)
 
+    def disable_metrics_collection(
+        self, group_name: str, metrics: Optional[list[str]]
+    ) -> None:
+        group = self.describe_auto_scaling_groups([group_name])[0]
+        group.disable_metrics_collection(metrics)
+
     def put_warm_pool(
         self,
         group_name: str,
@@ -2207,6 +2220,139 @@ class AutoScalingBackend(BaseBackend):
                 refresh.end_time = utcnow()
                 return refresh.instance_refresh_id
         raise ResourceContentionError()
+
+    def rollback_instance_refresh(
+        self,
+        auto_scaling_group_name: str,
+    ) -> str:
+        if auto_scaling_group_name not in self.autoscaling_groups:
+            raise ValidationError(
+                "AutoScalingGroup name not found - AutoScalingGroup "
+                f"'{auto_scaling_group_name}' not found"
+            )
+        refreshes = self.instance_refreshes.get(auto_scaling_group_name, [])
+        for refresh in refreshes:
+            if refresh.status in ("InProgress", "Pending"):
+                refresh.status = "RollbackInProgress"
+                return refresh.instance_refresh_id
+        raise ResourceContentionError()
+
+    def complete_lifecycle_action(
+        self,
+        lifecycle_hook_name: str,
+        auto_scaling_group_name: str,
+        lifecycle_action_result: str,
+        instance_id: Optional[str] = None,
+        lifecycle_action_token: Optional[str] = None,
+    ) -> None:
+        if auto_scaling_group_name not in self.autoscaling_groups:
+            raise ValidationError(
+                "AutoScalingGroup name not found - AutoScalingGroup "
+                f"'{auto_scaling_group_name}' not found"
+            )
+        hooks = self.describe_lifecycle_hooks(
+            as_name=auto_scaling_group_name,
+            lifecycle_hook_names=[lifecycle_hook_name],
+        )
+        if not hooks:
+            raise ValidationError(
+                f"No Lifecycle Hook found with name '{lifecycle_hook_name}'"
+            )
+
+    def record_lifecycle_action_heartbeat(
+        self,
+        lifecycle_hook_name: str,
+        auto_scaling_group_name: str,
+        instance_id: Optional[str] = None,
+        lifecycle_action_token: Optional[str] = None,
+    ) -> None:
+        if auto_scaling_group_name not in self.autoscaling_groups:
+            raise ValidationError(
+                "AutoScalingGroup name not found - AutoScalingGroup "
+                f"'{auto_scaling_group_name}' not found"
+            )
+        hooks = self.describe_lifecycle_hooks(
+            as_name=auto_scaling_group_name,
+            lifecycle_hook_names=[lifecycle_hook_name],
+        )
+        if not hooks:
+            raise ValidationError(
+                f"No Lifecycle Hook found with name '{lifecycle_hook_name}'"
+            )
+
+    def attach_traffic_sources(
+        self,
+        auto_scaling_group_name: str,
+        traffic_sources: list[dict[str, str]],
+    ) -> None:
+        if auto_scaling_group_name not in self.autoscaling_groups:
+            raise ValidationError(
+                "AutoScalingGroup name not found - AutoScalingGroup "
+                f"'{auto_scaling_group_name}' not found"
+            )
+        group = self.autoscaling_groups[auto_scaling_group_name]
+        existing_ids = {ts["Identifier"] for ts in group.traffic_sources}
+        for ts in traffic_sources:
+            if ts["Identifier"] not in existing_ids:
+                group.traffic_sources.append(ts)
+                existing_ids.add(ts["Identifier"])
+
+    def describe_traffic_sources(
+        self,
+        auto_scaling_group_name: str,
+        traffic_source_type: Optional[str] = None,
+    ) -> list[dict[str, str]]:
+        if auto_scaling_group_name not in self.autoscaling_groups:
+            raise ValidationError(
+                "AutoScalingGroup name not found - AutoScalingGroup "
+                f"'{auto_scaling_group_name}' not found"
+            )
+        group = self.autoscaling_groups[auto_scaling_group_name]
+        sources = group.traffic_sources
+        if traffic_source_type:
+            sources = [
+                s for s in sources if s.get("Type") == traffic_source_type
+            ]
+        return sources
+
+    def detach_traffic_sources(
+        self,
+        auto_scaling_group_name: str,
+        traffic_sources: list[dict[str, str]],
+    ) -> None:
+        if auto_scaling_group_name not in self.autoscaling_groups:
+            raise ValidationError(
+                "AutoScalingGroup name not found - AutoScalingGroup "
+                f"'{auto_scaling_group_name}' not found"
+            )
+        group = self.autoscaling_groups[auto_scaling_group_name]
+        ids_to_remove = {ts["Identifier"] for ts in traffic_sources}
+        group.traffic_sources = [
+            ts
+            for ts in group.traffic_sources
+            if ts["Identifier"] not in ids_to_remove
+        ]
+
+    def get_predictive_scaling_forecast(
+        self,
+        auto_scaling_group_name: str,
+        policy_name: str,
+        start_time: str,
+        end_time: str,
+    ) -> dict[str, Any]:
+        if auto_scaling_group_name not in self.autoscaling_groups:
+            raise ValidationError(
+                "AutoScalingGroup name not found - AutoScalingGroup "
+                f"'{auto_scaling_group_name}' not found"
+            )
+        return {
+            "LoadForecast": [],
+            "CapacityForecast": {
+                "Timestamps": [],
+                "Values": [],
+            },
+            "UpdateTime": utcnow(),
+        }
 
 
 autoscaling_backends = BackendDict(AutoScalingBackend, "autoscaling")
