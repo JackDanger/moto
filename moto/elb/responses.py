@@ -308,6 +308,19 @@ class ELBResponse(BaseResponse):
 
         return EmptyResult()
 
+    def describe_account_limits(self) -> ActionResult:
+        limits = self.elb_backend.describe_account_limits()
+        result = {"Limits": limits}
+        return ActionResult(result)
+
+    def describe_load_balancer_policy_types(self) -> ActionResult:
+        policy_type_names = self._get_param("PolicyTypeNames", [])
+        policy_types = self.elb_backend.describe_load_balancer_policy_types(
+            policy_type_names=policy_type_names
+        )
+        result = {"PolicyTypeDescriptions": policy_types}
+        return ActionResult(result)
+
     def describe_load_balancer_policies(self) -> ActionResult:
         load_balancer_name = self._get_param("LoadBalancerName")
         names = self._get_param("PolicyNames", [])

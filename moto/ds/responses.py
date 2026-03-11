@@ -209,6 +209,11 @@ class DirectoryServiceResponse(BaseResponse):
         )
         return json.dumps({"TrustId": trust_id})
 
+    def verify_trust(self) -> str:
+        trust_id = self._get_param("TrustId")
+        trust_id = self.ds_backend.verify_trust(trust_id=trust_id)
+        return json.dumps({"TrustId": trust_id})
+
     def describe_ldaps_settings(self) -> str:
         directory_id = self._get_param("DirectoryId")
         type = self._get_param("Type")
@@ -558,6 +563,30 @@ class DirectoryServiceResponse(BaseResponse):
         limit = self._get_param("Limit")
         routes = self.ds_backend.list_ip_routes(directory_id=directory_id)
         return json.dumps({"IpRoutesInfo": routes, "NextToken": None})
+
+    def start_schema_extension(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        create_snapshot = self._get_param(
+            "CreateSnapshotBeforeSchemaExtension", False
+        )
+        ldif_content = self._get_param("LdifContent")
+        description = self._get_param("Description")
+        schema_extension_id = self.ds_backend.start_schema_extension(
+            directory_id=directory_id,
+            create_snapshot_before_schema_extension=create_snapshot,
+            ldif_content=ldif_content,
+            description=description,
+        )
+        return json.dumps({"SchemaExtensionId": schema_extension_id})
+
+    def cancel_schema_extension(self) -> str:
+        directory_id = self._get_param("DirectoryId")
+        schema_extension_id = self._get_param("SchemaExtensionId")
+        self.ds_backend.cancel_schema_extension(
+            directory_id=directory_id,
+            schema_extension_id=schema_extension_id,
+        )
+        return json.dumps({})
 
     def list_schema_extensions(self) -> str:
         directory_id = self._get_param("DirectoryId")

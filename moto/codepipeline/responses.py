@@ -381,3 +381,49 @@ class CodePipelineResponse(BaseResponse):
         rule_types = self.codepipeline_backend.list_rule_types()
 
         return json.dumps({"ruleTypes": rule_types})
+    # --- Deploy Action Execution Targets ---
+
+    def list_deploy_action_execution_targets(self) -> str:
+        targets, next_token = (
+            self.codepipeline_backend.list_deploy_action_execution_targets(
+                pipeline_name=self._get_param("pipelineName"),
+                action_execution_id=self._get_param("actionExecutionId"),
+                filters=self._get_param("filters"),
+                max_results=self._get_param("maxResults"),
+                next_token=self._get_param("nextToken"),
+            )
+        )
+
+        result: dict = {"targets": targets}
+        if next_token:
+            result["nextToken"] = next_token
+
+        return json.dumps(result)
+
+    # --- Action Revision operations ---
+
+    def put_action_revision(self) -> str:
+        new_revision, execution_id = (
+            self.codepipeline_backend.put_action_revision(
+                pipeline_name=self._get_param("pipelineName"),
+                stage_name=self._get_param("stageName"),
+                action_name=self._get_param("actionName"),
+                action_revision=self._get_param("actionRevision"),
+            )
+        )
+
+        return json.dumps(
+            {
+                "newRevision": new_revision,
+                "pipelineExecutionId": execution_id,
+            }
+        )
+
+    # --- Action Type update operations ---
+
+    def update_action_type(self) -> str:
+        self.codepipeline_backend.update_action_type(
+            action_type=self._get_param("actionType"),
+        )
+
+        return ""

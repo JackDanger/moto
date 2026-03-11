@@ -943,6 +943,97 @@ class ComprehendBackend(BaseBackend):
             raise TextSizeLimitExceededException(text_size)
         return {"Entities": []}
 
+    def batch_detect_dominant_language(
+        self, text_list: list[str]
+    ) -> dict[str, Any]:
+        result_list = []
+        error_list: list[dict[str, Any]] = []
+        for index, text in enumerate(text_list):
+            result_list.append(
+                {
+                    "Index": index,
+                    "Languages": [{"LanguageCode": "en", "Score": 0.99}],
+                }
+            )
+        return {"ResultList": result_list, "ErrorList": error_list}
+
+    def batch_detect_entities(
+        self, text_list: list[str], language_code: str
+    ) -> dict[str, Any]:
+        result_list = []
+        error_list: list[dict[str, Any]] = []
+        for index, text in enumerate(text_list):
+            result_list.append({"Index": index, "Entities": []})
+        return {"ResultList": result_list, "ErrorList": error_list}
+
+    def batch_detect_key_phrases(
+        self, text_list: list[str], language_code: str
+    ) -> dict[str, Any]:
+        result_list = []
+        error_list: list[dict[str, Any]] = []
+        for index, text in enumerate(text_list):
+            result_list.append({"Index": index, "KeyPhrases": []})
+        return {"ResultList": result_list, "ErrorList": error_list}
+
+    def batch_detect_sentiment(
+        self, text_list: list[str], language_code: str
+    ) -> dict[str, Any]:
+        result_list = []
+        error_list: list[dict[str, Any]] = []
+        for index, text in enumerate(text_list):
+            result_list.append(
+                {
+                    "Index": index,
+                    "Sentiment": "NEUTRAL",
+                    "SentimentScore": {
+                        "Positive": 0.008101312443614006,
+                        "Negative": 0.0002824589901138097,
+                        "Neutral": 0.9916020035743713,
+                        "Mixed": 1.4156351426208857e-05,
+                    },
+                }
+            )
+        return {"ResultList": result_list, "ErrorList": error_list}
+
+    def batch_detect_syntax(
+        self, text_list: list[str], language_code: str
+    ) -> dict[str, Any]:
+        result_list = []
+        error_list: list[dict[str, Any]] = []
+        for index, text in enumerate(text_list):
+            result_list.append({"Index": index, "SyntaxTokens": []})
+        return {"ResultList": result_list, "ErrorList": error_list}
+
+    def batch_detect_targeted_sentiment(
+        self, text_list: list[str], language_code: str
+    ) -> dict[str, Any]:
+        result_list = []
+        error_list: list[dict[str, Any]] = []
+        for index, text in enumerate(text_list):
+            result_list.append({"Index": index, "Entities": []})
+        return {"ResultList": result_list, "ErrorList": error_list}
+
+    def detect_toxic_content(
+        self, text_segments: list[dict[str, str]], language_code: str
+    ) -> dict[str, Any]:
+        result_list = []
+        for segment in text_segments:
+            result_list.append(
+                {
+                    "Labels": [
+                        {"Name": "PROFANITY", "Score": 0.01},
+                        {"Name": "HATE_SPEECH", "Score": 0.01},
+                        {"Name": "INSULT", "Score": 0.01},
+                        {"Name": "GRAPHIC", "Score": 0.01},
+                        {"Name": "HARASSMENT_OR_ABUSE", "Score": 0.01},
+                        {"Name": "SEXUAL", "Score": 0.01},
+                        {"Name": "VIOLENCE_OR_THREAT", "Score": 0.01},
+                    ],
+                    "Toxicity": 0.01,
+                }
+            )
+        return {"ResultList": result_list}
+
     def contains_pii_entities(self, text: str, language: str) -> list[dict[str, Any]]:
         if language not in self.detect_pii_entities_languages:
             raise DetectPIIValidationException(

@@ -3,6 +3,7 @@ import uuid
 from typing import Any
 
 from moto.codepipeline.exceptions import (
+    ActionNotFoundException,
     ActionTypeNotFoundException,
     ConflictException,
     InvalidNonceException,
@@ -142,6 +143,7 @@ class CustomActionType(BaseModel):
         self.category = category
         self.provider = provider
         self.version = version
+        self.description: str = ""
         self.settings = settings or {}
         self.configuration_properties = configuration_properties or []
         self.input_artifact_details = input_artifact_details or {
@@ -1107,5 +1109,111 @@ class CodePipelineBackend(BaseBackend):
         # Return empty list — rule types are a newer feature
         return []
 
+
+
+    # --- Deploy Action Execution Targets ---
+
+    def list_deploy_action_execution_targets(
+        self,
+        pipeline_name: str | None,
+        action_execution_id: str,
+        filters: list[dict[str, Any]] | None = None,
+        max_results: int | None = None,
+        next_token: str | None = None,
+    ) -> tuple[list[dict[str, Any]], str | None]:
+        # Validate pipeline exists if provided
+        if pipeline_name:
+            self._get_pipeline_or_raise(pipeline_name)
+
+        # Deploy action execution targets are generated from action executions.
+        # For emulation, return an empty list (no real deployments happen).
+        return [], None
+
+    # --- Action Revision operations ---
+
+    def put_action_revision(
+        self,
+        pipeline_name: str,
+        stage_name: str,
+        action_name: str,
+        action_revision: dict[str, Any],
+    ) -> tuple[bool, str]:
+        codepipeline = self._get_pipeline_or_raise(pipeline_name)
+
+        # Validate stage exists
+        stage_names = [s["name"] for s in codepipeline.pipeline.get("stages", [])]
+        if stage_name not in stage_names:
+            raise StageNotFoundException(
+                f"Stage '{stage_name}' does not exist in pipeline '{pipeline_name}'"
+            )
+
+        # Validate action exists in the stage
+        stage = next(
+            s for s in codepipeline.pipeline["stages"] if s["name"] == stage_name
+        )
+        action_names = [a["name"] for a in stage.get("actions", [])]
+        if action_name not in action_names:
+            raise ActionNotFoundException(
+                f"Action '{action_name}' does not exist in stage '{stage_name}'"
+                f" of pipeline '{pipeline_name}'"
+            )
+
+        # Start a new pipeline execution triggered by the action revision
+        execution_id = str(uuid.uuid4())
+        execution = PipelineExecution(
+            pipeline_name=pipeline_name,
+            pipeline_version=codepipeline.pipeline["version"],
+            pipeline_execution_id=execution_id,
+            source_revisions=[
+                {
+                    "actionName": action_name,
+                    "revisionId": action_revision.get("revisionId", ""),
+                    "revisionSummary": action_revision.get(
+                        "revisionChangeId", ""
+                    ),
+                }
+            ],
+        )
+
+        if pipeline_name not in self.pipeline_executions:
+            self.pipeline_executions[pipeline_name] = []
+        self.pipeline_executions[pipeline_name].insert(0, execution)
+
+        return True, execution_id
+
+    # --- Action Type update operations ---
+
+    def update_action_type(self, action_type: dict[str, Any]) -> None:
+        action_id = action_type.get("id", {})
+        category = action_id.get("category", "")
+        owner = action_id.get("owner", "")
+        provider = action_id.get("provider", "")
+        version = action_id.get("version", "")
+
+        if owner != "Custom":
+            raise ValidationException(
+                "Only custom action types can be updated"
+            )
+
+        key = f"{category}:{provider}:{version}"
+        existing = self.custom_action_types.get(key)
+        if not existing:
+            raise ActionTypeNotFoundException(
+                f"No action type found for: category '{category}',"
+                f" owner '{owner}', provider '{provider}',"
+                f" version '{version}'"
+            )
+
+        # Update mutable fields
+        if "inputArtifactDetails" in action_type:
+            existing.input_artifact_details = action_type[
+                "inputArtifactDetails"
+            ]
+        if "outputArtifactDetails" in action_type:
+            existing.output_artifact_details = action_type[
+                "outputArtifactDetails"
+            ]
+        if "description" in action_type:
+            existing.description = action_type["description"]
 
 codepipeline_backends = BackendDict(CodePipelineBackend, "codepipeline")

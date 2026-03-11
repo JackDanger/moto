@@ -658,6 +658,58 @@ class ComprehendResponse(BaseResponse):
         resp = self.comprehend_backend.detect_targeted_sentiment(text, language)
         return json.dumps(resp)
 
+    def batch_detect_dominant_language(self) -> str:
+        params = json.loads(self.body)
+        text_list = params.get("TextList")
+        resp = self.comprehend_backend.batch_detect_dominant_language(text_list)
+        return json.dumps(resp)
+
+    def batch_detect_entities(self) -> str:
+        params = json.loads(self.body)
+        text_list = params.get("TextList")
+        language_code = params.get("LanguageCode")
+        resp = self.comprehend_backend.batch_detect_entities(text_list, language_code)
+        return json.dumps(resp)
+
+    def batch_detect_key_phrases(self) -> str:
+        params = json.loads(self.body)
+        text_list = params.get("TextList")
+        language_code = params.get("LanguageCode")
+        resp = self.comprehend_backend.batch_detect_key_phrases(text_list, language_code)
+        return json.dumps(resp)
+
+    def batch_detect_sentiment(self) -> str:
+        params = json.loads(self.body)
+        text_list = params.get("TextList")
+        language_code = params.get("LanguageCode")
+        resp = self.comprehend_backend.batch_detect_sentiment(text_list, language_code)
+        return json.dumps(resp)
+
+    def batch_detect_syntax(self) -> str:
+        params = json.loads(self.body)
+        text_list = params.get("TextList")
+        language_code = params.get("LanguageCode")
+        resp = self.comprehend_backend.batch_detect_syntax(text_list, language_code)
+        return json.dumps(resp)
+
+    def batch_detect_targeted_sentiment(self) -> str:
+        params = json.loads(self.body)
+        text_list = params.get("TextList")
+        language_code = params.get("LanguageCode")
+        resp = self.comprehend_backend.batch_detect_targeted_sentiment(
+            text_list, language_code
+        )
+        return json.dumps(resp)
+
+    def detect_toxic_content(self) -> str:
+        params = json.loads(self.body)
+        text_segments = params.get("TextSegments")
+        language_code = params.get("LanguageCode")
+        resp = self.comprehend_backend.detect_toxic_content(
+            text_segments, language_code
+        )
+        return json.dumps(resp)
+
     def contains_pii_entities(self) -> str:
         params = json.loads(self.body)
         text = params.get("Text")

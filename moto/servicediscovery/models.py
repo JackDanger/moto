@@ -96,6 +96,7 @@ class Service(BaseModel):
         self.created = unix_time()
         self.instances: list[ServiceInstance] = []
         self.instances_revision: dict[str, int] = {}
+        self.service_attributes: dict[str, str] = {}
 
     def update(self, details: dict[str, Any]) -> None:
         if "Description" in details:
@@ -395,6 +396,23 @@ class ServiceDiscoveryBackend(BaseBackend):
             "UPDATE_SERVICE", targets={"SERVICE": service.id}
         )
         return operation_id
+
+    def get_service_attributes(self, service_id: str) -> dict[str, str]:
+        service = self.get_service(service_id)
+        return service.service_attributes
+
+    def update_service_attributes(
+        self, service_id: str, attributes: dict[str, str]
+    ) -> None:
+        service = self.get_service(service_id)
+        service.service_attributes.update(attributes)
+
+    def delete_service_attributes(
+        self, service_id: str, attributes: list[str]
+    ) -> None:
+        service = self.get_service(service_id)
+        for key in attributes:
+            service.service_attributes.pop(key, None)
 
     def update_http_namespace(
         self,
