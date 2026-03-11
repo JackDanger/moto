@@ -302,6 +302,13 @@ class XRayResponse(BaseResponse):
         result = self.xray_backend.get_indexing_rules()
         return json.dumps(result)
 
+    # UpdateIndexingRule
+    def update_indexing_rule(self) -> str:
+        name = self._get_param("Name")
+        rule = self._get_param("Rule")
+        result = self.xray_backend.update_indexing_rule(name, rule)
+        return json.dumps({"IndexingRule": result})
+
     # StartTraceRetrieval
     def start_trace_retrieval(self) -> Union[str, tuple[str, dict[str, int]]]:
         trace_ids = self._get_param("TraceIds")
@@ -357,4 +364,108 @@ class XRayResponse(BaseResponse):
         result = self.xray_backend.list_retrieved_traces(
             retrieval_token, trace_format
         )
+        return json.dumps(result)
+
+    # CreateGroup
+    def create_group(self) -> Union[str, tuple[str, dict[str, int]]]:
+        group_name = self._get_param("GroupName")
+        if group_name is None:
+            return self._error("MissingParameter", "Parameter GroupName is missing")
+        filter_expression = self._get_param("FilterExpression")
+        insights_configuration = self._get_param("InsightsConfiguration")
+        tags = self._get_param("Tags")
+        result = self.xray_backend.create_group(
+            group_name, filter_expression, insights_configuration, tags
+        )
+        return json.dumps({"Group": result})
+
+    # GetGroup
+    def get_group(self) -> str:
+        group_name = self._get_param("GroupName")
+        group_arn = self._get_param("GroupARN")
+        result = self.xray_backend.get_group(group_name, group_arn)
+        return json.dumps({"Group": result})
+
+    # GetGroups
+    def groups(self) -> str:
+        result = self.xray_backend.get_groups()
+        return json.dumps({"Groups": result})
+
+    # UpdateGroup
+    def update_group(self) -> str:
+        group_name = self._get_param("GroupName")
+        group_arn = self._get_param("GroupARN")
+        filter_expression = self._get_param("FilterExpression")
+        insights_configuration = self._get_param("InsightsConfiguration")
+        result = self.xray_backend.update_group(
+            group_name, group_arn, filter_expression, insights_configuration
+        )
+        return json.dumps({"Group": result})
+
+    # DeleteGroup
+    def delete_group(self) -> str:
+        group_name = self._get_param("GroupName")
+        group_arn = self._get_param("GroupARN")
+        self.xray_backend.delete_group(group_name, group_arn)
+        return json.dumps({})
+
+    # CreateSamplingRule
+    def create_sampling_rule(self) -> Union[str, tuple[str, dict[str, int]]]:
+        sampling_rule = self._get_param("SamplingRule")
+        if sampling_rule is None:
+            return self._error("MissingParameter", "Parameter SamplingRule is missing")
+        tags = self._get_param("Tags")
+        result = self.xray_backend.create_sampling_rule(sampling_rule, tags)
+        return json.dumps({"SamplingRuleRecord": result})
+
+    # GetSamplingRules
+    def get_sampling_rules(self) -> str:
+        result = self.xray_backend.get_sampling_rules()
+        return json.dumps({"SamplingRuleRecords": result})
+
+    # UpdateSamplingRule
+    def update_sampling_rule(self) -> Union[str, tuple[str, dict[str, int]]]:
+        sampling_rule_update = self._get_param("SamplingRuleUpdate")
+        if sampling_rule_update is None:
+            return self._error(
+                "MissingParameter", "Parameter SamplingRuleUpdate is missing"
+            )
+        result = self.xray_backend.update_sampling_rule(sampling_rule_update)
+        return json.dumps({"SamplingRuleRecord": result})
+
+    # DeleteSamplingRule
+    def delete_sampling_rule(self) -> str:
+        rule_name = self._get_param("RuleName")
+        rule_arn = self._get_param("RuleARN")
+        result = self.xray_backend.delete_sampling_rule(rule_name, rule_arn)
+        return json.dumps({"SamplingRuleRecord": result})
+
+    # GetSamplingStatisticSummaries
+    def sampling_statistic_summaries(self) -> str:
+        result = self.xray_backend.get_sampling_statistic_summaries()
+        return json.dumps(result)
+
+    # GetEncryptionConfig
+    def encryption_config(self) -> str:
+        result = self.xray_backend.get_encryption_config()
+        return json.dumps({"EncryptionConfig": result})
+
+    # PutEncryptionConfig
+    def put_encryption_config(self) -> Union[str, tuple[str, dict[str, int]]]:
+        encryption_type = self._get_param("Type")
+        if encryption_type is None:
+            return self._error("MissingParameter", "Parameter Type is missing")
+        key_id = self._get_param("KeyId")
+        result = self.xray_backend.put_encryption_config(encryption_type, key_id)
+        return json.dumps({"EncryptionConfig": result})
+
+    # GetTraceSegmentDestination
+    def get_trace_segment_destination(self) -> str:
+        result = self.xray_backend.get_trace_segment_destination()
+        return json.dumps(result)
+
+    # UpdateTraceSegmentDestination
+    def update_trace_segment_destination(self) -> str:
+        destination = self._get_param("Destination")
+        result = self.xray_backend.update_trace_segment_destination(destination)
         return json.dumps(result)
