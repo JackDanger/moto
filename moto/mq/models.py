@@ -471,6 +471,91 @@ class MQBackend(BaseBackend):
             tag_keys = [tag_keys]
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
+    def delete_configuration(self, config_id: str) -> Configuration:
+        if config_id not in self.configs:
+            raise UnknownConfiguration(config_id)
+        config = self.configs.pop(config_id)
+        return config
+
+    def list_configuration_revisions(
+        self, config_id: str
+    ) -> tuple[str, list[ConfigurationRevision]]:
+        """
+        Pagination has not yet been implemented.
+        """
+        if config_id not in self.configs:
+            raise UnknownConfiguration(config_id)
+        config = self.configs[config_id]
+        revisions = sorted(
+            config.revisions.values(), key=lambda r: int(r.revision_id)
+        )
+        return config_id, revisions
+
+    def describe_broker_engine_types(self) -> list[dict[str, Any]]:
+        """
+        Returns supported broker engine types. Filtering is not yet implemented.
+        """
+        return [
+            {
+                "engineType": "ACTIVEMQ",
+                "engineVersions": [
+                    {"name": "5.17.6"},
+                    {"name": "5.16.7"},
+                    {"name": "5.15.16"},
+                ],
+            },
+            {
+                "engineType": "RABBITMQ",
+                "engineVersions": [
+                    {"name": "3.13.7"},
+                    {"name": "3.12.13"},
+                    {"name": "3.11.28"},
+                ],
+            },
+        ]
+
+    def describe_broker_instance_options(self) -> list[dict[str, Any]]:
+        """
+        Returns available broker instance options. Filtering is not yet implemented.
+        """
+        instance_types = [
+            "mq.m5.large",
+            "mq.m5.xlarge",
+            "mq.m5.2xlarge",
+            "mq.m5.4xlarge",
+            "mq.t3.micro",
+        ]
+        options = []
+        for engine_type in ["ACTIVEMQ", "RABBITMQ"]:
+            for instance_type in instance_types:
+                options.append(
+                    {
+                        "availabilityZones": [
+                            {"name": f"{self.region_name}a"},
+                            {"name": f"{self.region_name}b"},
+                            {"name": f"{self.region_name}c"},
+                        ],
+                        "engineType": engine_type,
+                        "hostInstanceType": instance_type,
+                        "storageType": "EBS",
+                        "supportedDeploymentModes": [
+                            "SINGLE_INSTANCE",
+                            "ACTIVE_STANDBY_MULTI_AZ",
+                        ],
+                        "supportedEngineVersions": ["5.17.6"]
+                        if engine_type == "ACTIVEMQ"
+                        else ["3.13.7"],
+                    }
+                )
+        return options
+
+    def promote(self, broker_id: str) -> str:
+        if broker_id not in self.brokers:
+            raise UnknownBroker(broker_id)
+        broker = self.brokers[broker_id]
+        broker.state = "RUNNING"
+        return broker_id
+
     def update_broker(
         self,
         authentication_strategy: str,

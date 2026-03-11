@@ -9,12 +9,16 @@ url_bases = [
 
 url_paths = {
     "{0}/v1/brokers/(?P<broker_id>[^/]+)$": MQResponse.dispatch,
+    "{0}/v1/brokers/(?P<broker_id>[^/]+)/promote$": MQResponse.dispatch,
     "{0}/v1/brokers/(?P<broker_id>[^/]+)/reboot$": MQResponse.dispatch,
     "{0}/v1/brokers/(?P<broker_id>[^/]+)/users$": MQResponse.dispatch,
     "{0}/v1/brokers/(?P<broker_id>[^/]+)/users/(?P<user_name>[^/]+)$": MQResponse.dispatch,
     "{0}/v1/brokers$": MQResponse.dispatch,
+    "{0}/v1/broker-engine-types$": MQResponse.dispatch,
+    "{0}/v1/broker-instance-options$": MQResponse.dispatch,
     "{0}/v1/configurations$": MQResponse.dispatch,
     "{0}/v1/configurations/(?P<config_id>[^/]+)$": MQResponse.dispatch,
+    "{0}/v1/configurations/(?P<config_id>[^/]+)/revisions$": MQResponse.dispatch,
     "{0}/v1/configurations/(?P<config_id>[^/]+)/revisions/(?P<revision_id>[^/]+)$": MQResponse.dispatch,
     "{0}/v1/tags/(?P<resource_arn>[^/]+)$": MQResponse.dispatch,
 }

@@ -1062,5 +1062,111 @@ class KinesisBackend(BaseBackend):
             "OnDemandStreamCountLimit": 50,
         }
 
+    def list_tags_for_resource(self, resource_arn: str) -> list[dict[str, str]]:
+        """ARN-based tag listing (newer API variant of ListTagsForStream)."""
+        stream = self._find_stream_by_arn(resource_arn)
+        if not stream:
+            raise ResourceNotFoundError(
+                message=f"Resource {resource_arn} not found."
+            )
+        tags: list[dict[str, str]] = []
+        for key, val in sorted(stream.tags.items(), key=lambda x: x[0]):
+            tags.append({"Key": key, "Value": val})
+        return tags
+
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
+        """ARN-based tagging (newer API variant of AddTagsToStream)."""
+        stream = self._find_stream_by_arn(resource_arn)
+        if not stream:
+            raise ResourceNotFoundError(
+                message=f"Resource {resource_arn} not found."
+            )
+        stream.tags.update(tags)
+
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
+        """ARN-based untagging (newer API variant of RemoveTagsFromStream)."""
+        stream = self._find_stream_by_arn(resource_arn)
+        if not stream:
+            raise ResourceNotFoundError(
+                message=f"Resource {resource_arn} not found."
+            )
+        for key in tag_keys:
+            if key in stream.tags:
+                del stream.tags[key]
+
+    def subscribe_to_shard(
+        self, consumer_arn: str, shard_id: str, starting_position: dict[str, Any]
+    ) -> dict[str, Any]:
+        """
+        Returns a mock SubscribeToShard response.
+        Real AWS uses HTTP/2 event streaming; we return a single snapshot event.
+        """
+        consumer = None
+        stream = None
+        for s in self.streams.values():
+            consumer = s.get_consumer_by_arn(consumer_arn)
+            if consumer:
+                stream = s
+                break
+        if not consumer or not stream:
+            raise ConsumerNotFound(consumer=consumer_arn, account_id=self.account_id)
+
+        shard = stream.get_shard(shard_id)
+
+        if shard.records:
+            last_seq = str(shard.get_max_sequence_number())
+        else:
+            last_seq = "0"
+
+        return {
+            "EventStream": {
+                "SubscribeToShardEvent": {
+                    "Records": [],
+                    "ContinuationSequenceNumber": last_seq,
+                    "MillisBehindLatest": 0,
+                }
+            }
+        }
+
+    def update_account_settings(
+        self, minimum_throughput_billing_commitment: dict[str, str]
+    ) -> dict[str, Any]:
+        """Update account-level Kinesis settings."""
+        status = minimum_throughput_billing_commitment.get("Status", "DISABLED")
+        return {
+            "MinimumThroughputBillingCommitment": {
+                "Status": status,
+            }
+        }
+
+    def update_max_record_size(
+        self, stream_arn: Optional[str], max_record_size_in_kib: int
+    ) -> None:
+        """Update the max record size for a stream."""
+        stream = self._find_stream_by_arn(stream_arn) if stream_arn else None
+        if not stream:
+            raise ResourceNotFoundError(
+                message=f"Stream {stream_arn} under account {self.account_id} not found."
+            )
+        stream.max_record_size_in_kib = max_record_size_in_kib  # type: ignore[attr-defined]
+
+    def update_stream_warm_throughput(
+        self,
+        stream_arn: Optional[str],
+        stream_name: Optional[str],
+        warm_throughput_mibps: int,
+    ) -> dict[str, Any]:
+        """Update warm throughput for a stream."""
+        stream = self.describe_stream(stream_arn=stream_arn, stream_name=stream_name)
+        stream.warm_throughput_mibps = warm_throughput_mibps  # type: ignore[attr-defined]
+        return {
+            "StreamARN": stream.arn,
+            "StreamName": stream.stream_name,
+            "WarmThroughput": {
+                "TargetMiBps": warm_throughput_mibps,
+                "CurrentMiBps": warm_throughput_mibps,
+            },
+        }
+
 
 kinesis_backends = BackendDict(KinesisBackend, "kinesis")
