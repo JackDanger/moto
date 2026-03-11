@@ -435,6 +435,107 @@ class ELBBackend(BaseBackend):
         else:
             return balancers
 
+    def describe_account_limits(self) -> list[dict[str, Any]]:
+        return [
+            {"Name": "classic-load-balancers", "Max": "20"},
+            {"Name": "classic-listeners", "Max": "100"},
+            {"Name": "classic-registered-instances", "Max": "1000"},
+        ]
+
+    def describe_load_balancer_policy_types(
+        self, policy_type_names: list[str]
+    ) -> list[dict[str, Any]]:
+        all_policy_types = [
+            {
+                "PolicyTypeName": "SSLNegotiationPolicyType",
+                "Description": "Listener policy that defines the ciphers and protocols that will be accepted by the load balancer. This policy can be associated only with HTTPS/SSL listeners.",
+                "PolicyAttributeTypeDescriptions": [
+                    {
+                        "AttributeName": "Protocol-SSLv3",
+                        "AttributeType": "Boolean",
+                        "Cardinality": "ZERO_OR_ONE",
+                    },
+                    {
+                        "AttributeName": "Protocol-TLSv1",
+                        "AttributeType": "Boolean",
+                        "Cardinality": "ZERO_OR_ONE",
+                    },
+                    {
+                        "AttributeName": "Protocol-TLSv1.1",
+                        "AttributeType": "Boolean",
+                        "Cardinality": "ZERO_OR_ONE",
+                    },
+                    {
+                        "AttributeName": "Protocol-TLSv1.2",
+                        "AttributeType": "Boolean",
+                        "Cardinality": "ZERO_OR_ONE",
+                    },
+                ],
+            },
+            {
+                "PolicyTypeName": "AppCookieStickinessPolicyType",
+                "Description": "Stickiness policy with session lifetimes controlled by the lifetime of the application-generated cookie. This policy can be associated only with HTTP/HTTPS listeners.",
+                "PolicyAttributeTypeDescriptions": [
+                    {
+                        "AttributeName": "CookieName",
+                        "AttributeType": "String",
+                        "Cardinality": "ONE",
+                    },
+                ],
+            },
+            {
+                "PolicyTypeName": "LBCookieStickinessPolicyType",
+                "Description": "Stickiness policy with session lifetimes controlled by the browser (user-agent) or a specified expiration period. This policy can be associated only with HTTP/HTTPS listeners.",
+                "PolicyAttributeTypeDescriptions": [
+                    {
+                        "AttributeName": "CookieExpirationPeriod",
+                        "AttributeType": "Long",
+                        "Cardinality": "ZERO_OR_ONE",
+                    },
+                ],
+            },
+            {
+                "PolicyTypeName": "ProxyProtocolPolicyType",
+                "Description": "Policy that controls whether to include the IP address and port of the originating request for TCP messages. This policy operates on TCP/SSL listeners only.",
+                "PolicyAttributeTypeDescriptions": [
+                    {
+                        "AttributeName": "ProxyProtocol",
+                        "AttributeType": "Boolean",
+                        "Cardinality": "ONE",
+                    },
+                ],
+            },
+            {
+                "PolicyTypeName": "BackendServerAuthenticationPolicyType",
+                "Description": "Policy that controls authentication to back-end server(s) and target groups.",
+                "PolicyAttributeTypeDescriptions": [
+                    {
+                        "AttributeName": "PublicKeyPolicyName",
+                        "AttributeType": "PolicyName",
+                        "Cardinality": "ONE_OR_MORE",
+                    },
+                ],
+            },
+            {
+                "PolicyTypeName": "PublicKeyPolicyType",
+                "Description": "Policy containing a list of public keys to accept when authenticating the back-end server(s). This policy cannot be applied directly to back-end servers or listeners but must be part of a BackendServerAuthenticationPolicyType.",
+                "PolicyAttributeTypeDescriptions": [
+                    {
+                        "AttributeName": "PublicKey",
+                        "AttributeType": "String",
+                        "Cardinality": "ONE",
+                    },
+                ],
+            },
+        ]
+        if policy_type_names:
+            return [
+                pt
+                for pt in all_policy_types
+                if pt["PolicyTypeName"] in policy_type_names
+            ]
+        return all_policy_types
+
     def describe_load_balancer_policies(
         self, lb_name: str, policy_names: list[str]
     ) -> list[Policy]:
