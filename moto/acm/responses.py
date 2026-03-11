@@ -256,6 +256,35 @@ class AWSCertificateManagerResponse(BaseResponse):
             }
         )
 
+    def renew_certificate(self) -> GENERIC_RESPONSE_TYPE:
+        arn = self._get_param("CertificateArn")
+        if arn is None:
+            msg = "A required parameter for the specified action is not supplied."
+            return (json.dumps({"__type": "MissingParameter", "message": msg}), {"status": 400})
+        self.acm_backend.renew_certificate(arn)
+        return ""
+
+    def revoke_certificate(self) -> GENERIC_RESPONSE_TYPE:
+        arn = self._get_param("CertificateArn")
+        reason = self._get_param("RevocationReason")
+        if arn is None:
+            msg = "A required parameter for the specified action is not supplied."
+            return (json.dumps({"__type": "MissingParameter", "message": msg}), {"status": 400})
+        self.acm_backend.revoke_certificate(arn, reason)
+        return ""
+
+    def update_certificate_options(self) -> GENERIC_RESPONSE_TYPE:
+        arn = self._get_param("CertificateArn")
+        options = self._get_param("Options")
+        if arn is None:
+            msg = "A required parameter for the specified action is not supplied."
+            return (json.dumps({"__type": "MissingParameter", "message": msg}), {"status": 400})
+        if options is None:
+            msg = "A required parameter for the specified action is not supplied."
+            return (json.dumps({"__type": "MissingParameter", "message": msg}), {"status": 400})
+        self.acm_backend.update_certificate_options(arn, options)
+        return ""
+
     def get_account_configuration(self) -> str:
         config = self.acm_backend.get_account_configuration()
         return json.dumps(config)
