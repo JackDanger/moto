@@ -1,4 +1,5 @@
 import datetime
+import json
 import re
 from base64 import b64decode
 from typing import Any, Optional
@@ -270,6 +271,38 @@ class STSBackend(BaseBackend):
             "WebIdentityToken": token,
             "Expiration": expiration,
         }
+
+    def decode_authorization_message(self, encoded_message: str) -> str:
+        """
+        Decode an encoded authorization message.
+
+        In real AWS, this decodes a message returned by EC2 when an
+        authorization error occurs. In moto, we return a mock decoded
+        message containing a plausible policy structure.
+        """
+        decoded_message = {
+            "allowed": False,
+            "explicitDeny": False,
+            "matchedStatements": {
+                "items": []
+            },
+            "failures": {
+                "items": []
+            },
+            "context": {
+                "principal": {
+                    "id": "AIDACKCEVSQ6C2EXAMPLE",
+                    "name": "ExampleUser",
+                    "arn": f"arn:aws:iam::{self.account_id}:user/ExampleUser",
+                },
+                "action": "ec2:RunInstances",
+                "resource": f"arn:aws:ec2:{self.region_name}:{self.account_id}:instance/*",
+                "conditions": {
+                    "items": []
+                },
+            },
+        }
+        return json.dumps(decoded_message)
 
     def _create_access_key(self, role: str) -> tuple[str, AccessKey]:
         account_id_match = re.search(ARN_PARTITION_REGEX + r":iam::([0-9]+).+", role)

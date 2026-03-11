@@ -183,6 +183,16 @@ class TokenResponse(BaseResponse):
         )
         return ActionResult(result)
 
+    def decode_authorization_message(self) -> ActionResult:
+        encoded_message = self._get_param("EncodedMessage")
+        decoded_message = self.backend.decode_authorization_message(
+            encoded_message=encoded_message,
+        )
+        result = {
+            "DecodedMessage": decoded_message,
+        }
+        return ActionResult(result)
+
     def get_web_identity_token(self) -> ActionResult:
         audience = self._get_multi_param("Audience.member")
         duration = self._get_int_param("DurationSeconds", 3600)
