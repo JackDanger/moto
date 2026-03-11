@@ -26,6 +26,8 @@ from moto.efs.exceptions import (
     MountTargetConflict,
     MountTargetNotFound,
     PolicyNotFound,
+    ReplicationAlreadyExists,
+    ReplicationNotFound,
     SecurityGroupLimitExceeded,
     SecurityGroupNotFound,
     SubnetNotFound,
@@ -157,6 +159,10 @@ class FileSystem(CloudFormationModel):
         self._backup = backup
         self.lifecycle_policies: list[dict[str, str]] = []
         self.file_system_policy: Optional[str] = None
+        self.file_system_protection: dict[str, str] = {
+            "ReplicationOverwriteProtection": "ENABLED"
+        }
+        self._replication_configuration: Optional[dict[str, Any]] = None
 
         self._context = context
 
@@ -768,7 +774,16 @@ class EFSBackend(BaseBackend):
     ) -> list[dict[str, Any]]:
         if file_system_id and file_system_id not in self.file_systems_by_id:
             raise FileSystemNotFound(file_system_id)
-        return []
+        results = []
+        if file_system_id:
+            fs = self.file_systems_by_id[file_system_id]
+            if fs._replication_configuration is not None:
+                results.append(fs._replication_configuration)
+        else:
+            for fs in self.file_systems_by_id.values():
+                if fs._replication_configuration is not None:
+                    results.append(fs._replication_configuration)
+        return results
 
     def describe_tags(self, file_system_id: str) -> list[dict[str, str]]:
         if file_system_id not in self.file_systems_by_id:
@@ -824,5 +839,80 @@ class EFSBackend(BaseBackend):
             fs.provisioned_throughput_in_mibps = provisioned_throughput_in_mibps
         return fs
 
+
+    def create_replication_configuration(
+        self,
+        source_file_system_id: str,
+        destinations: list[dict[str, str]],
+    ) -> dict[str, Any]:
+        if source_file_system_id not in self.file_systems_by_id:
+            raise FileSystemNotFound(source_file_system_id)
+        fs = self.file_systems_by_id[source_file_system_id]
+        if fs._replication_configuration is not None:
+            raise ReplicationAlreadyExists(source_file_system_id)
+
+        built_destinations = []
+        for dest in destinations:
+            dest_region = dest.get("Region", self.region_name)
+            dest_fs_id = dest.get("FileSystemId", f"fs-{mock_random.get_random_hex()}")
+            built_destinations.append(
+                {
+                    "FileSystemId": dest_fs_id,
+                    "Region": dest_region,
+                    "Status": "ENABLED",
+                    "LastReplicatedTimestamp": time.time(),
+                    "OwnerId": self.account_id,
+                }
+            )
+
+        replication_config: dict[str, Any] = {
+            "SourceFileSystemId": source_file_system_id,
+            "SourceFileSystemRegion": self.region_name,
+            "SourceFileSystemArn": fs.file_system_arn,
+            "OriginalSourceFileSystemArn": fs.file_system_arn,
+            "CreationTime": time.time(),
+            "Destinations": built_destinations,
+            "SourceFileSystemOwnerId": self.account_id,
+        }
+        fs._replication_configuration = replication_config
+        return replication_config
+
+    def delete_replication_configuration(
+        self, source_file_system_id: str
+    ) -> None:
+        if source_file_system_id not in self.file_systems_by_id:
+            raise FileSystemNotFound(source_file_system_id)
+        fs = self.file_systems_by_id[source_file_system_id]
+        if fs._replication_configuration is None:
+            raise ReplicationNotFound(source_file_system_id)
+        fs._replication_configuration = None
+
+    def create_tags(
+        self, file_system_id: str, tags: list[dict[str, str]]
+    ) -> None:
+        if file_system_id not in self.file_systems_by_id:
+            raise FileSystemNotFound(file_system_id)
+        self.tag_resource(file_system_id, tags)
+
+    def delete_tags(
+        self, file_system_id: str, tag_keys: list[str]
+    ) -> None:
+        if file_system_id not in self.file_systems_by_id:
+            raise FileSystemNotFound(file_system_id)
+        self.untag_resource(file_system_id, tag_keys)
+
+    def update_file_system_protection(
+        self,
+        file_system_id: str,
+        replication_overwrite_protection: Optional[str] = None,
+    ) -> dict[str, str]:
+        if file_system_id not in self.file_systems_by_id:
+            raise FileSystemNotFound(file_system_id)
+        fs = self.file_systems_by_id[file_system_id]
+        if replication_overwrite_protection:
+            fs.file_system_protection = {
+                "ReplicationOverwriteProtection": replication_overwrite_protection
+            }
+        return fs.file_system_protection
 
 efs_backends = BackendDict(EFSBackend, "efs")
