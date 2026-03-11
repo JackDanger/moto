@@ -273,3 +273,39 @@ class EFSResponse(BaseResponse):
             provisioned_throughput_in_mibps=provisioned_throughput_in_mibps,
         )
         return json.dumps(fs.info_json()), {"Content-Type": "application/json"}
+    def create_replication_configuration(self) -> TYPE_RESPONSE:
+        source_file_system_id = self._get_param("SourceFileSystemId")
+        destinations = self._get_param("Destinations")
+        result = self.efs_backend.create_replication_configuration(
+            source_file_system_id=source_file_system_id,
+            destinations=destinations,
+        )
+        return json.dumps(result), {"Content-Type": "application/json"}
+
+    def delete_replication_configuration(self) -> TYPE_RESPONSE:
+        source_file_system_id = self._get_param("SourceFileSystemId")
+        self.efs_backend.delete_replication_configuration(source_file_system_id)
+        return json.dumps({}), {"status": 204, "Content-Type": "application/json"}
+
+    def create_tags(self) -> TYPE_RESPONSE:
+        file_system_id = self._get_param("FileSystemId")
+        tags = self._get_param("Tags")
+        self.efs_backend.create_tags(file_system_id, tags)
+        return json.dumps({}), {"status": 204, "Content-Type": "application/json"}
+
+    def delete_tags(self) -> TYPE_RESPONSE:
+        file_system_id = self._get_param("FileSystemId")
+        tag_keys = self._get_param("TagKeys")
+        self.efs_backend.delete_tags(file_system_id, tag_keys)
+        return json.dumps({}), {"status": 204, "Content-Type": "application/json"}
+
+    def update_file_system_protection(self) -> TYPE_RESPONSE:
+        file_system_id = self._get_param("FileSystemId")
+        replication_overwrite_protection = self._get_param(
+            "ReplicationOverwriteProtection"
+        )
+        result = self.efs_backend.update_file_system_protection(
+            file_system_id=file_system_id,
+            replication_overwrite_protection=replication_overwrite_protection,
+        )
+        return json.dumps(result), {"Content-Type": "application/json"}
