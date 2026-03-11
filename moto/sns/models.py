@@ -534,6 +534,8 @@ class SNSBackend(BaseBackend):
         ]
 
         self._message_public_keys: dict[str, bytes] = {}
+        self.sms_sandbox_phone_numbers: dict[str, str] = {}  # phone -> status
+        self.data_protection_policies: dict[str, str] = {}  # topic_arn -> policy
 
     def get_sms_attributes(self, filter_list: set[str]) -> dict[str, str]:
         if len(filter_list) > 0:
@@ -1318,6 +1320,47 @@ class SNSBackend(BaseBackend):
             )
 
         return config_item
+
+    def create_sms_sandbox_phone_number(
+        self, phone_number: str, language_code: str = "en-US"
+    ) -> None:
+        if not is_e164(phone_number):
+            raise SNSInvalidParameter(
+                "Invalid parameter: PhoneNumber Reason: input incorrectly formatted"
+            )
+        self.sms_sandbox_phone_numbers[phone_number] = "Pending"
+
+    def delete_sms_sandbox_phone_number(self, phone_number: str) -> None:
+        if not is_e164(phone_number):
+            raise SNSInvalidParameter(
+                "Invalid parameter: PhoneNumber Reason: input incorrectly formatted"
+            )
+        if phone_number not in self.sms_sandbox_phone_numbers:
+            raise ResourceNotFoundError
+        del self.sms_sandbox_phone_numbers[phone_number]
+
+    def verify_sms_sandbox_phone_number(
+        self, phone_number: str, one_time_password: str
+    ) -> None:
+        if phone_number not in self.sms_sandbox_phone_numbers:
+            raise ResourceNotFoundError
+        self.sms_sandbox_phone_numbers[phone_number] = "Verified"
+
+    def list_sms_sandbox_phone_numbers(self) -> list[dict[str, str]]:
+        return [
+            {"PhoneNumber": number, "Status": status}
+            for number, status in self.sms_sandbox_phone_numbers.items()
+        ]
+
+    def put_data_protection_policy(
+        self, resource_arn: str, data_protection_policy: str
+    ) -> None:
+        self.get_topic(resource_arn)
+        self.data_protection_policies[resource_arn] = data_protection_policy
+
+    def get_data_protection_policy(self, resource_arn: str) -> str:
+        self.get_topic(resource_arn)
+        return self.data_protection_policies.get(resource_arn, "")
 
     def confirm_subscription(self) -> None:
         pass

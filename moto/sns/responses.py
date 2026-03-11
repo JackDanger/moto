@@ -492,8 +492,38 @@ class SNSResponse(BaseResponse):
         result = {"PhoneNumbers": []}
         return ActionResult(result)
 
+    def create_sms_sandbox_phone_number(self) -> ActionResult:
+        phone_number = self._get_param("PhoneNumber")
+        language_code = self._get_param("LanguageCode") or "en-US"
+        self.backend.create_sms_sandbox_phone_number(phone_number, language_code)
+        return EmptyResult()
+
+    def delete_sms_sandbox_phone_number(self) -> ActionResult:
+        phone_number = self._get_param("PhoneNumber")
+        self.backend.delete_sms_sandbox_phone_number(phone_number)
+        return EmptyResult()
+
+    def verify_sms_sandbox_phone_number(self) -> ActionResult:
+        phone_number = self._get_param("PhoneNumber")
+        one_time_password = self._get_param("OneTimePassword")
+        self.backend.verify_sms_sandbox_phone_number(phone_number, one_time_password)
+        return EmptyResult()
+
     def list_sms_sandbox_phone_numbers(self) -> ActionResult:
-        result = {"PhoneNumbers": []}
+        phone_numbers = self.backend.list_sms_sandbox_phone_numbers()
+        result = {"PhoneNumbers": phone_numbers}
+        return ActionResult(result)
+
+    def put_data_protection_policy(self) -> ActionResult:
+        resource_arn = self._get_param("ResourceArn")
+        data_protection_policy = self._get_param("DataProtectionPolicy")
+        self.backend.put_data_protection_policy(resource_arn, data_protection_policy)
+        return EmptyResult()
+
+    def get_data_protection_policy(self) -> ActionResult:
+        resource_arn = self._get_param("ResourceArn")
+        policy = self.backend.get_data_protection_policy(resource_arn)
+        result = {"DataProtectionPolicy": policy}
         return ActionResult(result)
 
     @staticmethod
