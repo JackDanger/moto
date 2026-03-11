@@ -22,7 +22,8 @@ sts
 - [X] assume_role_with_saml
 - [X] assume_role_with_web_identity
 - [ ] assume_root
-- [ ] decode_authorization_message
+- [X] decode_authorization_message
+  Decode an encoded authorization message. In moto, returns a mock decoded message containing a plausible policy structure.
 - [X] get_access_key_info
   Return the account ID associated with the given access key.
 
