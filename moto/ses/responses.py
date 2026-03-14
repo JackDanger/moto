@@ -278,6 +278,12 @@ class EmailResponse(BaseResponse):
         self.backend.update_receipt_rule(rule_set_name, rule)
         return EmptyResult()
 
+    def delete_receipt_rule(self) -> ActionResult:
+        rule_set_name = self._get_param("RuleSetName")
+        rule_name = self._get_param("RuleName")
+        self.backend.delete_receipt_rule(rule_set_name, rule_name)
+        return EmptyResult()
+
     def set_identity_mail_from_domain(self) -> ActionResult:
         identity = self._get_param("Identity")
         mail_from_domain = self._get_param("MailFromDomain")

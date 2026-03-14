@@ -45,6 +45,7 @@ class IVSBackend(BaseBackend):
         self.stream_keys: list[dict[str, Any]] = []
         self.playback_key_pairs: list[dict[str, Any]] = []
         self.recording_configurations: list[dict[str, Any]] = []
+        self.playback_restriction_policies: dict[str, dict[str, Any]] = {}
         self.tags_store: dict[str, dict[str, str]] = {}
 
     def _arn_partition(self) -> str:
@@ -269,9 +270,7 @@ class IVSBackend(BaseBackend):
 
     def get_recording_configuration(self, arn: str) -> dict[str, Any]:
         try:
-            return next(
-                rc for rc in self.recording_configurations if rc["arn"] == arn
-            )
+            return next(rc for rc in self.recording_configurations if rc["arn"] == arn)
         except StopIteration:
             raise ResourceNotFoundException(f"Resource: {arn} not found")
 
@@ -292,6 +291,60 @@ class IVSBackend(BaseBackend):
         self,
     ) -> list[dict[str, Any]]:
         return self.recording_configurations
+
+    # Playback Restriction Policy operations
+
+    def create_playback_restriction_policy(
+        self,
+        allowed_countries: Optional[list[str]] = None,
+        allowed_origins: Optional[list[str]] = None,
+        enable_strict_origin_enforcement: bool = False,
+        name: Optional[str] = None,
+        tags: Optional[dict[str, str]] = None,
+    ) -> dict[str, Any]:
+        policy_id = mock_random.get_random_string(12)
+        policy_arn = f"arn:{self._arn_partition()}:ivs:{self.region_name}:{self.account_id}:playback-restriction-policy/{policy_id}"
+        policy: dict[str, Any] = {
+            "arn": policy_arn,
+            "name": name or "",
+            "allowedCountries": allowed_countries or [],
+            "allowedOrigins": allowed_origins or [],
+            "enableStrictOriginEnforcement": enable_strict_origin_enforcement,
+            "tags": tags or {},
+        }
+        self.playback_restriction_policies[policy_arn] = policy
+        if tags:
+            self.tags_store[policy_arn] = dict(tags)
+        return policy
+
+    def get_playback_restriction_policy(self, arn: str) -> dict[str, Any]:
+        if arn not in self.playback_restriction_policies:
+            raise ResourceNotFoundException(f"Resource: {arn} not found")
+        return self.playback_restriction_policies[arn]
+
+    def update_playback_restriction_policy(
+        self,
+        arn: str,
+        allowed_countries: Optional[list[str]] = None,
+        allowed_origins: Optional[list[str]] = None,
+        enable_strict_origin_enforcement: Optional[bool] = None,
+        name: Optional[str] = None,
+    ) -> dict[str, Any]:
+        policy = self.get_playback_restriction_policy(arn)
+        if allowed_countries is not None:
+            policy["allowedCountries"] = allowed_countries
+        if allowed_origins is not None:
+            policy["allowedOrigins"] = allowed_origins
+        if enable_strict_origin_enforcement is not None:
+            policy["enableStrictOriginEnforcement"] = enable_strict_origin_enforcement
+        if name is not None:
+            policy["name"] = name
+        return policy
+
+    def delete_playback_restriction_policy(self, arn: str) -> None:
+        self.get_playback_restriction_policy(arn)
+        del self.playback_restriction_policies[arn]
+        self.tags_store.pop(arn, None)
 
     # Tag operations
 
@@ -335,6 +388,8 @@ class IVSBackend(BaseBackend):
         for rc in self.recording_configurations:
             if rc["arn"] == arn:
                 return rc
+        if arn in self.playback_restriction_policies:
+            return self.playback_restriction_policies[arn]
         return None
 
 

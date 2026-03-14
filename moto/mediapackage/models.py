@@ -3,6 +3,7 @@ from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.core.utils import utcnow
 from moto.utilities.utils import get_partition
 
 from .exceptions import ClientError
@@ -69,6 +70,7 @@ class MediaPackageBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self._channels: dict[str, Channel] = OrderedDict()
         self._origin_endpoints: dict[str, OriginEndpoint] = OrderedDict()
+        self._harvest_jobs: dict[str, dict[str, Any]] = {}
 
     def create_channel(
         self, description: str, channel_id: str, tags: dict[str, str]
@@ -100,6 +102,11 @@ class MediaPackageBackend(BaseBackend):
         raise ClientError(
             "NotFoundException", f"channel with id={channel_id} not found"
         )
+
+    def update_channel(self, channel_id: str, description: str) -> Channel:
+        channel = self.describe_channel(channel_id=channel_id)
+        channel.description = description
+        return channel
 
     def create_origin_endpoint(
         self,
@@ -192,6 +199,41 @@ class MediaPackageBackend(BaseBackend):
             raise ClientError(
                 "NotFoundException", f"origin endpoint with id={endpoint_id} not found"
             )
+
+    def create_harvest_job(
+        self,
+        harvest_job_id: str,
+        start_time: str,
+        end_time: str,
+        s3_destination: dict[str, Any],
+        origin_endpoint_id: str,
+    ) -> dict[str, Any]:
+        origin_endpoint = self.describe_origin_endpoint(origin_endpoint_id)
+        channel_id = origin_endpoint.channel_id
+        arn = f"arn:{get_partition(self.region_name)}:mediapackage:harvest_job:{harvest_job_id}"
+        job: dict[str, Any] = {
+            "id": harvest_job_id,
+            "arn": arn,
+            "channelId": channel_id,
+            "startTime": start_time,
+            "endTime": end_time,
+            "s3Destination": s3_destination,
+            "originEndpointId": origin_endpoint_id,
+            "status": "IN_PROGRESS",
+            "createdAt": utcnow().isoformat() + "Z",
+        }
+        self._harvest_jobs[harvest_job_id] = job
+        return job
+
+    def describe_harvest_job(self, harvest_job_id: str) -> dict[str, Any]:
+        if harvest_job_id not in self._harvest_jobs:
+            raise ClientError(
+                "NotFoundException", f"harvest job with id={harvest_job_id} not found"
+            )
+        return self._harvest_jobs[harvest_job_id]
+
+    def list_harvest_jobs(self) -> list[dict[str, Any]]:
+        return list(self._harvest_jobs.values())
 
 
 mediapackage_backends = BackendDict(MediaPackageBackend, "mediapackage")

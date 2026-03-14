@@ -38,8 +38,21 @@ class DataSyncResponse(BaseResponse):
     def list_agents(self) -> str:
         agents = []
         for arn, agent in self.datasync_backend.agents.items():
-            agents.append({"AgentArn": arn, "Name": agent.agent_name, "Status": agent.status})
+            agents.append(
+                {"AgentArn": arn, "Name": agent.agent_name, "Status": agent.status}
+            )
         return json.dumps({"Agents": agents})
+
+    def update_agent(self) -> str:
+        agent_arn = self._get_param("AgentArn")
+        name = self._get_param("Name")
+        self.datasync_backend.update_agent(agent_arn, name=name)
+        return json.dumps({})
+
+    def delete_agent(self) -> str:
+        agent_arn = self._get_param("AgentArn")
+        self.datasync_backend.delete_agent(agent_arn)
+        return json.dumps({})
 
     # --- Location operations ---
 
@@ -116,7 +129,9 @@ class DataSyncResponse(BaseResponse):
         ec2_config = self._get_param("Ec2Config")
         metadata = {"EfsFilesystemArn": efs_filesystem_arn, "Ec2Config": ec2_config}
         location_uri = f"efs://{efs_filesystem_arn.split(':')[-1]}{subdirectory}"
-        arn = self.datasync_backend.create_location(location_uri, metadata=metadata, typ="EFS")
+        arn = self.datasync_backend.create_location(
+            location_uri, metadata=metadata, typ="EFS"
+        )
         return json.dumps({"LocationArn": arn})
 
     def describe_location_efs(self) -> str:
@@ -139,7 +154,9 @@ class DataSyncResponse(BaseResponse):
         mount_options = self._get_param("MountOptions")
         metadata = {"OnPremConfig": on_prem_config, "MountOptions": mount_options}
         location_uri = f"nfs://{server_hostname}{subdirectory}"
-        arn = self.datasync_backend.create_location(location_uri, metadata=metadata, typ="NFS")
+        arn = self.datasync_backend.create_location(
+            location_uri, metadata=metadata, typ="NFS"
+        )
         return json.dumps({"LocationArn": arn})
 
     def describe_location_nfs(self) -> str:
@@ -168,7 +185,9 @@ class DataSyncResponse(BaseResponse):
         }
         hostname = name_nodes[0]["Hostname"] if name_nodes else "localhost"
         location_uri = f"hdfs://{hostname}{subdirectory}"
-        arn = self.datasync_backend.create_location(location_uri, metadata=metadata, typ="HDFS")
+        arn = self.datasync_backend.create_location(
+            location_uri, metadata=metadata, typ="HDFS"
+        )
         return json.dumps({"LocationArn": arn})
 
     def describe_location_hdfs(self) -> str:
@@ -291,7 +310,9 @@ class DataSyncResponse(BaseResponse):
             "Protocol": protocol,
             "SecurityGroupArns": security_group_arns,
         }
-        location_uri = f"fsxo://{storage_virtual_machine_arn.split(':')[-1]}{subdirectory}"
+        location_uri = (
+            f"fsxo://{storage_virtual_machine_arn.split(':')[-1]}{subdirectory}"
+        )
         arn = self.datasync_backend.create_location(
             location_uri, metadata=metadata, typ="FsxOntap"
         )
@@ -304,7 +325,9 @@ class DataSyncResponse(BaseResponse):
             {
                 "LocationArn": location.arn,
                 "LocationUri": location.uri,
-                "StorageVirtualMachineArn": location.metadata.get("StorageVirtualMachineArn"),
+                "StorageVirtualMachineArn": location.metadata.get(
+                    "StorageVirtualMachineArn"
+                ),
                 "Protocol": location.metadata.get("Protocol"),
                 "SecurityGroupArns": location.metadata.get("SecurityGroupArns"),
             }

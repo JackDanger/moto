@@ -156,6 +156,52 @@ class IVSResponse(BaseResponse):
         )
         return json.dumps({"keyPairs": key_pairs, "nextToken": next_token})
 
+    # Playback Restriction Policy operations
+
+    def create_playback_restriction_policy(self) -> str:
+        allowed_countries = self._get_param("allowedCountries", [])
+        allowed_origins = self._get_param("allowedOrigins", [])
+        enable_strict_origin_enforcement = self._get_param(
+            "enableStrictOriginEnforcement", False
+        )
+        name = self._get_param("name")
+        tags = self._get_param("tags", {})
+        policy = self.ivs_backend.create_playback_restriction_policy(
+            allowed_countries=allowed_countries,
+            allowed_origins=allowed_origins,
+            enable_strict_origin_enforcement=enable_strict_origin_enforcement,
+            name=name,
+            tags=tags,
+        )
+        return json.dumps({"playbackRestrictionPolicy": policy})
+
+    def get_playback_restriction_policy(self) -> str:
+        arn = self._get_param("arn")
+        policy = self.ivs_backend.get_playback_restriction_policy(arn=arn)
+        return json.dumps({"playbackRestrictionPolicy": policy})
+
+    def update_playback_restriction_policy(self) -> str:
+        arn = self._get_param("arn")
+        allowed_countries = self._get_param("allowedCountries")
+        allowed_origins = self._get_param("allowedOrigins")
+        enable_strict_origin_enforcement = self._get_param(
+            "enableStrictOriginEnforcement"
+        )
+        name = self._get_param("name")
+        policy = self.ivs_backend.update_playback_restriction_policy(
+            arn=arn,
+            allowed_countries=allowed_countries,
+            allowed_origins=allowed_origins,
+            enable_strict_origin_enforcement=enable_strict_origin_enforcement,
+            name=name,
+        )
+        return json.dumps({"playbackRestrictionPolicy": policy})
+
+    def delete_playback_restriction_policy(self) -> tuple[str, dict[str, int]]:
+        arn = self._get_param("arn")
+        self.ivs_backend.delete_playback_restriction_policy(arn=arn)
+        return "", {"status": 204}
+
     # Recording Configuration operations
 
     def create_recording_configuration(self) -> str:
@@ -193,23 +239,25 @@ class IVSResponse(BaseResponse):
             max_results=max_results,
             next_token=next_token,
         )
-        return json.dumps(
-            {"recordingConfigurations": configs, "nextToken": next_token}
-        )
+        return json.dumps({"recordingConfigurations": configs, "nextToken": next_token})
 
     # Tag operations
 
     def tag_resource(self) -> None:
         resource_arn = self._get_param("resourceArn")
         if not resource_arn:
-            resource_arn = self.path.split("/tags/")[-1] if "/tags/" in self.path else ""
+            resource_arn = (
+                self.path.split("/tags/")[-1] if "/tags/" in self.path else ""
+            )
         tags = self._get_param("tags", {})
         self.ivs_backend.tag_resource(resource_arn=resource_arn, tags=tags)
 
     def untag_resource(self) -> None:
         resource_arn = self._get_param("resourceArn")
         if not resource_arn:
-            resource_arn = self.path.split("/tags/")[-1] if "/tags/" in self.path else ""
+            resource_arn = (
+                self.path.split("/tags/")[-1] if "/tags/" in self.path else ""
+            )
         tag_keys = self._get_param("tagKeys", [])
         if not tag_keys:
             tag_keys = self.querystring.get("tagKeys", [])
@@ -218,6 +266,8 @@ class IVSResponse(BaseResponse):
     def list_tags_for_resource(self) -> str:
         resource_arn = self._get_param("resourceArn")
         if not resource_arn:
-            resource_arn = self.path.split("/tags/")[-1] if "/tags/" in self.path else ""
+            resource_arn = (
+                self.path.split("/tags/")[-1] if "/tags/" in self.path else ""
+            )
         tags = self.ivs_backend.list_tags_for_resource(resource_arn=resource_arn)
         return json.dumps({"tags": tags})

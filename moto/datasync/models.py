@@ -144,6 +144,21 @@ class DataSyncBackend(BaseBackend):
             raise InvalidRequestException(f"Agent {agent_arn} is not found.")
         return self.agents[agent_arn]
 
+    def update_agent(
+        self, agent_arn: str, name: Optional[str] = None
+    ) -> dict[str, Any]:
+        if agent_arn not in self.agents:
+            raise InvalidRequestException(f"Agent {agent_arn} is not found.")
+        if name is not None:
+            self.agents[agent_arn].agent_name = name
+        return {}
+
+    def delete_agent(self, agent_arn: str) -> dict[str, Any]:
+        if agent_arn not in self.agents:
+            raise InvalidRequestException(f"Agent {agent_arn} is not found.")
+        del self.agents[agent_arn]
+        return {}
+
     def create_location(
         self, location_uri: str, typ: str, metadata: dict[str, Any]
     ) -> str:

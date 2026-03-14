@@ -1124,6 +1124,14 @@ class SESBackend(BaseBackend):
         else:
             raise RuleDoesNotExist(f"Rule does not exist: {rule['Name']}")
 
+    def delete_receipt_rule(self, rule_set_name: str, rule_name: str) -> None:
+        self._validate_name_param(self.__RULE_SET_PARAM, rule_set_name)
+        self._validate_name_param(self.__RULE_PARAM, rule_name)
+        rule_set = self.receipt_rule_set.get(rule_set_name)
+        if rule_set is None:
+            return  # Idempotent: rule set doesn't exist, succeed silently
+        rule_set.rules[:] = [r for r in rule_set.rules if r["Name"] != rule_name]
+
     def set_identity_mail_from_domain(
         self,
         identity: str,
@@ -1258,13 +1266,10 @@ class SESBackend(BaseBackend):
 
         return result
 
-
     # ReceiptFilter operations
     def create_receipt_filter(self, name: str, policy: str, cidr: str) -> None:
         if name in self.receipt_filters:
-            raise ReceiptFilterAlreadyExists(
-                f"Receipt filter already exists: {name}"
-            )
+            raise ReceiptFilterAlreadyExists(f"Receipt filter already exists: {name}")
         self.receipt_filters[name] = ReceiptFilter(name=name, policy=policy, cidr=cidr)
 
     def list_receipt_filters(self) -> list[ReceiptFilter]:
@@ -1333,9 +1338,7 @@ class SESBackend(BaseBackend):
         tmpl.success_redirection_url = success_redirection_url
         tmpl.failure_redirection_url = failure_redirection_url
 
-    def delete_custom_verification_email_template(
-        self, template_name: str
-    ) -> None:
+    def delete_custom_verification_email_template(self, template_name: str) -> None:
         self.custom_verification_email_templates.pop(template_name, None)
 
     def send_custom_verification_email(
