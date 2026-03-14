@@ -1214,7 +1214,7 @@ class ECRBackend(BaseBackend):
         reg_id = registry_id or self.account_id
         return {
             "signingConfiguration": {
-                "signingStatus": "INACTIVE",
+                "rules": [],
             },
             "registryId": reg_id,
         }

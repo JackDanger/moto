@@ -2410,11 +2410,7 @@ class IoTBackend(BaseBackend):
 
     def describe_encryption_configuration(self) -> dict[str, Any]:
         return {
-            "encryptionConfiguration": {
-                "keyArn": None,
-                "encryptionType": "AWS_OWNED_KEY",
-                "status": "ACTIVATED",
-            }
+            "encryptionType": "AWS_OWNED_KEY",
         }
 
     def get_thing_connectivity_data(self, thing_name: str) -> dict[str, Any]:
