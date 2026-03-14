@@ -53,6 +53,18 @@ class DataBrewBackend(BaseBackend):
             "limit_default": 100,
             "unique_attribute": "name",
         },
+        "list_projects": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "name",
+        },
+        "list_schedules": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "name",
+        },
     }
 
     def __init__(self, region_name: str, account_id: str):
@@ -61,6 +73,8 @@ class DataBrewBackend(BaseBackend):
         self.rulesets: dict[str, FakeRuleset] = OrderedDict()
         self.datasets: dict[str, FakeDataset] = OrderedDict()
         self.jobs: dict[str, FakeJob] = OrderedDict()
+        self.projects: dict[str, FakeProject] = OrderedDict()
+        self.schedules: dict[str, FakeSchedule] = OrderedDict()
 
     @staticmethod
     def validate_length(param: str, param_name: str, max_length: int) -> None:
@@ -426,6 +440,112 @@ class DataBrewBackend(BaseBackend):
 
         return list(filter(filter_jobs, self.jobs.values()))
 
+    def create_project(
+        self,
+        project_name: str,
+        dataset_name: str,
+        recipe_name: str,
+        role_arn: str,
+        sample: dict[str, Any] | None,
+        tags: dict[str, str] | None,
+    ) -> "FakeProject":
+        if project_name in self.projects:
+            raise ConflictException(f"The project {project_name} already exists.")
+
+        project = FakeProject(
+            self.region_name,
+            self.account_id,
+            project_name,
+            dataset_name,
+            recipe_name,
+            role_arn,
+            sample,
+            tags or {},
+        )
+        self.projects[project_name] = project
+        return project
+
+    def describe_project(self, project_name: str) -> "FakeProject":
+        if project_name not in self.projects:
+            raise ResourceNotFoundException("One or more resources can't be found.")
+        return self.projects[project_name]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_projects(self) -> list["FakeProject"]:
+        return list(self.projects.values())
+
+    def update_project(
+        self,
+        project_name: str,
+        role_arn: str | None,
+        sample: dict[str, Any] | None,
+    ) -> "FakeProject":
+        if project_name not in self.projects:
+            raise ResourceNotFoundException("One or more resources can't be found.")
+        project = self.projects[project_name]
+        if role_arn is not None:
+            project.role_arn = role_arn
+        if sample is not None:
+            project.sample = sample
+        project.last_modified_date = utcnow()
+        return project
+
+    def delete_project(self, project_name: str) -> None:
+        if project_name not in self.projects:
+            raise ResourceNotFoundException("One or more resources can't be found.")
+        del self.projects[project_name]
+
+    def create_schedule(
+        self,
+        schedule_name: str,
+        cron_expression: str,
+        job_names: list[str] | None,
+        tags: dict[str, str] | None,
+    ) -> "FakeSchedule":
+        if schedule_name in self.schedules:
+            raise ConflictException(f"The schedule {schedule_name} already exists.")
+
+        schedule = FakeSchedule(
+            self.region_name,
+            self.account_id,
+            schedule_name,
+            cron_expression,
+            job_names or [],
+            tags or {},
+        )
+        self.schedules[schedule_name] = schedule
+        return schedule
+
+    def describe_schedule(self, schedule_name: str) -> "FakeSchedule":
+        if schedule_name not in self.schedules:
+            raise ResourceNotFoundException("One or more resources can't be found.")
+        return self.schedules[schedule_name]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_schedules(self) -> list["FakeSchedule"]:
+        return list(self.schedules.values())
+
+    def update_schedule(
+        self,
+        schedule_name: str,
+        cron_expression: str | None,
+        job_names: list[str] | None,
+    ) -> "FakeSchedule":
+        if schedule_name not in self.schedules:
+            raise ResourceNotFoundException("One or more resources can't be found.")
+        schedule = self.schedules[schedule_name]
+        if cron_expression is not None:
+            schedule.cron_expression = cron_expression
+        if job_names is not None:
+            schedule.job_names = job_names
+        schedule.last_modified_date = utcnow()
+        return schedule
+
+    def delete_schedule(self, schedule_name: str) -> None:
+        if schedule_name not in self.schedules:
+            raise ResourceNotFoundException("One or more resources can't be found.")
+        del self.schedules[schedule_name]
+
 
 class FakeRecipe(BaseModel):
     INITIAL_VERSION = 0.1
@@ -613,6 +733,84 @@ class FakeDataset(BaseModel):
             "PathOptions": self.path_options,
             "CreateDate": f"{self.created_time.timestamp():.3f}",
             "Tags": self.tags or {},
+            "ResourceArn": self.resource_arn,
+        }
+
+
+class FakeProject(BaseModel):
+    def __init__(
+        self,
+        region_name: str,
+        account_id: str,
+        project_name: str,
+        dataset_name: str,
+        recipe_name: str,
+        role_arn: str,
+        sample: dict[str, Any] | None,
+        tags: dict[str, str],
+    ):
+        self.region_name = region_name
+        self.account_id = account_id
+        self.name = project_name
+        self.dataset_name = dataset_name
+        self.recipe_name = recipe_name
+        self.role_arn = role_arn
+        self.sample = sample or {}
+        self.tags = tags
+        self.create_date = utcnow()
+        self.last_modified_date = utcnow()
+
+    @property
+    def resource_arn(self) -> str:
+        return f"arn:{get_partition(self.region_name)}:databrew:{self.region_name}:{self.account_id}:project/{self.name}"
+
+    def as_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "Name": self.name,
+            "DatasetName": self.dataset_name,
+            "RecipeName": self.recipe_name,
+            "RoleArn": self.role_arn,
+            "CreateDate": self.create_date.timestamp(),
+            "LastModifiedDate": self.last_modified_date.timestamp(),
+            "Tags": self.tags or {},
+            "ResourceArn": self.resource_arn,
+        }
+        if self.sample:
+            result["Sample"] = self.sample
+        return result
+
+
+class FakeSchedule(BaseModel):
+    def __init__(
+        self,
+        region_name: str,
+        account_id: str,
+        schedule_name: str,
+        cron_expression: str,
+        job_names: list[str],
+        tags: dict[str, str],
+    ):
+        self.region_name = region_name
+        self.account_id = account_id
+        self.name = schedule_name
+        self.cron_expression = cron_expression
+        self.job_names = job_names
+        self.tags = tags
+        self.create_date = utcnow()
+        self.last_modified_date = utcnow()
+
+    @property
+    def resource_arn(self) -> str:
+        return f"arn:{get_partition(self.region_name)}:databrew:{self.region_name}:{self.account_id}:schedule/{self.name}"
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "Name": self.name,
+            "CronExpression": self.cron_expression,
+            "JobNames": self.job_names,
+            "Tags": self.tags or {},
+            "CreateDate": self.create_date.timestamp(),
+            "LastModifiedDate": self.last_modified_date.timestamp(),
             "ResourceArn": self.resource_arn,
         }
 

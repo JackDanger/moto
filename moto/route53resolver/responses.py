@@ -482,9 +482,7 @@ class Route53ResolverResponse(BaseResponse):
     def list_firewall_domain_lists(self) -> str:
         """List all DNS Firewall domain lists."""
         domain_lists = self.route53resolver_backend.list_firewall_domain_lists()
-        return json.dumps(
-            {"FirewallDomainLists": [x.metadata() for x in domain_lists]}
-        )
+        return json.dumps({"FirewallDomainLists": [x.metadata() for x in domain_lists]})
 
     def update_firewall_domains(self) -> str:
         """Update domains in a DNS Firewall domain list."""
@@ -496,12 +494,14 @@ class Route53ResolverResponse(BaseResponse):
             operation=operation,
             domains=domains,
         )
-        return json.dumps({
-            "Id": domain_list.id,
-            "Name": domain_list.name,
-            "Status": domain_list.status,
-            "StatusMessage": domain_list.status_message,
-        })
+        return json.dumps(
+            {
+                "Id": domain_list.id,
+                "Name": domain_list.name,
+                "Status": domain_list.status,
+                "StatusMessage": domain_list.status_message,
+            }
+        )
 
     def list_firewall_domains(self) -> str:
         """List domains in a DNS Firewall domain list."""
@@ -542,9 +542,7 @@ class Route53ResolverResponse(BaseResponse):
     def list_firewall_rule_groups(self) -> str:
         """List all DNS Firewall rule groups."""
         rule_groups = self.route53resolver_backend.list_firewall_rule_groups()
-        return json.dumps(
-            {"FirewallRuleGroups": [x.metadata() for x in rule_groups]}
-        )
+        return json.dumps({"FirewallRuleGroups": [x.metadata() for x in rule_groups]})
 
     # --- DNS Firewall Rules ---
 
@@ -632,9 +630,7 @@ class Route53ResolverResponse(BaseResponse):
             mutation_protection=mutation_protection,
             tags=tags if tags else None,
         )
-        return json.dumps(
-            {"FirewallRuleGroupAssociation": association.description()}
-        )
+        return json.dumps({"FirewallRuleGroupAssociation": association.description()})
 
     def disassociate_firewall_rule_group(self) -> str:
         """Disassociate a DNS Firewall rule group from a VPC."""
@@ -644,23 +640,17 @@ class Route53ResolverResponse(BaseResponse):
         association = self.route53resolver_backend.disassociate_firewall_rule_group(
             firewall_rule_group_association_id=firewall_rule_group_association_id
         )
-        return json.dumps(
-            {"FirewallRuleGroupAssociation": association.description()}
-        )
+        return json.dumps({"FirewallRuleGroupAssociation": association.description()})
 
     def get_firewall_rule_group_association(self) -> str:
         """Get a DNS Firewall rule group association."""
         firewall_rule_group_association_id = self._get_param(
             "FirewallRuleGroupAssociationId"
         )
-        association = (
-            self.route53resolver_backend.get_firewall_rule_group_association(
-                firewall_rule_group_association_id=firewall_rule_group_association_id
-            )
+        association = self.route53resolver_backend.get_firewall_rule_group_association(
+            firewall_rule_group_association_id=firewall_rule_group_association_id
         )
-        return json.dumps(
-            {"FirewallRuleGroupAssociation": association.description()}
-        )
+        return json.dumps({"FirewallRuleGroupAssociation": association.description()})
 
     def list_firewall_rule_group_associations(self) -> str:
         """List all DNS Firewall rule group associations."""
@@ -673,12 +663,67 @@ class Route53ResolverResponse(BaseResponse):
             )
         )
         return json.dumps(
-            {
-                "FirewallRuleGroupAssociations": [
-                    x.description() for x in associations
-                ]
-            }
+            {"FirewallRuleGroupAssociations": [x.description() for x in associations]}
         )
+
+    def put_firewall_rule_group_policy(self) -> str:
+        """Store a JSON policy for a firewall rule group."""
+        arn = self._get_param("Arn")
+        policy = self._get_param("FirewallRuleGroupPolicy")
+        result = self.route53resolver_backend.put_firewall_rule_group_policy(
+            arn=arn, policy=policy
+        )
+        return json.dumps(result)
+
+    def get_firewall_rule_group_policy(self) -> str:
+        """Retrieve the JSON policy for a firewall rule group."""
+        arn = self._get_param("Arn")
+        result = self.route53resolver_backend.get_firewall_rule_group_policy(arn=arn)
+        return json.dumps(result)
+
+    def put_resolver_query_log_config_policy(self) -> str:
+        """Store a JSON policy for a resolver query log config."""
+        arn = self._get_param("Arn")
+        policy = self._get_param("ResolverQueryLogConfigPolicy")
+        result = self.route53resolver_backend.put_resolver_query_log_config_policy(
+            arn=arn, policy=policy
+        )
+        return json.dumps(result)
+
+    def get_resolver_query_log_config_policy(self) -> str:
+        """Retrieve the JSON policy for a resolver query log config."""
+        arn = self._get_param("Arn")
+        result = self.route53resolver_backend.get_resolver_query_log_config_policy(
+            arn=arn
+        )
+        return json.dumps(result)
+
+    def put_resolver_rule_policy(self) -> str:
+        """Store a JSON policy for a resolver rule."""
+        arn = self._get_param("Arn")
+        policy = self._get_param("ResolverRulePolicy")
+        result = self.route53resolver_backend.put_resolver_rule_policy(
+            arn=arn, policy=policy
+        )
+        return json.dumps(result)
+
+    def get_resolver_rule_policy(self) -> str:
+        """Retrieve the JSON policy for a resolver rule."""
+        arn = self._get_param("Arn")
+        result = self.route53resolver_backend.get_resolver_rule_policy(arn=arn)
+        return json.dumps(result)
+
+    def update_resolver_rule(self) -> str:
+        """Update an existing resolver rule."""
+        resolver_rule_id = self._get_param("ResolverRuleId")
+        config = self._get_param("Config") or {}
+        resolver_rule = self.route53resolver_backend.update_resolver_rule(
+            resolver_rule_id=resolver_rule_id,
+            name=config.get("Name"),
+            target_ips=config.get("TargetIps"),
+            resolver_endpoint_id=config.get("ResolverEndpointId"),
+        )
+        return json.dumps({"ResolverRule": resolver_rule.description()})
 
     def list_firewall_configs(self) -> str:
         """List all firewall configs."""

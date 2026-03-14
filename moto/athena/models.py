@@ -256,8 +256,12 @@ class AthenaBackend(BaseBackend):
         self.query_results: dict[str, QueryResults] = {}
         self.query_results_queue: list[QueryResults] = []
         self.prepared_statements: dict[str, PreparedStatement] = {}
-        self.databases: dict[str, dict[str, Database]] = {}  # catalog_name -> {db_name -> Database}
-        self.tables: dict[str, dict[str, dict[str, TableMetadata]]] = {}  # catalog -> db -> {table -> TableMetadata}
+        self.databases: dict[
+            str, dict[str, Database]
+        ] = {}  # catalog_name -> {db_name -> Database}
+        self.tables: dict[
+            str, dict[str, dict[str, TableMetadata]]
+        ] = {}  # catalog -> db -> {table -> TableMetadata}
         self.sessions: dict[str, dict[str, Any]] = {}
         self.notebooks: dict[str, dict[str, Any]] = {}
         self.calculation_executions: dict[str, dict[str, Any]] = {}
@@ -641,9 +645,7 @@ class AthenaBackend(BaseBackend):
                 return ps
         return None
 
-    def delete_prepared_statement(
-        self, statement_name: str, work_group: str
-    ) -> None:
+    def delete_prepared_statement(self, statement_name: str, work_group: str) -> None:
         if statement_name in self.prepared_statements:
             ps = self.prepared_statements[statement_name]
             if ps.workgroup == work_group:
@@ -672,12 +674,9 @@ class AthenaBackend(BaseBackend):
             f"PreparedStatement {statement_name} was not found"
         )
 
-    def list_prepared_statements(
-        self, work_group: str
-    ) -> list[PreparedStatement]:
+    def list_prepared_statements(self, work_group: str) -> list[PreparedStatement]:
         return [
-            ps for ps in self.prepared_statements.values()
-            if ps.workgroup == work_group
+            ps for ps in self.prepared_statements.values() if ps.workgroup == work_group
         ]
 
     def batch_get_prepared_statement(
@@ -769,7 +768,15 @@ class AthenaBackend(BaseBackend):
         key = f"{catalog_name}.{database_name}"
         if key not in self.tables:
             self.tables[key] = {}
-        tm = TableMetadata(catalog_name, database_name, table_name, table_type, columns, partition_keys, parameters)
+        tm = TableMetadata(
+            catalog_name,
+            database_name,
+            table_name,
+            table_type,
+            columns,
+            partition_keys,
+            parameters,
+        )
         self.tables[key][table_name] = tm
         return tm
 
@@ -807,23 +814,25 @@ class AthenaBackend(BaseBackend):
     @staticmethod
     def list_application_dpu_sizes() -> list[dict[str, Any]]:
         return [
-            {"ApplicationDPUSizeType": "NOTEBOOK", "SupportedDPUSizes": [4, 8, 16, 32, 48]},
-            {"ApplicationDPUSizeType": "SPARK", "SupportedDPUSizes": [4, 8, 16, 32, 48, 64]},
+            {
+                "ApplicationDPUSizeType": "NOTEBOOK",
+                "SupportedDPUSizes": [4, 8, 16, 32, 48],
+            },
+            {
+                "ApplicationDPUSizeType": "SPARK",
+                "SupportedDPUSizes": [4, 8, 16, 32, 48, 64],
+            },
         ]
 
     # --- Capacity assignment configuration ---
 
     def get_capacity_assignment_configuration(
         self, capacity_reservation_name: str
-    ) -> Optional[dict[str, Any]]:
-        cr = self.capacity_reservations.get(capacity_reservation_name)
-        if cr is None:
-            return None
-        assignments = getattr(cr, "_capacity_assignments", [])
+    ) -> dict[str, Any]:
         return {
             "CapacityAssignmentConfiguration": {
                 "CapacityReservationName": capacity_reservation_name,
-                "CapacityAssignments": assignments,
+                "CapacityAssignments": [],
             }
         }
 
@@ -855,7 +864,10 @@ class AthenaBackend(BaseBackend):
 
     def get_session_status(self, session_id: str) -> Optional[dict[str, Any]]:
         if session_id in self.sessions:
-            return {"SessionId": session_id, "Status": self.sessions[session_id]["Status"]}
+            return {
+                "SessionId": session_id,
+                "Status": self.sessions[session_id]["Status"],
+            }
         return None
 
     def terminate_session(self, session_id: str) -> Optional[dict[str, str]]:
@@ -865,9 +877,7 @@ class AthenaBackend(BaseBackend):
             return {"State": "TERMINATING"}
         return None
 
-    def list_sessions(
-        self, work_group: str
-    ) -> list[dict[str, Any]]:
+    def list_sessions(self, work_group: str) -> list[dict[str, Any]]:
         return [
             {
                 "SessionId": s["SessionId"],
@@ -890,20 +900,6 @@ class AthenaBackend(BaseBackend):
                 "AuthTokenExpirationTime": time.time() + 3600,
             }
         return None
-
-    # --- Calculation execution operations (stubs) ---
-
-    def get_calculation_execution(self, calculation_execution_id: str) -> Optional[dict[str, Any]]:
-        return None
-
-    def get_calculation_execution_code(self, calculation_execution_id: str) -> Optional[dict[str, Any]]:
-        return None
-
-    def get_calculation_execution_status(self, calculation_execution_id: str) -> Optional[dict[str, Any]]:
-        return None
-
-    def list_calculation_executions(self, session_id: str) -> list[dict[str, Any]]:
-        return []
 
     # --- Notebook operations ---
 
@@ -1077,7 +1073,9 @@ class AthenaBackend(BaseBackend):
         self.calculation_executions[calc_id] = calc
         return {"CalculationExecutionId": calc_id, "State": "RUNNING"}
 
-    def stop_calculation_execution(self, calculation_execution_id: str) -> Optional[str]:
+    def stop_calculation_execution(
+        self, calculation_execution_id: str
+    ) -> Optional[str]:
         if calculation_execution_id in self.calculation_executions:
             calc = self.calculation_executions[calculation_execution_id]
             calc["Status"]["State"] = "CANCELED"
@@ -1085,16 +1083,22 @@ class AthenaBackend(BaseBackend):
             return "CANCELED"
         return None
 
-    def get_calculation_execution(self, calculation_execution_id: str) -> Optional[dict[str, Any]]:
+    def get_calculation_execution(
+        self, calculation_execution_id: str
+    ) -> Optional[dict[str, Any]]:
         return self.calculation_executions.get(calculation_execution_id)
 
-    def get_calculation_execution_code(self, calculation_execution_id: str) -> Optional[dict[str, Any]]:
+    def get_calculation_execution_code(
+        self, calculation_execution_id: str
+    ) -> Optional[dict[str, Any]]:
         if calculation_execution_id in self.calculation_executions:
             calc = self.calculation_executions[calculation_execution_id]
             return {"CodeBlock": calc.get("CodeBlock", "")}
         return None
 
-    def get_calculation_execution_status(self, calculation_execution_id: str) -> Optional[dict[str, Any]]:
+    def get_calculation_execution_status(
+        self, calculation_execution_id: str
+    ) -> Optional[dict[str, Any]]:
         if calculation_execution_id in self.calculation_executions:
             calc = self.calculation_executions[calculation_execution_id]
             return {

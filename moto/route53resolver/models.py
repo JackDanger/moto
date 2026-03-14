@@ -721,9 +721,17 @@ class Route53ResolverBackend(BaseBackend):
         ] = {}  # Key is resource_id
         self.firewall_domain_lists: dict[str, FirewallDomainList] = {}
         self.firewall_rule_groups: dict[str, FirewallRuleGroup] = {}
-        self.firewall_rules: dict[str, FirewallRule] = {}  # Key: "group_id:domain_list_id"
-        self.firewall_rule_group_associations: dict[str, FirewallRuleGroupAssociation] = {}
+        self.firewall_rules: dict[
+            str, FirewallRule
+        ] = {}  # Key: "group_id:domain_list_id"
+        self.firewall_rule_group_associations: dict[
+            str, FirewallRuleGroupAssociation
+        ] = {}
         self.tagger = TaggingService()
+
+        self._firewall_rule_group_policies: dict[str, str] = {}
+        self._resolver_query_log_config_policies: dict[str, str] = {}
+        self._resolver_rule_policies: dict[str, str] = {}
 
         self.ec2_backend = ec2_backends[self.account_id][self.region_name]
 
@@ -1657,12 +1665,10 @@ class Route53ResolverBackend(BaseBackend):
         domain_list.domain_count = len(domain_list.domains)
         domain_list.modification_time = datetime.now(timezone.utc).isoformat()
         domain_list.status = "COMPLETE"
-        domain_list.status_message = f"Successfully updated firewall domain list"
+        domain_list.status_message = "Successfully updated firewall domain list"
         return domain_list
 
-    def list_firewall_domains(
-        self, firewall_domain_list_id: str
-    ) -> list[str]:
+    def list_firewall_domains(self, firewall_domain_list_id: str) -> list[str]:
         """List domains in a DNS Firewall domain list."""
         if firewall_domain_list_id not in self.firewall_domain_lists:
             raise ResourceNotFoundException(
@@ -1690,9 +1696,7 @@ class Route53ResolverBackend(BaseBackend):
             self.tagger.tag_resource(rule_group.arn, tags)
         return rule_group
 
-    def get_firewall_rule_group(
-        self, firewall_rule_group_id: str
-    ) -> FirewallRuleGroup:
+    def get_firewall_rule_group(self, firewall_rule_group_id: str) -> FirewallRuleGroup:
         """Get information about a DNS Firewall rule group."""
         if firewall_rule_group_id not in self.firewall_rule_groups:
             raise ResourceNotFoundException(
@@ -1719,7 +1723,8 @@ class Route53ResolverBackend(BaseBackend):
 
         # Remove all rules in this group
         keys_to_remove = [
-            k for k, v in self.firewall_rules.items()
+            k
+            for k, v in self.firewall_rules.items()
             if v.firewall_rule_group_id == firewall_rule_group_id
         ]
         for k in keys_to_remove:
@@ -1847,9 +1852,7 @@ class Route53ResolverBackend(BaseBackend):
         rule.modification_time = datetime.now(timezone.utc).isoformat()
         return rule
 
-    def list_firewall_rules(
-        self, firewall_rule_group_id: str
-    ) -> list[FirewallRule]:
+    def list_firewall_rules(self, firewall_rule_group_id: str) -> list[FirewallRule]:
         """List all DNS Firewall rules in a rule group."""
         if firewall_rule_group_id not in self.firewall_rule_groups:
             raise ResourceNotFoundException(
@@ -1857,7 +1860,8 @@ class Route53ResolverBackend(BaseBackend):
             )
         return sorted(
             [
-                r for r in self.firewall_rules.values()
+                r
+                for r in self.firewall_rules.values()
                 if r.firewall_rule_group_id == firewall_rule_group_id
             ],
             key=lambda x: x.priority,
@@ -1911,7 +1915,10 @@ class Route53ResolverBackend(BaseBackend):
         self, firewall_rule_group_association_id: str
     ) -> FirewallRuleGroupAssociation:
         """Disassociate a DNS Firewall rule group from a VPC."""
-        if firewall_rule_group_association_id not in self.firewall_rule_group_associations:
+        if (
+            firewall_rule_group_association_id
+            not in self.firewall_rule_group_associations
+        ):
             raise ResourceNotFoundException(
                 f"Firewall rule group association with ID "
                 f"'{firewall_rule_group_association_id}' does not exist"
@@ -1927,7 +1934,10 @@ class Route53ResolverBackend(BaseBackend):
         self, firewall_rule_group_association_id: str
     ) -> FirewallRuleGroupAssociation:
         """Get information about a DNS Firewall rule group association."""
-        if firewall_rule_group_association_id not in self.firewall_rule_group_associations:
+        if (
+            firewall_rule_group_association_id
+            not in self.firewall_rule_group_associations
+        ):
             raise ResourceNotFoundException(
                 f"Firewall rule group association with ID "
                 f"'{firewall_rule_group_association_id}' does not exist"
@@ -1943,12 +1953,68 @@ class Route53ResolverBackend(BaseBackend):
         associations = list(self.firewall_rule_group_associations.values())
         if firewall_rule_group_id:
             associations = [
-                a for a in associations
+                a
+                for a in associations
                 if a.firewall_rule_group_id == firewall_rule_group_id
             ]
         if vpc_id:
             associations = [a for a in associations if a.vpc_id == vpc_id]
         return sorted(associations, key=lambda x: x.name)
+
+    # --- Policy operations ---
+
+    def put_firewall_rule_group_policy(self, arn: str, policy: str) -> dict[str, Any]:
+        """Store a JSON policy string for a firewall rule group."""
+        self._firewall_rule_group_policies[arn] = policy
+        return {"ReturnValue": True}
+
+    def get_firewall_rule_group_policy(self, arn: str) -> dict[str, str]:
+        """Retrieve the JSON policy string for a firewall rule group."""
+        policy = self._firewall_rule_group_policies.get(arn, "{}")
+        return {"FirewallRuleGroupPolicy": policy}
+
+    def put_resolver_query_log_config_policy(
+        self, arn: str, policy: str
+    ) -> dict[str, Any]:
+        """Store a JSON policy string for a resolver query log config."""
+        self._resolver_query_log_config_policies[arn] = policy
+        return {"ReturnValue": True}
+
+    def get_resolver_query_log_config_policy(self, arn: str) -> dict[str, str]:
+        """Retrieve the JSON policy string for a resolver query log config."""
+        policy = self._resolver_query_log_config_policies.get(arn, "{}")
+        return {"ResolverQueryLogConfigPolicy": policy}
+
+    def put_resolver_rule_policy(self, arn: str, policy: str) -> dict[str, Any]:
+        """Store a JSON policy string for a resolver rule."""
+        self._resolver_rule_policies[arn] = policy
+        return {"ReturnValue": True}
+
+    def get_resolver_rule_policy(self, arn: str) -> dict[str, str]:
+        """Retrieve the JSON policy string for a resolver rule."""
+        policy = self._resolver_rule_policies.get(arn, "{}")
+        return {"ResolverRulePolicy": policy}
+
+    def update_resolver_rule(
+        self,
+        resolver_rule_id: str,
+        name: Optional[str] = None,
+        target_ips: Optional[list[dict[str, Any]]] = None,
+        resolver_endpoint_id: Optional[str] = None,
+    ) -> ResolverRule:
+        """Update an existing resolver rule."""
+        self._validate_resolver_rule_id(resolver_rule_id)
+        resolver_rule = self.resolver_rules[resolver_rule_id]
+
+        if name is not None:
+            resolver_rule.name = name
+        if target_ips is not None:
+            resolver_rule.target_ips = target_ips
+        if resolver_endpoint_id is not None:
+            resolver_rule.resolver_endpoint_id = resolver_endpoint_id
+
+        resolver_rule.modification_time = datetime.now(timezone.utc).isoformat()
+        return resolver_rule
 
 
 route53resolver_backends = BackendDict(Route53ResolverBackend, "route53resolver")

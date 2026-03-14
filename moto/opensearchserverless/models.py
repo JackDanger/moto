@@ -256,6 +256,7 @@ class OpenSearchServiceServerlessBackend(BaseBackend):
         self.lifecycle_policies: dict[str, LifecyclePolicy] = {}
         self.security_configs: dict[str, SecurityConfig] = {}
         self.os_endpoints: dict[str, OSEndpoint] = {}
+        self._indexes: dict[str, dict] = {}
         self.account_settings: dict[str, Any] = {}
         self.tagger = TaggingService(
             tag_name="tags", key_name="key", value_name="value"
@@ -489,9 +490,7 @@ class OpenSearchServiceServerlessBackend(BaseBackend):
                         collection_error_details.append(collection_error_detail)
         return collection_details, collection_error_details
 
-    def update_collection(
-        self, id: str, description: str | None
-    ) -> Collection:
+    def update_collection(self, id: str, description: str | None) -> Collection:
         if id not in self.collections:
             raise ResourceNotFoundException(f"Collection with ID {id} cannot be found.")
         collection = self.collections[id]
@@ -537,7 +536,12 @@ class OpenSearchServiceServerlessBackend(BaseBackend):
         return [ap for ap in self.access_policies.values() if ap.type == type]
 
     def update_access_policy(
-        self, name: str, type: str, description: str | None, policy: str | None, policy_version: str | None
+        self,
+        name: str,
+        type: str,
+        description: str | None,
+        policy: str | None,
+        policy_version: str | None,
     ) -> AccessPolicy:
         key = f"{name}:{type}"
         if key not in self.access_policies:
@@ -572,7 +576,9 @@ class OpenSearchServiceServerlessBackend(BaseBackend):
             raise ConflictException(
                 msg=f"Policy with name {name} and type {type} already exists"
             )
-        lp = LifecyclePolicy(description=description, name=name, policy=policy, type=type)
+        lp = LifecyclePolicy(
+            description=description, name=name, policy=policy, type=type
+        )
         self.lifecycle_policies[key] = lp
         return lp
 
@@ -588,7 +594,12 @@ class OpenSearchServiceServerlessBackend(BaseBackend):
         return [lp for lp in self.lifecycle_policies.values() if lp.type == type]
 
     def update_lifecycle_policy(
-        self, name: str, type: str, description: str | None, policy: str | None, policy_version: str | None
+        self,
+        name: str,
+        type: str,
+        description: str | None,
+        policy: str | None,
+        policy_version: str | None,
     ) -> LifecyclePolicy:
         key = f"{name}:{type}"
         if key not in self.lifecycle_policies:
@@ -625,7 +636,12 @@ class OpenSearchServiceServerlessBackend(BaseBackend):
                 details.append(self.lifecycle_policies[key].to_dict())
             else:
                 errors.append(
-                    {"errorCode": "NOT_FOUND", "errorMessage": f"Policy {name} not found", "name": name, "type": type_}
+                    {
+                        "errorCode": "NOT_FOUND",
+                        "errorMessage": f"Policy {name} not found",
+                        "name": name,
+                        "type": type_,
+                    }
                 )
         return details, errors
 
@@ -640,28 +656,47 @@ class OpenSearchServiceServerlessBackend(BaseBackend):
             found = False
             for lp in self.lifecycle_policies.values():
                 if lp.type == type_:
-                    details.append({
-                        "policyName": lp.name,
-                        "resource": resource,
-                        "resourceType": "collection",
-                        "type": type_,
-                    })
+                    details.append(
+                        {
+                            "policyName": lp.name,
+                            "resource": resource,
+                            "resourceType": "collection",
+                            "type": type_,
+                        }
+                    )
                     found = True
                     break
             if not found:
-                errors.append({"errorCode": "NOT_FOUND", "errorMessage": "No matching policy", "resource": resource, "type": type_})
+                errors.append(
+                    {
+                        "errorCode": "NOT_FOUND",
+                        "errorMessage": "No matching policy",
+                        "resource": resource,
+                        "type": type_,
+                    }
+                )
         return details, errors
 
     # Security Config operations
     def create_security_config(
-        self, description: str, name: str, saml_options: dict[str, Any] | None, type: str
+        self,
+        description: str,
+        name: str,
+        saml_options: dict[str, Any] | None,
+        type: str,
     ) -> SecurityConfig:
         for sc in self.security_configs.values():
             if sc.name == name:
-                raise ConflictException(msg=f"Security config with name {name} already exists")
+                raise ConflictException(
+                    msg=f"Security config with name {name} already exists"
+                )
         sc = SecurityConfig(
-            description=description, name=name, saml_options=saml_options,
-            type=type, region=self.region_name, account_id=self.account_id,
+            description=description,
+            name=name,
+            saml_options=saml_options,
+            type=type,
+            region=self.region_name,
+            account_id=self.account_id,
         )
         self.security_configs[sc.id] = sc
         return sc
@@ -669,16 +704,24 @@ class OpenSearchServiceServerlessBackend(BaseBackend):
     def get_security_config(self, id: str) -> SecurityConfig:
         if id in self.security_configs:
             return self.security_configs[id]
-        raise ResourceNotFoundException(msg=f"Security config with ID {id} is not found")
+        raise ResourceNotFoundException(
+            msg=f"Security config with ID {id} is not found"
+        )
 
     def list_security_configs(self, type: str) -> list[SecurityConfig]:
         return [sc for sc in self.security_configs.values() if sc.type == type]
 
     def update_security_config(
-        self, config_version: str, id: str, description: str | None, saml_options: dict[str, Any] | None
+        self,
+        config_version: str,
+        id: str,
+        description: str | None,
+        saml_options: dict[str, Any] | None,
     ) -> SecurityConfig:
         if id not in self.security_configs:
-            raise ResourceNotFoundException(msg=f"Security config with ID {id} is not found")
+            raise ResourceNotFoundException(
+                msg=f"Security config with ID {id} is not found"
+            )
         sc = self.security_configs[id]
         if description is not None:
             sc.description = description
@@ -690,7 +733,9 @@ class OpenSearchServiceServerlessBackend(BaseBackend):
 
     def delete_security_config(self, id: str) -> None:
         if id not in self.security_configs:
-            raise ResourceNotFoundException(msg=f"Security config with ID {id} is not found")
+            raise ResourceNotFoundException(
+                msg=f"Security config with ID {id} is not found"
+            )
         del self.security_configs[id]
 
     # VPC Endpoint operations
@@ -706,60 +751,184 @@ class OpenSearchServiceServerlessBackend(BaseBackend):
         return list(self.os_endpoints.values())
 
     def update_vpc_endpoint(
-        self, id: str, add_security_group_ids: list[str] | None, add_subnet_ids: list[str] | None,
-        remove_security_group_ids: list[str] | None, remove_subnet_ids: list[str] | None
+        self,
+        id: str,
+        add_security_group_ids: list[str] | None,
+        add_subnet_ids: list[str] | None,
+        remove_security_group_ids: list[str] | None,
+        remove_subnet_ids: list[str] | None,
     ) -> dict[str, Any]:
         for ep in self.os_endpoints.values():
             if ep.id == id:
                 if add_security_group_ids:
                     ep.security_group_ids.extend(add_security_group_ids)
                 if remove_security_group_ids:
-                    ep.security_group_ids = [sg for sg in ep.security_group_ids if sg not in remove_security_group_ids]
+                    ep.security_group_ids = [
+                        sg
+                        for sg in ep.security_group_ids
+                        if sg not in remove_security_group_ids
+                    ]
                 if add_subnet_ids:
                     ep.subnet_ids.extend(add_subnet_ids)
                 if remove_subnet_ids:
-                    ep.subnet_ids = [s for s in ep.subnet_ids if s not in remove_subnet_ids]
+                    ep.subnet_ids = [
+                        s for s in ep.subnet_ids if s not in remove_subnet_ids
+                    ]
                 return ep.to_dict()
         raise ResourceNotFoundException(msg=f"VPC endpoint with ID {id} is not found")
 
-    def batch_get_vpc_endpoint(self, ids: list[str]) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
+    def batch_get_vpc_endpoint(
+        self, ids: list[str]
+    ) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
         details = []
         errors = []
         for id in ids:
             found = False
             for ep in self.os_endpoints.values():
                 if ep.id == id:
-                    details.append({
-                        "id": ep.id, "name": ep.name, "status": ep.status,
-                        "vpcId": ep.vpc_id, "subnetIds": ep.subnet_ids,
-                        "securityGroupIds": ep.security_group_ids,
-                    })
+                    details.append(
+                        {
+                            "id": ep.id,
+                            "name": ep.name,
+                            "status": ep.status,
+                            "vpcId": ep.vpc_id,
+                            "subnetIds": ep.subnet_ids,
+                            "securityGroupIds": ep.security_group_ids,
+                        }
+                    )
                     found = True
                     break
             if not found:
-                errors.append({"errorCode": "NOT_FOUND", "errorMessage": f"VPC endpoint {id} not found", "id": id})
+                errors.append(
+                    {
+                        "errorCode": "NOT_FOUND",
+                        "errorMessage": f"VPC endpoint {id} not found",
+                        "id": id,
+                    }
+                )
         return details, errors
 
     # Account Settings
     def get_account_settings(self) -> dict[str, Any]:
-        return self.account_settings or {"capacityLimits": {"maxIndexingCapacityInOCU": 20, "maxSearchCapacityInOCU": 20}}
+        return self.account_settings or {
+            "capacityLimits": {
+                "maxIndexingCapacityInOCU": 20,
+                "maxSearchCapacityInOCU": 20,
+            }
+        }
 
-    def update_account_settings(self, capacity_limits: dict[str, Any] | None) -> dict[str, Any]:
+    def update_account_settings(
+        self, capacity_limits: dict[str, Any] | None
+    ) -> dict[str, Any]:
         if capacity_limits:
             self.account_settings["capacityLimits"] = capacity_limits
         return self.get_account_settings()
 
+    # Index CRUD operations
+    def create_index(
+        self,
+        collection_endpoint: str,
+        name: str,
+        description: str = "",
+        field_mappings: list | None = None,
+    ) -> dict:
+        index_id = mock_random.get_random_hex(10)
+        now = int(unix_time() * 1000)
+        index = {
+            "id": index_id,
+            "name": name,
+            "collectionEndpoint": collection_endpoint,
+            "description": description or "",
+            "fieldMappings": field_mappings or [],
+            "createdDate": now,
+            "lastModifiedDate": now,
+        }
+        self._indexes[index_id] = index
+        return {"createIndexDetail": index}
+
+    def _resolve_index_id(
+        self, index_id: str | None, collection_id: str | None, index_name: str | None
+    ) -> str | None:
+        if index_id and index_id in self._indexes:
+            return index_id
+        if collection_id and index_name:
+            coll = self.collections.get(collection_id)
+            if coll:
+                endpoint = coll.collection_endpoint
+                for idx in self._indexes.values():
+                    if (
+                        idx.get("collectionEndpoint") == endpoint
+                        and idx.get("name") == index_name
+                    ):
+                        return idx["id"]
+        if index_name:
+            for idx in self._indexes.values():
+                if idx.get("name") == index_name:
+                    return idx["id"]
+        return None
+
+    def get_index(self, index_id: str) -> dict:
+        if index_id not in self._indexes:
+            raise ResourceNotFoundException(msg=f"Index {index_id} not found")
+        return {"indexDetail": self._indexes[index_id]}
+
+    def update_index(
+        self,
+        index_id: str,
+        description: str | None = None,
+        field_mappings: list | None = None,
+    ) -> dict:
+        if index_id not in self._indexes:
+            raise ResourceNotFoundException(msg=f"Index {index_id} not found")
+        idx = self._indexes[index_id]
+        if description is not None:
+            idx["description"] = description
+        if field_mappings is not None:
+            idx["fieldMappings"] = field_mappings
+        idx["lastModifiedDate"] = int(unix_time() * 1000)
+        return {"updateIndexDetail": idx}
+
+    def delete_index(self, index_id: str) -> dict:
+        if index_id not in self._indexes:
+            raise ResourceNotFoundException(msg=f"Index {index_id} not found")
+        idx = self._indexes.pop(index_id)
+        return {"deleteIndexDetail": idx}
+
     # Policies Stats
     def get_policies_stats(self) -> dict[str, Any]:
         return {
-            "AccessPolicyStats": {"DataPolicyCount": len([ap for ap in self.access_policies.values() if ap.type == "data"])},
-            "LifecyclePolicyStats": {"RetentionPolicyCount": len(self.lifecycle_policies)},
-            "SecurityConfigStats": {"SamlConfigCount": len([sc for sc in self.security_configs.values() if sc.type == "saml"])},
-            "SecurityPolicyStats": {
-                "EncryptionPolicyCount": len([sp for sp in self.security_policies.values() if sp.type == "encryption"]),
-                "NetworkPolicyCount": len([sp for sp in self.security_policies.values() if sp.type == "network"]),
+            "AccessPolicyStats": {
+                "DataPolicyCount": len(
+                    [ap for ap in self.access_policies.values() if ap.type == "data"]
+                )
             },
-            "TotalPolicyCount": len(self.security_policies) + len(self.access_policies) + len(self.lifecycle_policies),
+            "LifecyclePolicyStats": {
+                "RetentionPolicyCount": len(self.lifecycle_policies)
+            },
+            "SecurityConfigStats": {
+                "SamlConfigCount": len(
+                    [sc for sc in self.security_configs.values() if sc.type == "saml"]
+                )
+            },
+            "SecurityPolicyStats": {
+                "EncryptionPolicyCount": len(
+                    [
+                        sp
+                        for sp in self.security_policies.values()
+                        if sp.type == "encryption"
+                    ]
+                ),
+                "NetworkPolicyCount": len(
+                    [
+                        sp
+                        for sp in self.security_policies.values()
+                        if sp.type == "network"
+                    ]
+                ),
+            },
+            "TotalPolicyCount": len(self.security_policies)
+            + len(self.access_policies)
+            + len(self.lifecycle_policies),
         }
 
 

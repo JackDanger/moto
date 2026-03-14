@@ -314,7 +314,9 @@ class AthenaResponse(BaseResponse):
         catalog_type = self._get_param("Type")
         description = self._get_param("Description")
         parameters = self._get_param("Parameters")
-        self.athena_backend.update_data_catalog(name, catalog_type, description, parameters)
+        self.athena_backend.update_data_catalog(
+            name, catalog_type, description, parameters
+        )
         return json.dumps({})
 
     def create_data_catalog(self) -> Union[tuple[str, dict[str, int]], str]:
@@ -387,17 +389,19 @@ class AthenaResponse(BaseResponse):
         prepared_statements = self.athena_backend.list_prepared_statements(
             work_group=work_group,
         )
-        return json.dumps({
-            "PreparedStatements": [
-                {
-                    "StatementName": ps.statement_name,
-                    "LastModifiedTime": ps.last_modified_time.timestamp()
-                    if hasattr(ps, "last_modified_time") and ps.last_modified_time
-                    else None,
-                }
-                for ps in prepared_statements
-            ]
-        })
+        return json.dumps(
+            {
+                "PreparedStatements": [
+                    {
+                        "StatementName": ps.statement_name,
+                        "LastModifiedTime": ps.last_modified_time.timestamp()
+                        if hasattr(ps, "last_modified_time") and ps.last_modified_time
+                        else None,
+                    }
+                    for ps in prepared_statements
+                ]
+            }
+        )
 
     def batch_get_prepared_statement(self) -> str:
         prepared_statement_names = self._get_param("PreparedStatementNames")
@@ -517,15 +521,9 @@ class AthenaResponse(BaseResponse):
         dpu_sizes = self.athena_backend.list_application_dpu_sizes()
         return json.dumps({"ApplicationDPUSizes": dpu_sizes})
 
-    def get_capacity_assignment_configuration(
-        self,
-    ) -> Union[str, tuple[str, dict[str, int]]]:
-        capacity_reservation_name = self._get_param("CapacityReservationName")
-        result = self.athena_backend.get_capacity_assignment_configuration(
-            capacity_reservation_name
-        )
-        if result is None:
-            return self.error("Capacity Reservation does not exist", 400)
+    def get_capacity_assignment_configuration(self) -> str:
+        name = self._get_param("CapacityReservationName")
+        result = self.athena_backend.get_capacity_assignment_configuration(name)
         return json.dumps(result)
 
     def start_session(self) -> Union[str, tuple[str, dict[str, int]]]:
@@ -567,10 +565,12 @@ class AthenaResponse(BaseResponse):
     def list_sessions(self) -> str:
         work_group = self._get_param("WorkGroup")
         sessions = self.athena_backend.list_sessions(work_group)
-        return json.dumps({
-            "Sessions": sessions,
-            "Description": "",
-        })
+        return json.dumps(
+            {
+                "Sessions": sessions,
+                "Description": "",
+            }
+        )
 
     def create_presigned_notebook_url(self) -> Union[str, tuple[str, dict[str, int]]]:
         session_id = self._get_param("SessionId")
@@ -583,9 +583,7 @@ class AthenaResponse(BaseResponse):
         calc_id = self._get_param("CalculationExecutionId")
         result = self.athena_backend.get_calculation_execution(calc_id)
         if result is None:
-            return self.error(
-                f"CalculationExecution {calc_id} was not found", 400
-            )
+            return self.error(f"CalculationExecution {calc_id} was not found", 400)
         return json.dumps(result)
 
     def get_calculation_execution_code(
@@ -594,9 +592,7 @@ class AthenaResponse(BaseResponse):
         calc_id = self._get_param("CalculationExecutionId")
         result = self.athena_backend.get_calculation_execution_code(calc_id)
         if result is None:
-            return self.error(
-                f"CalculationExecution {calc_id} was not found", 400
-            )
+            return self.error(f"CalculationExecution {calc_id} was not found", 400)
         return json.dumps(result)
 
     def get_calculation_execution_status(
@@ -605,9 +601,7 @@ class AthenaResponse(BaseResponse):
         calc_id = self._get_param("CalculationExecutionId")
         result = self.athena_backend.get_calculation_execution_status(calc_id)
         if result is None:
-            return self.error(
-                f"CalculationExecution {calc_id} was not found", 400
-            )
+            return self.error(f"CalculationExecution {calc_id} was not found", 400)
         return json.dumps(result)
 
     def list_calculation_executions(self) -> str:
