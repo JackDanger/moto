@@ -1209,6 +1209,71 @@ class OpenSearchServiceBackend(BaseBackend):
             for a in self.applications.values()
         ]
 
+    # ---- Data Sources (per-domain) ----
+
+    def add_data_source(
+        self,
+        domain_name: str,
+        name: str,
+        data_source_type: Optional[dict[str, Any]] = None,
+        description: str = "",
+    ) -> dict[str, Any]:
+        if domain_name not in self.domains:
+            raise ResourceNotFoundException(domain_name)
+        key = (domain_name, name)
+        ds: dict[str, Any] = {
+            "Name": name,
+            "DataSourceType": data_source_type or {},
+            "Description": description,
+            "Status": "ACTIVE",
+        }
+        self.data_sources[key] = ds
+        return {"Message": f"Data source {name} created successfully."}
+
+    def get_data_source(self, domain_name: str, name: str) -> dict[str, Any]:
+        if domain_name not in self.domains:
+            raise ResourceNotFoundException(domain_name)
+        key = (domain_name, name)
+        if key not in self.data_sources:
+            raise ResourceNotFoundException(f"Data source {name}")
+        return self.data_sources[key]
+
+    def list_data_sources(self, domain_name: str) -> list[dict[str, Any]]:
+        if domain_name not in self.domains:
+            raise ResourceNotFoundException(domain_name)
+        return [ds for (dn, _), ds in self.data_sources.items() if dn == domain_name]
+
+    def update_data_source(
+        self,
+        domain_name: str,
+        name: str,
+        data_source_type: Optional[dict[str, Any]] = None,
+        description: Optional[str] = None,
+        status: Optional[str] = None,
+    ) -> dict[str, Any]:
+        if domain_name not in self.domains:
+            raise ResourceNotFoundException(domain_name)
+        key = (domain_name, name)
+        if key not in self.data_sources:
+            raise ResourceNotFoundException(f"Data source {name}")
+        ds = self.data_sources[key]
+        if data_source_type is not None:
+            ds["DataSourceType"] = data_source_type
+        if description is not None:
+            ds["Description"] = description
+        if status is not None:
+            ds["Status"] = status
+        return {"Message": f"Data source {name} updated successfully."}
+
+    def delete_data_source(self, domain_name: str, name: str) -> dict[str, Any]:
+        if domain_name not in self.domains:
+            raise ResourceNotFoundException(domain_name)
+        key = (domain_name, name)
+        if key not in self.data_sources:
+            raise ResourceNotFoundException(f"Data source {name}")
+        del self.data_sources[key]
+        return {"Message": f"Data source {name} deleted successfully."}
+
     # ---- Direct Query Data Sources ----
 
     def create_direct_query_data_source(
