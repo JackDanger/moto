@@ -17,12 +17,18 @@ from .utils import validate_role_arn
 CLUSTER_ARN_TEMPLATE = "arn:{partition}:eks:{region}:{account_id}:cluster/{name}"
 FARGATE_PROFILE_ARN_TEMPLATE = "arn:{partition}:eks:{region}:{account_id}:fargateprofile/{cluster_name}/{fargate_profile_name}/{uuid}"
 NODEGROUP_ARN_TEMPLATE = "arn:{partition}:eks:{region}:{account_id}:nodegroup/{cluster_name}/{nodegroup_name}/{uuid}"
-ADDON_ARN_TEMPLATE = "arn:{partition}:eks:{region}:{account_id}:addon/{cluster_name}/{addon_name}/{uuid}"
+ADDON_ARN_TEMPLATE = (
+    "arn:{partition}:eks:{region}:{account_id}:addon/{cluster_name}/{addon_name}/{uuid}"
+)
 ACCESS_ENTRY_ARN_TEMPLATE = "arn:{partition}:eks:{region}:{account_id}:access-entry/{cluster_name}/{principal_arn_suffix}/{uuid}"
 POD_IDENTITY_ASSOCIATION_ARN_TEMPLATE = "arn:{partition}:eks:{region}:{account_id}:podidentityassociation/{cluster_name}/{uuid}"
 IDENTITY_PROVIDER_CONFIG_ARN_TEMPLATE = "arn:{partition}:eks:{region}:{account_id}:identityproviderconfig/{cluster_name}/oidc/{config_name}/{uuid}"
-INSIGHT_ARN_TEMPLATE = "arn:{partition}:eks:{region}:{account_id}:insight/{cluster_name}/{insight_id}"
-EKS_ANYWHERE_SUBSCRIPTION_ARN_TEMPLATE = "arn:{partition}:eks:{region}:{account_id}:eks-anywhere-subscription/{uuid}"
+INSIGHT_ARN_TEMPLATE = (
+    "arn:{partition}:eks:{region}:{account_id}:insight/{cluster_name}/{insight_id}"
+)
+EKS_ANYWHERE_SUBSCRIPTION_ARN_TEMPLATE = (
+    "arn:{partition}:eks:{region}:{account_id}:eks-anywhere-subscription/{uuid}"
+)
 CAPABILITY_ARN_TEMPLATE = "arn:{partition}:eks:{region}:{account_id}:capability/{cluster_name}/{capability_name}/{uuid}"
 ISSUER_TEMPLATE = (
     "https://oidc.eks.{region}.amazonaws.com/id/" + random.get_random_string(length=10)
@@ -94,9 +100,13 @@ NODEGROUP_EXISTS_MSG = (
     "NodeGroup already exists with name {nodegroupName} and cluster name {clusterName}"
 )
 NODEGROUP_NOT_FOUND_MSG = "No node group found for name: {nodegroupName}."
-ADDON_EXISTS_MSG = "Addon already exists with name {addonName} and cluster name {clusterName}"
+ADDON_EXISTS_MSG = (
+    "Addon already exists with name {addonName} and cluster name {clusterName}"
+)
 ADDON_NOT_FOUND_MSG = "No addon found for name: {addonName}."
-ACCESS_ENTRY_EXISTS_MSG = "Access entry already exists for principal {principalArn} in cluster {clusterName}"
+ACCESS_ENTRY_EXISTS_MSG = (
+    "Access entry already exists for principal {principalArn} in cluster {clusterName}"
+)
 ACCESS_ENTRY_NOT_FOUND_MSG = "No access entry found for principal: {principalArn}."
 POD_IDENTITY_ASSOCIATION_NOT_FOUND_MSG = (
     "No pod identity association found for id: {associationId}."
@@ -104,17 +114,16 @@ POD_IDENTITY_ASSOCIATION_NOT_FOUND_MSG = (
 IDENTITY_PROVIDER_CONFIG_NOT_FOUND_MSG = (
     "No identity provider config found for name: {configName}."
 )
-IDENTITY_PROVIDER_CONFIG_EXISTS_MSG = (
-    "Identity provider config already exists with name {configName} and cluster name {clusterName}"
-)
+IDENTITY_PROVIDER_CONFIG_EXISTS_MSG = "Identity provider config already exists with name {configName} and cluster name {clusterName}"
 INSIGHT_NOT_FOUND_MSG = "No insight found for id: {insightId}."
+INSIGHTS_REFRESH_NOT_FOUND_MSG = (
+    "No insights refresh operation found for cluster: {clusterName}."
+)
 EKS_ANYWHERE_SUBSCRIPTION_NOT_FOUND_MSG = (
     "No EKS Anywhere subscription found for id: {subscriptionId}."
 )
 CAPABILITY_NOT_FOUND_MSG = "No capability found for name: {capabilityName}."
-CAPABILITY_EXISTS_MSG = (
-    "Capability already exists with name {capabilityName} and cluster name {clusterName}"
-)
+CAPABILITY_EXISTS_MSG = "Capability already exists with name {capabilityName} and cluster name {clusterName}"
 
 
 class Cluster:
@@ -380,7 +389,9 @@ class AccessEntry:
 
         self.uuid = str(random.uuid4())
         # Extract the suffix from the principal ARN for the access entry ARN
-        principal_suffix = principal_arn.rsplit("/", 1)[-1] if "/" in principal_arn else principal_arn
+        principal_suffix = (
+            principal_arn.rsplit("/", 1)[-1] if "/" in principal_arn else principal_arn
+        )
         self.access_entry_arn = ACCESS_ENTRY_ARN_TEMPLATE.format(
             partition=aws_partition,
             account_id=account_id,
@@ -458,13 +469,15 @@ class IdentityProviderConfig:
             tags = {}
 
         self.uuid = str(random.uuid4())
-        self.identity_provider_config_arn = IDENTITY_PROVIDER_CONFIG_ARN_TEMPLATE.format(
-            partition=aws_partition,
-            account_id=account_id,
-            region=region_name,
-            cluster_name=cluster_name,
-            config_name=config_name,
-            uuid=self.uuid,
+        self.identity_provider_config_arn = (
+            IDENTITY_PROVIDER_CONFIG_ARN_TEMPLATE.format(
+                partition=aws_partition,
+                account_id=account_id,
+                region=region_name,
+                cluster_name=cluster_name,
+                config_name=config_name,
+                uuid=self.uuid,
+            )
         )
         self.created_at = utcnow()
 
@@ -565,6 +578,8 @@ class EKSBackend(BaseBackend):
         self.cluster_count = 0
         self.partition = get_partition(region_name)
         self.eks_anywhere_subscriptions: dict[str, EksAnywhereSubscription] = {}
+        # insights_refreshes: cluster_name -> list of refresh records (newest first)
+        self.insights_refreshes: dict[str, list[dict[str, Any]]] = {}
 
     def create_cluster(
         self,
@@ -1165,9 +1180,7 @@ class EKSBackend(BaseBackend):
                 message=ACCESS_ENTRY_NOT_FOUND_MSG.format(principalArn=principal_arn),
             )
 
-    def delete_access_entry(
-        self, cluster_name: str, principal_arn: str
-    ) -> AccessEntry:
+    def delete_access_entry(self, cluster_name: str, principal_arn: str) -> AccessEntry:
         try:
             cluster = self.clusters[cluster_name]
         except KeyError:
@@ -1578,7 +1591,6 @@ class EKSBackend(BaseBackend):
                 message=CLUSTER_NOT_FOUND_MSG.format(clusterName=name),
             )
 
-        old_version = cluster.version
         cluster.version = version
 
         return {
@@ -1618,9 +1630,7 @@ class EKSBackend(BaseBackend):
             "id": str(random.uuid4()),
             "status": "Successful",
             "type": "AssociateEncryptionConfig",
-            "params": [
-                {"type": "EncryptionConfig", "value": str(encryption_config)}
-            ],
+            "params": [{"type": "EncryptionConfig", "value": str(encryption_config)}],
             "createdAt": utcnow(),
             "errors": [],
         }
@@ -1845,6 +1855,68 @@ class EKSBackend(BaseBackend):
         # Insights are AWS-generated; return empty list
         return {"insights": [], "nextToken": None}
 
+    def start_insights_refresh(
+        self,
+        cluster_name: str,
+        insight_ids: Optional[list[str]] = None,
+    ) -> dict[str, Any]:
+        try:
+            self.clusters[cluster_name]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=CLUSTER_NOT_FOUND_MSG.format(clusterName=cluster_name),
+            )
+
+        refresh_id = str(random.uuid4())
+        now = utcnow()
+        record = {
+            "id": refresh_id,
+            "status": "COMPLETED",
+            "message": "Insights refresh completed successfully.",
+            "startedAt": now,
+            "endedAt": now,
+        }
+        if cluster_name not in self.insights_refreshes:
+            self.insights_refreshes[cluster_name] = []
+        self.insights_refreshes[cluster_name].insert(0, record)
+        return {
+            "status": record["status"],
+            "message": record["message"],
+        }
+
+    def describe_insights_refresh(self, cluster_name: str) -> dict[str, Any]:
+        try:
+            self.clusters[cluster_name]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=None,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=CLUSTER_NOT_FOUND_MSG.format(clusterName=cluster_name),
+            )
+
+        refreshes = self.insights_refreshes.get(cluster_name, [])
+        if not refreshes:
+            raise ResourceNotFoundException(
+                clusterName=cluster_name,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=INSIGHTS_REFRESH_NOT_FOUND_MSG.format(clusterName=cluster_name),
+            )
+        record = refreshes[0]
+        return {
+            "status": record["status"],
+            "message": record["message"],
+            "startedAt": record["startedAt"],
+            "endedAt": record["endedAt"],
+        }
+
     # --- Access Policies (global) ---
 
     def list_access_policies(
@@ -1971,7 +2043,7 @@ class EKSBackend(BaseBackend):
 
     def deregister_cluster(self, name: str) -> "Cluster":
         try:
-            cluster = self.clusters[name]
+            self.clusters[name]
         except KeyError:
             raise ResourceNotFoundException(
                 clusterName=None,
@@ -2054,9 +2126,7 @@ class EKSBackend(BaseBackend):
     ) -> dict[str, Any]:
         subscriptions = list(self.eks_anywhere_subscriptions.values())
         if include_status:
-            subscriptions = [
-                s for s in subscriptions if s.status in include_status
-            ]
+            subscriptions = [s for s in subscriptions if s.status in include_status]
 
         results = [
             {
@@ -2168,9 +2238,7 @@ class EKSBackend(BaseBackend):
                 nodegroupName=None,
                 fargateProfileName=None,
                 addonName=None,
-                message=CAPABILITY_NOT_FOUND_MSG.format(
-                    capabilityName=capability_name
-                ),
+                message=CAPABILITY_NOT_FOUND_MSG.format(capabilityName=capability_name),
             )
 
     def delete_capability(
@@ -2194,9 +2262,7 @@ class EKSBackend(BaseBackend):
                 nodegroupName=None,
                 fargateProfileName=None,
                 addonName=None,
-                message=CAPABILITY_NOT_FOUND_MSG.format(
-                    capabilityName=capability_name
-                ),
+                message=CAPABILITY_NOT_FOUND_MSG.format(capabilityName=capability_name),
             )
         capability.status = "DELETING"
         return capability
@@ -2256,9 +2322,7 @@ class EKSBackend(BaseBackend):
                 nodegroupName=None,
                 fargateProfileName=None,
                 addonName=None,
-                message=CAPABILITY_NOT_FOUND_MSG.format(
-                    capabilityName=capability_name
-                ),
+                message=CAPABILITY_NOT_FOUND_MSG.format(capabilityName=capability_name),
             )
 
         if role_arn is not None:

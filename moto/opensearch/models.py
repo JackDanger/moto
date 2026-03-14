@@ -16,7 +16,10 @@ from .data import (
     opensearch_versions,
     reserved_instance_offerings,
 )
-from .exceptions import ConflictException, EngineTypeNotFoundException, ResourceNotFoundException
+from .exceptions import (
+    EngineTypeNotFoundException,
+    ResourceNotFoundException,
+)
 
 default_cluster_config = {
     "InstanceType": "t3.small.search",
@@ -540,6 +543,7 @@ class OpenSearchServiceBackend(BaseBackend):
         self.reserved_instances: dict[str, ReservedInstance] = {}
         self.applications: dict[str, dict[str, Any]] = {}
         self.direct_query_data_sources: dict[str, dict[str, Any]] = {}
+        self.data_sources: dict[tuple[str, str], dict[str, Any]] = {}
         self.scheduled_actions: dict[str, dict[str, Any]] = {}
         self.domain_maintenances: dict[str, list[dict[str, Any]]] = {}
         self.vpc_endpoint_access: dict[str, list[dict[str, Any]]] = {}
@@ -764,9 +768,7 @@ class OpenSearchServiceBackend(BaseBackend):
         pkg.last_updated_at = unix_time(datetime.datetime.now())
         return pkg.to_dict()
 
-    def associate_package(
-        self, package_id: str, domain_name: str
-    ) -> dict[str, Any]:
+    def associate_package(self, package_id: str, domain_name: str) -> dict[str, Any]:
         if package_id not in self.packages:
             raise ResourceNotFoundException(package_id)
         if domain_name not in self.domains:
@@ -776,9 +778,7 @@ class OpenSearchServiceBackend(BaseBackend):
         self.domains[domain_name].associated_packages[package_id] = "ACTIVE"
         return pkg.to_domain_package_dict(domain_name)
 
-    def dissociate_package(
-        self, package_id: str, domain_name: str
-    ) -> dict[str, Any]:
+    def dissociate_package(self, package_id: str, domain_name: str) -> dict[str, Any]:
         if package_id not in self.packages:
             raise ResourceNotFoundException(package_id)
         if domain_name not in self.domains:
@@ -790,9 +790,7 @@ class OpenSearchServiceBackend(BaseBackend):
         result["DomainPackageStatus"] = "DISSOCIATING"
         return result
 
-    def list_packages_for_domain(
-        self, domain_name: str
-    ) -> list[dict[str, Any]]:
+    def list_packages_for_domain(self, domain_name: str) -> list[dict[str, Any]]:
         if domain_name not in self.domains:
             raise ResourceNotFoundException(domain_name)
         domain = self.domains[domain_name]
@@ -804,9 +802,7 @@ class OpenSearchServiceBackend(BaseBackend):
                 )
         return results
 
-    def list_domains_for_package(
-        self, package_id: str
-    ) -> list[dict[str, Any]]:
+    def list_domains_for_package(self, package_id: str) -> list[dict[str, Any]]:
         if package_id not in self.packages:
             raise ResourceNotFoundException(package_id)
         pkg = self.packages[package_id]
@@ -815,9 +811,7 @@ class OpenSearchServiceBackend(BaseBackend):
             results.append(pkg.to_domain_package_dict(dname))
         return results
 
-    def get_package_version_history(
-        self, package_id: str
-    ) -> list[dict[str, Any]]:
+    def get_package_version_history(self, package_id: str) -> list[dict[str, Any]]:
         if package_id not in self.packages:
             raise ResourceNotFoundException(package_id)
         pkg = self.packages[package_id]
@@ -852,11 +846,13 @@ class OpenSearchServiceBackend(BaseBackend):
             if eid in self.vpc_endpoints:
                 endpoints.append(self.vpc_endpoints[eid].to_dict())
             else:
-                errors.append({
-                    "VpcEndpointId": eid,
-                    "ErrorCode": "ENDPOINT_NOT_FOUND",
-                    "ErrorMessage": f"VPC Endpoint {eid} not found",
-                })
+                errors.append(
+                    {
+                        "VpcEndpointId": eid,
+                        "ErrorCode": "ENDPOINT_NOT_FOUND",
+                        "ErrorMessage": f"VPC Endpoint {eid} not found",
+                    }
+                )
         return endpoints, errors
 
     def update_vpc_endpoint(
@@ -882,9 +878,7 @@ class OpenSearchServiceBackend(BaseBackend):
     def list_vpc_endpoints(self) -> list[dict[str, Any]]:
         return [ep.to_summary() for ep in self.vpc_endpoints.values()]
 
-    def list_vpc_endpoints_for_domain(
-        self, domain_name: str
-    ) -> list[dict[str, Any]]:
+    def list_vpc_endpoints_for_domain(self, domain_name: str) -> list[dict[str, Any]]:
         if domain_name not in self.domains:
             raise ResourceNotFoundException(domain_name)
         domain_arn = self.domains[domain_name].arn
@@ -924,9 +918,7 @@ class OpenSearchServiceBackend(BaseBackend):
     ) -> list[dict[str, Any]]:
         return [c.to_dict() for c in self.outbound_connections.values()]
 
-    def delete_outbound_connection(
-        self, connection_id: str
-    ) -> dict[str, Any]:
+    def delete_outbound_connection(self, connection_id: str) -> dict[str, Any]:
         if connection_id not in self.outbound_connections:
             raise ResourceNotFoundException(connection_id)
         conn = self.outbound_connections.pop(connection_id)
@@ -936,9 +928,7 @@ class OpenSearchServiceBackend(BaseBackend):
         }
         return conn.to_dict()
 
-    def accept_inbound_connection(
-        self, connection_id: str
-    ) -> dict[str, Any]:
+    def accept_inbound_connection(self, connection_id: str) -> dict[str, Any]:
         if connection_id not in self.inbound_connections:
             raise ResourceNotFoundException(connection_id)
         conn = self.inbound_connections[connection_id]
@@ -950,9 +940,7 @@ class OpenSearchServiceBackend(BaseBackend):
     ) -> list[dict[str, Any]]:
         return [c.to_dict() for c in self.inbound_connections.values()]
 
-    def delete_inbound_connection(
-        self, connection_id: str
-    ) -> dict[str, Any]:
+    def delete_inbound_connection(self, connection_id: str) -> dict[str, Any]:
         if connection_id not in self.inbound_connections:
             raise ResourceNotFoundException(connection_id)
         conn = self.inbound_connections.pop(connection_id)
@@ -1007,9 +995,7 @@ class OpenSearchServiceBackend(BaseBackend):
 
     # ---- Instance Types ----
 
-    def list_instance_type_details(
-        self, engine_version: str
-    ) -> list[dict[str, Any]]:
+    def list_instance_type_details(self, engine_version: str) -> list[dict[str, Any]]:
         return opensearch_instance_types
 
     def list_elasticsearch_instance_types(
@@ -1081,16 +1067,18 @@ class OpenSearchServiceBackend(BaseBackend):
         instance_type = domain.cluster_config.get("InstanceType", "t3.small.search")
         nodes = []
         for i in range(instance_count):
-            nodes.append({
-                "NodeId": f"node-{i}",
-                "NodeType": "Data",
-                "AvailabilityZone": f"{self.region_name}a",
-                "InstanceType": instance_type,
-                "NodeStatus": "Active",
-                "StorageType": "EBS",
-                "StorageVolumeType": "gp2",
-                "StorageSize": "10",
-            })
+            nodes.append(
+                {
+                    "NodeId": f"node-{i}",
+                    "NodeType": "Data",
+                    "AvailabilityZone": f"{self.region_name}a",
+                    "InstanceType": instance_type,
+                    "NodeStatus": "Active",
+                    "StorageType": "EBS",
+                    "StorageVolumeType": "gp2",
+                    "StorageSize": "10",
+                }
+            )
         return nodes
 
     def describe_dry_run_progress(self, domain_name: str) -> dict[str, Any]:
@@ -1153,7 +1141,6 @@ class OpenSearchServiceBackend(BaseBackend):
             }
         }
 
-
     # ---- Applications ----
 
     def create_application(
@@ -1170,7 +1157,8 @@ class OpenSearchServiceBackend(BaseBackend):
             "id": app_id,
             "arn": arn,
             "name": name,
-            "endpoint": endpoint or f"https://{name}.{self.region_name}.es.amazonaws.com",
+            "endpoint": endpoint
+            or f"https://{name}.{self.region_name}.es.amazonaws.com",
             "status": "ACTIVE",
             "iamIdentityCenterOptions": iam_identity_center_options or {},
             "dataSources": data_sources or [],
@@ -1271,9 +1259,7 @@ class OpenSearchServiceBackend(BaseBackend):
         self.vpc_endpoint_access[domain_name].append(principal)
         return {"AuthorizedPrincipal": principal}
 
-    def revoke_vpc_endpoint_access(
-        self, domain_name: str, account: str
-    ) -> None:
+    def revoke_vpc_endpoint_access(self, domain_name: str, account: str) -> None:
         if domain_name not in self.domains:
             raise ResourceNotFoundException(domain_name)
         if domain_name in self.vpc_endpoint_access:
@@ -1299,7 +1285,8 @@ class OpenSearchServiceBackend(BaseBackend):
             "Id": action_id,
             "Type": action_type,
             "Severity": "MEDIUM",
-            "ScheduledTime": desired_start_time or int(unix_time(datetime.datetime.now())),
+            "ScheduledTime": desired_start_time
+            or int(unix_time(datetime.datetime.now())),
             "Description": f"Scheduled action {action_type}",
             "ScheduledBy": "CUSTOMER",
             "Status": "PENDING_UPDATE",
@@ -1308,9 +1295,7 @@ class OpenSearchServiceBackend(BaseBackend):
         self.scheduled_actions[action_id] = action
         return {"ScheduledAction": action}
 
-    def list_scheduled_actions(
-        self, domain_name: str
-    ) -> list[dict[str, Any]]:
+    def list_scheduled_actions(self, domain_name: str) -> list[dict[str, Any]]:
         if domain_name not in self.domains:
             raise ResourceNotFoundException(domain_name)
         return list(self.scheduled_actions.values())
@@ -1351,9 +1336,7 @@ class OpenSearchServiceBackend(BaseBackend):
                 return m
         raise ResourceNotFoundException(f"Maintenance {maintenance_id}")
 
-    def list_domain_maintenances(
-        self, domain_name: str
-    ) -> list[dict[str, Any]]:
+    def list_domain_maintenances(self, domain_name: str) -> list[dict[str, Any]]:
         if domain_name not in self.domains:
             raise ResourceNotFoundException(domain_name)
         return self.domain_maintenances.get(domain_name, [])

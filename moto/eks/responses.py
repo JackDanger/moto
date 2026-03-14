@@ -357,9 +357,7 @@ class EKSResponse(BaseResponse):
             cluster_name=cluster_name, max_results=max_results, next_token=next_token
         )
 
-        return ActionResult(
-            {"accessEntries": access_entries, "nextToken": next_token}
-        )
+        return ActionResult({"accessEntries": access_entries, "nextToken": next_token})
 
     # --- Access Policy operations ---
 
@@ -614,6 +612,24 @@ class EKSResponse(BaseResponse):
             max_results=max_results,
             next_token=next_token,
         )
+
+        return ActionResult(result)
+
+    def start_insights_refresh(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        insight_ids = self._get_param("insightIds")
+
+        result = self.eks_backend.start_insights_refresh(
+            cluster_name=cluster_name,
+            insight_ids=insight_ids,
+        )
+
+        return ActionResult(result)
+
+    def describe_insights_refresh(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+
+        result = self.eks_backend.describe_insights_refresh(cluster_name=cluster_name)
 
         return ActionResult(result)
 

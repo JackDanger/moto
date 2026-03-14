@@ -45,6 +45,7 @@ url_paths = {
     # Insight routes
     "{0}/clusters/(?P<name>[^/]+)/insights$": response.dispatch,
     "{0}/clusters/(?P<name>[^/]+)/insights/(?P<id>[^/]+)$": response.dispatch,
+    "{0}/clusters/(?P<name>[^/]+)/insights-refresh$": response.dispatch,
     # Cluster versions (global)
     "{0}/cluster-versions$": response.dispatch,
     # Cluster registration/deregistration

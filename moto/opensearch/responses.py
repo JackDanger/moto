@@ -88,34 +88,46 @@ class OpenSearchServiceResponse(BaseResponse):
         return 200, {}, json.dumps({"DomainConfig": domain_config})
 
     @classmethod
-    def compatible_versions(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+    def compatible_versions(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
         response.setup_class(request, full_url, headers)
         # ES uses CompatibleElasticsearchVersions key
         domain_name = response._get_param("domainName")
-        versions = response.opensearch_backend.get_compatible_versions(domain_name=domain_name)
+        versions = response.opensearch_backend.get_compatible_versions(
+            domain_name=domain_name
+        )
         return 200, {}, json.dumps({"CompatibleElasticsearchVersions": versions})
 
     @classmethod
-    def domain_auto_tunes(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+    def domain_auto_tunes(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
         response.setup_class(request, full_url, headers)
         return 200, {}, response.describe_domain_auto_tunes()
 
     @classmethod
-    def domain_change_progress(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+    def domain_change_progress(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
         response.setup_class(request, full_url, headers)
         return 200, {}, response.describe_domain_change_progress()
 
     @classmethod
-    def dry_run_progress(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+    def dry_run_progress(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
         response.setup_class(request, full_url, headers)
         return 200, {}, response.describe_dry_run_progress()
 
     @classmethod
-    def instance_type_limits_route(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+    def instance_type_limits_route(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
         response.setup_class(request, full_url, headers)
         return 200, {}, response.describe_instance_type_limits()
@@ -130,7 +142,9 @@ class OpenSearchServiceResponse(BaseResponse):
             return 200, {}, response.create_package()
 
     @classmethod
-    def packages_describe(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+    def packages_describe(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
         response.setup_class(request, full_url, headers)
         return 200, {}, response.describe_packages()
@@ -145,31 +159,41 @@ class OpenSearchServiceResponse(BaseResponse):
             return 200, {}, response.update_package()
 
     @classmethod
-    def package_history(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+    def package_history(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
         response.setup_class(request, full_url, headers)
         return 200, {}, response.get_package_version_history()
 
     @classmethod
-    def associate_package_route(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+    def associate_package_route(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
         response.setup_class(request, full_url, headers)
         return 200, {}, response.associate_package()
 
     @classmethod
-    def dissociate_package_route(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+    def dissociate_package_route(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
         response.setup_class(request, full_url, headers)
         return 200, {}, response.dissociate_package()
 
     @classmethod
-    def list_packages_for_domain_route(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+    def list_packages_for_domain_route(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
         response.setup_class(request, full_url, headers)
         return 200, {}, response.list_packages_for_domain()
 
     @classmethod
-    def list_domains_for_package_route(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+    def list_domains_for_package_route(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
         response.setup_class(request, full_url, headers)
         return 200, {}, response.list_domains_for_package()
@@ -177,7 +201,9 @@ class OpenSearchServiceResponse(BaseResponse):
     # ---- ES-specific VPC endpoint routes ----
 
     @classmethod
-    def vpc_endpoints_route(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+    def vpc_endpoints_route(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
         response.setup_class(request, full_url, headers)
         if request.method == "POST":
@@ -186,26 +212,34 @@ class OpenSearchServiceResponse(BaseResponse):
             return 200, {}, response.list_vpc_endpoints()
 
     @classmethod
-    def vpc_endpoints_describe(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+    def vpc_endpoints_describe(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
         response.setup_class(request, full_url, headers)
         return 200, {}, response.describe_vpc_endpoints()
 
     @classmethod
-    def vpc_endpoints_update(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+    def vpc_endpoints_update(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
         response.setup_class(request, full_url, headers)
         return 200, {}, response.update_vpc_endpoint()
 
     @classmethod
-    def vpc_endpoint_by_id(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+    def vpc_endpoint_by_id(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
         response.setup_class(request, full_url, headers)
         if request.method == "DELETE":
             return 200, {}, response.delete_vpc_endpoint()
 
     @classmethod
-    def vpc_endpoints_for_domain(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+    def vpc_endpoints_for_domain(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
         response.setup_class(request, full_url, headers)
         return 200, {}, response.list_vpc_endpoints_for_domain()
@@ -213,39 +247,51 @@ class OpenSearchServiceResponse(BaseResponse):
     # ---- ES-specific connection routes ----
 
     @classmethod
-    def outbound_connection_route(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+    def outbound_connection_route(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
         response.setup_class(request, full_url, headers)
         if request.method == "POST":
             return 200, {}, response.create_outbound_connection()
 
     @classmethod
-    def outbound_connection_search(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+    def outbound_connection_search(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
         response.setup_class(request, full_url, headers)
         return 200, {}, response.describe_outbound_connections()
 
     @classmethod
-    def outbound_connection_by_id(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+    def outbound_connection_by_id(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
         response.setup_class(request, full_url, headers)
         if request.method == "DELETE":
             return 200, {}, response.delete_outbound_connection()
 
     @classmethod
-    def inbound_connection_search(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+    def inbound_connection_search(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
         response.setup_class(request, full_url, headers)
         return 200, {}, response.describe_inbound_connections()
 
     @classmethod
-    def inbound_connection_accept(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+    def inbound_connection_accept(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
         response.setup_class(request, full_url, headers)
         return 200, {}, response.accept_inbound_connection()
 
     @classmethod
-    def inbound_connection_by_id(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+    def inbound_connection_by_id(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
         response.setup_class(request, full_url, headers)
         if request.method == "DELETE":
@@ -254,19 +300,25 @@ class OpenSearchServiceResponse(BaseResponse):
     # ---- ES-specific reserved instance routes ----
 
     @classmethod
-    def reserved_instance_offerings_route(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+    def reserved_instance_offerings_route(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
         response.setup_class(request, full_url, headers)
         return 200, {}, response.describe_reserved_instance_offerings()
 
     @classmethod
-    def reserved_instances_route(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+    def reserved_instances_route(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
         response.setup_class(request, full_url, headers)
         return 200, {}, response.describe_reserved_instances()
 
     @classmethod
-    def purchase_reserved_instance_route(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+    def purchase_reserved_instance_route(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
         response.setup_class(request, full_url, headers)
         return 200, {}, response.purchase_reserved_instance_offering()
@@ -274,13 +326,17 @@ class OpenSearchServiceResponse(BaseResponse):
     # ---- ES-specific version/instance-type routes ----
 
     @classmethod
-    def es_versions_route(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+    def es_versions_route(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
         response.setup_class(request, full_url, headers)
         return 200, {}, response.list_elasticsearch_versions()
 
     @classmethod
-    def es_instance_types_route(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+    def es_instance_types_route(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
         response.setup_class(request, full_url, headers)
         return 200, {}, response.list_elasticsearch_instance_types()
@@ -292,7 +348,9 @@ class OpenSearchServiceResponse(BaseResponse):
         return 200, {}, response.list_versions()
 
     @classmethod
-    def instance_type_details_route(cls, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore
+    def instance_type_details_route(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore
         response = cls()
         response.setup_class(request, full_url, headers)
         return 200, {}, response.list_instance_type_details()
@@ -510,7 +568,9 @@ class OpenSearchServiceResponse(BaseResponse):
         # /packages/{package_id}/history
         package_id = parts[-2]
         results = self.opensearch_backend.get_package_version_history(package_id)
-        return json.dumps({"PackageVersionHistoryList": results, "PackageID": package_id})
+        return json.dumps(
+            {"PackageVersionHistoryList": results, "PackageID": package_id}
+        )
 
     # ---- VPC Endpoints ----
 
@@ -526,10 +586,12 @@ class OpenSearchServiceResponse(BaseResponse):
         endpoints, errors = self.opensearch_backend.describe_vpc_endpoints(
             vpc_endpoint_ids or []
         )
-        return json.dumps({
-            "VpcEndpoints": endpoints,
-            "VpcEndpointErrors": errors,
-        })
+        return json.dumps(
+            {
+                "VpcEndpoints": endpoints,
+                "VpcEndpointErrors": errors,
+            }
+        )
 
     def update_vpc_endpoint(self) -> str:
         ep = self.opensearch_backend.update_vpc_endpoint(
@@ -568,7 +630,9 @@ class OpenSearchServiceResponse(BaseResponse):
 
     def describe_outbound_connections(self) -> str:
         filters = self._get_param("Filters")
-        connections = self.opensearch_backend.describe_outbound_connections(filters=filters)
+        connections = self.opensearch_backend.describe_outbound_connections(
+            filters=filters
+        )
         return json.dumps({"Connections": connections})
 
     def delete_outbound_connection(self) -> str:
@@ -585,7 +649,9 @@ class OpenSearchServiceResponse(BaseResponse):
 
     def describe_inbound_connections(self) -> str:
         filters = self._get_param("Filters")
-        connections = self.opensearch_backend.describe_inbound_connections(filters=filters)
+        connections = self.opensearch_backend.describe_inbound_connections(
+            filters=filters
+        )
         return json.dumps({"Connections": connections})
 
     def delete_inbound_connection(self) -> str:
@@ -737,6 +803,60 @@ class OpenSearchServiceResponse(BaseResponse):
         data_source_name = parts[-1]
         self.opensearch_backend.delete_direct_query_data_source(data_source_name)
         return "{}"
+
+    # ---- DataSources (domain-scoped) ----
+
+    def add_data_source(self) -> str:
+        parts = self.path.rstrip("/").split("/")
+        domain_name = parts[-2]
+        result = self.opensearch_backend.add_data_source(
+            domain_name=domain_name,
+            name=self._get_param("Name"),
+            data_source_type=self._get_param("DataSourceType"),
+            description=self._get_param("Description", ""),
+        )
+        return json.dumps(result)
+
+    def get_data_source(self) -> str:
+        parts = self.path.rstrip("/").split("/")
+        domain_name = parts[-3]
+        name = parts[-1]
+        ds = self.opensearch_backend.get_data_source(
+            domain_name=domain_name,
+            name=name,
+        )
+        return json.dumps(ds)
+
+    def list_data_sources(self) -> str:
+        parts = self.path.rstrip("/").split("/")
+        domain_name = parts[-2]
+        data_sources = self.opensearch_backend.list_data_sources(
+            domain_name=domain_name,
+        )
+        return json.dumps({"DataSources": data_sources})
+
+    def update_data_source(self) -> str:
+        parts = self.path.rstrip("/").split("/")
+        domain_name = parts[-3]
+        name = parts[-1]
+        result = self.opensearch_backend.update_data_source(
+            domain_name=domain_name,
+            name=name,
+            data_source_type=self._get_param("DataSourceType"),
+            description=self._get_param("Description"),
+            status=self._get_param("Status"),
+        )
+        return json.dumps(result)
+
+    def delete_data_source(self) -> str:
+        parts = self.path.rstrip("/").split("/")
+        domain_name = parts[-3]
+        name = parts[-1]
+        result = self.opensearch_backend.delete_data_source(
+            domain_name=domain_name,
+            name=name,
+        )
+        return json.dumps(result)
 
     # ---- VPC Endpoint Access ----
 

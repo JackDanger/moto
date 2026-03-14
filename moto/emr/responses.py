@@ -409,9 +409,7 @@ class ElasticMapReduceResponse(BaseResponse):
             user_role=user_role,
             tags=tag_dict,
         )
-        return ActionResult(
-            {"StudioId": studio.studio_id, "Url": studio.url}
-        )
+        return ActionResult({"StudioId": studio.studio_id, "Url": studio.url})
 
     def describe_studio(self) -> ActionResult:
         studio_id = self._get_param("StudioId")
@@ -427,12 +425,8 @@ class ElasticMapReduceResponse(BaseResponse):
                 "SubnetIds": studio.subnet_ids,
                 "ServiceRole": studio.service_role,
                 "UserRole": studio.user_role,
-                "WorkspaceSecurityGroupId": (
-                    studio.workspace_security_group_id
-                ),
-                "EngineSecurityGroupId": (
-                    studio.engine_security_group_id
-                ),
+                "WorkspaceSecurityGroupId": (studio.workspace_security_group_id),
+                "EngineSecurityGroupId": (studio.engine_security_group_id),
                 "Url": studio.url,
                 "DefaultS3Location": studio.default_s3_location,
                 "CreationTime": studio.creation_time,
@@ -619,9 +613,7 @@ class ElasticMapReduceResponse(BaseResponse):
             notebook_params=params,
             tags=tag_dict,
         )
-        return ActionResult(
-            {"NotebookExecutionId": execution.notebook_execution_id}
-        )
+        return ActionResult({"NotebookExecutionId": execution.notebook_execution_id})
 
     def describe_notebook_execution(self) -> ActionResult:
         nid = self._get_param("NotebookExecutionId")
@@ -649,9 +641,7 @@ class ElasticMapReduceResponse(BaseResponse):
             "NotebookExecutions": [
                 {
                     "NotebookExecutionId": e.notebook_execution_id,
-                    "NotebookExecutionName": (
-                        e.notebook_execution_name
-                    ),
+                    "NotebookExecutionName": (e.notebook_execution_name),
                     "EditorId": e.editor_id,
                     "Status": e.status,
                     "StartTime": e.start_time,
@@ -670,4 +660,39 @@ class ElasticMapReduceResponse(BaseResponse):
     def describe_release_label(self) -> ActionResult:
         release_label = self._get_param("ReleaseLabel")
         result = self.backend.describe_release_label(release_label)
+        return ActionResult(result)
+
+    def create_persistent_app_ui(self) -> ActionResult:
+        target_resource_arn = self._get_param("TargetResourceArn")
+        app_ui = self.backend.create_persistent_app_ui(
+            target_resource_arn=target_resource_arn
+        )
+        result = {
+            "PersistentAppUIId": app_ui.persistent_app_ui_id,
+            "PersistentAppUI": {
+                "PersistentAppUIId": app_ui.persistent_app_ui_id,
+                "PersistentAppUIStatus": "ACTIVE",
+                "TargetResourceArn": app_ui.target_resource_arn,
+                "CreationTime": app_ui.creation_time,
+                "LastModifiedTime": app_ui.last_modified_time,
+                "PersistentAppUIArn": app_ui.persistent_app_ui_arn,
+            },
+        }
+        return ActionResult(result)
+
+    def describe_persistent_app_ui(self) -> ActionResult:
+        persistent_app_ui_id = self._get_param("PersistentAppUIId")
+        app_ui = self.backend.describe_persistent_app_ui(
+            persistent_app_ui_id=persistent_app_ui_id
+        )
+        result = {
+            "PersistentAppUI": {
+                "PersistentAppUIId": app_ui.persistent_app_ui_id,
+                "PersistentAppUIStatus": "ACTIVE",
+                "TargetResourceArn": app_ui.target_resource_arn,
+                "CreationTime": app_ui.creation_time,
+                "LastModifiedTime": app_ui.last_modified_time,
+                "PersistentAppUIArn": app_ui.persistent_app_ui_arn,
+            }
+        }
         return ActionResult(result)

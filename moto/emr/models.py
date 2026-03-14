@@ -22,6 +22,7 @@ from .utils import (
     random_instance_fleet_id,
     random_instance_group_id,
     random_notebook_execution_id,
+    random_persistent_app_ui_id,
     random_step_id,
     random_studio_id,
 )
@@ -937,13 +938,31 @@ class Studio(BaseModel):
             f"{account_id}:studio/{self.studio_id}"
         )
         self.url = (
-            f"https://{self.studio_id}.emrstudio-prod."
-            f"{region_name}.amazonaws.com"
+            f"https://{self.studio_id}.emrstudio-prod.{region_name}.amazonaws.com"
         )
 
     @property
     def tags(self) -> list[dict[str, str]]:
         return [{"Key": k, "Value": v} for k, v in self._tags.items()]
+
+
+class PersistentAppUI(BaseModel):
+    def __init__(
+        self,
+        persistent_app_ui_id: str,
+        target_resource_arn: str,
+        account_id: str,
+        region_name: str,
+    ):
+        self.persistent_app_ui_id = persistent_app_ui_id
+        self.target_resource_arn = target_resource_arn
+        self.creation_time = utcnow()
+        self.last_modified_time = utcnow()
+        partition = get_partition(region_name)
+        self.persistent_app_ui_arn = (
+            f"arn:{partition}:elasticmapreduce:{region_name}:"
+            f"{account_id}:persistent-app-ui/{persistent_app_ui_id}"
+        )
 
 
 class NotebookExecution(BaseModel):
@@ -987,6 +1006,7 @@ class ElasticMapReduceBackend(BaseBackend):
         self.auto_termination_policies: dict[str, dict[str, Any]] = {}
         self.instance_fleets: dict[str, InstanceFleet] = {}
         self.studio_session_mappings: dict[str, StudioSessionMapping] = {}
+        self.persistent_app_uis: dict[str, PersistentAppUI] = {}
 
     @cached_property
     def _release_labels(self) -> list[str]:
@@ -999,7 +1019,9 @@ class ElasticMapReduceBackend(BaseBackend):
     def _get_instance_type_names(self, release_label: str) -> list[str]:
         """Returns all instance type names that can be used with this release label"""
         try:
-            return load_resource(__name__, f"resources/instance-types-{release_label}.json")
+            return load_resource(
+                __name__, f"resources/instance-types-{release_label}.json"
+            )
         except (FileNotFoundError, OSError):
             from .exceptions import ValidationException
 
@@ -1129,7 +1151,9 @@ class ElasticMapReduceBackend(BaseBackend):
         return clusters
 
     def list_instance_groups(self, cluster_id: str) -> list[InstanceGroup]:
-        groups = sorted(self.describe_cluster(cluster_id).instance_groups, key=lambda x: x.id)
+        groups = sorted(
+            self.describe_cluster(cluster_id).instance_groups, key=lambda x: x.id
+        )
         return groups
 
     def list_instances(
@@ -1138,7 +1162,9 @@ class ElasticMapReduceBackend(BaseBackend):
         instance_group_id: Optional[str] = None,
         instance_group_types: Optional[list[str]] = None,
     ) -> list[Instance]:
-        groups = sorted(self.describe_cluster(cluster_id).ec2_instances, key=lambda x: x.id)
+        groups = sorted(
+            self.describe_cluster(cluster_id).ec2_instances, key=lambda x: x.id
+        )
         if instance_group_id:
             groups = [g for g in groups if g.instance_group.id == instance_group_id]
         if instance_group_types:
@@ -1354,25 +1380,31 @@ class ElasticMapReduceBackend(BaseBackend):
                     step = s
                     break
             if step is None:
-                results.append({
-                    "StepId": step_id,
-                    "Status": "FAILED",
-                    "Reason": f"Step {step_id} is not found.",
-                })
+                results.append(
+                    {
+                        "StepId": step_id,
+                        "Status": "FAILED",
+                        "Reason": f"Step {step_id} is not found.",
+                    }
+                )
             elif step.state in ("COMPLETED", "FAILED", "CANCELLED"):
-                results.append({
-                    "StepId": step_id,
-                    "Status": "FAILED",
-                    "Reason": f"Step {step_id} could not be cancelled.",
-                })
+                results.append(
+                    {
+                        "StepId": step_id,
+                        "Status": "FAILED",
+                        "Reason": f"Step {step_id} could not be cancelled.",
+                    }
+                )
             else:
                 step.state = "CANCELLED"
                 step.end_date_time = utcnow()
-                results.append({
-                    "StepId": step_id,
-                    "Status": "SUCCESS",
-                    "Reason": "NONE",
-                })
+                results.append(
+                    {
+                        "StepId": step_id,
+                        "Status": "SUCCESS",
+                        "Reason": "NONE",
+                    }
+                )
         return results
 
     def create_studio(
@@ -1409,16 +1441,12 @@ class ElasticMapReduceBackend(BaseBackend):
 
     def describe_studio(self, studio_id: str) -> Studio:
         if studio_id not in self.studios:
-            raise InvalidRequestException(
-                message=f"Studio {studio_id} does not exist."
-            )
+            raise InvalidRequestException(message=f"Studio {studio_id} does not exist.")
         return self.studios[studio_id]
 
     def delete_studio(self, studio_id: str) -> None:
         if studio_id not in self.studios:
-            raise InvalidRequestException(
-                message=f"Studio {studio_id} does not exist."
-            )
+            raise InvalidRequestException(message=f"Studio {studio_id} does not exist.")
         del self.studios[studio_id]
 
     def list_studios(self) -> list[Studio]:
@@ -1430,9 +1458,7 @@ class ElasticMapReduceBackend(BaseBackend):
         self.describe_cluster(cluster_id)
         self.managed_scaling_policies[cluster_id] = managed_scaling_policy
 
-    def get_managed_scaling_policy(
-        self, cluster_id: str
-    ) -> Optional[dict[str, Any]]:
+    def get_managed_scaling_policy(self, cluster_id: str) -> Optional[dict[str, Any]]:
         self.describe_cluster(cluster_id)
         return self.managed_scaling_policies.get(cluster_id)
 
@@ -1446,9 +1472,7 @@ class ElasticMapReduceBackend(BaseBackend):
         self.describe_cluster(cluster_id)
         self.auto_termination_policies[cluster_id] = auto_termination_policy
 
-    def get_auto_termination_policy(
-        self, cluster_id: str
-    ) -> Optional[dict[str, Any]]:
+    def get_auto_termination_policy(self, cluster_id: str) -> Optional[dict[str, Any]]:
         self.describe_cluster(cluster_id)
         return self.auto_termination_policies.get(cluster_id)
 
@@ -1489,21 +1513,18 @@ class ElasticMapReduceBackend(BaseBackend):
         fleet = self.instance_fleets[fleet_id]
         if "TargetOnDemandCapacity" in instance_fleet:
             fleet.target_on_demand_capacity = instance_fleet["TargetOnDemandCapacity"]
-            fleet.provisioned_on_demand_capacity = instance_fleet["TargetOnDemandCapacity"]
+            fleet.provisioned_on_demand_capacity = instance_fleet[
+                "TargetOnDemandCapacity"
+            ]
         if "TargetSpotCapacity" in instance_fleet:
             fleet.target_spot_capacity = instance_fleet["TargetSpotCapacity"]
             fleet.provisioned_spot_capacity = instance_fleet["TargetSpotCapacity"]
         if "ResizeSpecifications" in instance_fleet:
             fleet.resize_specifications = instance_fleet["ResizeSpecifications"]
 
-    def list_instance_fleets(
-        self, cluster_id: str
-    ) -> list[InstanceFleet]:
+    def list_instance_fleets(self, cluster_id: str) -> list[InstanceFleet]:
         self.describe_cluster(cluster_id)
-        return [
-            f for f in self.instance_fleets.values()
-            if f.cluster_id == cluster_id
-        ]
+        return [f for f in self.instance_fleets.values() if f.cluster_id == cluster_id]
 
     def create_studio_session_mapping(
         self,
@@ -1514,9 +1535,7 @@ class ElasticMapReduceBackend(BaseBackend):
         session_policy_arn: str,
     ) -> None:
         if studio_id not in self.studios:
-            raise InvalidRequestException(
-                message=f"Studio {studio_id} does not exist."
-            )
+            raise InvalidRequestException(message=f"Studio {studio_id} does not exist.")
         mapping = StudioSessionMapping(
             studio_id=studio_id,
             identity_id=identity_id,
@@ -1595,10 +1614,7 @@ class ElasticMapReduceBackend(BaseBackend):
     ) -> NotebookExecution:
         if notebook_execution_id not in self.notebook_executions:
             raise InvalidRequestException(
-                message=(
-                    f"Notebook execution {notebook_execution_id} "
-                    f"does not exist."
-                )
+                message=(f"Notebook execution {notebook_execution_id} does not exist.")
             )
         return self.notebook_executions[notebook_execution_id]
 
@@ -1615,9 +1631,25 @@ class ElasticMapReduceBackend(BaseBackend):
         execution.status = "STOPPED"
         execution.end_time = utcnow()
 
-    def describe_release_label(
-        self, release_label: str
-    ) -> dict[str, Any]:
+    def create_persistent_app_ui(self, target_resource_arn: str) -> PersistentAppUI:
+        persistent_app_ui_id = random_persistent_app_ui_id()
+        app_ui = PersistentAppUI(
+            persistent_app_ui_id=persistent_app_ui_id,
+            target_resource_arn=target_resource_arn,
+            account_id=self.account_id,
+            region_name=self.region_name,
+        )
+        self.persistent_app_uis[persistent_app_ui_id] = app_ui
+        return app_ui
+
+    def describe_persistent_app_ui(self, persistent_app_ui_id: str) -> PersistentAppUI:
+        if persistent_app_ui_id not in self.persistent_app_uis:
+            raise ResourceNotFoundException(
+                f"PersistentAppUI {persistent_app_ui_id} does not exist."
+            )
+        return self.persistent_app_uis[persistent_app_ui_id]
+
+    def describe_release_label(self, release_label: str) -> dict[str, Any]:
         if release_label not in self._release_labels:
             raise InvalidRequestException(
                 message=f"Release label {release_label} not found."

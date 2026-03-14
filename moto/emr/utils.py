@@ -1,6 +1,7 @@
 import copy
 import re
 import string
+import uuid
 from collections.abc import Iterator
 from typing import Any
 
@@ -35,6 +36,10 @@ def random_notebook_execution_id() -> str:
 
 def random_instance_fleet_id() -> str:
     return f"if-{random_id()}"
+
+
+def random_persistent_app_ui_id() -> str:
+    return str(uuid.uuid4())
 
 
 class ReleaseLabel:

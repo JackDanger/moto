@@ -433,6 +433,7 @@ class CognitoIdpUserPool(BaseModel):
         self.groups: dict[str, CognitoIdpGroup] = OrderedDict()
         self.users: dict[str, CognitoIdpUser] = OrderedDict()
         self.resource_servers: dict[str, CognitoResourceServer] = OrderedDict()
+        self.terms: dict[str, FakeTerms] = OrderedDict()
         self.refresh_tokens: dict[str, Optional[tuple[str, str, str]]] = {}
         self.access_tokens: dict[str, tuple[str, str]] = {}
         self.id_tokens: dict[str, tuple[str, str]] = {}
@@ -930,6 +931,43 @@ class CognitoIdpUser(BaseModel):
         self.attribute_lookup = flat_attributes
         self.attributes = expand_attrs(flat_attributes)
         self.last_modified_date = utcnow()
+
+
+class FakeTerms(BaseModel):
+    """Terms of service/use resource scoped to a user pool and client."""
+
+    def __init__(
+        self,
+        user_pool_id: str,
+        client_id: str,
+        terms_name: str,
+        terms_source: str,
+        enforcement: str,
+    ):
+        self.terms_id = str(random.uuid4())
+        self.user_pool_id = user_pool_id
+        self.client_id = client_id
+        self.terms_name = terms_name
+        self.terms_source = terms_source
+        self.enforcement = enforcement
+        self.terms_version = 1
+        self.creation_date = utcnow()
+        self.last_modified_date = utcnow()
+        self.status = "ACTIVE"
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "TermsId": self.terms_id,
+            "TermsName": self.terms_name,
+            "UserPoolId": self.user_pool_id,
+            "ClientId": self.client_id,
+            "TermsSource": self.terms_source,
+            "TermsVersion": self.terms_version,
+            "Enforcement": self.enforcement,
+            "CreationDate": self.creation_date,
+            "LastModifiedDate": self.last_modified_date,
+            "Status": self.status,
+        }
 
 
 class CognitoResourceServer(BaseModel):
