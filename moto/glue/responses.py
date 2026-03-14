@@ -2316,20 +2316,20 @@ class GlueResponse(BaseResponse):
 
     # --- Glue Identity Center Configuration ---
 
-    def create_glue_identity_center_configuration(self) -> EmptyResult:
+    def create_glue_identity_center_configuration(self) -> ActionResult:
         instance_arn = self.parameters.get("InstanceArn")
         application_arn = self.parameters.get("ApplicationArn")
         scopes = self.parameters.get("Scopes") or []
         user_background_sessions_enabled = self.parameters.get(
             "UserBackgroundSessionsEnabled", False
         )
-        self.glue_backend.create_glue_identity_center_configuration(
+        config = self.glue_backend.create_glue_identity_center_configuration(
             instance_arn=instance_arn,
             application_arn=application_arn,
             scopes=scopes,
             user_background_sessions_enabled=user_background_sessions_enabled,
         )
-        return EmptyResult()
+        return ActionResult({"ApplicationArn": config.application_arn})
 
     def get_glue_identity_center_configuration(self) -> ActionResult:
         config = self.glue_backend.get_glue_identity_center_configuration()
