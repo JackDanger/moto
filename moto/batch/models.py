@@ -2173,18 +2173,26 @@ class BatchBackend(BaseBackend):
         if not hasattr(self, "_consumable_resources"):
             self._consumable_resources = {}
         for arn, res in self._consumable_resources.items():
-            if arn == consumable_resource or res["consumableResourceName"] == consumable_resource:
+            if (
+                arn == consumable_resource
+                or res["consumableResourceName"] == consumable_resource
+            ):
                 result = dict(res)
                 result["tags"] = self.list_tags_for_resource(arn)
                 return result
-        raise ClientException(f"Consumable resource {consumable_resource} does not exist")
+        raise ClientException(
+            f"Consumable resource {consumable_resource} does not exist"
+        )
 
     def delete_consumable_resource(self, consumable_resource: str) -> None:
         if not hasattr(self, "_consumable_resources"):
             self._consumable_resources = {}
         to_delete = None
         for arn, res in self._consumable_resources.items():
-            if arn == consumable_resource or res["consumableResourceName"] == consumable_resource:
+            if (
+                arn == consumable_resource
+                or res["consumableResourceName"] == consumable_resource
+            ):
                 to_delete = arn
                 break
         if to_delete:
@@ -2209,7 +2217,10 @@ class BatchBackend(BaseBackend):
         if not hasattr(self, "_consumable_resources"):
             self._consumable_resources = {}
         for arn, res in self._consumable_resources.items():
-            if arn == consumable_resource or res["consumableResourceName"] == consumable_resource:
+            if (
+                arn == consumable_resource
+                or res["consumableResourceName"] == consumable_resource
+            ):
                 if total_quantity is not None:
                     res["totalQuantity"] = total_quantity
                     res["availableQuantity"] = total_quantity - res["inUseQuantity"]
@@ -2218,7 +2229,9 @@ class BatchBackend(BaseBackend):
                     "consumableResourceName": res["consumableResourceName"],
                     "totalQuantity": res["totalQuantity"],
                 }
-        raise ClientException(f"Consumable resource {consumable_resource} does not exist")
+        raise ClientException(
+            f"Consumable resource {consumable_resource} does not exist"
+        )
 
     def list_jobs_by_consumable_resource(
         self, consumable_resource: str
@@ -2228,9 +2241,7 @@ class BatchBackend(BaseBackend):
     # endregion
 
     # region: ServiceEnvironment operations (stubs)
-    def create_service_environment(
-        self, name: str, **kwargs: Any
-    ) -> dict[str, Any]:
+    def create_service_environment(self, name: str, **kwargs: Any) -> dict[str, Any]:
         arn = f"arn:{get_partition(self.region_name)}:batch:{self.region_name}:{self.account_id}:service-environment/{name}"
         env = {
             "serviceEnvironmentArn": arn,
@@ -2248,7 +2259,10 @@ class BatchBackend(BaseBackend):
             self._service_environments = {}
         to_delete = None
         for arn, env in self._service_environments.items():
-            if arn == service_environment or env["serviceEnvironmentName"] == service_environment:
+            if (
+                arn == service_environment
+                or env["serviceEnvironmentName"] == service_environment
+            ):
                 to_delete = arn
                 break
         if to_delete:
@@ -2261,7 +2275,8 @@ class BatchBackend(BaseBackend):
             self._service_environments = {}
         if service_environments:
             return [
-                env for env in self._service_environments.values()
+                env
+                for env in self._service_environments.values()
                 if env["serviceEnvironmentArn"] in service_environments
                 or env["serviceEnvironmentName"] in service_environments
             ]
@@ -2273,9 +2288,14 @@ class BatchBackend(BaseBackend):
         if not hasattr(self, "_service_environments"):
             self._service_environments = {}
         for arn, env in self._service_environments.items():
-            if arn == service_environment or env["serviceEnvironmentName"] == service_environment:
+            if (
+                arn == service_environment
+                or env["serviceEnvironmentName"] == service_environment
+            ):
                 return env
-        raise ClientException(f"Service environment {service_environment} does not exist")
+        raise ClientException(
+            f"Service environment {service_environment} does not exist"
+        )
 
     # endregion
 

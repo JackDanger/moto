@@ -310,10 +310,12 @@ class BatchResponse(BaseResponse):
             resource_type=body.get("resourceType", "REPLENISHABLE"),
             tags=body.get("tags"),
         )
-        return json.dumps({
-            "consumableResourceArn": result["consumableResourceArn"],
-            "consumableResourceName": result["consumableResourceName"],
-        })
+        return json.dumps(
+            {
+                "consumableResourceArn": result["consumableResourceArn"],
+                "consumableResourceName": result["consumableResourceName"],
+            }
+        )
 
     def describeconsumableresource(self) -> str:
         body = json.loads(self.body)
@@ -388,14 +390,10 @@ class BatchResponse(BaseResponse):
 
     def listservicejobs(self) -> str:
         body = json.loads(self.body)
-        jobs = self.batch_backend.list_service_jobs(
-            body.get("serviceEnvironment")
-        )
+        jobs = self.batch_backend.list_service_jobs(body.get("serviceEnvironment"))
         return json.dumps({"jobSummaryList": jobs})
 
     def terminateservicejob(self) -> str:
         body = json.loads(self.body)
-        self.batch_backend.terminate_service_job(
-            body.get("jobId"), body.get("reason")
-        )
+        self.batch_backend.terminate_service_job(body.get("jobId"), body.get("reason"))
         return ""

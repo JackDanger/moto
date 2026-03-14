@@ -359,6 +359,67 @@ class IdentityStoreBackend(BaseBackend):
             users.append(user)
         return users
 
+    def update_group(
+        self,
+        identity_store_id: str,
+        group_id: str,
+        operations: list[dict[str, Any]],
+    ) -> None:
+        identity_store = self.__get_identity_store(identity_store_id)
+        if group_id not in identity_store.groups:
+            raise ResourceNotFoundException(
+                message="GROUP not found.", resource_type="GROUP"
+            )
+        g = identity_store.groups[group_id]
+        updates: dict[str, Any] = {}
+        for op in operations or []:
+            path = op.get("AttributePath", "")
+            value = op.get("AttributeValue")
+            if path.lower() == "displayname":
+                updates["DisplayName"] = value
+            elif path.lower() == "description":
+                updates["Description"] = value
+        identity_store.groups[group_id] = Group(
+            GroupId=g.GroupId,
+            DisplayName=updates.get("DisplayName", g.DisplayName),
+            ExternalIds=g.ExternalIds,
+            Description=updates.get("Description", g.Description),
+            IdentityStoreId=g.IdentityStoreId,
+        )
+
+    def update_user(
+        self,
+        identity_store_id: str,
+        user_id: str,
+        operations: list[dict[str, Any]],
+    ) -> None:
+        identity_store = self.__get_identity_store(identity_store_id)
+        if user_id not in identity_store.users:
+            raise ResourceNotFoundException(
+                message="USER not found.", resource_type="USER"
+            )
+        u = identity_store.users[user_id]
+        d = u._asdict()
+        for op in operations or []:
+            path = op.get("AttributePath", "")
+            value = op.get("AttributeValue")
+            key = {k.lower(): k for k in d}.get(path.lower())
+            if key:
+                d[key] = value
+        if d.get("Name") and isinstance(d["Name"], dict):
+            d["Name"] = Name.from_dict(d["Name"])
+        identity_store.users[user_id] = User(**d)
+
+    def describe_group_membership(
+        self, identity_store_id: str, membership_id: str
+    ) -> dict[str, Any]:
+        identity_store = self.__get_identity_store(identity_store_id)
+        if membership_id not in identity_store.group_memberships:
+            raise ResourceNotFoundException(
+                message="MEMBERSHIP not found.", resource_type="GROUP_MEMBERSHIP"
+            )
+        return identity_store.group_memberships[membership_id]
+
     def delete_group_membership(
         self, identity_store_id: str, membership_id: str
     ) -> None:
