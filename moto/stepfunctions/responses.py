@@ -318,6 +318,61 @@ class StepFunctionResponse(BaseResponse):
         self.stepfunction_backend.delete_state_machine_version(version_arn=arn)
         return EmptyResult()
 
+    def create_state_machine_alias(self) -> ActionResult:
+        name = self._get_param("name")
+        description = self._get_param("description")
+        routing_configuration = self._get_param("routingConfiguration")
+        alias = self.stepfunction_backend.create_state_machine_alias(
+            name=name,
+            description=description,
+            routing_configuration=routing_configuration,
+        )
+        return ActionResult(
+            {
+                "stateMachineAliasArn": alias.arn,
+                "creationDate": alias.creation_date,
+            }
+        )
+
+    def describe_state_machine_alias(self) -> ActionResult:
+        arn = self._get_param("stateMachineAliasArn")
+        alias = self.stepfunction_backend.describe_state_machine_alias(arn)
+        return ActionResult(alias.to_dict())
+
+    def list_state_machine_aliases(self) -> ActionResult:
+        sm_arn = self._get_param("stateMachineArn")
+        aliases = self.stepfunction_backend.list_state_machine_aliases(sm_arn)
+        return ActionResult(
+            {
+                "stateMachineAliases": [
+                    {
+                        "stateMachineAliasArn": a.arn,
+                        "creationDate": a.creation_date,
+                    }
+                    for a in aliases
+                ]
+            }
+        )
+
+    def delete_state_machine_alias(self) -> ActionResult:
+        arn = self._get_param("stateMachineAliasArn")
+        self.stepfunction_backend.delete_state_machine_alias(arn)
+        return EmptyResult()
+
+    def update_state_machine_alias(self) -> ActionResult:
+        arn = self._get_param("stateMachineAliasArn")
+        description = self._get_param("description")
+        routing_configuration = self._get_param("routingConfiguration")
+        alias = self.stepfunction_backend.update_state_machine_alias(
+            arn, description=description, routing_configuration=routing_configuration
+        )
+        return ActionResult(
+            {
+                "stateMachineAliasArn": alias.arn,
+                "updateDate": alias.update_date,
+            }
+        )
+
     def create_activity(self) -> ActionResult:
         name = self._get_param("name")
         tags = self._get_param("tags")

@@ -1593,11 +1593,32 @@ class DynamoHandler(BaseResponse):
         return json.dumps({"ExportSummaries": response})
 
     def list_contributor_insights(self) -> str:
-        table_name = self.body.get("TableName")
         return json.dumps({"ContributorInsightsSummaries": []})
 
+    def describe_contributor_insights(self) -> str:
+        body = self.body
+        table_name = body["TableName"]
+        index_name = body.get("IndexName")
+        result = self.dynamodb_backend.describe_contributor_insights(
+            table_name, index_name
+        )
+        return dynamo_json_dump(result)
+
+    def describe_global_table_settings(self) -> str:
+        body = self.body
+        global_table_name = body["GlobalTableName"]
+        result = self.dynamodb_backend.describe_global_table_settings(global_table_name)
+        return dynamo_json_dump(result)
+
+    def describe_kinesis_streaming_destination(self) -> str:
+        body = self.body
+        table_name = body["TableName"]
+        result = self.dynamodb_backend.describe_kinesis_streaming_destination(
+            table_name
+        )
+        return dynamo_json_dump(result)
+
     def list_imports(self) -> str:
-        table_arn = self.body.get("TableArn")
         return json.dumps({"ImportSummaryList": []})
 
     def put_resource_policy(self) -> str:

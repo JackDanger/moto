@@ -15,6 +15,7 @@ from moto.dynamodb.exceptions import (
     BackupNotFoundException,
     ConditionalCheckFailed,
     DeletionProtectedException,
+    GlobalTableNotFoundException,
     ItemSizeTooLarge,
     ItemSizeToUpdateTooLarge,
     MockValidationException,
@@ -1041,9 +1042,54 @@ class DynamoDBBackend(BaseBackend):
     def list_exports(self, table_arn: Optional[str] = None) -> list[TableExport]:
         exports = []
         for export_arn in self.table_exports:
-            if table_arn is None or self.table_exports[export_arn].table.table_arn == table_arn:
+            if (
+                table_arn is None
+                or self.table_exports[export_arn].table.table_arn == table_arn
+            ):
                 exports.append(self.table_exports[export_arn])
         return exports
+
+    def describe_contributor_insights(
+        self, table_name: str, index_name: Optional[str] = None
+    ) -> dict[str, Any]:
+        self.get_table(table_name)
+        result: dict[str, Any] = {
+            "TableName": table_name,
+            "ContributorInsightsRuleList": [
+                f"DynamoDBContributorInsights-PKC-{table_name}",
+                f"DynamoDBContributorInsights-SKC-{table_name}",
+            ],
+            "ContributorInsightsStatus": "DISABLED",
+            "LastModifiedDateTime": unix_time(),
+        }
+        if index_name is not None:
+            result["IndexName"] = index_name
+        return result
+
+    def describe_global_table_settings(self, global_table_name: str) -> dict[str, Any]:
+        try:
+            self.get_table(global_table_name)
+        except ResourceNotFoundException:
+            raise GlobalTableNotFoundException(global_table_name)
+        return {
+            "GlobalTableName": global_table_name,
+            "ReplicaSettings": [
+                {
+                    "RegionName": self.region_name,
+                    "ReplicaStatus": "ACTIVE",
+                    "ReplicaBillingModeSummary": {"BillingMode": "PAY_PER_REQUEST"},
+                    "ReplicaProvisionedReadCapacityUnits": 0,
+                    "ReplicaProvisionedWriteCapacityUnits": 0,
+                }
+            ],
+        }
+
+    def describe_kinesis_streaming_destination(self, table_name: str) -> dict[str, Any]:
+        self.get_table(table_name)
+        return {
+            "TableName": table_name,
+            "KinesisDataStreamDestinations": [],
+        }
 
     def put_resource_policy(
         self, resource_arn: str, policy_doc: str, expected_revision_id: Optional[str]

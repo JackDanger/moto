@@ -365,6 +365,12 @@ class TableAlreadyExistsException(JsonRESTError):
         super().__init__(er, f"Table already exists: {target_table_name}")
 
 
+class GlobalTableNotFoundException(JsonRESTError):
+    def __init__(self, global_table_name: str):
+        er = ERROR_TYPE_PREFIX + "GlobalTableNotFoundException"
+        super().__init__(er, f"Global table not found: {global_table_name}")
+
+
 class ResourceInUseException(JsonRESTError):
     def __init__(self, msg: Optional[str] = None) -> None:
         er = ERROR_TYPE_PREFIX + "ResourceInUseException"

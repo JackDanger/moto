@@ -16,6 +16,7 @@ from moto.utilities.utils import ARN_PARTITION_REGEX, get_partition
 from .exceptions import (
     ActivityAlreadyExists,
     ActivityDoesNotExist,
+    ConflictException,
     ExecutionAlreadyExists,
     ExecutionDoesNotExist,
     InvalidArn,
@@ -307,6 +308,35 @@ class StateMachine(StateMachineInstance, CloudFormationModel):
             return state_machine
 
 
+class StateMachineAlias:
+    def __init__(
+        self,
+        arn: str,
+        name: str,
+        description: Optional[str],
+        routing_configuration: list[dict[str, Any]],
+    ):
+        self.arn = arn
+        self.name = name
+        self.description = description or ""
+        self.routing_configuration = routing_configuration
+        self.creation_date = utcnow()
+        self.update_date = self.creation_date
+
+    def to_dict(self) -> dict[str, Any]:
+        def _fmt(dt: datetime) -> str:
+            return dt.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+
+        return {
+            "stateMachineAliasArn": self.arn,
+            "name": self.name,
+            "description": self.description,
+            "routingConfiguration": self.routing_configuration,
+            "creationDate": _fmt(self.creation_date),
+            "updateDate": _fmt(self.update_date),
+        }
+
+
 class Execution:
     def __init__(
         self,
@@ -590,6 +620,7 @@ class StepFunctionBackend(BaseBackend):
 
         self.state_machines: list[StateMachine] = []
         self.activities: dict[str, Activity] = {}
+        self.aliases: dict[str, StateMachineAlias] = {}
         self._account_id = None
 
     def create_state_machine(
@@ -823,6 +854,66 @@ class StepFunctionBackend(BaseBackend):
         if not sm:
             return  # Idempotent — AWS doesn't error if already gone
         sm.versions.pop(version_number, None)
+
+    def create_state_machine_alias(
+        self,
+        name: str,
+        description: Optional[str],
+        routing_configuration: list[dict[str, Any]],
+    ) -> StateMachineAlias:
+        version_arn = routing_configuration[0]["stateMachineVersionArn"]
+        self.describe_state_machine(version_arn)  # validate version exists
+        sm_base_arn = ":".join(version_arn.split(":")[:-1])
+        alias_arn = f"{sm_base_arn}:{name}"
+        if alias_arn in self.aliases:
+            raise ConflictException(f"State Machine Alias '{alias_arn}' already exists")
+        alias = StateMachineAlias(
+            arn=alias_arn,
+            name=name,
+            description=description,
+            routing_configuration=routing_configuration,
+        )
+        self.aliases[alias_arn] = alias
+        return alias
+
+    def describe_state_machine_alias(
+        self, state_machine_alias_arn: str
+    ) -> StateMachineAlias:
+        alias = self.aliases.get(state_machine_alias_arn)
+        if not alias:
+            raise ResourceNotFound(state_machine_alias_arn)
+        return alias
+
+    def list_state_machine_aliases(
+        self, state_machine_arn: str
+    ) -> list[StateMachineAlias]:
+        prefix = state_machine_arn.rstrip(":") + ":"
+        return [
+            a
+            for a in self.aliases.values()
+            if a.arn.startswith(prefix) and a.arn != state_machine_arn
+        ]
+
+    def delete_state_machine_alias(self, state_machine_alias_arn: str) -> None:
+        if state_machine_alias_arn not in self.aliases:
+            raise ResourceNotFound(state_machine_alias_arn)
+        del self.aliases[state_machine_alias_arn]
+
+    def update_state_machine_alias(
+        self,
+        state_machine_alias_arn: str,
+        description: Optional[str],
+        routing_configuration: Optional[list[dict[str, Any]]],
+    ) -> StateMachineAlias:
+        alias = self.aliases.get(state_machine_alias_arn)
+        if not alias:
+            raise ResourceNotFound(state_machine_alias_arn)
+        if description is not None:
+            alias.description = description
+        if routing_configuration is not None:
+            alias.routing_configuration = routing_configuration
+        alias.update_date = utcnow()
+        return alias
 
     def send_task_failure(self, task_token: str, error: Optional[str] = None) -> None:
         pass

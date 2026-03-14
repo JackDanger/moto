@@ -342,6 +342,25 @@ class EC2ContainerServiceResponse(BaseResponse):
         }
         return ActionResult(result)
 
+    def describe_service_deployments(self) -> ActionResult:
+        arns = self._get_param("serviceDeploymentArns", [])
+        result = self.ecs_backend.describe_service_deployments(arns)
+        return ActionResult(result)
+
+    def list_service_deployments(self) -> ActionResult:
+        service = self._get_param("service")
+        cluster = self._get_param("cluster") or "default"
+        status_filter = self._get_param("status")
+        result = self.ecs_backend.list_service_deployments(
+            service, cluster, status_filter
+        )
+        return ActionResult(result)
+
+    def describe_service_revisions(self) -> ActionResult:
+        arns = self._get_param("serviceRevisionArns", [])
+        result = self.ecs_backend.describe_service_revisions(arns)
+        return ActionResult(result)
+
     def update_service(self) -> ActionResult:
         service_properties = self._get_params()
         parsed_props = {}
@@ -582,9 +601,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         protected_tasks, failures = self.ecs_backend.get_task_protection(
             cluster, tasks or None
         )
-        return ActionResult(
-            {"protectedTasks": protected_tasks, "failures": failures}
-        )
+        return ActionResult({"protectedTasks": protected_tasks, "failures": failures})
 
     def update_task_protection(self) -> ActionResult:
         cluster = self._get_param("cluster")
@@ -594,9 +611,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         protected_tasks, failures = self.ecs_backend.update_task_protection(
             cluster, tasks, protection_enabled, expires_in_minutes
         )
-        return ActionResult(
-            {"protectedTasks": protected_tasks, "failures": failures}
-        )
+        return ActionResult({"protectedTasks": protected_tasks, "failures": failures})
 
     def execute_command(self) -> ActionResult:
         cluster = self._get_param("cluster", "default")

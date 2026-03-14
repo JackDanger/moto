@@ -1652,6 +1652,128 @@ class EC2ContainerServiceBackend(BaseBackend):
 
         return result, failures
 
+    def describe_service_deployments(
+        self, service_deployment_arns: list[str]
+    ) -> dict[str, Any]:
+        """Look up deployments by their ARNs."""
+        results = []
+        failures = []
+        for dep_arn in service_deployment_arns:
+            found = False
+            for _, svc in self.services.items():
+                cluster = self.clusters.get(svc.cluster_name)
+                if not cluster:
+                    continue
+                for dep in svc.deployments:
+                    dep_id = dep.get("id", "")
+                    expected_arn = (
+                        f"arn:{get_partition(self.region_name)}:ecs:"
+                        f"{self.region_name}:{self.account_id}:"
+                        f"service-deployment/{cluster.name}/{svc.name}/{dep_id}"
+                    )
+                    if expected_arn == dep_arn or dep_id == dep_arn:
+                        dep_result = {
+                            "serviceDeploymentArn": expected_arn,
+                            "serviceArn": svc.arn,
+                            "clusterArn": cluster.arn,
+                            "status": dep.get("status", "PRIMARY"),
+                            "taskDefinition": dep.get("taskDefinition", ""),
+                            "desiredCount": dep.get("desiredCount", 0),
+                            "runningCount": dep.get("runningCount", 0),
+                            "createdAt": dep.get("createdAt"),
+                            "updatedAt": dep.get("updatedAt", dep.get("createdAt")),
+                        }
+                        results.append(dep_result)
+                        found = True
+                        break
+                if found:
+                    break
+            if not found:
+                failures.append(
+                    {"arn": dep_arn, "reason": "SERVICE_DEPLOYMENT_NOT_FOUND"}
+                )
+        return {"serviceDeployments": results, "failures": failures}
+
+    def list_service_deployments(
+        self,
+        service_name: str,
+        cluster_name: str = "default",
+        status: Optional[str] = None,
+    ) -> dict[str, Any]:
+        """List deployments for a service."""
+        cluster = self._get_cluster(cluster_name)
+        svc = self._get_service(cluster_name, service_name)
+        deployments = []
+        for dep in svc.deployments:
+            dep_id = dep.get("id", "")
+            dep_entry = {
+                "serviceDeploymentArn": (
+                    f"arn:{get_partition(self.region_name)}:ecs:"
+                    f"{self.region_name}:{self.account_id}:"
+                    f"service-deployment/{cluster.name}/{svc.name}/{dep_id}"
+                ),
+                "serviceArn": svc.arn,
+                "clusterArn": cluster.arn,
+                "status": dep.get("status", "PRIMARY"),
+                "createdAt": dep.get("createdAt"),
+                "targetServiceRevisionArn": (
+                    f"arn:{get_partition(self.region_name)}:ecs:"
+                    f"{self.region_name}:{self.account_id}:"
+                    f"service-revision/{cluster.name}/{svc.name}:1"
+                ),
+            }
+            if status is None or dep_entry["status"] == status:
+                deployments.append(dep_entry)
+        return {"serviceDeployments": deployments}
+
+    def describe_service_revisions(
+        self, service_revision_arns: list[str]
+    ) -> dict[str, Any]:
+        """Describe service revisions by ARN."""
+        results = []
+        failures = []
+        for rev_arn in service_revision_arns:
+            try:
+                # Parse arn:aws:ecs:region:account:service-revision/cluster/service:revision
+                parts = rev_arn.split(":")
+                if len(parts) < 6:
+                    raise ValueError("Invalid ARN format")
+                resource = parts[5]
+                path_parts = resource.split("/")
+                if len(path_parts) < 3:
+                    raise ValueError("Invalid ARN resource format")
+                cluster_name = path_parts[1]
+                service_part = path_parts[2]
+                if ":" in service_part:
+                    service_name = service_part.rsplit(":", 1)[0]
+                else:
+                    service_name = service_part
+                cluster = self._get_cluster(cluster_name)
+                svc = self._get_service(cluster_name, service_name)
+                created_at = None
+                if svc.deployments:
+                    created_at = svc.deployments[0].get("createdAt")
+                rev = {
+                    "serviceRevisionArn": rev_arn,
+                    "serviceArn": svc.arn,
+                    "clusterArn": cluster.arn,
+                    "taskDefinition": svc.task_definition or "",
+                    "desiredCount": svc.desired_count,
+                    "runningCount": svc.running_count,
+                    "createdAt": created_at,
+                }
+                results.append(rev)
+            except (
+                IndexError,
+                ValueError,
+                ServiceNotFoundException,
+                ClusterNotFoundException,
+            ):
+                failures.append(
+                    {"arn": rev_arn, "reason": "SERVICE_REVISION_NOT_FOUND"}
+                )
+        return {"serviceRevisions": results, "failures": failures}
+
     def update_service(self, service_properties: dict[str, Any]) -> Service:
         cluster_str = service_properties.pop("cluster", "default")
         task_definition_str = service_properties.pop("task_definition", None)
@@ -2361,7 +2483,9 @@ class EC2ContainerServiceBackend(BaseBackend):
                             "protectionEnabled": task.protection_enabled,
                         }
                         if task.protection_expiration_date:
-                            protection["expirationDate"] = task.protection_expiration_date
+                            protection["expirationDate"] = (
+                                task.protection_expiration_date
+                            )
                         protected_tasks.append(protection)
                         found = True
                         break
@@ -2408,10 +2532,10 @@ class EC2ContainerServiceBackend(BaseBackend):
                         if protection_enabled and expires_in_minutes:
                             from datetime import timedelta
 
-                            expiration = utcnow() + timedelta(minutes=expires_in_minutes)
-                            task.protection_expiration_date = (
-                                expiration.isoformat()
+                            expiration = utcnow() + timedelta(
+                                minutes=expires_in_minutes
                             )
+                            task.protection_expiration_date = expiration.isoformat()
                         elif not protection_enabled:
                             task.protection_expiration_date = None
                         protection_info: dict[str, Any] = {
@@ -2457,9 +2581,7 @@ class EC2ContainerServiceBackend(BaseBackend):
                     break
 
         if not task_obj:
-            raise InvalidParameterException(
-                f"The task was not found: {task_id}"
-            )
+            raise InvalidParameterException(f"The task was not found: {task_id}")
 
         # Return a stub session response
         return {
