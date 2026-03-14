@@ -1088,7 +1088,15 @@ class FakeBucket(CloudFormationModel):
         self.default_lock_years: Optional[int] = 0
         self.ownership_rule: Optional[dict[str, Any]] = None
         self.inventory_configs: dict[str, FakeBucketInventoryConfiguration] = {}
+        self.bucket_type: Optional[str] = None  # "Directory" for directory buckets
+        self.location_type: Optional[str] = None  # "AvailabilityZone" or "LocalZone"
+        self.location_name: Optional[str] = None  # e.g., "use1-az5"
+        self.data_redundancy: Optional[str] = None  # "SingleAvailabilityZone"
         s3_backends.bucket_accounts[name] = (self.partition, account_id)
+
+    @property
+    def is_directory_bucket(self) -> bool:
+        return self.bucket_type == "Directory"
 
     @property
     def location(self) -> str:
@@ -1455,6 +1463,8 @@ class FakeBucket(CloudFormationModel):
 
     @property
     def arn(self) -> str:
+        if self.is_directory_bucket:
+            return f"arn:{self.partition}:s3express:{self.region_name}:{self.account_id}:bucket/{self.name}"
         return f"arn:{self.partition}:s3:::{self.name}"
 
     @property
@@ -1894,14 +1904,36 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             )
         return metrics
 
-    def create_bucket(self, bucket_name: str, region_name: str) -> FakeBucket:
+    def create_bucket(
+        self,
+        bucket_name: str,
+        region_name: str,
+        bucket_type: Optional[str] = None,
+        location_type: Optional[str] = None,
+        location_name: Optional[str] = None,
+        data_redundancy: Optional[str] = None,
+    ) -> FakeBucket:
         if bucket_name in s3_backends.bucket_accounts.keys():
             raise BucketAlreadyExists(bucket=bucket_name)
         if not MIN_BUCKET_NAME_LENGTH <= len(bucket_name) <= MAX_BUCKET_NAME_LENGTH:
             raise InvalidBucketName()
+
+        # Validate directory bucket naming convention
+        if bucket_type == "Directory":
+            import re as _re
+
+            if not _re.search(r"--[a-z0-9]+-az\d+--x-s3$", bucket_name):
+                raise InvalidBucketName()
+
         new_bucket = FakeBucket(
             name=bucket_name, account_id=self.account_id, region_name=region_name
         )
+
+        if bucket_type:
+            new_bucket.bucket_type = bucket_type
+            new_bucket.location_type = location_type
+            new_bucket.location_name = location_name
+            new_bucket.data_redundancy = data_redundancy
 
         self.buckets[bucket_name] = new_bucket
 
@@ -1917,11 +1949,80 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
             source="aws.s3",
             event_name="CreateBucket",
             region=region_name,
-            resources=[f"arn:{new_bucket.partition}:s3:::{bucket_name}"],
+            resources=[new_bucket.arn],
             detail=notification_detail,
         )
 
         return new_bucket
+
+    def list_directory_buckets(
+        self,
+        continuation_token: Optional[str] = None,
+        max_buckets: int = 1000,
+    ) -> tuple[list[FakeBucket], Optional[str]]:
+        """Return only directory buckets for this account."""
+        dir_buckets = sorted(
+            [b for b in self.buckets.values() if b.is_directory_bucket],
+            key=lambda b: b.name,
+        )
+        if continuation_token:
+            dir_buckets = [b for b in dir_buckets if b.name > continuation_token]
+        result = dir_buckets[:max_buckets]
+        next_token = result[-1].name if len(dir_buckets) > max_buckets else None
+        return result, next_token
+
+    def create_session(
+        self, bucket_name: str, session_mode: Optional[str] = None
+    ) -> dict:
+        """Generate temporary session credentials for S3 Express bucket access."""
+        bucket = self.get_bucket(bucket_name)
+        if not bucket.is_directory_bucket:
+            from moto.s3.exceptions import S3ClientError
+
+            raise S3ClientError(
+                "InvalidRequest",
+                "CreateSession is only supported for directory buckets.",
+            )
+
+        import hashlib
+
+        seed = f"{bucket_name}-{self.account_id}-{datetime.datetime.now(tz=datetime.timezone.utc).isoformat()}"
+        key_hash = hashlib.sha256(seed.encode()).hexdigest()[:40]
+
+        return {
+            "Credentials": {
+                "AccessKeyId": f"ASIA{key_hash[:16].upper()}",
+                "SecretAccessKey": key_hash,
+                "SessionToken": f"FwoGZXIvYXdzE{key_hash}",
+                "Expiration": (
+                    datetime.datetime.now(tz=datetime.timezone.utc)
+                    + datetime.timedelta(hours=12)
+                ).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            }
+        }
+
+    def rename_object(
+        self, bucket_name: str, new_key: str, rename_source: str
+    ) -> None:
+        """Atomic rename/move within a directory bucket."""
+        bucket = self.get_bucket(bucket_name)
+        if not bucket.is_directory_bucket:
+            from moto.s3.exceptions import S3ClientError
+
+            raise S3ClientError(
+                "InvalidRequest",
+                "RenameObject is only supported for directory buckets.",
+            )
+
+        source_key = rename_source.split("/", 1)[1] if "/" in rename_source else rename_source
+
+        if source_key not in bucket.keys:
+            raise MissingKey(key=source_key)
+
+        obj = bucket.keys[source_key]
+        bucket.keys[new_key] = obj
+        obj.name = new_key
+        del bucket.keys[source_key]
 
     def create_table_storage_bucket(self, region_name: str) -> FakeTableStorageBucket:
         # every s3 table is assigned a unique s3 bucket with a random name
@@ -2228,11 +2329,35 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider):
         # arguments to handle notification
         request_method: Optional[str] = "PUT",
         disable_notification: Optional[bool] = False,
+        write_offset_bytes: Optional[int] = None,
     ) -> FakeKey:
         if storage is not None and storage not in STORAGE_CLASS:
             raise InvalidStorageClass(storage=storage)
 
         bucket = self.get_bucket(bucket_name)
+
+        # Handle append writes (S3 Express / directory buckets)
+        if write_offset_bytes is not None:
+            if key_name in bucket.keys:
+                existing = bucket.keys[key_name]
+                existing_size = existing.contentsize
+                if write_offset_bytes != existing_size:
+                    from moto.s3.exceptions import S3ClientError
+
+                    raise S3ClientError(
+                        "InvalidWriteOffset",
+                        f"The write offset ({write_offset_bytes}) must equal the "
+                        f"current object size ({existing_size}).",
+                    )
+                # Append: concatenate existing value + new body
+                value = existing.value + value
+            elif write_offset_bytes != 0:
+                from moto.s3.exceptions import S3ClientError
+
+                raise S3ClientError(
+                    "InvalidWriteOffset",
+                    "The write offset must be 0 for a new object.",
+                )
 
         # getting default config from bucket if not included in put request
         if bucket.encryption:

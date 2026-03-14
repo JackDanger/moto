@@ -375,6 +375,21 @@ class S3Response(BaseResponse):
 
         return status_code, headers, body
 
+    def list_directory_buckets(self) -> str:
+        self.data["Action"] = "ListDirectoryBuckets"
+        self._authenticate_and_authorize_s3_action()
+
+        continuation_token = self.querystring.get("continuation-token", [None])[0]
+        max_buckets_str = self.querystring.get("max-directory-buckets", ["1000"])[0]
+        max_buckets = int(max_buckets_str) if max_buckets_str else 1000
+
+        buckets, next_token = self.backend.list_directory_buckets(
+            continuation_token=continuation_token,
+            max_buckets=max_buckets,
+        )
+        template = self.response_template(S3_DIRECTORY_BUCKETS_LIST)
+        return template.render(buckets=buckets, next_token=next_token)
+
     def _bucket_response(
         self, request: Any, full_url: str
     ) -> Union[str, TYPE_RESPONSE]:
@@ -382,6 +397,11 @@ class S3Response(BaseResponse):
         method = request.method
         bucket_name = self.parse_bucket_name_from_url(request, full_url)
         if not bucket_name:
+            # Check if this is a ListDirectoryBuckets request
+            auth_header = request.headers.get("Authorization", "")
+            if "s3express" in auth_header.lower():
+                self.querystring = querystring
+                return self.list_directory_buckets()
             # If no bucket specified, list all buckets
             return self.all_buckets()
 
@@ -439,6 +459,9 @@ class S3Response(BaseResponse):
             # error response between real and mocked responses.
             return 404, {}, ""
         headers = {"x-amz-bucket-region": bucket.region_name, "content-type": APP_XML}
+        if bucket.is_directory_bucket:
+            headers["x-amz-bucket-location-type"] = bucket.location_type or "AvailabilityZone"
+            headers["x-amz-bucket-location-name"] = bucket.location_name or ""
         return 200, headers, ""
 
     def _set_cors_headers_options(
@@ -552,6 +575,13 @@ class S3Response(BaseResponse):
     ) -> Union[str, TYPE_RESPONSE]:
         self._set_action("BUCKET", "GET", querystring)
         self._authenticate_and_authorize_s3_action(bucket_name=bucket_name)
+
+        if "session" in querystring:
+            session_mode = querystring.get("session", [None])[0]
+            result = self.backend.create_session(bucket_name, session_mode)
+            creds = result["Credentials"]
+            template = self.response_template(S3_CREATE_SESSION_RESPONSE)
+            return template.render(credentials=creds)
 
         if "object-lock" in querystring:
             return self.get_object_lock_configuration()
@@ -947,8 +977,37 @@ class S3Response(BaseResponse):
             bucket_region = (
                 location_constraint if location_constraint else DEFAULT_REGION_NAME
             )
+
+            # Parse directory bucket configuration from CreateBucketConfiguration
+            bucket_type = None
+            location_type = None
+            location_name_val = None
+            data_redundancy = None
+            if self.body:
+                try:
+                    parsed = xmltodict.parse(self.body)
+                    config = parsed.get("CreateBucketConfiguration", {})
+                    bucket_conf = config.get("Bucket", {})
+                    if isinstance(bucket_conf, dict):
+                        bucket_type = bucket_conf.get("Type")
+                        data_redundancy = bucket_conf.get("DataRedundancy")
+                    loc_conf = config.get("Location", {})
+                    if isinstance(loc_conf, dict):
+                        location_type = loc_conf.get("Type")
+                        location_name_val = loc_conf.get("Name")
+                except Exception:
+                    # Not XML or missing keys — that's fine
+                    pass
+
             try:
-                new_bucket = self.backend.create_bucket(bucket_name, bucket_region)
+                new_bucket = self.backend.create_bucket(
+                    bucket_name,
+                    bucket_region,
+                    bucket_type=bucket_type,
+                    location_type=location_type,
+                    location_name=location_name_val,
+                    data_redundancy=data_redundancy,
+                )
             except BucketAlreadyExists:
                 new_bucket = self.backend.get_bucket(bucket_name)
                 if new_bucket.account_id == self.get_current_account():
@@ -1794,6 +1853,11 @@ class S3Response(BaseResponse):
         if "tagging" in query:
             return self.put_object_tagging()
 
+        if "renameObject" in query:
+            rename_source = self.headers.get("x-amz-rename-source", "")
+            self.backend.rename_object(self.bucket_name, key_name, rename_source)
+            return 200, {}, ""
+
         if "x-amz-copy-source" in self.headers:
             return self.copy_object()
 
@@ -1838,6 +1902,12 @@ class S3Response(BaseResponse):
             acl = bucket.acl
         tagging = self._tagging_from_headers(self.headers)
 
+        # Parse write-offset-bytes for S3 Express append writes
+        write_offset_bytes = None
+        write_offset_header = self.headers.get("x-amz-write-offset-bytes")
+        if write_offset_header is not None:
+            write_offset_bytes = int(write_offset_header)
+
         new_key = self.backend.put_object(
             self.bucket_name,
             key_name,
@@ -1850,6 +1920,7 @@ class S3Response(BaseResponse):
             lock_legal_status=legal_hold,
             lock_until=lock_until,
             checksum_value=checksum_value,
+            write_offset_bytes=write_offset_bytes,
         )
         metadata = metadata_from_headers(self.headers)
         metadata.update(metadata_from_headers(self.querystring))
@@ -3673,3 +3744,30 @@ S3_OBJECT_ATTRIBUTES_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
     {% if storage_class is not none %}<StorageClass>{{ storage_class }}</StorageClass>{% endif %}
 </GetObjectAttributesOutput>
 """
+
+S3_DIRECTORY_BUCKETS_LIST = """<?xml version="1.0" encoding="UTF-8"?>
+<ListDirectoryBucketsResult>
+  <Buckets>
+    {% for bucket in buckets %}
+    <Bucket>
+      <Name>{{ bucket.name }}</Name>
+      <CreationDate>{{ bucket.creation_date_ISO8601 }}</CreationDate>
+      <BucketRegion>{{ bucket.region_name }}</BucketRegion>
+      <BucketArn>{{ bucket.arn }}</BucketArn>
+    </Bucket>
+    {% endfor %}
+  </Buckets>
+  {% if next_token %}
+  <ContinuationToken>{{ next_token }}</ContinuationToken>
+  {% endif %}
+</ListDirectoryBucketsResult>"""
+
+S3_CREATE_SESSION_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<CreateSessionResult>
+  <Credentials>
+    <SessionToken>{{ credentials.SessionToken }}</SessionToken>
+    <SecretAccessKey>{{ credentials.SecretAccessKey }}</SecretAccessKey>
+    <AccessKeyId>{{ credentials.AccessKeyId }}</AccessKeyId>
+    <Expiration>{{ credentials.Expiration }}</Expiration>
+  </Credentials>
+</CreateSessionResult>"""
