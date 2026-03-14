@@ -19,8 +19,12 @@ AI_POLICY_ARN_FORMAT = (
     "arn:{0}:organizations::{1}:policy/{2}/aiservices_opt_out_policy/{3}"
 )
 TAG_POLICY_ARN_FORMAT = "arn:{0}:organizations::{1}:policy/{2}/tag_policy/{3}"
+RESOURCE_POLICY_ARN_FORMAT = (
+    "arn:{0}:organizations::{1}:organization/{2}/resource-policy"
+)
 
 CHARSET = string.ascii_lowercase + string.digits
+RESOURCE_POLICY_ID_SIZE = 8
 ORG_ID_SIZE = 10
 ROOT_ID_SIZE = 4
 ACCOUNT_ID_SIZE = 12
@@ -127,6 +131,12 @@ def make_random_policy_id() -> str:
     # from 8 to 128 lower-case letters or digits.
     # e.g. 'p-k2av4a8a'
     return "p-" + "".join(random.choice(CHARSET) for x in range(POLICY_ID_SIZE))
+
+
+def make_random_resource_policy_id() -> str:
+    return "rp-" + "".join(
+        random.choice(CHARSET) for _ in range(RESOURCE_POLICY_ID_SIZE)
+    )
 
 
 def make_random_handshake_id() -> str:

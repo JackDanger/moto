@@ -266,6 +266,32 @@ class ListPermissionsResourceLFTagPolicy:
         self.expression = expression
 
 
+class FakeLFTagExpression(BaseModel):
+    """LF-Tag expression for metadata-based access control."""
+
+    def __init__(
+        self,
+        name: str,
+        catalog_id: str,
+        expression: list[dict[str, Any]],
+        description: Optional[str] = None,
+    ):
+        self.name = name
+        self.catalog_id = catalog_id
+        self.expression = expression or []
+        self.description = description or ""
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "Name": self.name,
+            "CatalogId": self.catalog_id,
+            "Expression": self.expression,
+        }
+        if self.description:
+            result["Description"] = self.description
+        return result
+
+
 class ListPermissionsResource:
     def __init__(
         self,
@@ -334,6 +360,8 @@ class LakeFormationBackend(BaseBackend):
         self.lf_columns_tags: dict[tuple[str, ...], list[dict[str, str]]] = {}
         self.transactions: dict[str, Transaction] = {}
         self.data_cells_filters: dict[tuple[str, str, str, str], DataCellsFilter] = {}
+        self.lf_tag_expressions: dict[tuple[str, str], FakeLFTagExpression] = {}
+        self.identity_center_config: Optional[dict[str, Any]] = None
 
     def describe_resource(self, resource_arn: str) -> Resource:
         if resource_arn not in self.resources:
@@ -952,13 +980,143 @@ class LakeFormationBackend(BaseBackend):
         query_id = str(uuid.uuid4())
         return {"QueryId": query_id}
 
+    def create_lf_tag_expression(
+        self,
+        catalog_id: str,
+        name: str,
+        expression: list[dict[str, Any]],
+        description: Optional[str] = None,
+    ) -> None:
+        key = (catalog_id, name)
+        if key in self.lf_tag_expressions:
+            raise AlreadyExists(
+                "An error occurred (AlreadyExistsException) when calling the CreateLFTagExpression operation: "
+                "LF-Tag expression with this name already exists"
+            )
+        self.lf_tag_expressions[key] = FakeLFTagExpression(
+            name=name,
+            catalog_id=catalog_id,
+            expression=expression,
+            description=description,
+        )
+
+    def get_lf_tag_expression(self, catalog_id: str, name: str) -> FakeLFTagExpression:
+        key = (catalog_id, name)
+        if key not in self.lf_tag_expressions:
+            raise EntityNotFound
+        return self.lf_tag_expressions[key]
+
+    def list_lf_tag_expressions(
+        self,
+        catalog_id: str,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> tuple[list[FakeLFTagExpression], Optional[str]]:
+        expressions = [
+            e for (cid, _), e in self.lf_tag_expressions.items() if cid == catalog_id
+        ]
+        # Sort by name for stable pagination
+        expressions.sort(key=lambda e: e.name)
+
+        if max_results is not None:
+            start = int(next_token or 0)
+            expressions = expressions[start : start + max_results]
+            next_token = (
+                str(start + len(expressions))
+                if len(expressions) == max_results
+                else None
+            )
+        else:
+            next_token = None
+
+        return expressions, next_token
+
+    def update_lf_tag_expression(
+        self,
+        catalog_id: str,
+        name: str,
+        expression: list[dict[str, Any]],
+        description: Optional[str] = None,
+    ) -> None:
+        key = (catalog_id, name)
+        if key not in self.lf_tag_expressions:
+            raise EntityNotFound
+        ex = self.lf_tag_expressions[key]
+        if expression is not None:
+            ex.expression = expression
+        if description is not None:
+            ex.description = description
+
+    def delete_lf_tag_expression(self, catalog_id: str, name: str) -> None:
+        key = (catalog_id, name)
+        if key not in self.lf_tag_expressions:
+            raise EntityNotFound
+        del self.lf_tag_expressions[key]
+
+    def create_lake_formation_identity_center_configuration(
+        self,
+        catalog_id: str,
+        instance_arn: str,
+        application_arn: Optional[str] = None,
+        external_filtering: Optional[dict[str, Any]] = None,
+        share_recipients: Optional[list[dict[str, str]]] = None,
+        service_integrations: Optional[list[dict[str, Any]]] = None,
+    ) -> str:
+        if self.identity_center_config is not None:
+            raise AlreadyExists(
+                "An error occurred (AlreadyExistsException) when calling the CreateLakeFormationIdentityCenterConfiguration operation: "
+                "Lake Formation Identity Center configuration already exists"
+            )
+        app_arn = (
+            application_arn
+            or f"arn:aws:sso::aws:account/{catalog_id}/application/default"
+        )
+        self.identity_center_config = {
+            "CatalogId": catalog_id,
+            "InstanceArn": instance_arn,
+            "ApplicationArn": app_arn,
+            "ExternalFiltering": external_filtering
+            or {"Status": "DISABLED", "AuthorizedTargets": []},
+            "ShareRecipients": share_recipients or [],
+            "ServiceIntegrations": service_integrations or [],
+            "ResourceShare": f"arn:aws:ram:{self.region_name}:{self.account_id}:resource-share/default",
+        }
+        return app_arn
+
     def describe_lake_formation_identity_center_configuration(
         self,
         catalog_id: str,
     ) -> dict[str, Any]:
-        return {
-            "CatalogId": catalog_id,
-        }
+        if self.identity_center_config is None:
+            raise EntityNotFound
+        return dict(self.identity_center_config)
+
+    def update_lake_formation_identity_center_configuration(
+        self,
+        catalog_id: str,
+        share_recipients: Optional[list[dict[str, str]]] = None,
+        service_integrations: Optional[list[dict[str, Any]]] = None,
+        application_status: Optional[str] = None,
+        external_filtering: Optional[dict[str, Any]] = None,
+    ) -> None:
+        if self.identity_center_config is None:
+            raise EntityNotFound
+        if share_recipients is not None:
+            self.identity_center_config["ShareRecipients"] = share_recipients
+        if service_integrations is not None:
+            self.identity_center_config["ServiceIntegrations"] = service_integrations
+        if application_status is not None:
+            self.identity_center_config["ApplicationStatus"] = application_status
+        if external_filtering is not None:
+            self.identity_center_config["ExternalFiltering"] = external_filtering
+
+    def delete_lake_formation_identity_center_configuration(
+        self,
+        catalog_id: str,
+    ) -> None:
+        if self.identity_center_config is None:
+            raise EntityNotFound
+        self.identity_center_config = None
 
 
 lakeformation_backends = BackendDict(LakeFormationBackend, "lakeformation")

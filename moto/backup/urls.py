@@ -68,4 +68,9 @@ url_paths = {
     "{0}/audit/backup-job-summaries/?$": response.dispatch,
     "{0}/audit/copy-job-summaries/?$": response.dispatch,
     "{0}/audit/restore-job-summaries/?$": response.dispatch,
+    "{0}/scan/job$": response.dispatch,
+    "{0}/scan/jobs/?$": response.dispatch,
+    "{0}/scan/jobs/(?P<scan_job_id>[^/]+)/?$": response.dispatch,
+    "{0}/tiering-configurations/(?P<tieringConfigurationName>[^/]+)/?$": response.dispatch,
+    "{0}/tiering-configurations/?$": response.dispatch,
 }

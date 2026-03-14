@@ -643,6 +643,89 @@ class RestoreTestingSelection(BaseModel):
         }
 
 
+class FakeScanJob(BaseModel):
+    def __init__(
+        self,
+        scan_job_id: str,
+        backup_vault_name: str,
+        recovery_point_arn: str,
+        iam_role_arn: str,
+        scan_mode: str,
+        backend: "BackupBackend",
+        scanner_role_arn: Optional[str] = None,
+    ):
+        self.scan_job_id = scan_job_id
+        self.backup_vault_name = backup_vault_name
+        partition = get_partition(backend.region_name)
+        self.backup_vault_arn = (
+            f"arn:{partition}:backup:{backend.region_name}"
+            f":{backend.account_id}:backup-vault:{backup_vault_name}"
+        )
+        self.recovery_point_arn = recovery_point_arn
+        self.iam_role_arn = iam_role_arn
+        self.scanner_role_arn = scanner_role_arn or iam_role_arn
+        self.scan_mode = scan_mode
+        self.state = "RUNNING"
+        self.status_message = ""
+        self.creation_date = unix_time()
+        self.completion_date: Optional[float] = None
+        self.account_id = backend.account_id
+        self.malware_scanner = "GUARDDUTY"
+
+    def to_dict(self) -> dict[str, Any]:
+        dct: dict[str, Any] = {
+            "ScanJobId": self.scan_job_id,
+            "BackupVaultName": self.backup_vault_name,
+            "BackupVaultArn": self.backup_vault_arn,
+            "RecoveryPointArn": self.recovery_point_arn,
+            "IamRoleArn": self.iam_role_arn,
+            "ScanMode": self.scan_mode,
+            "State": self.state,
+            "StatusMessage": self.status_message,
+            "CreationDate": self.creation_date,
+            "AccountId": self.account_id,
+            "MalwareScanner": self.malware_scanner,
+        }
+        if self.completion_date is not None:
+            dct["CompletionDate"] = self.completion_date
+        return dct
+
+
+class FakeTieringConfiguration(BaseModel):
+    def __init__(
+        self,
+        tiering_configuration_name: str,
+        backup_vault_name: str,
+        resource_selection: list[dict[str, Any]],
+        backend: "BackupBackend",
+        creator_request_id: Optional[str] = None,
+    ):
+        self.tiering_configuration_name = tiering_configuration_name
+        self.backup_vault_name = backup_vault_name
+        self.resource_selection = resource_selection
+        self.creator_request_id = creator_request_id
+        partition = get_partition(backend.region_name)
+        self.tiering_configuration_arn = (
+            f"arn:{partition}:backup:{backend.region_name}"
+            f":{backend.account_id}:tiering-configuration:{tiering_configuration_name}"
+        )
+        self.creation_time = unix_time()
+        self.last_updated_time = unix_time()
+
+    def to_dict(self) -> dict[str, Any]:
+        dct: dict[str, Any] = {
+            "TieringConfigurationName": self.tiering_configuration_name,
+            "TieringConfigurationArn": self.tiering_configuration_arn,
+            "BackupVaultName": self.backup_vault_name,
+            "ResourceSelection": self.resource_selection,
+            "CreationTime": self.creation_time,
+            "LastUpdatedTime": self.last_updated_time,
+        }
+        if self.creator_request_id is not None:
+            dct["CreatorRequestId"] = self.creator_request_id
+        return dct
+
+
 # Hardcoded backup plan templates (AWS provides these)
 BACKUP_PLAN_TEMPLATES = [
     {
@@ -792,6 +875,8 @@ class BackupBackend(BaseBackend):
         self.tagger = TaggingService()
         self.logically_air_gapped_vaults: dict[str, LogicallyAirGappedVault] = {}
         self.report_jobs: dict[str, dict[str, Any]] = {}
+        self.scan_jobs: dict[str, FakeScanJob] = {}
+        self.tiering_configurations: dict[str, FakeTieringConfiguration] = {}
 
     def create_backup_plan(
         self,
@@ -2172,6 +2257,120 @@ class BackupBackend(BaseBackend):
                 }
             )
         return result
+
+    # --- Scan Jobs ---
+
+    def start_scan_job(
+        self,
+        backup_vault_name: str,
+        recovery_point_arn: str,
+        iam_role_arn: str,
+        scan_mode: str = "FULL_SCAN",
+        scanner_role_arn: Optional[str] = None,
+    ) -> FakeScanJob:
+        if backup_vault_name not in self.vaults:
+            raise ResourceNotFoundException(
+                msg=f"Backup vault {backup_vault_name} not found"
+            )
+        scan_job_id = str(mock_random.uuid4())
+        job = FakeScanJob(
+            scan_job_id=scan_job_id,
+            backup_vault_name=backup_vault_name,
+            recovery_point_arn=recovery_point_arn,
+            iam_role_arn=iam_role_arn,
+            scan_mode=scan_mode,
+            backend=self,
+            scanner_role_arn=scanner_role_arn,
+        )
+        self.scan_jobs[scan_job_id] = job
+        return job
+
+    def describe_scan_job(self, scan_job_id: str) -> FakeScanJob:
+        if scan_job_id not in self.scan_jobs:
+            raise ResourceNotFoundException(msg=f"Scan job {scan_job_id} not found")
+        return self.scan_jobs[scan_job_id]
+
+    def list_scan_jobs(
+        self,
+        by_backup_vault_name: Optional[str] = None,
+        by_state: Optional[str] = None,
+        by_recovery_point_arn: Optional[str] = None,
+    ) -> list[FakeScanJob]:
+        jobs = list(self.scan_jobs.values())
+        if by_backup_vault_name:
+            jobs = [j for j in jobs if j.backup_vault_name == by_backup_vault_name]
+        if by_state:
+            jobs = [j for j in jobs if j.state == by_state]
+        if by_recovery_point_arn:
+            jobs = [j for j in jobs if j.recovery_point_arn == by_recovery_point_arn]
+        return jobs
+
+    # --- Tiering Configurations ---
+
+    def create_tiering_configuration(
+        self,
+        tiering_configuration_name: str,
+        backup_vault_name: str,
+        resource_selection: list[dict[str, Any]],
+        creator_request_id: Optional[str] = None,
+    ) -> FakeTieringConfiguration:
+        if tiering_configuration_name in self.tiering_configurations:
+            raise AlreadyExistsException(
+                msg=f"Tiering configuration {tiering_configuration_name} already exists"
+            )
+        config = FakeTieringConfiguration(
+            tiering_configuration_name=tiering_configuration_name,
+            backup_vault_name=backup_vault_name,
+            resource_selection=resource_selection,
+            backend=self,
+            creator_request_id=creator_request_id,
+        )
+        self.tiering_configurations[tiering_configuration_name] = config
+        return config
+
+    def get_tiering_configuration(
+        self, tiering_configuration_name: str
+    ) -> FakeTieringConfiguration:
+        if tiering_configuration_name not in self.tiering_configurations:
+            raise ResourceNotFoundException(
+                msg=f"Tiering configuration {tiering_configuration_name} not found"
+            )
+        return self.tiering_configurations[tiering_configuration_name]
+
+    def list_tiering_configurations(
+        self, by_backup_vault_name: Optional[str] = None
+    ) -> list[FakeTieringConfiguration]:
+        configs = list(self.tiering_configurations.values())
+        if by_backup_vault_name:
+            configs = [
+                c for c in configs if c.backup_vault_name == by_backup_vault_name
+            ]
+        return configs
+
+    def update_tiering_configuration(
+        self,
+        tiering_configuration_name: str,
+        backup_vault_name: Optional[str] = None,
+        resource_selection: Optional[list[dict[str, Any]]] = None,
+    ) -> FakeTieringConfiguration:
+        if tiering_configuration_name not in self.tiering_configurations:
+            raise ResourceNotFoundException(
+                msg=f"Tiering configuration {tiering_configuration_name} not found"
+            )
+        config = self.tiering_configurations[tiering_configuration_name]
+        if backup_vault_name is not None:
+            config.backup_vault_name = backup_vault_name
+        if resource_selection is not None:
+            config.resource_selection = resource_selection
+        config.last_updated_time = unix_time()
+        return config
+
+    def delete_tiering_configuration(self, tiering_configuration_name: str) -> None:
+        if tiering_configuration_name not in self.tiering_configurations:
+            raise ResourceNotFoundException(
+                msg=f"Tiering configuration {tiering_configuration_name} not found"
+            )
+        del self.tiering_configurations[tiering_configuration_name]
 
     # --- Disassociate Recovery Point From Parent ---
 

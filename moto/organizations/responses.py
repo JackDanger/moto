@@ -316,3 +316,15 @@ class OrganizationsResponse(BaseResponse):
         return json.dumps(
             self.organizations_backend.describe_effective_policy(**self.request_params)
         )
+
+    def put_resource_policy(self) -> str:
+        return json.dumps(
+            self.organizations_backend.put_resource_policy(**self.request_params)
+        )
+
+    def describe_resource_policy(self) -> str:
+        return json.dumps(self.organizations_backend.describe_resource_policy())
+
+    def delete_resource_policy(self) -> str:
+        self.organizations_backend.delete_resource_policy()
+        return "{}"

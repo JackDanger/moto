@@ -53,5 +53,13 @@ url_paths = {
     "{0}/SearchDatabasesByLFTags$": response.dispatch,
     "{0}/SearchTablesByLFTags$": response.dispatch,
     "{0}/StartQueryPlanning$": response.dispatch,
+    "{0}/CreateLFTagExpression$": response.dispatch,
+    "{0}/GetLFTagExpression$": response.dispatch,
+    "{0}/ListLFTagExpressions$": response.dispatch,
+    "{0}/UpdateLFTagExpression$": response.dispatch,
+    "{0}/DeleteLFTagExpression$": response.dispatch,
+    "{0}/CreateLakeFormationIdentityCenterConfiguration$": response.dispatch,
     "{0}/DescribeLakeFormationIdentityCenterConfiguration$": response.dispatch,
+    "{0}/UpdateLakeFormationIdentityCenterConfiguration$": response.dispatch,
+    "{0}/DeleteLakeFormationIdentityCenterConfiguration$": response.dispatch,
 }

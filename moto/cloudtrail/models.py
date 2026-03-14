@@ -363,6 +363,44 @@ class Query(BaseModel):
         }
 
 
+class FakeDashboard(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        name: str,
+        type_: str = "CUSTOM",
+        widgets: Optional[list[dict[str, Any]]] = None,
+        refresh_schedule: Optional[dict[str, Any]] = None,
+        termination_protection_enabled: bool = False,
+        tags_list: Optional[list[dict[str, str]]] = None,
+    ):
+        self.name = name
+        self.type_ = type_
+        self.widgets = widgets or []
+        self.refresh_schedule = refresh_schedule or {}
+        self.termination_protection_enabled = termination_protection_enabled
+        self.tags_list = tags_list or []
+        self.arn = f"arn:{get_partition(region_name)}:cloudtrail:{region_name}:{account_id}:dashboard/{name}"
+        self.created_timestamp = utcnow()
+        self.updated_timestamp = utcnow()
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "DashboardArn": self.arn,
+            "Name": self.name,
+            "Type": self.type_,
+            "Widgets": self.widgets,
+            "TerminationProtectionEnabled": self.termination_protection_enabled,
+            "TagsList": self.tags_list,
+            "CreatedTimestamp": datetime2int(self.created_timestamp),
+            "UpdatedTimestamp": datetime2int(self.updated_timestamp),
+        }
+        if self.refresh_schedule:
+            result["RefreshSchedule"] = self.refresh_schedule
+        return result
+
+
 class ImportResource(BaseModel):
     def __init__(
         self,
@@ -403,8 +441,8 @@ class CloudTrailBackend(BaseBackend):
         self.queries: dict[str, Query] = {}
         self.imports: dict[str, ImportResource] = {}
         self.resource_policies: dict[str, str] = {}
-        self.dashboards: dict[str, dict[str, Any]] = {}
-        self.event_configuration: Optional[dict[str, Any]] = None
+        self.dashboards: dict[str, FakeDashboard] = {}
+        self.event_configurations: dict[str, dict[str, Any]] = {}
         self.delegated_admin_account_id: Optional[str] = None
 
     def create_trail(
@@ -674,13 +712,12 @@ class CloudTrailBackend(BaseBackend):
         query = self.queries[query_id]
         return query.query_status, query.query_results, query.query_statistics
 
-    def list_queries(
-        self, event_data_store: str
-    ) -> list[Query]:
+    def list_queries(self, event_data_store: str) -> list[Query]:
         # Validate the event data store exists
         self.get_event_data_store(event_data_store)
         return [
-            q for q in self.queries.values()
+            q
+            for q in self.queries.values()
             if q.event_data_store_arn == event_data_store or not q.event_data_store_arn
         ]
 
@@ -805,9 +842,7 @@ class CloudTrailBackend(BaseBackend):
             raise ImportNotFoundException(import_id)
         return self.imports[import_id]
 
-    def list_imports(
-        self, destination: Optional[str] = None
-    ) -> list[ImportResource]:
+    def list_imports(self, destination: Optional[str] = None) -> list[ImportResource]:
         imports = list(self.imports.values())
         if destination:
             imports = [i for i in imports if destination in i.destinations]
@@ -823,9 +858,7 @@ class CloudTrailBackend(BaseBackend):
 
     # Organization delegated admin
 
-    def register_organization_delegated_admin(
-        self, member_account_id: str
-    ) -> None:
+    def register_organization_delegated_admin(self, member_account_id: str) -> None:
         self.delegated_admin_account_id = member_account_id
 
     def deregister_organization_delegated_admin(
@@ -844,6 +877,11 @@ class CloudTrailBackend(BaseBackend):
         self.resource_policies[resource_arn] = resource_policy
         return resource_arn, resource_policy
 
+    def delete_resource_policy(self, resource_arn: str) -> None:
+        if resource_arn not in self.resource_policies:
+            raise ResourceNotFoundException(resource_arn)
+        del self.resource_policies[resource_arn]
+
     def get_resource_policy(self, resource_arn: str) -> tuple[str, str]:
         if resource_arn not in self.resource_policies:
             raise ResourceNotFoundException(resource_arn)
@@ -851,17 +889,120 @@ class CloudTrailBackend(BaseBackend):
 
     # Dashboard operations
 
-    def get_dashboard(self, dashboard_id: str) -> dict[str, Any]:
-        # Dashboards are a relatively new CloudTrail feature. Return minimal stub.
+    def create_dashboard(
+        self,
+        name: str,
+        widgets: Optional[list[dict[str, Any]]] = None,
+        refresh_schedule: Optional[dict[str, Any]] = None,
+        termination_protection_enabled: bool = False,
+        tags_list: Optional[list[dict[str, str]]] = None,
+    ) -> FakeDashboard:
+        if name in self.dashboards:
+            from .exceptions import ConflictException
+
+            raise ConflictException(f"Dashboard {name} already exists.")
+        type_ = "MANAGED" if name == "AWSCloudTrail-Highlights" else "CUSTOM"
+        dashboard = FakeDashboard(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            name=name,
+            type_=type_,
+            widgets=widgets,
+            refresh_schedule=refresh_schedule,
+            termination_protection_enabled=termination_protection_enabled,
+            tags_list=tags_list,
+        )
+        self.dashboards[name] = dashboard
+        return dashboard
+
+    def get_dashboard(self, dashboard_id: str) -> FakeDashboard:
         if dashboard_id in self.dashboards:
             return self.dashboards[dashboard_id]
-        # Return a not-found error
+        for dash in self.dashboards.values():
+            if dash.arn == dashboard_id or dash.name == dashboard_id:
+                return dash
         raise ResourceNotFoundException(dashboard_id)
+
+    def list_dashboards(self) -> list[FakeDashboard]:
+        return list(self.dashboards.values())
+
+    def update_dashboard(
+        self,
+        dashboard_id: str,
+        widgets: Optional[list[dict[str, Any]]] = None,
+        refresh_schedule: Optional[dict[str, Any]] = None,
+        termination_protection_enabled: Optional[bool] = None,
+    ) -> FakeDashboard:
+        dashboard = self.get_dashboard(dashboard_id)
+        if widgets is not None:
+            dashboard.widgets = widgets
+        if refresh_schedule is not None:
+            dashboard.refresh_schedule = refresh_schedule
+        if termination_protection_enabled is not None:
+            dashboard.termination_protection_enabled = termination_protection_enabled
+        dashboard.updated_timestamp = utcnow()
+        return dashboard
+
+    def delete_dashboard(self, dashboard_id: str) -> None:
+        dashboard = self.get_dashboard(dashboard_id)
+        if dashboard.termination_protection_enabled:
+            from .exceptions import ConflictException
+
+            raise ConflictException(
+                "Cannot delete dashboard with termination protection enabled."
+            )
+        del self.dashboards[dashboard.name]
 
     # Event Configuration operations
 
-    def get_event_configuration(self) -> dict[str, Any]:
-        return self.event_configuration or {}
+    def put_event_configuration(
+        self,
+        event_data_store: Optional[str] = None,
+        trail_name: Optional[str] = None,
+        aggregation_configurations: Optional[list[dict[str, Any]]] = None,
+        context_key_selectors: Optional[list[dict[str, Any]]] = None,
+        max_event_size: Optional[str] = None,
+    ) -> dict[str, Any]:
+        key = event_data_store or trail_name
+        if not key:
+            from .exceptions import InvalidParameterCombinationException
+
+            raise InvalidParameterCombinationException(
+                "Either EventDataStore or TrailName must be specified."
+            )
+        if trail_name:
+            trail = self.get_trail(trail_name)
+            key = trail.arn
+        elif event_data_store:
+            eds = self.get_event_data_store(event_data_store)
+            key = eds.arn
+        config: dict[str, Any] = {}
+        if aggregation_configurations is not None:
+            config["AggregationConfigurations"] = aggregation_configurations
+        if context_key_selectors is not None:
+            config["ContextKeySelectors"] = context_key_selectors
+        if max_event_size is not None:
+            config["MaxEventSize"] = max_event_size
+        config["EventDataStoreArn"] = key if "eventdatastore" in key.lower() else None
+        config["TrailARN"] = key if "trail" in key.lower() else None
+        self.event_configurations[key] = config
+        return config
+
+    def get_event_configuration(
+        self,
+        event_data_store: Optional[str] = None,
+        trail_name: Optional[str] = None,
+    ) -> dict[str, Any]:
+        if not event_data_store and not trail_name:
+            return {}
+        key = event_data_store or trail_name
+        if trail_name:
+            trail = self.get_trail(trail_name)
+            key = trail.arn
+        elif event_data_store:
+            eds = self.get_event_data_store(event_data_store)
+            key = eds.arn
+        return self.event_configurations.get(key, {})
 
     # Insight selectors for event data stores
 

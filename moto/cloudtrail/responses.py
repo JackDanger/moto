@@ -255,9 +255,7 @@ class CloudTrailResponse(BaseResponse):
 
     def list_event_data_stores(self) -> str:
         stores = self.cloudtrail_backend.list_event_data_stores()
-        return json.dumps(
-            {"EventDataStores": [eds.description() for eds in stores]}
-        )
+        return json.dumps({"EventDataStores": [eds.description() for eds in stores]})
 
     # Channel operations
 
@@ -439,9 +437,7 @@ class CloudTrailResponse(BaseResponse):
     def list_imports(self) -> str:
         destination = self._get_param("Destination")
         imports = self.cloudtrail_backend.list_imports(destination=destination)
-        return json.dumps(
-            {"Imports": [imp.description() for imp in imports]}
-        )
+        return json.dumps({"Imports": [imp.description() for imp in imports]})
 
     def stop_import(self) -> str:
         import_id = self._get_param("ImportId")
@@ -482,14 +478,86 @@ class CloudTrailResponse(BaseResponse):
 
     # Dashboard operations
 
+    def create_dashboard(self) -> str:
+        name = self._get_param("Name")
+        widgets = self._get_param("Widgets", [])
+        refresh_schedule = self._get_param("RefreshSchedule")
+        termination_protection_enabled = self._get_bool_param(
+            "TerminationProtectionEnabled", False
+        )
+        tags_list = self._get_param("TagsList", [])
+        dashboard = self.cloudtrail_backend.create_dashboard(
+            name=name,
+            widgets=widgets,
+            refresh_schedule=refresh_schedule,
+            termination_protection_enabled=termination_protection_enabled,
+            tags_list=tags_list,
+        )
+        return json.dumps(dashboard.to_dict())
+
     def get_dashboard(self) -> str:
         dashboard_id = self._get_param("DashboardId")
         dashboard = self.cloudtrail_backend.get_dashboard(dashboard_id)
-        return json.dumps(dashboard)
+        return json.dumps(dashboard.to_dict())
+
+    def list_dashboards(self) -> str:
+        dashboards = self.cloudtrail_backend.list_dashboards()
+        items = [
+            {
+                "DashboardArn": d.arn,
+                "Type": d.type_,
+            }
+            for d in dashboards
+        ]
+        return json.dumps({"Dashboards": items})
+
+    def update_dashboard(self) -> str:
+        dashboard_id = self._get_param("DashboardId")
+        widgets = self._get_param("Widgets")
+        refresh_schedule = self._get_param("RefreshSchedule")
+        termination_protection_enabled = self._get_param("TerminationProtectionEnabled")
+        dashboard = self.cloudtrail_backend.update_dashboard(
+            dashboard_id=dashboard_id,
+            widgets=widgets,
+            refresh_schedule=refresh_schedule,
+            termination_protection_enabled=termination_protection_enabled,
+        )
+        return json.dumps(dashboard.to_dict())
+
+    def delete_dashboard(self) -> str:
+        dashboard_id = self._get_param("DashboardId")
+        self.cloudtrail_backend.delete_dashboard(dashboard_id)
+        return json.dumps({})
 
     # Event Configuration operations
 
-    def get_event_configuration(self) -> str:
-        config = self.cloudtrail_backend.get_event_configuration()
+    def put_event_configuration(self) -> str:
+        event_data_store = self._get_param("EventDataStore")
+        trail_name = self._get_param("TrailName")
+        aggregation_configurations = self._get_param("AggregationConfigurations")
+        context_key_selectors = self._get_param("ContextKeySelectors")
+        max_event_size = self._get_param("MaxEventSize")
+        config = self.cloudtrail_backend.put_event_configuration(
+            event_data_store=event_data_store,
+            trail_name=trail_name,
+            aggregation_configurations=aggregation_configurations,
+            context_key_selectors=context_key_selectors,
+            max_event_size=max_event_size,
+        )
         return json.dumps(config)
 
+    def get_event_configuration(self) -> str:
+        event_data_store = self._get_param("EventDataStore")
+        trail_name = self._get_param("TrailName")
+        config = self.cloudtrail_backend.get_event_configuration(
+            event_data_store=event_data_store,
+            trail_name=trail_name,
+        )
+        return json.dumps(config)
+
+    # Resource Policy delete
+
+    def delete_resource_policy(self) -> str:
+        resource_arn = self._get_param("ResourceArn")
+        self.cloudtrail_backend.delete_resource_policy(resource_arn=resource_arn)
+        return json.dumps({})

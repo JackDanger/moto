@@ -22,13 +22,14 @@ from moto.organizations.exceptions import (
     PolicyNotFoundException,
     PolicyTypeAlreadyEnabledException,
     PolicyTypeNotEnabledException,
+    ResourcePolicyNotFoundException,
     RootNotFoundException,
     TargetNotFoundException,
 )
 from moto.utilities.paginator import paginate
 from moto.utilities.utils import PARTITION_NAMES, get_partition
 
-from .utils import PAGINATION_MODEL
+from .utils import PAGINATION_MODEL, RESOURCE_POLICY_ARN_FORMAT
 
 
 class FakeOrganization(BaseModel):
@@ -298,6 +299,30 @@ class FakePolicy(BaseModel):
         return policy_type in FakePolicy.SUPPORTED_POLICY_TYPES
 
 
+class FakeResourcePolicy(BaseModel):
+    def __init__(self, organization: FakeOrganization, content: str, **kwargs: Any):
+        self.content = content
+        self.resource_policy_id = utils.make_random_resource_policy_id()
+        partition = get_partition(organization.region)
+        self.resource_policy_arn = RESOURCE_POLICY_ARN_FORMAT.format(
+            partition, organization.master_account_id, organization.id
+        )
+        self.created_at = utcnow()
+        self.updated_at = utcnow()
+        self.tags = {tag["Key"]: tag["Value"] for tag in kwargs.get("Tags", [])}
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "ResourcePolicy": {
+                "ResourcePolicySummary": {
+                    "Id": self.resource_policy_id,
+                    "Arn": self.resource_policy_arn,
+                },
+                "Content": self.content,
+            }
+        }
+
+
 class FakeHandshake(BaseModel):
     VALID_STATES = ["REQUESTED", "OPEN", "CANCELED", "ACCEPTED", "DECLINED", "EXPIRED"]
 
@@ -478,6 +503,7 @@ class OrganizationsBackend(BaseBackend):
         self.accounts: list[FakeAccount] = []
         self.ou: list[FakeOrganizationalUnit] = []
         self.policies: list[FakePolicy] = []
+        self.resource_policy: Optional[FakeResourcePolicy] = None
         self.services: list[dict[str, Any]] = []
         self.admins: list[FakeDelegatedAdministrator] = []
         self.handshakes: list[FakeHandshake] = []
@@ -1213,6 +1239,62 @@ class OrganizationsBackend(BaseBackend):
                 "LastUpdatedTimestamp": unix_time(),
             }
         }
+
+    def put_resource_policy(self, **kwargs: Any) -> dict[str, Any]:
+        if self.org is None:
+            raise AWSOrganizationsNotInUseException
+
+        content = kwargs.get("Content")
+        if not content:
+            raise InvalidInputException(
+                "You must include a value for all required parameters."
+            )
+
+        if self.resource_policy is None:
+            self.resource_policy = FakeResourcePolicy(self.org, content, **kwargs)
+        else:
+            self.resource_policy.content = content
+            self.resource_policy.updated_at = utcnow()
+            if kwargs.get("Tags"):
+                self.resource_policy.tags = {
+                    tag["Key"]: tag["Value"] for tag in kwargs["Tags"]
+                }
+
+        return self.resource_policy.to_dict()
+
+    def describe_resource_policy(self) -> dict[str, Any]:
+        if self.org is None:
+            raise AWSOrganizationsNotInUseException
+
+        if self.account_id in organizations_backends.master_accounts:
+            master_account_id, partition = organizations_backends.master_accounts[
+                self.account_id
+            ]
+            backend = organizations_backends[master_account_id][partition]
+            if backend.resource_policy is None:
+                raise ResourcePolicyNotFoundException
+            return backend.resource_policy.to_dict()
+
+        if self.resource_policy is None:
+            raise ResourcePolicyNotFoundException
+
+        return self.resource_policy.to_dict()
+
+    def delete_resource_policy(self) -> None:
+        if self.org is None:
+            if self.account_id not in organizations_backends.master_accounts:
+                raise AWSOrganizationsNotInUseException
+            master_account_id, partition = organizations_backends.master_accounts[
+                self.account_id
+            ]
+            backend = organizations_backends[master_account_id][partition]
+        else:
+            backend = self
+
+        if backend.resource_policy is None:
+            raise ResourcePolicyNotFoundException
+
+        backend.resource_policy = None
 
 
 class OrganizationsBackendDict(BackendDict[OrganizationsBackend]):

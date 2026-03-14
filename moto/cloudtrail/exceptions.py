@@ -3,6 +3,13 @@
 from moto.core.exceptions import JsonRESTError
 
 
+class ConflictException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message: str):
+        super().__init__("ConflictException", message)
+
+
 class InvalidParameterCombinationException(JsonRESTError):
     code = 400
 

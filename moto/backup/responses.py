@@ -1002,3 +1002,100 @@ class BackupResponse(BaseResponse):
             resource_type=params.get("resourceType"),
         )
         return json.dumps({"RestoreJobSummaries": summaries})
+
+    # --- Scan Jobs ---
+
+    def start_scan_job(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        job = self.backup_backend.start_scan_job(
+            backup_vault_name=params.get("BackupVaultName", ""),
+            recovery_point_arn=params.get("RecoveryPointArn", ""),
+            iam_role_arn=params.get("IamRoleArn", ""),
+            scan_mode=params.get("ScanMode", "FULL_SCAN"),
+            scanner_role_arn=params.get("ScannerRoleArn"),
+        )
+        return json.dumps(
+            {
+                "ScanJobId": job.scan_job_id,
+                "CreationDate": job.creation_date,
+            }
+        )
+
+    def describe_scan_job(self) -> str:
+        scan_job_id = self.path.split("/scan/jobs/")[-1].split("?")[0].rstrip("/")
+        if "/" in scan_job_id:
+            scan_job_id = scan_job_id.split("/")[0]
+        job = self.backup_backend.describe_scan_job(scan_job_id=scan_job_id)
+        return json.dumps(job.to_dict())
+
+    def list_scan_jobs(self) -> str:
+        params = self._get_params()
+        jobs = self.backup_backend.list_scan_jobs(
+            by_backup_vault_name=params.get("ByBackupVaultName"),
+            by_state=params.get("ByState"),
+            by_recovery_point_arn=params.get("ByRecoveryPointArn"),
+        )
+        return json.dumps({"ScanJobs": [j.to_dict() for j in jobs]})
+
+    # --- Tiering Configurations ---
+
+    def create_tiering_configuration(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        tc = params.get("TieringConfiguration", {})
+        config = self.backup_backend.create_tiering_configuration(
+            tiering_configuration_name=tc.get("TieringConfigurationName", ""),
+            backup_vault_name=tc.get("BackupVaultName", ""),
+            resource_selection=tc.get("ResourceSelection", []),
+            creator_request_id=params.get("CreatorRequestId"),
+        )
+        return json.dumps(
+            {
+                "TieringConfigurationArn": config.tiering_configuration_arn,
+                "TieringConfigurationName": config.tiering_configuration_name,
+                "CreationTime": config.creation_time,
+            }
+        )
+
+    def get_tiering_configuration(self) -> str:
+        name = self.path.split("/tiering-configurations/")[-1].rstrip("/")
+        if "?" in name:
+            name = name.split("?")[0]
+        config = self.backup_backend.get_tiering_configuration(
+            tiering_configuration_name=name,
+        )
+        return json.dumps({"TieringConfiguration": config.to_dict()})
+
+    def list_tiering_configurations(self) -> str:
+        params = self._get_params()
+        configs = self.backup_backend.list_tiering_configurations(
+            by_backup_vault_name=params.get("ByBackupVaultName"),
+        )
+        return json.dumps({"TieringConfigurations": [c.to_dict() for c in configs]})
+
+    def update_tiering_configuration(self) -> str:
+        name = self.path.split("/tiering-configurations/")[-1].rstrip("/")
+        if "?" in name:
+            name = name.split("?")[0]
+        params = json.loads(self.body) if self.body else {}
+        tc = params.get("TieringConfiguration", {})
+        config = self.backup_backend.update_tiering_configuration(
+            tiering_configuration_name=name,
+            backup_vault_name=tc.get("BackupVaultName"),
+            resource_selection=tc.get("ResourceSelection"),
+        )
+        return json.dumps(
+            {
+                "TieringConfigurationArn": config.tiering_configuration_arn,
+                "TieringConfigurationName": config.tiering_configuration_name,
+                "LastUpdatedTime": config.last_updated_time,
+            }
+        )
+
+    def delete_tiering_configuration(self) -> EmptyResult:
+        name = self.path.split("/tiering-configurations/")[-1].rstrip("/")
+        if "?" in name:
+            name = name.split("?")[0]
+        self.backup_backend.delete_tiering_configuration(
+            tiering_configuration_name=name,
+        )
+        return EmptyResult()
