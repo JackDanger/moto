@@ -1208,6 +1208,17 @@ class ECRBackend(BaseBackend):
             "policyText": self.registry_policy,
         }
 
+    def get_signing_configuration(
+        self, registry_id: Optional[str] = None
+    ) -> dict[str, Any]:
+        reg_id = registry_id or self.account_id
+        return {
+            "signingConfiguration": {
+                "signingStatus": "INACTIVE",
+            },
+            "registryId": reg_id,
+        }
+
     def delete_registry_policy(self) -> dict[str, Any]:
         policy = self.registry_policy
         if not policy:
@@ -1451,9 +1462,7 @@ class ECRBackend(BaseBackend):
         repo = self._get_repository(repository_name, registry_id)
         policy = lifecycle_policy_text or repo.lifecycle_policy
         if not policy:
-            raise LifecyclePolicyNotFoundException(
-                repository_name, repo.registry_id
-            )
+            raise LifecyclePolicyNotFoundException(repository_name, repo.registry_id)
         return {
             "registryId": repo.registry_id,
             "repositoryName": repository_name,
@@ -1466,9 +1475,7 @@ class ECRBackend(BaseBackend):
     ) -> dict[str, Any]:
         repo = self._get_repository(repository_name, registry_id)
         if not repo.lifecycle_policy:
-            raise LifecyclePolicyNotFoundException(
-                repository_name, repo.registry_id
-            )
+            raise LifecyclePolicyNotFoundException(repository_name, repo.registry_id)
         return {
             "registryId": repo.registry_id,
             "repositoryName": repository_name,
@@ -1515,9 +1522,7 @@ class ECRBackend(BaseBackend):
         rules = list(self.pull_through_cache_rules.values())
         if ecr_repository_prefixes:
             rules = [
-                r
-                for r in rules
-                if r["ecrRepositoryPrefix"] in ecr_repository_prefixes
+                r for r in rules if r["ecrRepositoryPrefix"] in ecr_repository_prefixes
             ]
         return rules
 
@@ -1561,10 +1566,7 @@ class ECRBackend(BaseBackend):
             "imageTagMutability": image_tag_mutability,
             "repositoryPolicy": repository_policy,
             "lifecyclePolicy": lifecycle_policy,
-            "appliedFor": (
-                applied_for
-                or ["REPLICATION", "PULL_THROUGH_CACHE"]
-            ),
+            "appliedFor": (applied_for or ["REPLICATION", "PULL_THROUGH_CACHE"]),
             "registryId": self.account_id,
             "createdAt": utcnow(),
             "updatedAt": utcnow(),
@@ -1572,9 +1574,7 @@ class ECRBackend(BaseBackend):
         self.repository_creation_templates[prefix] = template
         return template
 
-    def delete_repository_creation_template(
-        self, prefix: str
-    ) -> dict[str, Any]:
+    def delete_repository_creation_template(self, prefix: str) -> dict[str, Any]:
         if prefix not in self.repository_creation_templates:
             raise TemplateNotFoundException(prefix, self.account_id)
         return self.repository_creation_templates.pop(prefix)
@@ -1584,9 +1584,7 @@ class ECRBackend(BaseBackend):
     ) -> list[dict[str, Any]]:
         templates = list(self.repository_creation_templates.values())
         if prefixes:
-            templates = [
-                t for t in templates if t["prefix"] in prefixes
-            ]
+            templates = [t for t in templates if t["prefix"] in prefixes]
         return templates
 
     def update_repository_creation_template(
@@ -1606,9 +1604,7 @@ class ECRBackend(BaseBackend):
         if description is not None:
             template["description"] = description
         if encryption_configuration is not None:
-            template["encryptionConfiguration"] = (
-                encryption_configuration
-            )
+            template["encryptionConfiguration"] = encryption_configuration
         if resource_tags is not None:
             template["resourceTags"] = resource_tags
         if image_tag_mutability is not None:
@@ -1628,9 +1624,7 @@ class ECRBackend(BaseBackend):
             "value": self.account_settings.get(name, ""),
         }
 
-    def put_account_setting(
-        self, name: str, value: str
-    ) -> dict[str, Any]:
+    def put_account_setting(self, name: str, value: str) -> dict[str, Any]:
         self.account_settings[name] = value
         return {"name": name, "value": value}
 

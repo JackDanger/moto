@@ -41,6 +41,15 @@ class ConfigResponse(BaseResponse):
         )
         return ""
 
+    def describe_configuration_aggregator_sources_status(self) -> str:
+        result = self.config_backend.describe_configuration_aggregator_sources_status(
+            aggregator_name=self._get_param("ConfigurationAggregatorName") or "",
+            filters=self._get_param("Filters"),
+            limit=self._get_param("Limit"),
+            next_token=self._get_param("NextToken"),
+        )
+        return json.dumps(result)
+
     def put_aggregation_authorization(self) -> str:
         agg_auth = self.config_backend.put_aggregation_authorization(
             self._get_param("AuthorizedAccountId"),

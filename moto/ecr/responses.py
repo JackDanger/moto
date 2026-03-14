@@ -299,6 +299,12 @@ class ECRResponse(BaseResponse):
     def get_registry_policy(self) -> ActionResult:
         return ActionResult(self.ecr_backend.get_registry_policy())
 
+    def get_signing_configuration(self) -> ActionResult:
+        registry_id = self._get_param("registryId")
+        return ActionResult(
+            self.ecr_backend.get_signing_configuration(registry_id=registry_id)
+        )
+
     def delete_registry_policy(self) -> ActionResult:
         return ActionResult(self.ecr_backend.delete_registry_policy())
 
@@ -360,9 +366,7 @@ class ECRResponse(BaseResponse):
         return ActionResult(self.ecr_backend.describe_registry())
 
     def describe_replication_configuration(self) -> ActionResult:
-        return ActionResult(
-            self.ecr_backend.describe_replication_configuration()
-        )
+        return ActionResult(self.ecr_backend.describe_replication_configuration())
 
     def start_lifecycle_policy_preview(self) -> ActionResult:
         registry_id = self._get_param("registryId")
@@ -442,32 +446,34 @@ class ECRResponse(BaseResponse):
             lifecycle_policy=lc_policy,
             applied_for=applied_for,
         )
-        return ActionResult({
-            "registryId": self.current_account,
-            "repositoryCreationTemplate": template,
-        })
+        return ActionResult(
+            {
+                "registryId": self.current_account,
+                "repositoryCreationTemplate": template,
+            }
+        )
 
     def delete_repository_creation_template(self) -> ActionResult:
         prefix = self._get_param("prefix")
-        template = self.ecr_backend.delete_repository_creation_template(
-            prefix=prefix
+        template = self.ecr_backend.delete_repository_creation_template(prefix=prefix)
+        return ActionResult(
+            {
+                "registryId": self.current_account,
+                "repositoryCreationTemplate": template,
+            }
         )
-        return ActionResult({
-            "registryId": self.current_account,
-            "repositoryCreationTemplate": template,
-        })
 
     def describe_repository_creation_templates(self) -> ActionResult:
         prefixes = self._get_param("prefixes")
-        templates = (
-            self.ecr_backend.describe_repository_creation_templates(
-                prefixes=prefixes,
-            )
+        templates = self.ecr_backend.describe_repository_creation_templates(
+            prefixes=prefixes,
         )
-        return ActionResult({
-            "registryId": self.current_account,
-            "repositoryCreationTemplates": templates,
-        })
+        return ActionResult(
+            {
+                "registryId": self.current_account,
+                "repositoryCreationTemplates": templates,
+            }
+        )
 
     def update_repository_creation_template(self) -> ActionResult:
         prefix = self._get_param("prefix")
@@ -488,23 +494,21 @@ class ECRResponse(BaseResponse):
             lifecycle_policy=lc_policy,
             applied_for=applied_for,
         )
-        return ActionResult({
-            "registryId": self.current_account,
-            "repositoryCreationTemplate": template,
-        })
+        return ActionResult(
+            {
+                "registryId": self.current_account,
+                "repositoryCreationTemplate": template,
+            }
+        )
 
     def get_account_setting(self) -> ActionResult:
         name = self._get_param("name")
-        return ActionResult(
-            self.ecr_backend.get_account_setting(name)
-        )
+        return ActionResult(self.ecr_backend.get_account_setting(name))
 
     def put_account_setting(self) -> ActionResult:
         name = self._get_param("name")
         value = self._get_param("value")
-        return ActionResult(
-            self.ecr_backend.put_account_setting(name, value)
-        )
+        return ActionResult(self.ecr_backend.put_account_setting(name, value))
 
     def describe_image_replication_status(self) -> ActionResult:
         repository_name = self._get_param("repositoryName")

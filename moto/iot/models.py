@@ -2408,6 +2408,23 @@ class IoTBackend(BaseBackend):
         self.endpoint = FakeEndpoint(endpoint_type, self.region_name)
         return self.endpoint
 
+    def describe_encryption_configuration(self) -> dict[str, Any]:
+        return {
+            "encryptionConfiguration": {
+                "keyArn": None,
+                "encryptionType": "AWS_OWNED_KEY",
+                "status": "ACTIVATED",
+            }
+        }
+
+    def get_thing_connectivity_data(self, thing_name: str) -> dict[str, Any]:
+        self.describe_thing(thing_name)  # validates existence
+        return {
+            "connected": False,
+            "disconnectReason": "NORMAL",
+            "timestamp": int(time.time()),
+        }
+
     def delete_thing(self, thing_name: str) -> None:
         """
         The ExpectedVersion-parameter is not yet implemented

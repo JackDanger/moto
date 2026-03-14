@@ -1094,6 +1094,17 @@ class ConfigBackend(BaseBackend):
 
         del self.config_aggregators[config_aggregator]
 
+    def describe_configuration_aggregator_sources_status(
+        self,
+        aggregator_name: str,
+        filters: Optional[dict[str, Any]] = None,
+        limit: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> dict[str, Any]:
+        if aggregator_name not in self.config_aggregators:
+            raise NoSuchConfigurationAggregatorException()
+        return {"AggregatedSourceStatusList": []}
+
     def put_aggregation_authorization(
         self,
         authorized_account: str,

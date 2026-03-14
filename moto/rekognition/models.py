@@ -84,9 +84,7 @@ class RekognitionBackend(BaseBackend):
             f"project/{project_name}/{int(time.time() * 1000)}"
         )
 
-    def _project_version_arn(
-        self, project_name: str, version_name: str
-    ) -> str:
+    def _project_version_arn(self, project_name: str, version_name: str) -> str:
         return (
             f"arn:aws:rekognition:{self.region_name}:{self.account_id}:"
             f"project/{project_name}/version/{version_name}/{int(time.time() * 1000)}"
@@ -119,6 +117,7 @@ class RekognitionBackend(BaseBackend):
             "FaceModelVersion": "6.0",
             "CreationTimestamp": unix_time(),
             "faces": {},  # face_id -> face_record (internal)
+            "users": [],  # list of user dicts (UserId, UserStatus)
         }
         return {
             "StatusCode": 200,
@@ -234,9 +233,27 @@ class RekognitionBackend(BaseBackend):
             result["NextToken"] = faces[end]["FaceId"]
         return result
 
-    def delete_faces(
-        self, collection_id: str, face_ids: list[str]
+    def list_users(
+        self,
+        collection_id: str,
+        max_results: int = 100,
+        next_token: Optional[str] = None,
     ) -> dict[str, Any]:
+        if collection_id not in self._collections:
+            raise ResourceNotFoundException(
+                f"The collection id: {collection_id} does not exist"
+            )
+        col = self._collections[collection_id]
+        users = col.get("users", [])
+        start = int(next_token) if next_token else 0
+        end = start + max_results
+        page = users[start:end]
+        result: dict[str, Any] = {"Users": page, "NextToken": None}
+        if end < len(users):
+            result["NextToken"] = str(end)
+        return result
+
+    def delete_faces(self, collection_id: str, face_ids: list[str]) -> dict[str, Any]:
         if collection_id not in self._collections:
             raise ResourceNotFoundException(
                 f"The collection id: {collection_id} does not exist"
@@ -431,9 +448,7 @@ class RekognitionBackend(BaseBackend):
                 f"The project with ARN {project_arn} does not exist"
             )
         versions = [
-            v
-            for v in self._project_versions.values()
-            if v["ProjectArn"] == project_arn
+            v for v in self._project_versions.values() if v["ProjectArn"] == project_arn
         ]
         if version_names:
             versions = [v for v in versions if v["VersionName"] in version_names]
@@ -495,9 +510,7 @@ class RekognitionBackend(BaseBackend):
             version["MaxInferenceUnits"] = max_inference_units
         return {"Status": "STARTING"}
 
-    def stop_project_version(
-        self, project_version_arn: str
-    ) -> dict[str, Any]:
+    def stop_project_version(self, project_version_arn: str) -> dict[str, Any]:
         if project_version_arn not in self._project_versions:
             raise ResourceNotFoundException(
                 f"The project version with ARN {project_version_arn} does not exist"
@@ -582,8 +595,7 @@ class RekognitionBackend(BaseBackend):
         if project_arn in self._projects:
             project = self._projects[project_arn]
             project["Datasets"] = [
-                d for d in project.get("Datasets", [])
-                if d["DatasetArn"] != dataset_arn
+                d for d in project.get("Datasets", []) if d["DatasetArn"] != dataset_arn
             ]
         del self._datasets[dataset_arn]
         return {}

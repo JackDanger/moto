@@ -115,6 +115,17 @@ class IoTResponse(BaseResponse):
         endpoint = self.iot_backend.describe_endpoint(endpoint_type=endpoint_type)
         return ActionResult(endpoint.to_dict())
 
+    def describe_encryption_configuration(self) -> ActionResult:
+        result = self.iot_backend.describe_encryption_configuration()
+        return ActionResult(result)
+
+    def get_thing_connectivity_data(self) -> ActionResult:
+        thing_name = self._get_param("thingName") or unquote(
+            self.path.split("/things/")[-1].split("/")[0]
+        )
+        result = self.iot_backend.get_thing_connectivity_data(thing_name)
+        return ActionResult(result)
+
     def delete_thing(self) -> ActionResult:
         thing_name = self._get_param("thingName")
         self.iot_backend.delete_thing(thing_name=thing_name)
