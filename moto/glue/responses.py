@@ -2218,3 +2218,176 @@ class GlueResponse(BaseResponse):
             inclusion_annotation=self.parameters["InclusionAnnotation"],
         )
         return EmptyResult()
+
+    def create_table_optimizer(self) -> ActionResult:
+        self.glue_backend.create_table_optimizer(
+            catalog_id=self.parameters.get("CatalogId", ""),
+            database_name=self.parameters.get("DatabaseName", ""),
+            table_name=self.parameters.get("TableName", ""),
+            type_=self.parameters.get("Type", ""),
+            configuration=self.parameters.get("TableOptimizerConfiguration", {}),
+        )
+        return EmptyResult()
+
+    def get_table_optimizer(self) -> ActionResult:
+        optimizer = self.glue_backend.get_table_optimizer(
+            catalog_id=self.parameters.get("CatalogId", ""),
+            database_name=self.parameters.get("DatabaseName", ""),
+            table_name=self.parameters.get("TableName", ""),
+            type_=self.parameters.get("Type", ""),
+        )
+        return ActionResult(
+            {
+                "CatalogId": self.parameters.get("CatalogId", ""),
+                "DatabaseName": self.parameters.get("DatabaseName", ""),
+                "TableName": self.parameters.get("TableName", ""),
+                "TableOptimizer": optimizer.as_dict(),
+            }
+        )
+
+    def update_table_optimizer(self) -> ActionResult:
+        self.glue_backend.update_table_optimizer(
+            catalog_id=self.parameters.get("CatalogId", ""),
+            database_name=self.parameters.get("DatabaseName", ""),
+            table_name=self.parameters.get("TableName", ""),
+            type_=self.parameters.get("Type", ""),
+            configuration=self.parameters.get("TableOptimizerConfiguration", {}),
+        )
+        return EmptyResult()
+
+    def delete_table_optimizer(self) -> ActionResult:
+        self.glue_backend.delete_table_optimizer(
+            catalog_id=self.parameters.get("CatalogId", ""),
+            database_name=self.parameters.get("DatabaseName", ""),
+            table_name=self.parameters.get("TableName", ""),
+            type_=self.parameters.get("Type", ""),
+        )
+        return EmptyResult()
+
+    def batch_get_table_optimizer(self) -> ActionResult:
+        entries = self.parameters.get("Entries", [])
+        results = self.glue_backend.batch_get_table_optimizer(entries=entries)
+        return ActionResult({"TableOptimizers": results, "Failures": []})
+
+    def list_table_optimizer_runs(self) -> ActionResult:
+        runs = self.glue_backend.list_table_optimizer_runs(
+            catalog_id=self.parameters.get("CatalogId", ""),
+            database_name=self.parameters.get("DatabaseName", ""),
+            table_name=self.parameters.get("TableName", ""),
+            type_=self.parameters.get("Type", ""),
+        )
+        return ActionResult({"TableOptimizerRuns": runs})
+
+    # --- Connection Types ---
+
+    def register_connection_type(self) -> ActionResult:
+        params = self.parameters
+        connection_type = params.get("ConnectionType")
+        integration_type = params.get("IntegrationType", "CUSTOM")
+        connection_properties = params.get("ConnectionProperties") or {}
+        connector_auth = params.get("ConnectorAuthenticationConfiguration") or {}
+        rest_config = params.get("RestConfiguration") or {}
+        description = params.get("Description")
+        capabilities = params.get("Capabilities")
+        ct = self.glue_backend.create_connection_type(
+            connection_type=connection_type,
+            integration_type=integration_type,
+            connection_properties=connection_properties,
+            connector_authentication_configuration=connector_auth,
+            rest_configuration=rest_config,
+            description=description,
+            capabilities=capabilities,
+        )
+        return ActionResult({"ConnectionTypeArn": ct.arn})
+
+    def describe_connection_type(self) -> ActionResult:
+        connection_type = self.parameters.get("ConnectionType")
+        ct = self.glue_backend.get_connection_type(connection_type)
+        return ActionResult(ct.as_dict())
+
+    def list_connection_types(self) -> ActionResult:
+        types_list = self.glue_backend.list_connection_types()
+        return ActionResult({"ConnectionTypes": [ct.as_dict() for ct in types_list]})
+
+    def delete_connection_type(self) -> EmptyResult:
+        connection_type = self.parameters.get("ConnectionType")
+        self.glue_backend.delete_connection_type(connection_type)
+        return EmptyResult()
+
+    # --- Glue Identity Center Configuration ---
+
+    def create_glue_identity_center_configuration(self) -> EmptyResult:
+        instance_arn = self.parameters.get("InstanceArn")
+        application_arn = self.parameters.get("ApplicationArn")
+        scopes = self.parameters.get("Scopes") or []
+        user_background_sessions_enabled = self.parameters.get(
+            "UserBackgroundSessionsEnabled", False
+        )
+        self.glue_backend.create_glue_identity_center_configuration(
+            instance_arn=instance_arn,
+            application_arn=application_arn,
+            scopes=scopes,
+            user_background_sessions_enabled=user_background_sessions_enabled,
+        )
+        return EmptyResult()
+
+    def get_glue_identity_center_configuration(self) -> ActionResult:
+        config = self.glue_backend.get_glue_identity_center_configuration()
+        return ActionResult(config.as_dict())
+
+    def update_glue_identity_center_configuration(self) -> EmptyResult:
+        instance_arn = self.parameters.get("InstanceArn")
+        application_arn = self.parameters.get("ApplicationArn")
+        scopes = self.parameters.get("Scopes")
+        user_background_sessions_enabled = self.parameters.get(
+            "UserBackgroundSessionsEnabled"
+        )
+        self.glue_backend.update_glue_identity_center_configuration(
+            instance_arn=instance_arn,
+            application_arn=application_arn,
+            scopes=scopes,
+            user_background_sessions_enabled=user_background_sessions_enabled,
+        )
+        return EmptyResult()
+
+    def delete_glue_identity_center_configuration(self) -> EmptyResult:
+        self.glue_backend.delete_glue_identity_center_configuration()
+        return EmptyResult()
+
+    # --- Materialized View Refresh Task Runs ---
+
+    def start_materialized_view_refresh_task_run(self) -> ActionResult:
+        catalog_id = self.parameters.get("CatalogId")
+        database_name = self.parameters.get("DatabaseName")
+        table_name = self.parameters.get("TableName")
+        task = self.glue_backend.start_materialized_view_refresh_task_run(
+            catalog_id=catalog_id or "",
+            database_name=database_name,
+            table_name=table_name,
+        )
+        return ActionResult({"MaterializedViewRefreshTaskRunId": task.task_run_id})
+
+    def get_materialized_view_refresh_task_run(self) -> ActionResult:
+        task_run_id = self.parameters.get("MaterializedViewRefreshTaskRunId")
+        task = self.glue_backend.get_materialized_view_refresh_task_run(task_run_id)
+        return ActionResult({"MaterializedViewRefreshTaskRun": task.as_dict()})
+
+    def list_materialized_view_refresh_task_runs(self) -> ActionResult:
+        catalog_id = self.parameters.get("CatalogId")
+        database_name = self.parameters.get("DatabaseName")
+        table_name = self.parameters.get("TableName")
+        task_run_id = self.parameters.get("MaterializedViewRefreshTaskRunId")
+        tasks = self.glue_backend.list_materialized_view_refresh_task_runs(
+            catalog_id=catalog_id,
+            database_name=database_name,
+            table_name=table_name,
+            task_run_id=task_run_id,
+        )
+        return ActionResult(
+            {"MaterializedViewRefreshTaskRuns": [t.as_dict() for t in tasks]}
+        )
+
+    def stop_materialized_view_refresh_task_run(self) -> EmptyResult:
+        task_run_id = self.parameters.get("MaterializedViewRefreshTaskRunId")
+        self.glue_backend.stop_materialized_view_refresh_task_run(task_run_id)
+        return EmptyResult()

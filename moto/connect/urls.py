@@ -38,12 +38,16 @@ url_paths = {
     # Contact flow metadata
     "{0}/contact-flows/(?P<InstanceId>[^/]+)/(?P<ContactFlowId>[^/]+)/metadata$": ConnectResponse.dispatch,
     # Contact flow modules
+    "{0}/contact-flow-modules/(?P<InstanceId>[^/]+)/(?P<ContactFlowModuleId>[^/]+)/alias/(?P<AliasId>[^/]+)$": ConnectResponse.dispatch,
+    "{0}/contact-flow-modules/(?P<InstanceId>[^/]+)/(?P<ContactFlowModuleId>[^/]+)/aliases$": ConnectResponse.dispatch,
+    "{0}/contact-flow-modules/(?P<InstanceId>[^/]+)/(?P<ContactFlowModuleId>[^/]+)/alias$": ConnectResponse.dispatch,
     "{0}/contact-flow-modules/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
     "{0}/contact-flow-modules/(?P<InstanceId>[^/]+)/(?P<ContactFlowModuleId>[^/]+)$": ConnectResponse.dispatch,
     "{0}/contact-flow-modules/(?P<InstanceId>[^/]+)/(?P<ContactFlowModuleId>[^/]+)/content$": ConnectResponse.dispatch,
     "{0}/contact-flow-modules/(?P<InstanceId>[^/]+)/(?P<ContactFlowModuleId>[^/]+)/metadata$": ConnectResponse.dispatch,
     "{0}/contact-flow-modules-summary/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
     # Contact evaluations and references
+    "{0}/contact-evaluations/(?P<InstanceId>[^/]+)/(?P<EvaluationId>[^/]+)$": ConnectResponse.dispatch,
     "{0}/contact-evaluations/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
     "{0}/contact/references/(?P<InstanceId>[^/]+)/(?P<ContactId>[^/]+)$": ConnectResponse.dispatch,
     # Default vocabulary summary
@@ -168,6 +172,24 @@ url_paths = {
     "{0}/search-contact-flow-modules$": ConnectResponse.dispatch,
     "{0}/search-user-hierarchy-groups$": ConnectResponse.dispatch,
     "{0}/search-predefined-attributes$": ConnectResponse.dispatch,
+    # Workspaces
+    "{0}/workspaces/(?P<InstanceId>[^/]+)/(?P<WorkspaceId>[^/]+)$": ConnectResponse.dispatch,
+    "{0}/workspaces/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
+    # Email addresses
+    "{0}/email-addresses/(?P<InstanceId>[^/]+)/(?P<EmailAddressId>[^/]+)$": ConnectResponse.dispatch,
+    "{0}/email-addresses/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
+    # Notifications
+    "{0}/notifications/(?P<InstanceId>[^/]+)/(?P<NotificationId>[^/]+)$": ConnectResponse.dispatch,
+    "{0}/notifications/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
+    # Data tables
+    "{0}/data-tables/(?P<InstanceId>[^/]+)/(?P<DataTableId>[^/]+)/attributes/(?P<AttributeName>[^/]+)$": ConnectResponse.dispatch,
+    "{0}/data-tables/(?P<InstanceId>[^/]+)/(?P<DataTableId>[^/]+)/attributes$": ConnectResponse.dispatch,
+    "{0}/data-tables/(?P<InstanceId>[^/]+)/(?P<DataTableId>[^/]+)$": ConnectResponse.dispatch,
+    "{0}/data-tables/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
+    # Test cases
+    "{0}/test-cases/(?P<InstanceId>[^/]+)/(?P<TestCaseId>[^/]+)$": ConnectResponse.dispatch,
+    "{0}/test-cases-summary/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
+    "{0}/test-cases/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
     # Tags
     "{0}/tags/(?P<resourceArn>.+)$": ConnectResponse.dispatch,
 }

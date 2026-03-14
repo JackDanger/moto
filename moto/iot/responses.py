@@ -2142,3 +2142,87 @@ class IoTResponse(BaseResponse):
         resource_arn = self._get_param("resourceArn")
         tags = self.iot_backend.list_tags_for_resource(resource_arn=resource_arn)
         return ActionResult({"tags": tags})
+
+    def create_certificate_provider(self) -> ActionResult:
+        certificate_provider = self.iot_backend.create_certificate_provider(
+            certificate_provider_name=self._get_param("certificateProviderName"),
+            lambda_function_arn=self._get_param("lambdaFunctionArn"),
+            account_default_for_operations=self._get_param(
+                "accountDefaultForOperations"
+            ),
+            tags=self._get_param("tags"),
+        )
+        return ActionResult(
+            {
+                "certificateProviderName": certificate_provider.certificate_provider_name,
+                "certificateProviderArn": certificate_provider.arn,
+            }
+        )
+
+    def describe_certificate_provider(self) -> ActionResult:
+        certificate_provider = self.iot_backend.describe_certificate_provider(
+            certificate_provider_name=self._get_param("certificateProviderName"),
+        )
+        return ActionResult(certificate_provider.to_description_dict())
+
+    def list_certificate_providers(self) -> ActionResult:
+        return ActionResult(
+            {"certificateProviders": self.iot_backend.list_certificate_providers()}
+        )
+
+    def update_certificate_provider(self) -> ActionResult:
+        certificate_provider = self.iot_backend.update_certificate_provider(
+            certificate_provider_name=self._get_param("certificateProviderName"),
+            lambda_function_arn=self._get_param("lambdaFunctionArn"),
+            account_default_for_operations=self._get_param(
+                "accountDefaultForOperations"
+            ),
+        )
+        return ActionResult(
+            {
+                "certificateProviderName": certificate_provider.certificate_provider_name,
+                "certificateProviderArn": certificate_provider.arn,
+            }
+        )
+
+    def delete_certificate_provider(self) -> ActionResult:
+        self.iot_backend.delete_certificate_provider(
+            certificate_provider_name=self._get_param("certificateProviderName"),
+        )
+        return EmptyResult()
+
+    # --- Commands ---
+
+    def create_command(self) -> ActionResult:
+        command_id = self._get_param("commandId")
+        command = self.iot_backend.create_command(command_id=command_id)
+        return ActionResult(
+            {
+                "commandId": command.command_id,
+                "commandArn": command.arn,
+            }
+        )
+
+    def get_command(self) -> ActionResult:
+        command_id = self._get_param("commandId")
+        command = self.iot_backend.get_command(command_id=command_id)
+        return ActionResult(command.to_description_dict())
+
+    def list_commands(self) -> ActionResult:
+        commands = self.iot_backend.list_commands()
+        return ActionResult({"commands": commands})
+
+    def delete_command(self) -> ActionResult:
+        command_id = self._get_param("commandId")
+        self.iot_backend.delete_command(command_id=command_id)
+        return EmptyResult()
+
+    def update_command(self) -> ActionResult:
+        command_id = self._get_param("commandId")
+        command = self.iot_backend.update_command(
+            command_id=command_id,
+            display_name=self._get_param("displayName"),
+            description=self._get_param("description"),
+            deprecated=self._get_param("deprecated"),
+        )
+        return ActionResult(command.to_description_dict())

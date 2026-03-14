@@ -956,6 +956,350 @@ class Rule(BaseModel):
         }
 
 
+class FakeEmailAddress(BaseModel):
+    """Represents an email address resource for a Connect instance."""
+
+    def __init__(
+        self,
+        instance_arn: str,
+        email_address: str,
+        display_name: str = "",
+        description: str = "",
+        tags: Optional[dict[str, str]] = None,
+    ) -> None:
+        self.email_address_id = str(uuid.uuid4())
+        self.arn = f"{instance_arn}/email-address/{self.email_address_id}"
+        self.email_address = email_address
+        self.display_name = display_name
+        self.description = description
+        self.tags = tags or {}
+        self.create_timestamp = _now_iso()
+        self.modified_timestamp = _now_iso()
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "EmailAddressId": self.email_address_id,
+            "EmailAddressArn": self.arn,
+            "EmailAddress": self.email_address,
+            "DisplayName": self.display_name,
+            "Description": self.description,
+            "CreateTimestamp": self.create_timestamp,
+            "ModifiedTimestamp": self.modified_timestamp,
+            "Tags": self.tags,
+        }
+
+
+class FakeNotification(BaseModel):
+    """Represents a notification resource for a Connect instance."""
+
+    def __init__(
+        self,
+        instance_arn: str,
+        recipients: list[Any],
+        content: dict[str, Any],
+        priority: Optional[int] = None,
+        expires_at: Optional[str] = None,
+        tags: Optional[dict[str, str]] = None,
+    ) -> None:
+        self.notification_id = str(uuid.uuid4())
+        self.arn = f"{instance_arn}/notification/{self.notification_id}"
+        self.recipients = recipients
+        self.content = content
+        self.priority = priority
+        self.expires_at = expires_at
+        self.tags = tags or {}
+        self.created_at = _now_iso()
+        self.last_modified_time = _now_iso()
+        self.last_modified_region = instance_arn.split(":")[3]
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "Id": self.notification_id,
+            "Arn": self.arn,
+            "Content": self.content,
+            "Recipients": self.recipients,
+            "CreatedAt": self.created_at,
+            "LastModifiedTime": self.last_modified_time,
+            "LastModifiedRegion": self.last_modified_region,
+            "Tags": self.tags,
+        }
+        if self.priority is not None:
+            result["Priority"] = self.priority
+        if self.expires_at is not None:
+            result["ExpiresAt"] = self.expires_at
+        return result
+
+
+class FakeWorkspace(BaseModel):
+    """Represents a workspace resource for a Connect instance."""
+
+    def __init__(
+        self,
+        instance_arn: str,
+        name: str,
+        description: str = "",
+        tags: Optional[dict[str, str]] = None,
+    ) -> None:
+        self.workspace_id = str(uuid.uuid4())
+        self.arn = f"{instance_arn}/workspace/{self.workspace_id}"
+        self.name = name
+        self.description = description
+        self.tags = tags or {}
+        self.create_timestamp = _now_iso()
+        self.modified_timestamp = _now_iso()
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "WorkspaceId": self.workspace_id,
+            "WorkspaceArn": self.arn,
+            "Name": self.name,
+            "Description": self.description,
+            "CreateTimestamp": self.create_timestamp,
+            "ModifiedTimestamp": self.modified_timestamp,
+            "Tags": self.tags,
+        }
+
+
+class FakeContactFlowModuleAlias(BaseModel):
+    """Represents a contact flow module alias."""
+
+    def __init__(
+        self,
+        instance_arn: str,
+        contact_flow_module_id: str,
+        name: str,
+        target_contact_flow_module_version: str,
+        description: str = "",
+    ) -> None:
+        self.alias_id = str(uuid.uuid4())
+        self.arn = (
+            f"{instance_arn}/flow-module/{contact_flow_module_id}/alias/{self.alias_id}"
+        )
+        self.contact_flow_module_id = contact_flow_module_id
+        self.name = name
+        self.target_contact_flow_module_version = target_contact_flow_module_version
+        self.description = description
+        self.create_timestamp = _now_iso()
+        self.modified_timestamp = _now_iso()
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "AliasId": self.alias_id,
+            "AliasArn": self.arn,
+            "ContactFlowModuleId": self.contact_flow_module_id,
+            "Name": self.name,
+            "TargetContactFlowModuleVersion": self.target_contact_flow_module_version,
+            "Description": self.description,
+            "CreateTimestamp": self.create_timestamp,
+            "ModifiedTimestamp": self.modified_timestamp,
+        }
+
+
+class FakeDataTable(BaseModel):
+    """Represents a data table for a Connect instance."""
+
+    def __init__(
+        self,
+        instance_arn: str,
+        name: str,
+        schema: Optional[dict[str, Any]] = None,
+        tags: Optional[dict[str, str]] = None,
+    ) -> None:
+        self.data_table_id = str(uuid.uuid4())
+        self.arn = f"{instance_arn}/data-table/{self.data_table_id}"
+        self.name = name
+        self.schema = schema or {}
+        self.tags = tags or {}
+        self.create_timestamp = _now_iso()
+        self.modified_timestamp = _now_iso()
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "DataTableId": self.data_table_id,
+            "DataTableArn": self.arn,
+            "Name": self.name,
+            "Schema": self.schema,
+            "CreateTimestamp": self.create_timestamp,
+            "ModifiedTimestamp": self.modified_timestamp,
+            "Tags": self.tags,
+        }
+
+
+class FakeDataTableAttribute(BaseModel):
+    """Represents a data table attribute."""
+
+    def __init__(
+        self,
+        instance_arn: str,
+        data_table_id: str,
+        attribute_name: str,
+        data_type: str,
+        default_value: Optional[str] = None,
+        required: bool = False,
+    ) -> None:
+        self.attribute_name = attribute_name
+        self.arn = (
+            f"{instance_arn}/data-table/{data_table_id}/attribute/{attribute_name}"
+        )
+        self.data_type = data_type
+        self.default_value = default_value
+        self.required = required
+        self.create_timestamp = _now_iso()
+        self.modified_timestamp = _now_iso()
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "AttributeName": self.attribute_name,
+            "DataType": self.data_type,
+            "Required": self.required,
+            "CreateTimestamp": self.create_timestamp,
+            "ModifiedTimestamp": self.modified_timestamp,
+        }
+        if self.default_value is not None:
+            result["DefaultValue"] = self.default_value
+        return result
+
+
+class FakeTestCase(BaseModel):
+    """Represents a test case for a Connect instance."""
+
+    def __init__(
+        self,
+        instance_arn: str,
+        name: str,
+        status: str = "DRAFT",
+        description: str = "",
+        tags: Optional[dict[str, str]] = None,
+    ) -> None:
+        self.test_case_id = str(uuid.uuid4())
+        self.arn = f"{instance_arn}/test-case/{self.test_case_id}"
+        self.name = name
+        self.status = status
+        self.description = description
+        self.tags = tags or {}
+        self.create_timestamp = _now_iso()
+        self.modified_timestamp = _now_iso()
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "TestCaseId": self.test_case_id,
+            "TestCaseArn": self.arn,
+            "Name": self.name,
+            "Status": self.status,
+            "Description": self.description,
+            "CreateTimestamp": self.create_timestamp,
+            "ModifiedTimestamp": self.modified_timestamp,
+            "Tags": self.tags,
+        }
+
+
+class FakeContactEvaluation(BaseModel):
+    """Represents a contact evaluation for quality management."""
+
+    def __init__(
+        self,
+        instance_arn: str,
+        contact_id: str,
+        evaluation_form_id: str,
+        status: str = "DRAFT",
+        answers: Optional[dict[str, Any]] = None,
+        notes: Optional[str] = None,
+    ) -> None:
+        self.evaluation_id = str(uuid.uuid4())
+        self.arn = f"{instance_arn}/contact-evaluation/{self.evaluation_id}"
+        self.contact_id = contact_id
+        self.evaluation_form_id = evaluation_form_id
+        self.status = status
+        self.answers = answers or {}
+        self.notes = notes
+        self.create_timestamp = _now_iso()
+        self.modified_timestamp = _now_iso()
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "EvaluationId": self.evaluation_id,
+            "EvaluationArn": self.arn,
+            "ContactId": self.contact_id,
+            "EvaluationFormId": self.evaluation_form_id,
+            "Status": self.status,
+            "Answers": self.answers,
+            "CreateTimestamp": self.create_timestamp,
+            "ModifiedTimestamp": self.modified_timestamp,
+        }
+        if self.notes is not None:
+            result["Notes"] = self.notes
+        return result
+
+
+class FakeAuthenticationProfile(BaseModel):
+    """Represents an authentication profile for a Connect instance."""
+
+    def __init__(
+        self,
+        instance_arn: str,
+        name: str,
+        description: str = "",
+        allowed_ips: Optional[list[str]] = None,
+        blocked_ips: Optional[list[str]] = None,
+        is_default: bool = False,
+        periodic_session_duration: Optional[int] = None,
+        max_session_duration: Optional[int] = None,
+        session_inactivity_duration: Optional[int] = None,
+        session_inactivity_handling_enabled: Optional[bool] = None,
+    ) -> None:
+        self.authentication_profile_id = str(uuid.uuid4())
+        self.arn = (
+            f"{instance_arn}/authentication-profile/{self.authentication_profile_id}"
+        )
+        self.name = name
+        self.description = description
+        self.allowed_ips = allowed_ips or []
+        self.blocked_ips = blocked_ips or []
+        self.is_default = is_default
+        self.periodic_session_duration = periodic_session_duration
+        self.max_session_duration = max_session_duration
+        self.session_inactivity_duration = session_inactivity_duration
+        self.session_inactivity_handling_enabled = session_inactivity_handling_enabled
+        self.created_time = _now_iso()
+        self.last_modified_time = _now_iso()
+        self.last_modified_region = instance_arn.split(":")[3]
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "Id": self.authentication_profile_id,
+            "Arn": self.arn,
+            "Name": self.name,
+            "Description": self.description,
+            "AllowedIps": self.allowed_ips,
+            "BlockedIps": self.blocked_ips,
+            "IsDefault": self.is_default,
+            "CreatedTime": self.created_time,
+            "LastModifiedTime": self.last_modified_time,
+            "LastModifiedRegion": self.last_modified_region,
+        }
+        if self.periodic_session_duration is not None:
+            result["PeriodicSessionDuration"] = self.periodic_session_duration
+        if self.max_session_duration is not None:
+            result["MaxSessionDuration"] = self.max_session_duration
+        if self.session_inactivity_duration is not None:
+            result["SessionInactivityDuration"] = self.session_inactivity_duration
+        if self.session_inactivity_handling_enabled is not None:
+            result["SessionInactivityHandlingEnabled"] = (
+                self.session_inactivity_handling_enabled
+            )
+        return result
+
+    def to_summary_dict(self) -> dict[str, Any]:
+        return {
+            "Id": self.authentication_profile_id,
+            "Arn": self.arn,
+            "Name": self.name,
+            "IsDefault": self.is_default,
+            "LastModifiedTime": self.last_modified_time,
+            "LastModifiedRegion": self.last_modified_region,
+        }
+
+
 class ConnectBackend(BaseBackend):
     """Backend for Amazon Connect API."""
 
@@ -1006,6 +1350,21 @@ class ConnectBackend(BaseBackend):
         self.traffic_distribution_groups: dict[str, TrafficDistributionGroup] = {}
         # Per-instance contact attributes: instance_id -> contact_id -> attributes
         self.contact_attributes: dict[str, dict[str, dict[str, str]]] = {}
+        self.email_addresses: dict[str, dict[str, FakeEmailAddress]] = {}
+        self.notifications: dict[str, dict[str, FakeNotification]] = {}
+        self.authentication_profiles: dict[
+            str, dict[str, FakeAuthenticationProfile]
+        ] = {}
+        self.workspaces: dict[str, dict[str, FakeWorkspace]] = {}
+        self.contact_flow_module_aliases: dict[
+            str, dict[str, dict[str, FakeContactFlowModuleAlias]]
+        ] = {}  # instance_id -> contact_flow_module_id -> alias_id -> alias
+        self.data_tables: dict[str, dict[str, FakeDataTable]] = {}
+        self.data_table_attributes: dict[
+            str, dict[str, dict[str, FakeDataTableAttribute]]
+        ] = {}  # instance_id -> data_table_id -> attribute_name -> attribute
+        self.test_cases: dict[str, dict[str, FakeTestCase]] = {}
+        self.contact_evaluations: dict[str, dict[str, FakeContactEvaluation]] = {}
         self.tagger = TaggingService()
 
     def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
@@ -3770,6 +4129,629 @@ class ConnectBackend(BaseBackend):
         self._get_instance_or_raise(instance_id)
         groups = self.user_hierarchy_groups.get(instance_id, {})
         return [g.to_dict() for g in groups.values()]
+
+    # ---- EmailAddress CRUD ----
+
+    def create_email_address(
+        self,
+        instance_id: str,
+        email_address: str,
+        display_name: str = "",
+        description: str = "",
+        tags: Optional[dict[str, str]] = None,
+    ) -> dict[str, str]:
+        instance = self._get_instance_or_raise(instance_id)
+        email = FakeEmailAddress(
+            instance_arn=instance.arn,
+            email_address=email_address,
+            display_name=display_name,
+            description=description,
+            tags=tags,
+        )
+        self.email_addresses.setdefault(instance_id, {})[email.email_address_id] = email
+        if tags:
+            self.tag_resource(email.arn, tags)
+        return {
+            "EmailAddressId": email.email_address_id,
+            "EmailAddressArn": email.arn,
+        }
+
+    def describe_email_address(
+        self,
+        instance_id: str,
+        email_address_id: str,
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        emails = self.email_addresses.get(instance_id, {})
+        if email_address_id not in emails:
+            raise ResourceNotFoundException(
+                f"Email address {email_address_id} not found"
+            )
+        return emails[email_address_id].to_dict()
+
+    def delete_email_address(
+        self,
+        instance_id: str,
+        email_address_id: str,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        emails = self.email_addresses.get(instance_id, {})
+        if email_address_id not in emails:
+            raise ResourceNotFoundException(
+                f"Email address {email_address_id} not found"
+            )
+        del emails[email_address_id]
+
+    # ---- Notification CRUD ----
+
+    def create_notification(
+        self,
+        instance_id: str,
+        recipients: list[Any],
+        content: dict[str, Any],
+        priority: Optional[int] = None,
+        expires_at: Optional[str] = None,
+        tags: Optional[dict[str, str]] = None,
+    ) -> dict[str, str]:
+        instance = self._get_instance_or_raise(instance_id)
+        notification = FakeNotification(
+            instance_arn=instance.arn,
+            recipients=recipients,
+            content=content,
+            priority=priority,
+            expires_at=expires_at,
+            tags=tags,
+        )
+        self.notifications.setdefault(instance_id, {})[notification.notification_id] = (
+            notification
+        )
+        if tags:
+            self.tag_resource(notification.arn, tags)
+        return {
+            "NotificationId": notification.notification_id,
+            "NotificationArn": notification.arn,
+        }
+
+    def describe_notification(
+        self,
+        instance_id: str,
+        notification_id: str,
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        notifications = self.notifications.get(instance_id, {})
+        if notification_id not in notifications:
+            raise ResourceNotFoundException(f"Notification {notification_id} not found")
+        return notifications[notification_id].to_dict()
+
+    def delete_notification(
+        self,
+        instance_id: str,
+        notification_id: str,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        notifications = self.notifications.get(instance_id, {})
+        if notification_id not in notifications:
+            raise ResourceNotFoundException(f"Notification {notification_id} not found")
+        del notifications[notification_id]
+
+    def list_notifications(
+        self,
+        instance_id: str,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        notifications = self.notifications.get(instance_id, {})
+        return [n.to_dict() for n in notifications.values()]
+
+    # ---- Workspace CRUD ----
+
+    def create_workspace(
+        self,
+        instance_id: str,
+        name: str,
+        description: str = "",
+        tags: Optional[dict[str, str]] = None,
+    ) -> dict[str, str]:
+        instance = self._get_instance_or_raise(instance_id)
+        workspace = FakeWorkspace(
+            instance_arn=instance.arn,
+            name=name,
+            description=description,
+            tags=tags,
+        )
+        self.workspaces.setdefault(instance_id, {})[workspace.workspace_id] = workspace
+        if tags:
+            self.tag_resource(workspace.arn, tags)
+        return {"WorkspaceId": workspace.workspace_id, "WorkspaceArn": workspace.arn}
+
+    def describe_workspace(
+        self,
+        instance_id: str,
+        workspace_id: str,
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        workspaces = self.workspaces.get(instance_id, {})
+        if workspace_id not in workspaces:
+            raise ResourceNotFoundException(f"Workspace {workspace_id} not found")
+        return workspaces[workspace_id].to_dict()
+
+    def list_workspaces(self, instance_id: str) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        workspaces = self.workspaces.get(instance_id, {})
+        return [w.to_dict() for w in workspaces.values()]
+
+    def delete_workspace(
+        self,
+        instance_id: str,
+        workspace_id: str,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        workspaces = self.workspaces.get(instance_id, {})
+        if workspace_id not in workspaces:
+            raise ResourceNotFoundException(f"Workspace {workspace_id} not found")
+        del workspaces[workspace_id]
+
+    # ---- ContactFlowModuleAlias CRUD ----
+
+    def create_contact_flow_module_alias(
+        self,
+        instance_id: str,
+        contact_flow_module_id: str,
+        name: str,
+        target_contact_flow_module_version: str,
+        description: str = "",
+    ) -> dict[str, str]:
+        instance = self._get_instance_or_raise(instance_id)
+        alias = FakeContactFlowModuleAlias(
+            instance_arn=instance.arn,
+            contact_flow_module_id=contact_flow_module_id,
+            name=name,
+            target_contact_flow_module_version=target_contact_flow_module_version,
+            description=description,
+        )
+        self.contact_flow_module_aliases.setdefault(instance_id, {})
+        self.contact_flow_module_aliases[instance_id].setdefault(
+            contact_flow_module_id, {}
+        )[alias.alias_id] = alias
+        return {"AliasId": alias.alias_id, "AliasArn": alias.arn}
+
+    def describe_contact_flow_module_alias(
+        self,
+        instance_id: str,
+        contact_flow_module_id: str,
+        alias_id: str,
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        modules = self.contact_flow_module_aliases.get(instance_id, {})
+        aliases = modules.get(contact_flow_module_id, {})
+        if alias_id not in aliases:
+            raise ResourceNotFoundException(
+                f"Contact flow module alias {alias_id} not found"
+            )
+        return aliases[alias_id].to_dict()
+
+    def list_contact_flow_module_aliases(
+        self,
+        instance_id: str,
+        contact_flow_module_id: str,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        modules = self.contact_flow_module_aliases.get(instance_id, {})
+        aliases = modules.get(contact_flow_module_id, {})
+        return [a.to_dict() for a in aliases.values()]
+
+    def update_contact_flow_module_alias(
+        self,
+        instance_id: str,
+        contact_flow_module_id: str,
+        alias_id: str,
+        name: Optional[str] = None,
+        target_contact_flow_module_version: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        modules = self.contact_flow_module_aliases.get(instance_id, {})
+        aliases = modules.get(contact_flow_module_id, {})
+        if alias_id not in aliases:
+            raise ResourceNotFoundException(
+                f"Contact flow module alias {alias_id} not found"
+            )
+        alias = aliases[alias_id]
+        if name is not None:
+            alias.name = name
+        if target_contact_flow_module_version is not None:
+            alias.target_contact_flow_module_version = (
+                target_contact_flow_module_version
+            )
+        if description is not None:
+            alias.description = description
+        alias.modified_timestamp = _now_iso()
+        return alias.to_dict()
+
+    def delete_contact_flow_module_alias(
+        self,
+        instance_id: str,
+        contact_flow_module_id: str,
+        alias_id: str,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        modules = self.contact_flow_module_aliases.get(instance_id, {})
+        aliases = modules.get(contact_flow_module_id, {})
+        if alias_id not in aliases:
+            raise ResourceNotFoundException(
+                f"Contact flow module alias {alias_id} not found"
+            )
+        del aliases[alias_id]
+
+    # ---- DataTable CRUD ----
+
+    def create_data_table(
+        self,
+        instance_id: str,
+        name: str,
+        schema: Optional[dict[str, Any]] = None,
+        tags: Optional[dict[str, str]] = None,
+    ) -> dict[str, str]:
+        instance = self._get_instance_or_raise(instance_id)
+        data_table = FakeDataTable(
+            instance_arn=instance.arn,
+            name=name,
+            schema=schema,
+            tags=tags,
+        )
+        self.data_tables.setdefault(instance_id, {})[data_table.data_table_id] = (
+            data_table
+        )
+        if tags:
+            self.tag_resource(data_table.arn, tags)
+        return {
+            "Id": data_table.data_table_id,
+            "Arn": data_table.arn,
+            "LockVersion": {
+                "DataTable": "1",
+                "Attribute": "1",
+                "PrimaryValues": "1",
+                "Value": "1",
+            },
+        }
+
+    def describe_data_table(
+        self,
+        instance_id: str,
+        data_table_id: str,
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        tables = self.data_tables.get(instance_id, {})
+        if data_table_id not in tables:
+            raise ResourceNotFoundException(f"Data table {data_table_id} not found")
+        return tables[data_table_id].to_dict()
+
+    def list_data_tables(self, instance_id: str) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        tables = self.data_tables.get(instance_id, {})
+        return [t.to_dict() for t in tables.values()]
+
+    def delete_data_table(
+        self,
+        instance_id: str,
+        data_table_id: str,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        tables = self.data_tables.get(instance_id, {})
+        if data_table_id not in tables:
+            raise ResourceNotFoundException(f"Data table {data_table_id} not found")
+        del tables[data_table_id]
+        self.data_table_attributes.get(instance_id, {}).pop(data_table_id, None)
+
+    # ---- DataTableAttribute CRUD ----
+
+    def create_data_table_attribute(
+        self,
+        instance_id: str,
+        data_table_id: str,
+        attribute_name: str,
+        data_type: str,
+        default_value: Optional[str] = None,
+        required: bool = False,
+    ) -> dict[str, str]:
+        self._get_instance_or_raise(instance_id)
+        tables = self.data_tables.get(instance_id, {})
+        if data_table_id not in tables:
+            raise ResourceNotFoundException(f"Data table {data_table_id} not found")
+        instance = self.instances[instance_id]
+        attr = FakeDataTableAttribute(
+            instance_arn=instance.arn,
+            data_table_id=data_table_id,
+            attribute_name=attribute_name,
+            data_type=data_type,
+            default_value=default_value,
+            required=required,
+        )
+        self.data_table_attributes.setdefault(instance_id, {})
+        self.data_table_attributes[instance_id].setdefault(data_table_id, {})
+        self.data_table_attributes[instance_id][data_table_id][attribute_name] = attr
+        return {"AttributeName": attribute_name}
+
+    def describe_data_table_attribute(
+        self,
+        instance_id: str,
+        data_table_id: str,
+        attribute_name: str,
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        tables_attrs = self.data_table_attributes.get(instance_id, {})
+        attrs = tables_attrs.get(data_table_id, {})
+        if attribute_name not in attrs:
+            raise ResourceNotFoundException(
+                f"Data table attribute {attribute_name} not found"
+            )
+        return attrs[attribute_name].to_dict()
+
+    def list_data_table_attributes(
+        self,
+        instance_id: str,
+        data_table_id: str,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        tables_attrs = self.data_table_attributes.get(instance_id, {})
+        attrs = tables_attrs.get(data_table_id, {})
+        return [a.to_dict() for a in attrs.values()]
+
+    def update_data_table_attribute(
+        self,
+        instance_id: str,
+        data_table_id: str,
+        attribute_name: str,
+        data_type: Optional[str] = None,
+        default_value: Optional[str] = None,
+        required: Optional[bool] = None,
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        tables_attrs = self.data_table_attributes.get(instance_id, {})
+        attrs = tables_attrs.get(data_table_id, {})
+        if attribute_name not in attrs:
+            raise ResourceNotFoundException(
+                f"Data table attribute {attribute_name} not found"
+            )
+        attr = attrs[attribute_name]
+        if data_type is not None:
+            attr.data_type = data_type
+        if default_value is not None:
+            attr.default_value = default_value
+        if required is not None:
+            attr.required = required
+        attr.modified_timestamp = _now_iso()
+        return attr.to_dict()
+
+    def delete_data_table_attribute(
+        self,
+        instance_id: str,
+        data_table_id: str,
+        attribute_name: str,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        tables_attrs = self.data_table_attributes.get(instance_id, {})
+        attrs = tables_attrs.get(data_table_id, {})
+        if attribute_name not in attrs:
+            raise ResourceNotFoundException(
+                f"Data table attribute {attribute_name} not found"
+            )
+        del attrs[attribute_name]
+
+    # ---- TestCase CRUD ----
+
+    def create_test_case(
+        self,
+        instance_id: str,
+        name: str,
+        status: str = "DRAFT",
+        description: str = "",
+        tags: Optional[dict[str, str]] = None,
+    ) -> dict[str, str]:
+        instance = self._get_instance_or_raise(instance_id)
+        test_case = FakeTestCase(
+            instance_arn=instance.arn,
+            name=name,
+            status=status,
+            description=description,
+            tags=tags,
+        )
+        self.test_cases.setdefault(instance_id, {})[test_case.test_case_id] = test_case
+        if tags:
+            self.tag_resource(test_case.arn, tags)
+        return {"TestCaseId": test_case.test_case_id, "TestCaseArn": test_case.arn}
+
+    def describe_test_case(
+        self,
+        instance_id: str,
+        test_case_id: str,
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        cases = self.test_cases.get(instance_id, {})
+        if test_case_id not in cases:
+            raise ResourceNotFoundException(f"Test case {test_case_id} not found")
+        return cases[test_case_id].to_dict()
+
+    def list_test_cases(self, instance_id: str) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        cases = self.test_cases.get(instance_id, {})
+        return [c.to_dict() for c in cases.values()]
+
+    def update_test_case(
+        self,
+        instance_id: str,
+        test_case_id: str,
+        name: Optional[str] = None,
+        status: Optional[str] = None,
+        description: Optional[str] = None,
+        tags: Optional[dict[str, str]] = None,
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        cases = self.test_cases.get(instance_id, {})
+        if test_case_id not in cases:
+            raise ResourceNotFoundException(f"Test case {test_case_id} not found")
+        tc = cases[test_case_id]
+        if name is not None:
+            tc.name = name
+        if status is not None:
+            tc.status = status
+        if description is not None:
+            tc.description = description
+        if tags is not None:
+            tc.tags = tags
+        tc.modified_timestamp = _now_iso()
+        return tc.to_dict()
+
+    def delete_test_case(
+        self,
+        instance_id: str,
+        test_case_id: str,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        cases = self.test_cases.get(instance_id, {})
+        if test_case_id not in cases:
+            raise ResourceNotFoundException(f"Test case {test_case_id} not found")
+        del cases[test_case_id]
+
+    # ---- ContactEvaluation CRUD ----
+
+    def start_contact_evaluation(
+        self,
+        instance_id: str,
+        contact_id: str,
+        evaluation_form_id: str,
+        status: str = "DRAFT",
+        answers: Optional[dict[str, Any]] = None,
+        notes: Optional[str] = None,
+    ) -> dict[str, str]:
+        instance = self._get_instance_or_raise(instance_id)
+        evaluation = FakeContactEvaluation(
+            instance_arn=instance.arn,
+            contact_id=contact_id,
+            evaluation_form_id=evaluation_form_id,
+            status=status,
+            answers=answers,
+            notes=notes,
+        )
+        self.contact_evaluations.setdefault(instance_id, {})[
+            evaluation.evaluation_id
+        ] = evaluation
+        return {
+            "EvaluationId": evaluation.evaluation_id,
+            "EvaluationArn": evaluation.arn,
+        }
+
+    def describe_contact_evaluation(
+        self,
+        instance_id: str,
+        evaluation_id: str,
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        evals_store = self.contact_evaluations.get(instance_id, {})
+        if evaluation_id not in evals_store:
+            raise ResourceNotFoundException(
+                f"Contact evaluation {evaluation_id} not found"
+            )
+        return evals_store[evaluation_id].to_dict()
+
+    def update_contact_evaluation(
+        self,
+        instance_id: str,
+        evaluation_id: str,
+        status: Optional[str] = None,
+        answers: Optional[dict[str, Any]] = None,
+        notes: Optional[str] = None,
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        evals_store = self.contact_evaluations.get(instance_id, {})
+        if evaluation_id not in evals_store:
+            raise ResourceNotFoundException(
+                f"Contact evaluation {evaluation_id} not found"
+            )
+        ev = evals_store[evaluation_id]
+        if status is not None:
+            ev.status = status
+        if answers is not None:
+            ev.answers = answers
+        if notes is not None:
+            ev.notes = notes
+        ev.modified_timestamp = _now_iso()
+        return ev.to_dict()
+
+    def delete_contact_evaluation(
+        self,
+        instance_id: str,
+        evaluation_id: str,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        evals_store = self.contact_evaluations.get(instance_id, {})
+        if evaluation_id not in evals_store:
+            raise ResourceNotFoundException(
+                f"Contact evaluation {evaluation_id} not found"
+            )
+        del evals_store[evaluation_id]
+
+    # ---- AuthenticationProfile CRUD ----
+
+    def describe_authentication_profile(
+        self,
+        instance_id: str,
+        authentication_profile_id: str,
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        profiles = self.authentication_profiles.get(instance_id, {})
+        if authentication_profile_id not in profiles:
+            raise ResourceNotFoundException(
+                f"Authentication profile {authentication_profile_id} not found"
+            )
+        return profiles[authentication_profile_id].to_dict()
+
+    def update_authentication_profile(
+        self,
+        instance_id: str,
+        authentication_profile_id: str,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        allowed_ips: Optional[list[str]] = None,
+        blocked_ips: Optional[list[str]] = None,
+        periodic_session_duration: Optional[int] = None,
+        session_inactivity_duration: Optional[int] = None,
+        session_inactivity_handling_enabled: Optional[bool] = None,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        profiles = self.authentication_profiles.get(instance_id, {})
+        if authentication_profile_id not in profiles:
+            raise ResourceNotFoundException(
+                f"Authentication profile {authentication_profile_id} not found"
+            )
+        profile = profiles[authentication_profile_id]
+        if name is not None:
+            profile.name = name
+        if description is not None:
+            profile.description = description
+        if allowed_ips is not None:
+            profile.allowed_ips = allowed_ips
+        if blocked_ips is not None:
+            profile.blocked_ips = blocked_ips
+        if periodic_session_duration is not None:
+            profile.periodic_session_duration = periodic_session_duration
+        if session_inactivity_duration is not None:
+            profile.session_inactivity_duration = session_inactivity_duration
+        if session_inactivity_handling_enabled is not None:
+            profile.session_inactivity_handling_enabled = (
+                session_inactivity_handling_enabled
+            )
+        profile.last_modified_time = _now_iso()
+        profile.last_modified_region = self.region_name
+
+    def list_authentication_profiles(
+        self,
+        instance_id: str,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        profiles = self.authentication_profiles.get(instance_id, {})
+        return [p.to_summary_dict() for p in profiles.values()]
 
 
 connect_backends = BackendDict(ConnectBackend, "connect")

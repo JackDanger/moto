@@ -2068,6 +2068,98 @@ class FakeTopicRuleDestination(BaseModel):
         }
 
 
+class FakeCertificateProvider(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        certificate_provider_name: str,
+        lambda_function_arn: str,
+        account_default_for_operations: list[str],
+        tags: Optional[list[dict[str, str]]] = None,
+    ):
+        self.certificate_provider_name = certificate_provider_name
+        self.arn = f"arn:{get_partition(region_name)}:iot:{region_name}:{account_id}:certprovider/{certificate_provider_name}"
+        self.lambda_function_arn = lambda_function_arn
+        self.account_default_for_operations = account_default_for_operations or []
+        self.tags = tags or []
+        self.created_at = utcnow()
+        self.last_modified_at = utcnow()
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "certificateProviderName": self.certificate_provider_name,
+            "certificateProviderArn": self.arn,
+        }
+
+    def to_description_dict(self) -> dict[str, Any]:
+        return {
+            "certificateProviderName": self.certificate_provider_name,
+            "certificateProviderArn": self.arn,
+            "lambdaFunctionArn": self.lambda_function_arn,
+            "accountDefaultForOperations": self.account_default_for_operations,
+            "creationDate": str(self.created_at),
+            "lastModifiedDate": str(self.last_modified_at),
+        }
+
+
+class FakeCommand(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        command_id: str,
+        namespace: Optional[str] = None,
+        display_name: Optional[str] = None,
+        description: Optional[str] = None,
+        payload: Optional[dict[str, Any]] = None,
+        mandatory_parameters: Optional[list[dict[str, Any]]] = None,
+        role_arn: Optional[str] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+    ):
+        self.command_id = command_id
+        self.arn = f"arn:{get_partition(region_name)}:iot:{region_name}:{account_id}:command/{command_id}"
+        self.namespace = namespace or "AWS-IoT"
+        self.display_name = display_name
+        self.description = description
+        self.payload = payload
+        self.mandatory_parameters = mandatory_parameters or []
+        self.role_arn = role_arn
+        self.tags = tags or []
+        self.deprecated = False
+        self.pending_deletion = False
+        self.created_at = utcnow()
+        self.last_updated_at = utcnow()
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "commandId": self.command_id,
+            "commandArn": self.arn,
+        }
+
+    def to_description_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "commandId": self.command_id,
+            "commandArn": self.arn,
+            "namespace": self.namespace,
+            "createdAt": str(self.created_at),
+            "lastUpdatedAt": str(self.last_updated_at),
+            "deprecated": self.deprecated,
+            "pendingDeletion": self.pending_deletion,
+        }
+        if self.display_name is not None:
+            result["displayName"] = self.display_name
+        if self.description is not None:
+            result["description"] = self.description
+        if self.payload is not None:
+            result["payload"] = self.payload
+        if self.mandatory_parameters:
+            result["mandatoryParameters"] = self.mandatory_parameters
+        if self.role_arn is not None:
+            result["roleArn"] = self.role_arn
+        return result
+
+
 class IoTBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -2111,6 +2203,8 @@ class IoTBackend(BaseBackend):
         self.topic_rule_destinations: dict[str, FakeTopicRuleDestination] = (
             OrderedDict()
         )
+        self.certificate_providers: dict[str, FakeCertificateProvider] = OrderedDict()
+        self.commands: dict[str, FakeCommand] = OrderedDict()
         self.event_configurations: dict[str, dict[str, Any]] = {}
         self.logging_options: dict[str, Any] = {}
         self.v2_logging_options: dict[str, Any] = {}
@@ -5285,6 +5379,129 @@ class IoTBackend(BaseBackend):
         if hasattr(resource, "tags"):
             return resource.tags
         return self.tags.get(resource_arn, [])
+
+    def create_certificate_provider(
+        self,
+        certificate_provider_name: str,
+        lambda_function_arn: str,
+        account_default_for_operations: list[str],
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> FakeCertificateProvider:
+        if certificate_provider_name in self.certificate_providers:
+            existing = self.certificate_providers[certificate_provider_name]
+            raise ResourceAlreadyExistsException(
+                "Certificate provider with given name already exists.",
+                existing.certificate_provider_name,
+                existing.arn,
+            )
+        cert_provider = FakeCertificateProvider(
+            self.account_id,
+            self.region_name,
+            certificate_provider_name,
+            lambda_function_arn,
+            account_default_for_operations,
+            tags,
+        )
+        self.certificate_providers[certificate_provider_name] = cert_provider
+        return cert_provider
+
+    def describe_certificate_provider(
+        self, certificate_provider_name: str
+    ) -> FakeCertificateProvider:
+        if certificate_provider_name not in self.certificate_providers:
+            raise ResourceNotFoundException("The specified resource does not exist.")
+        return self.certificate_providers[certificate_provider_name]
+
+    def list_certificate_providers(self) -> list[dict[str, Any]]:
+        return [_.to_dict() for _ in self.certificate_providers.values()]
+
+    def update_certificate_provider(
+        self,
+        certificate_provider_name: str,
+        lambda_function_arn: Optional[str],
+        account_default_for_operations: Optional[list[str]],
+    ) -> FakeCertificateProvider:
+        if certificate_provider_name not in self.certificate_providers:
+            raise ResourceNotFoundException("The specified resource does not exist.")
+        cert_provider = self.certificate_providers[certificate_provider_name]
+        if lambda_function_arn is not None:
+            cert_provider.lambda_function_arn = lambda_function_arn
+        if account_default_for_operations is not None:
+            cert_provider.account_default_for_operations = (
+                account_default_for_operations
+            )
+        cert_provider.last_modified_at = utcnow()
+        return cert_provider
+
+    def delete_certificate_provider(self, certificate_provider_name: str) -> None:
+        if certificate_provider_name not in self.certificate_providers:
+            raise ResourceNotFoundException("The specified resource does not exist.")
+        del self.certificate_providers[certificate_provider_name]
+
+    def create_command(
+        self,
+        command_id: str,
+        namespace: Optional[str] = None,
+        display_name: Optional[str] = None,
+        description: Optional[str] = None,
+        payload: Optional[dict[str, Any]] = None,
+        mandatory_parameters: Optional[list[dict[str, Any]]] = None,
+        role_arn: Optional[str] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> FakeCommand:
+        if command_id in self.commands:
+            existing = self.commands[command_id]
+            raise ResourceAlreadyExistsException(
+                "Command with given ID already exists.",
+                existing.command_id,
+                existing.arn,
+            )
+        command = FakeCommand(
+            self.account_id,
+            self.region_name,
+            command_id,
+            namespace,
+            display_name,
+            description,
+            payload,
+            mandatory_parameters,
+            role_arn,
+            tags,
+        )
+        self.commands[command_id] = command
+        return command
+
+    def get_command(self, command_id: str) -> FakeCommand:
+        if command_id not in self.commands:
+            raise ResourceNotFoundException("The specified resource does not exist.")
+        return self.commands[command_id]
+
+    def list_commands(self) -> list[dict[str, Any]]:
+        return [cmd.to_dict() for cmd in self.commands.values()]
+
+    def update_command(
+        self,
+        command_id: str,
+        display_name: Optional[str] = None,
+        description: Optional[str] = None,
+        deprecated: Optional[bool] = None,
+    ) -> FakeCommand:
+        if command_id not in self.commands:
+            raise ResourceNotFoundException("The specified resource does not exist.")
+        command = self.commands[command_id]
+        if display_name is not None:
+            command.display_name = display_name
+        if description is not None:
+            command.description = description
+        if deprecated is not None:
+            command.deprecated = deprecated
+        command.last_updated_at = utcnow()
+        return command
+
+    def delete_command(self, command_id: str) -> None:
+        if command_id not in self.commands:
+            raise ResourceNotFoundException("The specified resource does not exist.")
+        del self.commands[command_id]
 
 
 iot_backends = BackendDict(IoTBackend, "iot")

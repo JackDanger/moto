@@ -1847,6 +1847,360 @@ class ConnectResponse(BaseResponse):
             }
         )
 
+    # ---- Email Address ----
+
+    def create_email_address(self) -> str:
+        instance_id = self._get_instance_id()
+        params = json.loads(self.body) if self.body else {}
+        result = self.connect_backend.create_email_address(
+            instance_id=instance_id,
+            email_address=str(params["EmailAddress"]),
+            display_name=params.get("DisplayName", ""),
+            description=params.get("Description", ""),
+            tags=params.get("Tags"),
+        )
+        return json.dumps(result)
+
+    def describe_email_address(self) -> str:
+        instance_id = self._get_instance_id()
+        email_address_id = self._get_param_from_path("EmailAddressId")
+        result = self.connect_backend.describe_email_address(
+            instance_id=instance_id, email_address_id=email_address_id
+        )
+        return json.dumps(result)
+
+    def delete_email_address(self) -> str:
+        instance_id = self._get_instance_id()
+        email_address_id = self._get_param_from_path("EmailAddressId")
+        self.connect_backend.delete_email_address(
+            instance_id=instance_id, email_address_id=email_address_id
+        )
+        return "{}"
+
+    # ---- Notification ----
+
+    def create_notification(self) -> str:
+        instance_id = self._get_instance_id()
+        params = json.loads(self.body) if self.body else {}
+        result = self.connect_backend.create_notification(
+            instance_id=instance_id,
+            recipients=params["Recipients"],
+            content=params["Content"],
+            priority=params.get("Priority"),
+            expires_at=params.get("ExpiresAt"),
+            tags=params.get("Tags"),
+        )
+        return json.dumps(result)
+
+    def describe_notification(self) -> str:
+        instance_id = self._get_instance_id()
+        notification_id = self._get_param_from_path("NotificationId")
+        result = self.connect_backend.describe_notification(
+            instance_id=instance_id, notification_id=notification_id
+        )
+        return json.dumps(result)
+
+    def list_notifications(self) -> str:
+        instance_id = self._get_instance_id()
+        results = self.connect_backend.list_notifications(instance_id=instance_id)
+        return json.dumps({"NotificationSummaryList": results})
+
+    def delete_notification(self) -> str:
+        instance_id = self._get_instance_id()
+        notification_id = self._get_param_from_path("NotificationId")
+        self.connect_backend.delete_notification(
+            instance_id=instance_id, notification_id=notification_id
+        )
+        return "{}"
+
+    # ---- Workspace ----
+
+    def create_workspace(self) -> str:
+        instance_id = self._get_instance_id()
+        params = json.loads(self.body) if self.body else {}
+        result = self.connect_backend.create_workspace(
+            instance_id=instance_id,
+            name=str(params["Name"]),
+            description=params.get("Description", ""),
+            tags=params.get("Tags"),
+        )
+        return json.dumps(result)
+
+    def describe_workspace(self) -> str:
+        instance_id = self._get_instance_id()
+        workspace_id = self._get_param_from_path("WorkspaceId")
+        result = self.connect_backend.describe_workspace(
+            instance_id=instance_id, workspace_id=workspace_id
+        )
+        return json.dumps({"Workspace": result})
+
+    def list_workspaces(self) -> str:
+        instance_id = self._get_instance_id()
+        results = self.connect_backend.list_workspaces(instance_id=instance_id)
+        return json.dumps({"WorkspaceSummaryList": results})
+
+    def delete_workspace(self) -> str:
+        instance_id = self._get_instance_id()
+        workspace_id = self._get_param_from_path("WorkspaceId")
+        self.connect_backend.delete_workspace(
+            instance_id=instance_id, workspace_id=workspace_id
+        )
+        return "{}"
+
+    # ---- ContactFlowModuleAlias ----
+
+    def create_contact_flow_module_alias(self) -> str:
+        instance_id = self._get_instance_id()
+        contact_flow_module_id = self._get_param_from_path("ContactFlowModuleId")
+        params = json.loads(self.body) if self.body else {}
+        result = self.connect_backend.create_contact_flow_module_alias(
+            instance_id=instance_id,
+            contact_flow_module_id=contact_flow_module_id,
+            name=str(params["Name"]),
+            target_contact_flow_module_version=str(
+                params["TargetContactFlowModuleVersion"]
+            ),
+            description=params.get("Description", ""),
+        )
+        return json.dumps(result)
+
+    def describe_contact_flow_module_alias(self) -> str:
+        instance_id = self._get_instance_id()
+        contact_flow_module_id = self._get_param_from_path("ContactFlowModuleId")
+        alias_id = self._get_param_from_path("AliasId")
+        result = self.connect_backend.describe_contact_flow_module_alias(
+            instance_id=instance_id,
+            contact_flow_module_id=contact_flow_module_id,
+            alias_id=alias_id,
+        )
+        return json.dumps({"ContactFlowModuleAlias": result})
+
+    def list_contact_flow_module_aliases(self) -> str:
+        instance_id = self._get_instance_id()
+        contact_flow_module_id = self._get_param_from_path("ContactFlowModuleId")
+        results = self.connect_backend.list_contact_flow_module_aliases(
+            instance_id=instance_id,
+            contact_flow_module_id=contact_flow_module_id,
+        )
+        return json.dumps({"ContactFlowModuleAliasSummaryList": results})
+
+    def update_contact_flow_module_alias(self) -> str:
+        instance_id = self._get_instance_id()
+        contact_flow_module_id = self._get_param_from_path("ContactFlowModuleId")
+        alias_id = self._get_param_from_path("AliasId")
+        params = json.loads(self.body) if self.body else {}
+        result = self.connect_backend.update_contact_flow_module_alias(
+            instance_id=instance_id,
+            contact_flow_module_id=contact_flow_module_id,
+            alias_id=alias_id,
+            name=params.get("Name"),
+            target_contact_flow_module_version=params.get(
+                "TargetContactFlowModuleVersion"
+            ),
+            description=params.get("Description"),
+        )
+        return json.dumps({"ContactFlowModuleAlias": result})
+
+    def delete_contact_flow_module_alias(self) -> str:
+        instance_id = self._get_instance_id()
+        contact_flow_module_id = self._get_param_from_path("ContactFlowModuleId")
+        alias_id = self._get_param_from_path("AliasId")
+        self.connect_backend.delete_contact_flow_module_alias(
+            instance_id=instance_id,
+            contact_flow_module_id=contact_flow_module_id,
+            alias_id=alias_id,
+        )
+        return "{}"
+
+    # ---- DataTable ----
+
+    def create_data_table(self) -> str:
+        instance_id = self._get_instance_id()
+        params = json.loads(self.body) if self.body else {}
+        result = self.connect_backend.create_data_table(
+            instance_id=instance_id,
+            name=str(params["Name"]),
+            schema=params.get("Schema"),
+            tags=params.get("Tags"),
+        )
+        return json.dumps(result)
+
+    def describe_data_table(self) -> str:
+        instance_id = self._get_instance_id()
+        data_table_id = self._get_param_from_path("DataTableId")
+        result = self.connect_backend.describe_data_table(
+            instance_id=instance_id, data_table_id=data_table_id
+        )
+        return json.dumps({"DataTable": result})
+
+    def list_data_tables(self) -> str:
+        instance_id = self._get_instance_id()
+        results = self.connect_backend.list_data_tables(instance_id=instance_id)
+        return json.dumps({"DataTableSummaryList": results})
+
+    def delete_data_table(self) -> str:
+        instance_id = self._get_instance_id()
+        data_table_id = self._get_param_from_path("DataTableId")
+        self.connect_backend.delete_data_table(
+            instance_id=instance_id, data_table_id=data_table_id
+        )
+        return "{}"
+
+    # ---- DataTableAttribute ----
+
+    def create_data_table_attribute(self) -> str:
+        instance_id = self._get_instance_id()
+        data_table_id = self._get_param_from_path("DataTableId")
+        params = json.loads(self.body) if self.body else {}
+        result = self.connect_backend.create_data_table_attribute(
+            instance_id=instance_id,
+            data_table_id=data_table_id,
+            attribute_name=str(params["AttributeName"]),
+            data_type=str(params["DataType"]),
+            default_value=params.get("DefaultValue"),
+            required=params.get("Required", False),
+        )
+        return json.dumps(result)
+
+    def describe_data_table_attribute(self) -> str:
+        instance_id = self._get_instance_id()
+        data_table_id = self._get_param_from_path("DataTableId")
+        attribute_name = self._get_param_from_path("AttributeName")
+        result = self.connect_backend.describe_data_table_attribute(
+            instance_id=instance_id,
+            data_table_id=data_table_id,
+            attribute_name=attribute_name,
+        )
+        return json.dumps({"DataTableAttribute": result})
+
+    def list_data_table_attributes(self) -> str:
+        instance_id = self._get_instance_id()
+        data_table_id = self._get_param_from_path("DataTableId")
+        results = self.connect_backend.list_data_table_attributes(
+            instance_id=instance_id,
+            data_table_id=data_table_id,
+        )
+        return json.dumps({"DataTableAttributeSummaryList": results})
+
+    def update_data_table_attribute(self) -> str:
+        instance_id = self._get_instance_id()
+        data_table_id = self._get_param_from_path("DataTableId")
+        attribute_name = self._get_param_from_path("AttributeName")
+        params = json.loads(self.body) if self.body else {}
+        result = self.connect_backend.update_data_table_attribute(
+            instance_id=instance_id,
+            data_table_id=data_table_id,
+            attribute_name=attribute_name,
+            data_type=params.get("DataType"),
+            default_value=params.get("DefaultValue"),
+            required=params.get("Required"),
+        )
+        return json.dumps({"DataTableAttribute": result})
+
+    def delete_data_table_attribute(self) -> str:
+        instance_id = self._get_instance_id()
+        data_table_id = self._get_param_from_path("DataTableId")
+        attribute_name = self._get_param_from_path("AttributeName")
+        self.connect_backend.delete_data_table_attribute(
+            instance_id=instance_id,
+            data_table_id=data_table_id,
+            attribute_name=attribute_name,
+        )
+        return "{}"
+
+    # ---- TestCase ----
+
+    def create_test_case(self) -> str:
+        instance_id = self._get_instance_id()
+        params = json.loads(self.body) if self.body else {}
+        result = self.connect_backend.create_test_case(
+            instance_id=instance_id,
+            name=str(params["Name"]),
+            status=params.get("Status", "DRAFT"),
+            description=params.get("Description", ""),
+            tags=params.get("Tags"),
+        )
+        return json.dumps(result)
+
+    def describe_test_case(self) -> str:
+        instance_id = self._get_instance_id()
+        test_case_id = self._get_param_from_path("TestCaseId")
+        result = self.connect_backend.describe_test_case(
+            instance_id=instance_id, test_case_id=test_case_id
+        )
+        return json.dumps({"TestCase": result})
+
+    def list_test_cases(self) -> str:
+        instance_id = self._get_instance_id()
+        results = self.connect_backend.list_test_cases(instance_id=instance_id)
+        return json.dumps({"TestCaseSummaryList": results})
+
+    def update_test_case(self) -> str:
+        instance_id = self._get_instance_id()
+        test_case_id = self._get_param_from_path("TestCaseId")
+        params = json.loads(self.body) if self.body else {}
+        result = self.connect_backend.update_test_case(
+            instance_id=instance_id,
+            test_case_id=test_case_id,
+            name=params.get("Name"),
+            status=params.get("Status"),
+            description=params.get("Description"),
+            tags=params.get("Tags"),
+        )
+        return json.dumps({"TestCase": result})
+
+    def delete_test_case(self) -> str:
+        instance_id = self._get_instance_id()
+        test_case_id = self._get_param_from_path("TestCaseId")
+        self.connect_backend.delete_test_case(
+            instance_id=instance_id, test_case_id=test_case_id
+        )
+        return "{}"
+
+    # ---- ContactEvaluation ----
+
+    def start_contact_evaluation(self) -> str:
+        instance_id = self._get_instance_id()
+        params = json.loads(self.body) if self.body else {}
+        result = self.connect_backend.start_contact_evaluation(
+            instance_id=instance_id,
+            contact_id=str(params["ContactId"]),
+            evaluation_form_id=str(params["EvaluationFormId"]),
+            status=params.get("Status", "DRAFT"),
+            answers=params.get("Answers"),
+            notes=params.get("Notes"),
+        )
+        return json.dumps(result)
+
+    def describe_contact_evaluation(self) -> str:
+        instance_id = self._get_instance_id()
+        evaluation_id = self._get_param_from_path("EvaluationId")
+        result = self.connect_backend.describe_contact_evaluation(
+            instance_id=instance_id, evaluation_id=evaluation_id
+        )
+        return json.dumps({"ContactEvaluation": result})
+
+    def update_contact_evaluation(self) -> str:
+        instance_id = self._get_instance_id()
+        evaluation_id = self._get_param_from_path("EvaluationId")
+        params = json.loads(self.body) if self.body else {}
+        result = self.connect_backend.update_contact_evaluation(
+            instance_id=instance_id,
+            evaluation_id=evaluation_id,
+            status=params.get("Status"),
+            answers=params.get("Answers"),
+            notes=params.get("Notes"),
+        )
+        return json.dumps({"ContactEvaluation": result})
+
+    def delete_contact_evaluation(self) -> str:
+        instance_id = self._get_instance_id()
+        evaluation_id = self._get_param_from_path("EvaluationId")
+        self.connect_backend.delete_contact_evaluation(
+            instance_id=instance_id, evaluation_id=evaluation_id
+        )
+        return "{}"
+
     # ---- Tags ----
 
     def _get_resource_arn(self) -> str:

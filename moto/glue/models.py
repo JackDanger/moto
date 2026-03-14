@@ -292,6 +292,16 @@ class GlueBackend(BaseBackend):
         self.integration_resource_properties: dict[str, dict[str, Any]] = OrderedDict()
         self.integration_table_properties: dict[str, dict[str, Any]] = OrderedDict()
         self.column_statistics_task_settings: dict[str, dict[str, Any]] = OrderedDict()
+        self.table_optimizers: dict[
+            tuple[str, str, str, str], FakeTableOptimizer
+        ] = {}
+        self.connection_types: dict[str, FakeConnectionType] = {}
+        self.glue_identity_center_config: Optional[
+            FakeGlueIdentityCenterConfiguration
+        ] = None
+        self.materialized_view_refresh_task_runs: dict[
+            str, FakeMaterializedViewRefreshTaskRun
+        ] = {}
 
     def create_database(
         self,
@@ -2553,6 +2563,162 @@ class GlueBackend(BaseBackend):
     def list_classifiers(self) -> list["FakeClassifier"]:
         return list(self.classifiers.values())
 
+    # --- Connection Types ---
+
+    def create_connection_type(
+        self,
+        connection_type: str,
+        integration_type: str,
+        connection_properties: Optional[dict[str, str]] = None,
+        connector_authentication_configuration: Optional[dict[str, Any]] = None,
+        rest_configuration: Optional[dict[str, Any]] = None,
+        description: Optional[str] = None,
+        capabilities: Optional[list[str]] = None,
+    ) -> "FakeConnectionType":
+        if connection_type in self.connection_types:
+            raise AlreadyExistsException("ConnectionType")
+        ct = FakeConnectionType(
+            backend=self,
+            connection_type=connection_type,
+            integration_type=integration_type,
+            connection_properties=connection_properties,
+            connector_authentication_configuration=connector_authentication_configuration,
+            rest_configuration=rest_configuration,
+            description=description,
+            capabilities=capabilities,
+        )
+        self.connection_types[connection_type] = ct
+        return ct
+
+    def get_connection_type(self, connection_type: str) -> "FakeConnectionType":
+        if connection_type not in self.connection_types:
+            raise EntityNotFoundException(
+                f"Connection type {connection_type} not found."
+            )
+        return self.connection_types[connection_type]
+
+    def list_connection_types(self) -> list["FakeConnectionType"]:
+        return list(self.connection_types.values())
+
+    def delete_connection_type(self, connection_type: str) -> None:
+        if connection_type not in self.connection_types:
+            raise EntityNotFoundException(
+                f"Connection type {connection_type} not found."
+            )
+        del self.connection_types[connection_type]
+
+    # --- Glue Identity Center Configuration (singleton) ---
+
+    def create_glue_identity_center_configuration(
+        self,
+        instance_arn: str,
+        application_arn: Optional[str] = None,
+        scopes: Optional[list[str]] = None,
+        user_background_sessions_enabled: bool = False,
+    ) -> "FakeGlueIdentityCenterConfiguration":
+        if self.glue_identity_center_config is not None:
+            raise AlreadyExistsException("GlueIdentityCenterConfiguration")
+        config = FakeGlueIdentityCenterConfiguration(
+            backend=self,
+            instance_arn=instance_arn,
+            application_arn=application_arn,
+            scopes=scopes,
+            user_background_sessions_enabled=user_background_sessions_enabled,
+        )
+        self.glue_identity_center_config = config
+        return config
+
+    def get_glue_identity_center_configuration(
+        self,
+    ) -> "FakeGlueIdentityCenterConfiguration":
+        if self.glue_identity_center_config is None:
+            raise EntityNotFoundException(
+                "Glue Identity Center configuration not found."
+            )
+        return self.glue_identity_center_config
+
+    def update_glue_identity_center_configuration(
+        self,
+        instance_arn: Optional[str] = None,
+        application_arn: Optional[str] = None,
+        scopes: Optional[list[str]] = None,
+        user_background_sessions_enabled: Optional[bool] = None,
+    ) -> "FakeGlueIdentityCenterConfiguration":
+        if self.glue_identity_center_config is None:
+            raise EntityNotFoundException(
+                "Glue Identity Center configuration not found."
+            )
+        config = self.glue_identity_center_config
+        if instance_arn is not None:
+            config.instance_arn = instance_arn
+        if application_arn is not None:
+            config.application_arn = application_arn
+        if scopes is not None:
+            config.scopes = scopes
+        if user_background_sessions_enabled is not None:
+            config.user_background_sessions_enabled = user_background_sessions_enabled
+        return config
+
+    def delete_glue_identity_center_configuration(self) -> None:
+        if self.glue_identity_center_config is None:
+            raise EntityNotFoundException(
+                "Glue Identity Center configuration not found."
+            )
+        self.glue_identity_center_config = None
+
+    # --- Materialized View Refresh Task Runs ---
+
+    def start_materialized_view_refresh_task_run(
+        self,
+        catalog_id: str,
+        database_name: str,
+        table_name: str,
+    ) -> "FakeMaterializedViewRefreshTaskRun":
+        self.get_table(database_name, table_name)
+        task_run_id = str(mock_random.uuid4())
+        task = FakeMaterializedViewRefreshTaskRun(
+            task_run_id=task_run_id,
+            catalog_id=catalog_id or self.account_id,
+            database_name=database_name,
+            table_name=table_name,
+        )
+        self.materialized_view_refresh_task_runs[task_run_id] = task
+        return task
+
+    def get_materialized_view_refresh_task_run(
+        self, task_run_id: str
+    ) -> "FakeMaterializedViewRefreshTaskRun":
+        if task_run_id not in self.materialized_view_refresh_task_runs:
+            raise EntityNotFoundException(
+                f"Materialized view refresh task run {task_run_id} not found."
+            )
+        return self.materialized_view_refresh_task_runs[task_run_id]
+
+    def list_materialized_view_refresh_task_runs(
+        self,
+        catalog_id: Optional[str] = None,
+        database_name: Optional[str] = None,
+        table_name: Optional[str] = None,
+        task_run_id: Optional[str] = None,
+    ) -> list["FakeMaterializedViewRefreshTaskRun"]:
+        tasks = list(self.materialized_view_refresh_task_runs.values())
+        if catalog_id is not None:
+            tasks = [t for t in tasks if t.catalog_id == catalog_id]
+        if database_name is not None:
+            tasks = [t for t in tasks if t.database_name == database_name]
+        if table_name is not None:
+            tasks = [t for t in tasks if t.table_name == table_name]
+        if task_run_id is not None:
+            tasks = [t for t in tasks if t.task_run_id == task_run_id]
+        return tasks
+
+    def stop_materialized_view_refresh_task_run(self, task_run_id: str) -> None:
+        if task_run_id not in self.materialized_view_refresh_task_runs:
+            raise EntityNotFoundException(
+                f"Materialized view refresh task run {task_run_id} not found."
+            )
+        del self.materialized_view_refresh_task_runs[task_run_id]
+
     # --- Resource Policies (batch) ---
 
     def get_resource_policies(self) -> list[dict[str, Any]]:
@@ -3175,6 +3341,102 @@ class GlueBackend(BaseBackend):
         self, profile_id: str, inclusion_annotation: str
     ) -> None:
         pass
+
+    def create_table_optimizer(
+        self,
+        catalog_id: str,
+        database_name: str,
+        table_name: str,
+        type_: str,
+        configuration: dict[str, Any],
+    ) -> None:
+        key = (catalog_id, database_name, table_name, type_)
+        if key in self.table_optimizers:
+            raise AlreadyExistsException("TableOptimizer")
+        self.table_optimizers[key] = FakeTableOptimizer(
+            catalog_id=catalog_id,
+            database_name=database_name,
+            table_name=table_name,
+            type_=type_,
+            configuration=configuration,
+        )
+
+    def get_table_optimizer(
+        self,
+        catalog_id: str,
+        database_name: str,
+        table_name: str,
+        type_: str,
+    ) -> "FakeTableOptimizer":
+        key = (catalog_id, database_name, table_name, type_)
+        if key not in self.table_optimizers:
+            raise EntityNotFoundException(
+                f"Table optimizer not found for CatalogId: {catalog_id}, "
+                f"DatabaseName: {database_name}, TableName: {table_name}, Type: {type_}"
+            )
+        return self.table_optimizers[key]
+
+    def update_table_optimizer(
+        self,
+        catalog_id: str,
+        database_name: str,
+        table_name: str,
+        type_: str,
+        configuration: dict[str, Any],
+    ) -> None:
+        optimizer = self.get_table_optimizer(
+            catalog_id, database_name, table_name, type_
+        )
+        optimizer.configuration = configuration
+
+    def delete_table_optimizer(
+        self,
+        catalog_id: str,
+        database_name: str,
+        table_name: str,
+        type_: str,
+    ) -> None:
+        key = (catalog_id, database_name, table_name, type_)
+        if key not in self.table_optimizers:
+            raise EntityNotFoundException(
+                f"Table optimizer not found for CatalogId: {catalog_id}, "
+                f"DatabaseName: {database_name}, TableName: {table_name}, Type: {type_}"
+            )
+        del self.table_optimizers[key]
+
+    def batch_get_table_optimizer(
+        self, entries: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        results = []
+        for entry in entries:
+            catalog_id = entry.get("CatalogId", "")
+            database_name = entry.get("DatabaseName", "")
+            table_name = entry.get("TableName", "")
+            type_ = entry.get("Type", "")
+            key = (catalog_id, database_name, table_name, type_)
+            optimizer = self.table_optimizers.get(key)
+            if optimizer:
+                results.append(
+                    {
+                        "CatalogId": catalog_id,
+                        "DatabaseName": database_name,
+                        "TableName": table_name,
+                        "TableOptimizer": optimizer.as_dict(),
+                    }
+                )
+        return results
+
+    def list_table_optimizer_runs(
+        self,
+        catalog_id: str,
+        database_name: str,
+        table_name: str,
+        type_: str,
+    ) -> list[dict[str, Any]]:
+        # Verify the optimizer exists
+        self.get_table_optimizer(catalog_id, database_name, table_name, type_)
+        # Runs are async; return empty list
+        return []
 
 
 class FakeIntegration(BaseModel):
@@ -4430,6 +4692,119 @@ class FakeUsageProfile(BaseModel):
         if self.configuration:
             result["Configuration"] = self.configuration
         return result
+
+
+class FakeTableOptimizer(BaseModel):
+    def __init__(
+        self,
+        catalog_id: str,
+        database_name: str,
+        table_name: str,
+        type_: str,
+        configuration: dict[str, Any],
+    ) -> None:
+        self.catalog_id = catalog_id
+        self.database_name = database_name
+        self.table_name = table_name
+        self.type = type_
+        self.configuration = configuration
+        self.created_on = utcnow()
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "type": self.type,
+            "configuration": self.configuration,
+            "lastRun": {},
+        }
+
+
+class FakeConnectionType(BaseModel):
+    def __init__(
+        self,
+        backend: GlueBackend,
+        connection_type: str,
+        integration_type: str,
+        connection_properties: Optional[dict[str, str]] = None,
+        connector_authentication_configuration: Optional[dict[str, Any]] = None,
+        rest_configuration: Optional[dict[str, Any]] = None,
+        description: Optional[str] = None,
+        capabilities: Optional[list[str]] = None,
+    ) -> None:
+        self.connection_type = connection_type
+        self.integration_type = integration_type
+        self.connection_properties = connection_properties or {}
+        self.connector_authentication_configuration = (
+            connector_authentication_configuration or {}
+        )
+        self.rest_configuration = rest_configuration or {}
+        self.description = description
+        self.capabilities = capabilities or []
+        self.arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:connectiontype/{connection_type}"
+
+    def as_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "ConnectionType": self.connection_type,
+            "ConnectionProperties": self.connection_properties,
+            "AuthenticationConfiguration": self.connector_authentication_configuration,
+            "RestConfiguration": self.rest_configuration,
+        }
+        if self.description is not None:
+            result["Description"] = self.description
+        if self.capabilities:
+            result["Capabilities"] = self.capabilities
+        return result
+
+
+class FakeGlueIdentityCenterConfiguration(BaseModel):
+    def __init__(
+        self,
+        backend: GlueBackend,
+        instance_arn: str,
+        application_arn: Optional[str] = None,
+        scopes: Optional[list[str]] = None,
+        user_background_sessions_enabled: bool = False,
+    ) -> None:
+        self.instance_arn = instance_arn
+        self.application_arn = (
+            application_arn
+            or f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:application/glue-identity-center"
+        )
+        self.scopes = scopes or []
+        self.user_background_sessions_enabled = user_background_sessions_enabled
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "ApplicationArn": self.application_arn,
+            "InstanceArn": self.instance_arn,
+            "Scopes": self.scopes,
+            "UserBackgroundSessionsEnabled": self.user_background_sessions_enabled,
+        }
+
+
+class FakeMaterializedViewRefreshTaskRun(BaseModel):
+    def __init__(
+        self,
+        task_run_id: str,
+        catalog_id: str,
+        database_name: str,
+        table_name: str,
+    ) -> None:
+        self.task_run_id = task_run_id
+        self.catalog_id = catalog_id
+        self.database_name = database_name
+        self.table_name = table_name
+        self.status = "COMPLETED"
+        self.started_on = utcnow()
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "MaterializedViewRefreshTaskRunId": self.task_run_id,
+            "CatalogId": self.catalog_id,
+            "DatabaseName": self.database_name,
+            "TableName": self.table_name,
+            "Status": self.status,
+            "StartedOn": self.started_on,
+        }
 
 
 glue_backends = BackendDict(GlueBackend, "glue")
