@@ -966,11 +966,11 @@ class LogsResponse(BaseResponse):
         return "{}"
 
     def create_scheduled_query(self) -> str:
-        name = self._get_param("queryName")
+        name = self._get_param("name")
         query_string = self._get_param("queryString")
-        log_group_names = self._get_param("logGroupNames", [])
+        log_group_names = self._get_param("logGroupIdentifiers", [])
         schedule_expression = self._get_param("scheduleExpression")
-        target_configuration = self._get_param("targetConfiguration")
+        target_configuration = self._get_param("destinationConfiguration")
         sq = self.logs_backend.create_scheduled_query(
             name=name,
             query_string=query_string,
@@ -978,36 +978,37 @@ class LogsResponse(BaseResponse):
             schedule_expression=schedule_expression,
             target_configuration=target_configuration,
         )
-        return json.dumps({"scheduledQuery": sq.to_dict()})
+        return json.dumps({"scheduledQueryArn": sq.arn, "state": sq.status})
 
     def get_scheduled_query(self) -> str:
-        arn = self._get_param("arn")
-        sq = self.logs_backend.get_scheduled_query(arn=arn)
-        return json.dumps({"scheduledQuery": sq.to_dict()})
+        identifier = self._get_param("identifier")
+        sq = self.logs_backend.get_scheduled_query(arn=identifier)
+        return json.dumps(sq.to_dict())
 
     def update_scheduled_query(self) -> str:
-        arn = self._get_param("arn")
+        identifier = self._get_param("identifier")
         query_string = self._get_param("queryString")
         schedule_expression = self._get_param("scheduleExpression")
-        log_group_names = self._get_param("logGroupNames")
-        target_configuration = self._get_param("targetConfiguration")
-        enabled = self._get_param("enabled")
+        log_group_names = self._get_param("logGroupIdentifiers")
+        target_configuration = self._get_param("destinationConfiguration")
+        state = self._get_param("state")
+        enabled = None if state is None else (state == "ACTIVE")
         sq = self.logs_backend.update_scheduled_query(
-            arn=arn,
+            arn=identifier,
             query_string=query_string,
             schedule_expression=schedule_expression,
             log_group_names=log_group_names,
             target_configuration=target_configuration,
             enabled=enabled,
         )
-        return json.dumps({"scheduledQuery": sq.to_dict()})
+        return json.dumps(sq.to_dict())
 
     def delete_scheduled_query(self) -> str:
-        arn = self._get_param("arn")
-        self.logs_backend.delete_scheduled_query(arn=arn)
+        identifier = self._get_param("identifier")
+        self.logs_backend.delete_scheduled_query(arn=identifier)
         return "{}"
 
     def get_scheduled_query_history(self) -> str:
-        arn = self._get_param("arn")
-        history = self.logs_backend.get_scheduled_query_history(arn=arn)
+        identifier = self._get_param("identifier")
+        history = self.logs_backend.get_scheduled_query_history(arn=identifier)
         return json.dumps({"scheduledQueryRunSummaries": history})
