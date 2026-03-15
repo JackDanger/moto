@@ -771,8 +771,8 @@ class AthenaResponse(BaseResponse):
         )
 
     def get_resource_dashboard(self) -> Union[str, tuple[str, dict[str, int]]]:
-        work_group = self._get_param("WorkGroup")
-        result = self.athena_backend.get_resource_dashboard(work_group)
+        resource_arn = self._get_param("ResourceARN") or ""
+        result = self.athena_backend.get_resource_dashboard(resource_arn)
         return json.dumps(result)
 
     def get_query_runtime_statistics(self) -> Union[str, tuple[str, dict[str, int]]]:

@@ -49,13 +49,11 @@ class DataBrewResponse(BaseResponse):
 
     def list_recipes(self) -> str:
         # https://docs.aws.amazon.com/databrew/latest/dg/API_ListRecipes.html
-        next_token = self._get_param("NextToken", self._get_param("nextToken"))
+        next_token = self._get_param("nextToken", self._get_param("nextToken"))
         max_results = self._get_int_param(
             "MaxResults", self._get_int_param("maxResults")
         )
-        recipe_version = self._get_param(
-            "RecipeVersion", self._get_param("recipeVersion")
-        )
+        recipe_version = self._get_param("recipeVersion")
 
         recipe_list, next_token = self.databrew_backend.list_recipes(
             next_token=next_token,
@@ -71,8 +69,8 @@ class DataBrewResponse(BaseResponse):
 
     def list_recipe_versions(self) -> str:
         # https://docs.aws.amazon.com/databrew/latest/dg/API_ListRecipeVersions.html
-        recipe_name = self._get_param("Name", self._get_param("name"))
-        next_token = self._get_param("NextToken", self._get_param("nextToken"))
+        recipe_name = self._get_param("name")
+        next_token = self._get_param("nextToken", self._get_param("nextToken"))
         max_results = self._get_int_param(
             "MaxResults", self._get_int_param("maxResults")
         )
@@ -108,9 +106,7 @@ class DataBrewResponse(BaseResponse):
     def describe_recipe(self) -> str:
         # https://docs.aws.amazon.com/databrew/latest/dg/API_DescribeRecipe.html
         recipe_name = self._get_path().rstrip("/").rsplit("/", 1)[1]
-        recipe_version = self._get_param(
-            "RecipeVersion", self._get_param("recipeVersion")
-        )
+        recipe_version = self._get_param("recipeVersion")
         recipe = self.databrew_backend.describe_recipe(
             recipe_name, recipe_version=recipe_version
         )
@@ -163,7 +159,7 @@ class DataBrewResponse(BaseResponse):
 
     def list_rulesets(self) -> str:
         # https://docs.aws.amazon.com/databrew/latest/dg/API_ListRulesets.html
-        next_token = self._get_param("NextToken", self._get_param("nextToken"))
+        next_token = self._get_param("nextToken", self._get_param("nextToken"))
         max_results = self._get_int_param(
             "MaxResults", self._get_int_param("maxResults")
         )
@@ -202,7 +198,7 @@ class DataBrewResponse(BaseResponse):
         )
 
     def list_datasets(self) -> str:
-        next_token = self._get_param("NextToken", self._get_param("nextToken"))
+        next_token = self._get_param("nextToken", self._get_param("nextToken"))
         max_results = self._get_int_param(
             "MaxResults", self._get_int_param("maxResults")
         )
@@ -273,7 +269,7 @@ class DataBrewResponse(BaseResponse):
         return json.dumps(project.as_dict())
 
     def list_projects(self) -> str:
-        next_token = self._get_param("NextToken", self._get_param("nextToken"))
+        next_token = self._get_param("nextToken", self._get_param("nextToken"))
         max_results = self._get_int_param(
             "MaxResults", self._get_int_param("maxResults")
         )
@@ -324,7 +320,7 @@ class DataBrewResponse(BaseResponse):
         return json.dumps(schedule.as_dict())
 
     def list_schedules(self) -> str:
-        next_token = self._get_param("NextToken", self._get_param("nextToken"))
+        next_token = self._get_param("nextToken", self._get_param("nextToken"))
         max_results = self._get_int_param(
             "MaxResults", self._get_int_param("maxResults")
         )
@@ -357,7 +353,7 @@ class DataBrewResponse(BaseResponse):
         # https://docs.aws.amazon.com/databrew/latest/dg/API_ListJobs.html
         dataset_name = self._get_param("datasetName")
         project_name = self._get_param("projectName")
-        next_token = self._get_param("NextToken", self._get_param("nextToken"))
+        next_token = self._get_param("nextToken", self._get_param("nextToken"))
         max_results = self._get_int_param(
             "MaxResults", self._get_int_param("maxResults")
         )
