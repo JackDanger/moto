@@ -44,7 +44,7 @@ class ConfigResponse(BaseResponse):
     def describe_configuration_aggregator_sources_status(self) -> str:
         result = self.config_backend.describe_configuration_aggregator_sources_status(
             aggregator_name=self._get_param("ConfigurationAggregatorName") or "",
-            filters=self._get_param("Filters"),
+            filters=self._get_param("UpdateStatus"),
             limit=self._get_param("Limit"),
             next_token=self._get_param("NextToken"),
         )

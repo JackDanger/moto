@@ -1149,10 +1149,10 @@ class AthenaBackend(BaseBackend):
 
     # --- Resource dashboard ---
 
-    def get_resource_dashboard(self, work_group: str) -> dict[str, Any]:
+    def get_resource_dashboard(self, resource_arn: str) -> dict[str, Any]:
         return {
             "ResourceDashboard": {
-                "WorkGroup": work_group,
+                "ResourceArn": resource_arn,
                 "QueryCount": len(self.executions),
                 "NamedQueryCount": len(self.named_queries),
             }
