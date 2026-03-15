@@ -1040,6 +1040,7 @@ class ScheduledQuery(BaseModel):
         log_group_names: list[str],
         schedule_expression: str,
         target_configuration: Optional[dict[str, Any]] = None,
+        query_language: str = "CWLI",
     ):
         self.name = name
         self.scheduled_query_id = mock_random.get_random_hex(16)
@@ -1048,6 +1049,7 @@ class ScheduledQuery(BaseModel):
             f":scheduled-query:{self.scheduled_query_id}"
         )
         self.query_string = query_string
+        self.query_language = query_language
         self.log_group_names = log_group_names
         self.schedule_expression = schedule_expression
         self.target_configuration = target_configuration or {}
@@ -1061,8 +1063,9 @@ class ScheduledQuery(BaseModel):
             "name": self.name,
             "scheduledQueryId": self.scheduled_query_id,
             "arn": self.arn,
+            "queryLanguage": self.query_language,
             "queryString": self.query_string,
-            "logGroupNames": self.log_group_names,
+            "logGroupIdentifiers": self.log_group_names,
             "scheduleExpression": self.schedule_expression,
             "status": self.status,
             "creationTime": self.creation_time,
@@ -2265,6 +2268,7 @@ class LogsBackend(BaseBackend):
         log_group_names: list[str],
         schedule_expression: str,
         target_configuration: Optional[dict[str, Any]] = None,
+        query_language: str = "CWLI",
     ) -> ScheduledQuery:
         # Check for duplicate name
         for sq in self.scheduled_queries.values():
@@ -2280,6 +2284,7 @@ class LogsBackend(BaseBackend):
             log_group_names=log_group_names,
             schedule_expression=schedule_expression,
             target_configuration=target_configuration,
+            query_language=query_language,
         )
         self.scheduled_queries[sq.arn] = sq
         return sq

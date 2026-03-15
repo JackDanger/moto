@@ -967,12 +967,14 @@ class LogsResponse(BaseResponse):
 
     def create_scheduled_query(self) -> str:
         name = self._get_param("name")
+        query_language = self._get_param("queryLanguage", "CWLI")
         query_string = self._get_param("queryString")
         log_group_names = self._get_param("logGroupIdentifiers", [])
         schedule_expression = self._get_param("scheduleExpression")
         target_configuration = self._get_param("destinationConfiguration")
         sq = self.logs_backend.create_scheduled_query(
             name=name,
+            query_language=query_language,
             query_string=query_string,
             log_group_names=log_group_names,
             schedule_expression=schedule_expression,
