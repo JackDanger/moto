@@ -2,7 +2,7 @@ import time
 from datetime import datetime
 from typing import Any, Optional
 
-from moto.athena.exceptions import InvalidArgumentException, QueryStillRunning
+from moto.athena.exceptions import AthenaClientError, InvalidArgumentException, QueryStillRunning
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random
@@ -638,12 +638,15 @@ class AthenaBackend(BaseBackend):
 
     def get_prepared_statement(
         self, statement_name: str, work_group: WorkGroup
-    ) -> Optional[PreparedStatement]:
+    ) -> PreparedStatement:
         if statement_name in self.prepared_statements:
             ps = self.prepared_statements[statement_name]
             if ps.workgroup == work_group:
                 return ps
-        return None
+        raise AthenaClientError(
+            "ResourceNotFoundException",
+            f"PreparedStatement {statement_name} was not found in {work_group}",
+        )
 
     def delete_prepared_statement(self, statement_name: str, work_group: str) -> None:
         if statement_name in self.prepared_statements:

@@ -778,30 +778,24 @@ class WorkSpacesBackend(BaseBackend):
             tags.remove(t)
 
     def describe_tags(self, resource_id: str) -> list[dict[str, str]]:
+        # AWS returns empty tags (not an error) for nonexistent resources
         if resource_id.startswith("d-"):
-            ds = self.workspace_directories[resource_id]
-            tag_list = ds.tags
+            resource = self.workspace_directories.get(resource_id)
         elif resource_id.startswith("ws-"):
-            ws = self.workspaces[resource_id]
-            tag_list = ws.tags
+            resource = self.workspaces.get(resource_id)
         elif resource_id.startswith("wsi-"):
-            wsi = self.workspace_images[resource_id]
-            tag_list = wsi.tags
+            resource = self.workspace_images.get(resource_id)
         elif resource_id.startswith("wsipg-"):
-            grp = self.ip_groups[resource_id]
-            tag_list = grp.tags
+            resource = self.ip_groups.get(resource_id)
         elif resource_id.startswith("wsca-"):
-            ca = self.connection_aliases[resource_id]
-            tag_list = ca.tags
+            resource = self.connection_aliases.get(resource_id)
         elif resource_id.startswith("wsb-"):
-            bun = self.workspace_bundles[resource_id]
-            tag_list = bun.tags
+            resource = self.workspace_bundles.get(resource_id)
         elif resource_id.startswith("wsp-"):
-            pool = self.workspaces_pools[resource_id]
-            tag_list = pool.tags
+            resource = self.workspaces_pools.get(resource_id)
         else:
-            tag_list = []
-        return tag_list
+            resource = None
+        return resource.tags if resource is not None else []
 
     def describe_client_properties(self, resource_ids: str) -> list[dict[str, Any]]:
         workspace_directories = list(self.workspace_directories.values())

@@ -642,7 +642,7 @@ class OpenSearchServiceBackend(BaseBackend):
         off_peak_window_options: dict[str, Any],
         software_update_options: dict[str, Any],
     ) -> "OpenSearchDomain":
-        domain = self.domains[domain_name]
+        domain = self.describe_domain(domain_name)
         domain.cluster_config = cluster_config or domain.cluster_config
         domain.ebs_options = ebs_options or domain.ebs_options
         domain.access_policies = access_policies or domain.access_policies
