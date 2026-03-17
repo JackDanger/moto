@@ -2210,6 +2210,9 @@ class IoTBackend(BaseBackend):
         self.v2_logging_options: dict[str, Any] = {}
         self.v2_logging_levels: dict[str, dict[str, Any]] = OrderedDict()
         self.audit_suppressions: dict[str, dict[str, Any]] = OrderedDict()
+        self.audit_mitigation_tasks: dict[str, dict[str, Any]] = OrderedDict()
+        self.detect_mitigation_tasks: dict[str, dict[str, Any]] = OrderedDict()
+        self.thing_registration_tasks: dict[str, dict[str, Any]] = OrderedDict()
         self.report_jobs: dict[str, dict[str, Any]] = OrderedDict()
 
     @staticmethod
@@ -3720,8 +3723,38 @@ class IoTBackend(BaseBackend):
         billing_group = self.describe_billing_group(billing_group_name)
         return [self.things[arn] for arn in billing_group.things]
 
-    def describe_thing_registration_task(self, task_id: str) -> None:
-        raise ResourceNotFoundException(f"Task {task_id} cannot be found.")
+    def start_thing_registration_task(
+        self,
+        template_body: str,
+        input_file_bucket: str,
+        input_file_key: str,
+        role_arn: str,
+    ) -> str:
+        import uuid
+
+        task_id = str(uuid.uuid4())
+        self.thing_registration_tasks[task_id] = {
+            "taskId": task_id,
+            "status": "InProgress",
+            "templateBody": template_body,
+            "inputFileBucket": input_file_bucket,
+            "inputFileKey": input_file_key,
+            "roleArn": role_arn,
+            "successCount": 0,
+            "failureCount": 0,
+            "percentageProgress": 0,
+        }
+        return task_id
+
+    def describe_thing_registration_task(self, task_id: str) -> dict[str, Any]:
+        if task_id not in self.thing_registration_tasks:
+            raise ResourceNotFoundException(f"Task {task_id} cannot be found.")
+        return self.thing_registration_tasks[task_id]
+
+    def stop_thing_registration_task(self, task_id: str) -> None:
+        if task_id not in self.thing_registration_tasks:
+            raise ResourceNotFoundException(f"Task {task_id} cannot be found.")
+        del self.thing_registration_tasks[task_id]
 
     # --- Security Profiles ---
 
@@ -4232,8 +4265,9 @@ class IoTBackend(BaseBackend):
         return statistics
 
     def get_topic_rule_destination(self, arn: str) -> dict[str, Any]:
-        """Return a topic rule destination by ARN. Not yet stored, so always raises."""
-        raise ResourceNotFoundException()
+        if arn not in self.topic_rule_destinations:
+            raise ResourceNotFoundException()
+        return self.topic_rule_destinations[arn].to_dict()
 
     def get_v2_logging_options(self) -> dict[str, Any]:
         """Return default V2 logging options."""
@@ -4716,28 +4750,48 @@ class IoTBackend(BaseBackend):
         raise ResourceNotFoundException(f"Audit finding {finding_id} does not exist.")
 
     def describe_audit_mitigation_actions_task(self, task_id: str) -> dict[str, Any]:
-        """Audit mitigation tasks are not stored yet; always raises."""
-        raise ResourceNotFoundException(
-            f"Audit mitigation actions task {task_id} does not exist."
-        )
+        if task_id not in self.audit_mitigation_tasks:
+            raise ResourceNotFoundException(
+                f"Audit mitigation actions task {task_id} does not exist."
+            )
+        return self.audit_mitigation_tasks[task_id]
 
     def describe_audit_suppression(
         self,
         check_name: str,
         resource_identifier: dict[str, Any],
     ) -> dict[str, Any]:
-        """Audit suppressions are not stored yet; always raises."""
-        raise ResourceNotFoundException("Audit suppression does not exist.")
+        key = f"{check_name}:{json.dumps(resource_identifier, sort_keys=True)}"
+        if key not in self.audit_suppressions:
+            raise ResourceNotFoundException("Audit suppression does not exist.")
+        return self.audit_suppressions[key]
 
     def describe_audit_task(self, task_id: str) -> dict[str, Any]:
         """Audit tasks are not stored yet; always raises."""
         raise ResourceNotFoundException(f"Audit task {task_id} does not exist.")
 
+    def start_detect_mitigation_actions_task(
+        self,
+        task_id: str,
+        target: dict[str, Any],
+        actions: list[str],
+    ) -> str:
+        self.detect_mitigation_tasks[task_id] = {
+            "taskSummary": {
+                "taskId": task_id,
+                "taskStatus": "IN_PROGRESS",
+                "target": target or {},
+                "actionsDefinition": [{"name": a} for a in (actions or [])],
+            }
+        }
+        return task_id
+
     def describe_detect_mitigation_actions_task(self, task_id: str) -> dict[str, Any]:
-        """Detect mitigation actions tasks are not stored yet; always raises."""
-        raise ResourceNotFoundException(
-            f"Detect mitigation actions task {task_id} does not exist."
-        )
+        if task_id not in self.detect_mitigation_tasks:
+            raise ResourceNotFoundException(
+                f"Detect mitigation actions task {task_id} does not exist."
+            )
+        return self.detect_mitigation_tasks[task_id]
 
     # --- Stub lists for not-yet-stored resources ---
 
@@ -5227,6 +5281,14 @@ class IoTBackend(BaseBackend):
         target: dict[str, Any],
         audit_check_to_actions_mapping: dict[str, list[str]],
     ) -> str:
+        self.audit_mitigation_tasks[task_id] = {
+            "taskId": task_id,
+            "taskStatus": "IN_PROGRESS",
+            "taskStatistics": {},
+            "target": target or {},
+            "auditCheckToActionsMapping": audit_check_to_actions_mapping or {},
+            "actionsDefinition": [],
+        }
         return task_id
 
     def cancel_audit_mitigation_actions_task(self, task_id: str) -> None:

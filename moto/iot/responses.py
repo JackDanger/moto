@@ -1402,9 +1402,27 @@ class IoTResponse(BaseResponse):
         )
         return ActionResult(result)
 
+    def start_thing_registration_task(self) -> ActionResult:
+        template_body = self._get_param("templateBody")
+        input_file_bucket = self._get_param("inputFileBucket")
+        input_file_key = self._get_param("inputFileKey")
+        role_arn = self._get_param("roleArn")
+        task_id = self.iot_backend.start_thing_registration_task(
+            template_body=template_body,
+            input_file_bucket=input_file_bucket,
+            input_file_key=input_file_key,
+            role_arn=role_arn,
+        )
+        return ActionResult({"taskId": task_id})
+
     def describe_thing_registration_task(self) -> ActionResult:
         task_id = self._get_param("taskId")
-        self.iot_backend.describe_thing_registration_task(task_id=task_id)
+        result = self.iot_backend.describe_thing_registration_task(task_id=task_id)
+        return ActionResult(result)
+
+    def stop_thing_registration_task(self) -> ActionResult:
+        task_id = self._get_param("taskId")
+        self.iot_backend.stop_thing_registration_task(task_id=task_id)
         return EmptyResult()
 
     def list_detect_mitigation_actions_executions(self) -> ActionResult:
@@ -1705,6 +1723,17 @@ class IoTResponse(BaseResponse):
         task_id = self._get_param("taskId")
         result = self.iot_backend.describe_audit_task(task_id=task_id)
         return ActionResult(result)
+
+    def start_detect_mitigation_actions_task(self) -> ActionResult:
+        task_id = self._get_param("taskId")
+        target = self._get_param("target")
+        actions = self._get_param("actions")
+        result_task_id = self.iot_backend.start_detect_mitigation_actions_task(
+            task_id=task_id,
+            target=target,
+            actions=actions,
+        )
+        return ActionResult({"taskId": result_task_id})
 
     def describe_detect_mitigation_actions_task(self) -> ActionResult:
         task_id = self._get_param("taskId")
