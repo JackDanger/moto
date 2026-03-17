@@ -1323,7 +1323,7 @@ class ConnectResponse(BaseResponse):
         self.connect_backend.create_predefined_attribute(
             instance_id=instance_id,
             name=str(params["Name"]),
-            values=params["Values"],
+            values=params.get("Values", {}),
         )
         return "{}"
 
@@ -1956,9 +1956,9 @@ class ConnectResponse(BaseResponse):
         result = self.connect_backend.create_contact_flow_module_alias(
             instance_id=instance_id,
             contact_flow_module_id=contact_flow_module_id,
-            name=str(params["Name"]),
+            name=str(params["AliasName"]),
             target_contact_flow_module_version=str(
-                params["TargetContactFlowModuleVersion"]
+                params["ContactFlowModuleVersion"]
             ),
             description=params.get("Description", ""),
         )
@@ -2055,8 +2055,8 @@ class ConnectResponse(BaseResponse):
         result = self.connect_backend.create_data_table_attribute(
             instance_id=instance_id,
             data_table_id=data_table_id,
-            attribute_name=str(params["AttributeName"]),
-            data_type=str(params["DataType"]),
+            attribute_name=str(params["Name"]),
+            data_type=str(params["ValueType"]),
             default_value=params.get("DefaultValue"),
             required=params.get("Required", False),
         )

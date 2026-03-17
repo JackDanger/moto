@@ -623,12 +623,14 @@ class PredefinedAttribute(BaseModel):
         self.last_modified_region = instance_arn.split(":")[3]
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        result: dict[str, Any] = {
             "Name": self.name,
-            "Values": self.values,
             "LastModifiedTime": self.last_modified_time,
             "LastModifiedRegion": self.last_modified_region,
         }
+        if self.values:
+            result["Values"] = self.values
+        return result
 
 
 class TaskTemplate(BaseModel):
@@ -1137,6 +1139,7 @@ class FakeDataTableAttribute(BaseModel):
         default_value: Optional[str] = None,
         required: bool = False,
     ) -> None:
+        self.attribute_id = str(uuid.uuid4())
         self.attribute_name = attribute_name
         self.arn = (
             f"{instance_arn}/data-table/{data_table_id}/attribute/{attribute_name}"
@@ -4312,7 +4315,7 @@ class ConnectBackend(BaseBackend):
         self.contact_flow_module_aliases[instance_id].setdefault(
             contact_flow_module_id, {}
         )[alias.alias_id] = alias
-        return {"AliasId": alias.alias_id, "AliasArn": alias.arn}
+        return {"Id": alias.alias_id, "ContactFlowModuleArn": alias.arn}
 
     def describe_contact_flow_module_alias(
         self,
@@ -4469,7 +4472,7 @@ class ConnectBackend(BaseBackend):
         self.data_table_attributes.setdefault(instance_id, {})
         self.data_table_attributes[instance_id].setdefault(data_table_id, {})
         self.data_table_attributes[instance_id][data_table_id][attribute_name] = attr
-        return {"AttributeName": attribute_name}
+        return {"Name": attribute_name, "AttributeId": attr.attribute_id, "LockVersion": {}}
 
     def describe_data_table_attribute(
         self,
