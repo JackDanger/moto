@@ -267,7 +267,8 @@ def validate_schema_params(
     if tags:
         validate_number_of_tags(tags)
 
-    validate_schema_definition(schema_definition, data_format)
+    if schema_definition is not None:
+        validate_schema_definition(schema_definition, data_format)
 
     if num_schemas >= MAX_SCHEMAS_ALLOWED:
         raise GeneralResourceNumberLimitExceededException(resource="schemas")
@@ -393,6 +394,8 @@ def get_schema_version_if_definition_exists(
 ) -> Optional[dict[str, Any]]:
     if data_format in ["AVRO", "JSON"]:
         for schema_version in schema_versions:
+            if schema_version.schema_definition is None:
+                continue
             if json.loads(schema_definition) == json.loads(
                 schema_version.schema_definition
             ):

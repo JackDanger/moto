@@ -1397,8 +1397,8 @@ class GlueResponse(BaseResponse):
 
     def get_column_statistics_task_run(self) -> ActionResult:
         run_id = self._get_param("ColumnStatisticsTaskRunId")
-        self.glue_backend.get_column_statistics_task_run(run_id)
-        return EmptyResult()  # never reached
+        run = self.glue_backend.get_column_statistics_task_run(run_id)
+        return ActionResult({"ColumnStatisticsTaskRun": run})
 
     def get_column_statistics_task_runs(self) -> ActionResult:
         database_name = self._get_param("DatabaseName")
@@ -1434,21 +1434,21 @@ class GlueResponse(BaseResponse):
 
     def get_data_quality_rule_recommendation_run(self) -> ActionResult:
         run_id = self._get_param("RunId")
-        self.glue_backend.get_data_quality_rule_recommendation_run(run_id)
-        return EmptyResult()  # never reached
+        run = self.glue_backend.get_data_quality_rule_recommendation_run(run_id)
+        return ActionResult(run)
 
     def get_data_quality_ruleset_evaluation_run(self) -> ActionResult:
         run_id = self._get_param("RunId")
-        self.glue_backend.get_data_quality_ruleset_evaluation_run(run_id)
-        return EmptyResult()  # never reached
+        run = self.glue_backend.get_data_quality_ruleset_evaluation_run(run_id)
+        return ActionResult(run)
 
     # --- Blueprint Runs ---
 
     def get_blueprint_run(self) -> ActionResult:
         blueprint_name = self._get_param("BlueprintName")
         run_id = self._get_param("RunId")
-        self.glue_backend.get_blueprint_run(blueprint_name, run_id)
-        return EmptyResult()  # never reached
+        run = self.glue_backend.get_blueprint_run(blueprint_name, run_id)
+        return ActionResult({"BlueprintRun": run})
 
     def get_blueprint_runs(self) -> ActionResult:
         blueprint_name = self._get_param("BlueprintName")
@@ -1497,8 +1497,8 @@ class GlueResponse(BaseResponse):
     def get_statement(self) -> ActionResult:
         session_id = self._get_param("SessionId")
         statement_id = self._get_int_param("Id")
-        self.glue_backend.get_statement(session_id, statement_id)
-        return EmptyResult()  # never reached
+        statement = self.glue_backend.get_statement(session_id, statement_id)
+        return ActionResult({"Statement": statement})
 
     # --- Usage Profiles ---
 
@@ -2388,6 +2388,9 @@ class GlueResponse(BaseResponse):
         )
 
     def stop_materialized_view_refresh_task_run(self) -> EmptyResult:
-        task_run_id = self.parameters.get("MaterializedViewRefreshTaskRunId")
-        self.glue_backend.stop_materialized_view_refresh_task_run(task_run_id)
+        database_name = self.parameters.get("DatabaseName")
+        table_name = self.parameters.get("TableName")
+        self.glue_backend.stop_materialized_view_refresh_task_run_by_table(
+            database_name, table_name
+        )
         return EmptyResult()

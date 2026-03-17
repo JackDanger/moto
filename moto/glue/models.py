@@ -281,6 +281,10 @@ class GlueBackend(BaseBackend):
         self.data_catalog_encryption_settings: dict[str, dict[str, Any]] = {}
         self.resource_policies: dict[str, dict[str, Any]] = {}
         self.default_catalog_arn = f"arn:{get_partition(self.region_name)}:glue:{self.region_name}:{self.account_id}:catalog"
+        self.data_quality_recommendation_runs: dict[str, dict[str, Any]] = {}
+        self.data_quality_evaluation_runs: dict[str, dict[str, Any]] = {}
+        self.blueprint_runs: dict[str, dict[str, Any]] = {}
+        self.column_statistics_task_runs: dict[str, dict[str, Any]] = {}
         self.catalogs: dict[str, FakeCatalog] = OrderedDict()
         self.data_quality_rulesets: dict[str, FakeDataQualityRuleset] = OrderedDict()
         self.blueprints: dict[str, FakeBlueprint] = OrderedDict()
@@ -1804,7 +1808,7 @@ class GlueBackend(BaseBackend):
             resource_arn = self.default_catalog_arn
 
         if resource_arn not in self.resource_policies:
-            return {}
+            raise EntityNotFoundException("Policy does not exist")
 
         policy = self.resource_policies[resource_arn]
 
@@ -2260,8 +2264,17 @@ class GlueBackend(BaseBackend):
     def run_statement(
         self, session_id: str, code: str, request_origin: Optional[str] = None
     ) -> dict[str, Any]:
-        self.get_session(session_id)
-        return {"Id": 0}
+        session = self.get_session(session_id)
+        stmt_id = session._next_statement_id
+        session._next_statement_id += 1
+        session.statements[stmt_id] = {
+            "Id": stmt_id,
+            "Code": code,
+            "State": "RUNNING",
+            "Output": {},
+            "Progress": 0.0,
+        }
+        return {"Id": stmt_id}
 
     def cancel_statement(
         self, session_id: str, statement_id: int, request_origin: Optional[str] = None
@@ -2395,7 +2408,15 @@ class GlueBackend(BaseBackend):
     ) -> str:
         if name not in self.blueprints:
             raise EntityNotFoundException(f"Blueprint {name} not found.")
-        return f"bp_{mock_random.get_random_hex(32)}"
+        run_id = f"bp_{mock_random.get_random_hex(32)}"
+        self.blueprint_runs[run_id] = {
+            "BlueprintName": name,
+            "RunId": run_id,
+            "State": "RUNNING",
+            "StartedOn": utcnow().isoformat(),
+            "RoleArn": role_arn,
+        }
+        return run_id
 
     def search_tables(
         self,
@@ -2719,6 +2740,18 @@ class GlueBackend(BaseBackend):
             )
         del self.materialized_view_refresh_task_runs[task_run_id]
 
+    def stop_materialized_view_refresh_task_run_by_table(
+        self, database_name: str, table_name: str
+    ) -> None:
+        """Stop and remove task runs for a database/table pair."""
+        to_delete = [
+            k
+            for k, v in self.materialized_view_refresh_task_runs.items()
+            if v.database_name == database_name and v.table_name == table_name
+        ]
+        for k in to_delete:
+            del self.materialized_view_refresh_task_runs[k]
+
     # --- Resource Policies (batch) ---
 
     def get_resource_policies(self) -> list[dict[str, Any]]:
@@ -2785,10 +2818,12 @@ class GlueBackend(BaseBackend):
     def get_column_statistics_task_run(
         self,
         column_statistics_task_run_id: str,
-    ) -> None:
-        raise EntityNotFoundException(
-            f"ColumnStatisticsTaskRun {column_statistics_task_run_id} not found."
-        )
+    ) -> dict[str, Any]:
+        if column_statistics_task_run_id not in self.column_statistics_task_runs:
+            raise EntityNotFoundException(
+                f"ColumnStatisticsTaskRun {column_statistics_task_run_id} not found."
+            )
+        return self.column_statistics_task_runs[column_statistics_task_run_id]
 
     def get_column_statistics_task_runs(
         self,
@@ -2826,15 +2861,19 @@ class GlueBackend(BaseBackend):
     def get_data_quality_result(self, result_id: str) -> None:
         raise EntityNotFoundException(f"DataQualityResult {result_id} not found.")
 
-    def get_data_quality_rule_recommendation_run(self, run_id: str) -> None:
-        raise EntityNotFoundException(
-            f"DataQualityRuleRecommendationRun {run_id} not found."
-        )
+    def get_data_quality_rule_recommendation_run(self, run_id: str) -> dict[str, Any]:
+        if run_id not in self.data_quality_recommendation_runs:
+            raise EntityNotFoundException(
+                f"DataQualityRuleRecommendationRun {run_id} not found."
+            )
+        return self.data_quality_recommendation_runs[run_id]
 
-    def get_data_quality_ruleset_evaluation_run(self, run_id: str) -> None:
-        raise EntityNotFoundException(
-            f"DataQualityRulesetEvaluationRun {run_id} not found."
-        )
+    def get_data_quality_ruleset_evaluation_run(self, run_id: str) -> dict[str, Any]:
+        if run_id not in self.data_quality_evaluation_runs:
+            raise EntityNotFoundException(
+                f"DataQualityRulesetEvaluationRun {run_id} not found."
+            )
+        return self.data_quality_evaluation_runs[run_id]
 
     def get_data_quality_model(
         self, profile_id: str, statistic_id: Optional[str] = None
@@ -2898,10 +2937,12 @@ class GlueBackend(BaseBackend):
 
     # --- Blueprint Runs ---
 
-    def get_blueprint_run(self, blueprint_name: str, run_id: str) -> None:
+    def get_blueprint_run(self, blueprint_name: str, run_id: str) -> dict[str, Any]:
         # Verify the blueprint exists
         self.get_blueprint(blueprint_name)
-        raise EntityNotFoundException(f"BlueprintRun {run_id} not found.")
+        if run_id not in self.blueprint_runs:
+            raise EntityNotFoundException(f"BlueprintRun {run_id} not found.")
+        return self.blueprint_runs[run_id]
 
     def get_blueprint_runs(self, blueprint_name: str) -> list[Any]:
         # Verify the blueprint exists
@@ -2938,11 +2979,14 @@ class GlueBackend(BaseBackend):
 
     # --- GetStatement (Interactive Sessions) ---
 
-    def get_statement(self, session_id: str, statement_id: int) -> None:
+    def get_statement(self, session_id: str, statement_id: int) -> dict[str, Any]:
         # Verify session exists
         if session_id not in self.sessions:
             raise SessionNotFoundException(session_id)
-        raise EntityNotFoundException(f"Statement {statement_id} not found.")
+        session = self.sessions[session_id]
+        if statement_id not in session.statements:
+            raise EntityNotFoundException(f"Statement {statement_id} not found.")
+        return session.statements[statement_id]
 
     # --- Usage Profiles ---
 
@@ -3255,12 +3299,26 @@ class GlueBackend(BaseBackend):
     ) -> str:
         self.get_table(database_name, table_name)
         run_id = f"colstats_{mock_random.get_random_hex(32)}"
+        self.column_statistics_task_runs[run_id] = {
+            "ColumnStatisticsTaskRunId": run_id,
+            "DatabaseName": database_name,
+            "TableName": table_name,
+            "Status": "RUNNING",
+        }
         return run_id
 
     def stop_column_statistics_task_run(
         self, database_name: str, table_name: str
     ) -> None:
         self.get_table(database_name, table_name)
+        # Remove any runs for this table
+        to_delete = [
+            k
+            for k, v in self.column_statistics_task_runs.items()
+            if v.get("DatabaseName") == database_name and v.get("TableName") == table_name
+        ]
+        for k in to_delete:
+            del self.column_statistics_task_runs[k]
 
     def start_column_statistics_task_run_schedule(
         self, database_name: str, table_name: str
@@ -3283,6 +3341,12 @@ class GlueBackend(BaseBackend):
         created_ruleset_name: Optional[str] = None,
     ) -> str:
         run_id = f"dqrec_{mock_random.get_random_hex(32)}"
+        self.data_quality_recommendation_runs[run_id] = {
+            "RunId": run_id,
+            "DataSource": data_source,
+            "Role": role,
+            "Status": "RUNNING",
+        }
         return run_id
 
     def start_data_quality_ruleset_evaluation_run(
@@ -3295,6 +3359,16 @@ class GlueBackend(BaseBackend):
         additional_data_sources: Optional[dict[str, Any]] = None,
     ) -> str:
         run_id = f"dqeval_{mock_random.get_random_hex(32)}"
+        self.data_quality_evaluation_runs[run_id] = {
+            "RunId": run_id,
+            "DataSource": data_source,
+            "Role": role,
+            "RulesetNames": ruleset_names,
+            "Status": "RUNNING",
+            "AdditionalRunOptions": {},
+            "ResultIds": [],
+            "AdditionalDataSources": additional_data_sources or {},
+        }
         return run_id
 
     def cancel_data_quality_rule_recommendation_run(self, run_id: str) -> None:
@@ -4180,6 +4254,8 @@ class FakeSession(BaseModel):
         self.backend = backend
         self.backend.tag_resource(self.arn, tags)
         self.state = "READY"
+        self.statements: dict[int, dict[str, Any]] = {}
+        self._next_statement_id: int = 1
 
     def get_id(self) -> str:
         return self.session_id
