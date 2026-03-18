@@ -928,8 +928,6 @@ class StepFunctionBackend(BaseBackend):
         raise ExecutionDoesNotExist(map_run_arn)
 
     def list_map_runs(self, execution_arn: str) -> list[Any]:
-        # Verify the execution exists first
-        self.describe_execution(execution_arn)
         return []
 
     def update_map_run(
