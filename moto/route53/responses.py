@@ -822,9 +822,9 @@ LIST_HOSTED_ZONES_RESPONSE = """<ListHostedZonesResponse xmlns="https://route53.
       </HostedZone>
       {% endfor %}
    </HostedZones>
-   {% if marker %}<Marker>{{ marker }}</Marker>{% endif %}
+   <Marker>{{ marker or "" }}</Marker>
    {%if next_marker %}<NextMarker>{{ next_marker }}</NextMarker>{% endif %}
-   {%if max_items %}<MaxItems>{{ max_items }}</MaxItems>{% endif %}
+   <MaxItems>{{ max_items or "100" }}</MaxItems>
    <IsTruncated>{{ 'true' if next_marker else 'false'}}</IsTruncated>
 </ListHostedZonesResponse>"""
 
@@ -849,6 +849,7 @@ LIST_HOSTED_ZONES_BY_NAME_RESPONSE = """<ListHostedZonesByNameResponse xmlns="{{
       {% endfor %}
    </HostedZones>
    <IsTruncated>false</IsTruncated>
+   <MaxItems>100</MaxItems>
 </ListHostedZonesByNameResponse>"""
 
 LIST_HOSTED_ZONES_BY_VPC_RESPONSE = """<ListHostedZonesByVpcResponse xmlns="{{xmlns}}">
@@ -868,6 +869,7 @@ LIST_HOSTED_ZONES_BY_VPC_RESPONSE = """<ListHostedZonesByVpcResponse xmlns="{{xm
        </HostedZoneSummary>
        {% endfor -%}
    </HostedZoneSummaries>
+   <MaxItems>100</MaxItems>
 </ListHostedZonesByVpcResponse>"""
 
 CREATE_HEALTH_CHECK_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
@@ -888,6 +890,7 @@ LIST_HEALTH_CHECKS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
       {{ health_check.to_xml() }}
     {% endfor %}
    </HealthChecks>
+   <Marker></Marker>
    <IsTruncated>false</IsTruncated>
    <MaxItems>{{ health_checks|length }}</MaxItems>
 </ListHealthChecksResponse>"""

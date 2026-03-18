@@ -268,7 +268,7 @@ class StepFunctionResponse(BaseResponse):
     def list_map_runs(self) -> ActionResult:
         execution_arn = self._get_param("executionArn")
         runs = self.stepfunction_backend.list_map_runs(execution_arn)
-        return ActionResult(runs)
+        return ActionResult({"mapRuns": runs})
 
     def describe_map_run(self) -> ActionResult:
         map_run_arn = self._get_param("mapRunArn")
