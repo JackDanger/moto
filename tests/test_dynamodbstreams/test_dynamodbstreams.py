@@ -294,9 +294,8 @@ class TestStreamRecordImages:
             ShardId=shard_id,
             ShardIteratorType="TRIM_HORIZON",
         )
-        return streams.get_records(ShardIterator=resp["ShardIterator"])[
-            "Records"
-        ]
+        return streams.get_records(ShardIterator=resp["ShardIterator"])["Records"]
+
 
     @mock_aws
     def test_new_and_old_images_insert_has_no_old_image(self):
@@ -305,9 +304,8 @@ class TestStreamRecordImages:
         resp = client.create_table(
             TableName="img-test",
             KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
-            AttributeDefinitions=[
-                {"AttributeName": "pk", "AttributeType": "S"}
-            ],
+            AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+
             BillingMode="PAY_PER_REQUEST",
             StreamSpecification={
                 "StreamEnabled": True,
@@ -336,9 +334,8 @@ class TestStreamRecordImages:
         resp = client.create_table(
             TableName="img-test",
             KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
-            AttributeDefinitions=[
-                {"AttributeName": "pk", "AttributeType": "S"}
-            ],
+            AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+
             BillingMode="PAY_PER_REQUEST",
             StreamSpecification={
                 "StreamEnabled": True,
@@ -371,9 +368,8 @@ class TestStreamRecordImages:
         resp = client.create_table(
             TableName="img-test",
             KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
-            AttributeDefinitions=[
-                {"AttributeName": "pk", "AttributeType": "S"}
-            ],
+            AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+
             BillingMode="PAY_PER_REQUEST",
             StreamSpecification={
                 "StreamEnabled": True,
@@ -385,9 +381,8 @@ class TestStreamRecordImages:
             TableName="img-test",
             Item={"pk": {"S": "k1"}, "val": {"S": "a"}},
         )
-        client.delete_item(
-            TableName="img-test", Key={"pk": {"S": "k1"}}
-        )
+        client.delete_item(TableName="img-test", Key={"pk": {"S": "k1"}})
+
 
         records = self._get_records("img-test", stream_arn)
         remove = records[1]
@@ -404,9 +399,8 @@ class TestStreamRecordImages:
         resp = client.create_table(
             TableName="img-test",
             KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
-            AttributeDefinitions=[
-                {"AttributeName": "pk", "AttributeType": "S"}
-            ],
+            AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+
             BillingMode="PAY_PER_REQUEST",
             StreamSpecification={
                 "StreamEnabled": True,
@@ -418,9 +412,8 @@ class TestStreamRecordImages:
             TableName="img-test",
             Item={"pk": {"S": "k1"}, "val": {"S": "a"}},
         )
-        client.delete_item(
-            TableName="img-test", Key={"pk": {"S": "k1"}}
-        )
+        client.delete_item(TableName="img-test", Key={"pk": {"S": "k1"}})
+
 
         records = self._get_records("img-test", stream_arn)
         remove = records[1]
@@ -436,9 +429,8 @@ class TestStreamRecordImages:
         resp = client.create_table(
             TableName="img-test",
             KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
-            AttributeDefinitions=[
-                {"AttributeName": "pk", "AttributeType": "S"}
-            ],
+            AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+
             BillingMode="PAY_PER_REQUEST",
             StreamSpecification={
                 "StreamEnabled": True,

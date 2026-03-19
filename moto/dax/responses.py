@@ -243,3 +243,24 @@ class DAXResponse(BaseResponse):
             source_type=params.get("SourceType"),
         )
         return json.dumps({"Events": events})
+
+    def tag_resource(self) -> str:
+        params = json.loads(self.body)
+        resource_name = params.get("ResourceName")
+        tags = params.get("Tags")
+        self.dax_backend.tag_resource(
+            resource_name=resource_name,
+            tags=tags,
+        )
+        return "{}"
+
+    def untag_resource(self) -> str:
+        params = json.loads(self.body)
+        resource_name = params.get("ResourceName")
+        tag_keys = params.get("TagKeys")
+        self.dax_backend.untag_resource(
+            resource_name=resource_name,
+            tag_keys=tag_keys,
+        )
+        return "{}"
+

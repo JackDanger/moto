@@ -54,4 +54,11 @@ class InvalidRequestError(TransferError):
         super().__init__(
             "InvalidRequestException",
             message,
+
+class ConnectorNotFound(TransferError):
+    def __init__(self, connector_id: str) -> None:
+        super().__init__(
+            "ResourceNotFoundException",
+            f"Connector {connector_id} does not exist.",
+
         )

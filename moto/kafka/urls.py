@@ -58,5 +58,6 @@ url_paths = {
     "{0}/v1/clusters/(?P<clusterArn>.+)/reboot-broker$": KafkaResponse.dispatch,
     # Clusters (must be last to not shadow sub-resources)
     "{0}/v1/clusters$": KafkaResponse.dispatch,
+    "{0}/v1/clusters/(?P<clusterArn>[^/]+)/policy$": KafkaResponse.dispatch,
     "{0}/v1/clusters/(?P<clusterArn>.+)$": KafkaResponse.dispatch,
 }
