@@ -1215,6 +1215,7 @@ class TransferBackend(BaseBackend):
         as2_config: Optional[dict[str, Any]],
         sftp_config: Optional[dict[str, Any]],
         security_policy_name: Optional[str],
+        egress_config: Optional[dict[str, Any]] = None,
     ) -> str:
         if connector_id not in self.connectors:
             raise ConnectorNotFound(connector_id=connector_id)
