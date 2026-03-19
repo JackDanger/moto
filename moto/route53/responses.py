@@ -67,13 +67,13 @@ class Route53(BaseResponse):
 
     def list_hosted_zones(self) -> ActionResult:
         max_items = self._get_int_param("MaxItems", 100)
-        marker = self._get_param("Marker") or ""
+        marker = self._get_param("Marker")
         zone_page, next_marker = self.backend.list_hosted_zones(
             marker=marker, max_size=max_items
         )
         result = {
             "HostedZones": zone_page,
-            "Marker": marker,
+            "Marker": marker or "",
             "IsTruncated": True if next_marker else False,
             "NextMarker": next_marker,
             "MaxItems": str(max_items),
