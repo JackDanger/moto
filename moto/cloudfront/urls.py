@@ -47,9 +47,8 @@ url_paths = {
     "{0}/2020-05-31/key-group/(?P<key_name>[^/]+)$": CloudFrontResponse.dispatch,
     "{0}/2020-05-31/key-group/(?P<key_name>[^/]+)/config$": CloudFrontResponse.dispatch,
     # Tags
-    "{0}/2020-05-31/tagging$": CloudFrontResponse.dispatch,
+    "{0}/2020-05-31/tagging$": CloudFrontResponse.tagging,
     # Origin Access Controls
-
     "{0}/2020-05-31/origin-access-control$": CloudFrontResponse.dispatch,
     "{0}/2020-05-31/origin-access-control/(?P<oac_id>[^/]+)$": CloudFrontResponse.dispatch,
     "{0}/2020-05-31/origin-access-control/(?P<oac_id>[^/]+)/config$": CloudFrontResponse.dispatch,
