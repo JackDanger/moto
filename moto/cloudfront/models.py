@@ -1,3 +1,4 @@
+import datetime
 import string
 from typing import Any, Optional
 
@@ -397,14 +398,28 @@ class KeyGroup(BaseModel):
         self.name = name
         self.items = items
         self.etag = random_id(length=14)
+        self.last_modified_time = datetime.datetime.now(tz=datetime.timezone.utc).strftime(
+            "%Y-%m-%dT%H:%M:%S.%fZ"
+        )
         self.location = (
             f"https://cloudfront.amazonaws.com/2020-05-31/key-group/{self.id}"
         )
+
+    @property
+    def key_group_config(self) -> dict[str, Any]:
+        return {
+            "Name": self.name,
+            "Items": self.items,
+            "Comment": "",
+        }
 
     def update(self, name: str, items: list[str]) -> None:
         self.name = name
         self.items = items
         self.etag = random_id(length=14)
+        self.last_modified_time = datetime.datetime.now(tz=datetime.timezone.utc).strftime(
+            "%Y-%m-%dT%H:%M:%S.%fZ"
+        )
 
 
 class CloudFrontFunction(BaseModel):

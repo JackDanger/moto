@@ -253,23 +253,20 @@ class CloudFrontResponse(BaseResponse):
         }
         return ActionResult(result)
 
-    def update_key_group(self) -> TYPE_RESPONSE:
-        group_id = self.parsed_url.path.split("/")[-1]
-        config = self._get_xml_body()["KeyGroupConfig"]
-        name = config["Name"]
-        items = config.get("Items", {}).get("PublicKey", [])
-        if isinstance(items, str):
-            items = [items]
+    def update_key_group(self) -> ActionResult:
+        group_id = self._get_param("Id")
+        name = self._get_param("KeyGroupConfig.Name")
+        items = self._get_param("KeyGroupConfig.Items", [])
         key_group = self.backend.update_key_group(
             group_id=group_id, name=name, items=items
         )
-        response = self.response_template(KEY_GROUP_TEMPLATE)
-        return 200, {"ETag": key_group.etag}, response.render(group=key_group)
+        result = {"KeyGroup": key_group, "ETag": key_group.etag}
+        return ActionResult(result)
 
-    def delete_key_group(self) -> TYPE_RESPONSE:
-        group_id = self.parsed_url.path.split("/")[-1]
+    def delete_key_group(self) -> ActionResult:
+        group_id = self._get_param("Id")
         self.backend.delete_key_group(group_id=group_id)
-        return 204, {"status": 204}, ""
+        return EmptyResult()
 
     # CloudFront Functions
     def create_function(self) -> TYPE_RESPONSE:

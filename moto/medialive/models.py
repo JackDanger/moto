@@ -1,11 +1,12 @@
 import datetime
 from collections import OrderedDict
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.exceptions import JsonRESTError
 from moto.moto_api._internal import mock_random
+from moto.utilities.paginator import paginate
 from moto.utilities.utils import get_partition
 
 PAGINATION_MODEL = {
