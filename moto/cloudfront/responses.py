@@ -1,3 +1,7 @@
+from typing import Any
+
+import xmltodict
+
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult, TYPE_RESPONSE
 
 
@@ -8,6 +12,9 @@ class CloudFrontResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="cloudfront")
         self.automated_parameter_parsing = True
+
+    def _get_xml_body(self) -> dict[str, Any]:
+        return xmltodict.parse(self.body, dict_constructor=dict, force_list="Path")
 
     @property
     def backend(self) -> CloudFrontBackend:

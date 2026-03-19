@@ -34,7 +34,7 @@ from .validators import (
 class Route53DomainsBackend(BaseBackend):
     """Implementation of Route53Domains APIs."""
 
-    DEFAULT_MAX_DOMAINS_COUNT = 20
+    DEFAULT_MAX_DOMAINS_COUNT = 200
     PAGINATION_MODEL = {
         "list_domains": {
             "input_token": "marker",

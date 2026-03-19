@@ -132,7 +132,7 @@ class Route53(BaseResponse):
         # TODO: implement enable/disable dnssec apis
         zoneid = self._get_param("HostedZoneId")
         self.backend.get_dnssec(zoneid)
-        result = {"Status": {"ServeSignature": "NOT_SIGNING"}}
+        result = {"KeySigningKeys": [], "Status": {"ServeSignature": "NOT_SIGNING"}}
         return ActionResult(result)
 
     def associate_vpc_with_hosted_zone(self) -> ActionResult:

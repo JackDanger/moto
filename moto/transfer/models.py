@@ -1179,6 +1179,7 @@ class TransferBackend(BaseBackend):
         as2_config: Optional[dict[str, Any]],
         sftp_config: Optional[dict[str, Any]],
         security_policy_name: Optional[str],
+        egress_config: Optional[dict[str, Any]] = None,
     ) -> str:
         connector = Connector(
             region_name=self.region_name,

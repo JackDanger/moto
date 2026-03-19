@@ -991,9 +991,10 @@ class Route53Backend(BaseBackend):
         """Return a list of query logging configs."""
         if hosted_zone_id:
             # Does the hosted_zone_id exist?
+            clean_id = hosted_zone_id.replace("/hostedzone/", "")
             zones = list(self.zones.values())
             for zone in zones:
-                if zone.id == hosted_zone_id:
+                if zone.resource_id == clean_id:
                     break
             else:
                 raise NoSuchHostedZone(hosted_zone_id)

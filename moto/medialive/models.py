@@ -122,7 +122,7 @@ class Input(BaseModel):
             "arn": self.arn,
             "attachedChannels": self.attached_channels,
             "destinations": self.destinations,
-            "id": self.input_id,
+            "id": self.id,
             "inputClass": self.input_class,
             "inputDevices": self.input_devices,
             "inputPartnerIds": self.input_partner_ids,
@@ -167,6 +167,30 @@ class Channel(BaseModel):
     @property
     def pipelines_running_count(self) -> int:
         return 1 if self.channel_class == "SINGLE_PIPELINE" else 2
+
+    def to_dict(self, exclude: Optional[list[str]] = None) -> dict[str, Any]:
+        data = {
+            "arn": self.arn,
+            "cdiInputSpecification": self.cdi_input_specification,
+            "channelClass": self.channel_class,
+            "destinations": self.destinations,
+            "egressEndpoints": self.egress_endpoints,
+            "encoderSettings": self.encoder_settings,
+            "id": self.id,
+            "inputAttachments": self.input_attachments,
+            "inputSpecification": self.input_specification,
+            "logLevel": self.log_level,
+            "name": self.name,
+            "pipelineDetails": self.pipeline_details,
+            "pipelinesRunningCount": self.pipelines_running_count,
+            "roleArn": self.role_arn,
+            "state": self.state,
+            "tags": self.tags,
+        }
+        if exclude:
+            for key in exclude:
+                del data[key]
+        return data
 
     def _resolve_transient_states(self) -> None:
         if self.state in ["CREATING", "STOPPING"]:
