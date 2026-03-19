@@ -243,3 +243,4 @@ class DAXResponse(BaseResponse):
             source_type=params.get("SourceType"),
         )
         return json.dumps({"Events": events})
+

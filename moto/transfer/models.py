@@ -3,13 +3,15 @@
 from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
-from moto.core.utils import unix_time
+from moto.core.utils import camelcase_to_underscores, unix_time
 from moto.moto_api._internal import mock_random
 from moto.transfer.exceptions import (
     AccessNotFound,
+    ConnectorNotFound,
     InvalidRequestError,
     PublicKeyNotFound,
     ResourceNotFound,
+
     ServerNotFound,
     UserNotFound,
 )
@@ -22,6 +24,7 @@ from .types import (
     HostKey,
     Profile,
     SECURITY_POLICIES,
+
     Server,
     ServerDomain,
     ServerEndpointType,
@@ -73,7 +76,7 @@ class TransferBackend(BaseBackend):
             raise ServerNotFound(server_id=server_id)
         return self.servers[server_id]
 
-    # ======== Server operations ========
+    # ======== Server operations =
 
     def create_server(
         self,
@@ -1165,6 +1168,82 @@ class TransferBackend(BaseBackend):
         if connector_id not in self.connectors:
             raise ResourceNotFound("Connector", connector_id)
         return []
+
+    # TODO: EgressConfig (VpcLattice) not implemented
+    def create_connector(
+        self,
+        url: str,
+        access_role: str,
+        logging_role: Optional[str],
+        tags: Optional[list[dict[str, str]]],
+        as2_config: Optional[dict[str, Any]],
+        sftp_config: Optional[dict[str, Any]],
+        security_policy_name: Optional[str],
+    ) -> str:
+        connector = Connector(
+            region_name=self.region_name,
+            account_id=self.account_id,
+            url=url,
+            access_role=access_role,
+            logging_role=logging_role,
+            as2_config={camelcase_to_underscores(k): v for k, v in as2_config.items()}
+            if as2_config
+            else None,
+            sftp_config={camelcase_to_underscores(k): v for k, v in sftp_config.items()}
+            if sftp_config
+            else None,
+            security_policy_name=security_policy_name,
+            tags=(tags or []),
+        )
+        connector_id = connector.connector_id
+        self.connectors[connector_id] = connector
+        return connector_id
+
+    def describe_connector(self, connector_id: str) -> Connector:
+        if connector_id not in self.connectors:
+            raise ConnectorNotFound(connector_id=connector_id)
+        return self.connectors[connector_id]
+
+    # TODO: EgressConfig (VpcLattice) not implemented
+    def update_connector(
+        self,
+        connector_id: str,
+        url: Optional[str],
+        access_role: Optional[str],
+        logging_role: Optional[str],
+        as2_config: Optional[dict[str, Any]],
+        sftp_config: Optional[dict[str, Any]],
+        security_policy_name: Optional[str],
+    ) -> str:
+        if connector_id not in self.connectors:
+            raise ConnectorNotFound(connector_id=connector_id)
+        connector = self.connectors[connector_id]
+        if url is not None:
+            connector.url = url
+        if access_role is not None:
+            connector.access_role = access_role
+        if logging_role is not None:
+            connector.logging_role = logging_role
+        if security_policy_name is not None:
+            connector.security_policy_name = security_policy_name
+        if as2_config is not None:
+            connector.as2_config = {
+                camelcase_to_underscores(k): v for k, v in as2_config.items()
+            }
+        if sftp_config is not None:
+            connector.sftp_config = {
+                camelcase_to_underscores(k): v for k, v in sftp_config.items()
+            }
+        return connector_id
+
+    def delete_connector(self, connector_id: str) -> None:
+        if connector_id not in self.connectors:
+            raise ConnectorNotFound(connector_id=connector_id)
+        del self.connectors[connector_id]
+
+    # TODO: implement pagination
+    def list_connectors(self) -> list[Connector]:
+        return list(self.connectors.values())
 
 
 transfer_backends = BackendDict(TransferBackend, "transfer")

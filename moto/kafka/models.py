@@ -8,6 +8,7 @@ from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
+from moto.kafka.exceptions import BadRequestException, NotFoundException
 from moto.utilities.utils import get_partition
 
 from ..utilities.tagging_service import TaggingService
@@ -239,6 +240,8 @@ class KafkaBackend(BaseBackend):
         self.replicators: dict[str, FakeReplicator] = {}
         self.vpc_connections: dict[str, FakeVpcConnection] = {}
         self.cluster_operations: dict[str, FakeClusterOperation] = {}
+        self.policies: dict[str, dict[str, str]] = {}
+
         self.tagger = TaggingService()
 
     def _get_cluster(self, cluster_arn: str) -> FakeKafkaCluster:
@@ -614,6 +617,7 @@ class KafkaBackend(BaseBackend):
             raise NotFoundException(f"Topic {topic_name} was not found.")
         t = cluster.topics[topic_name]
         return [{"partitionIndex": i, "isr": [1], "leader": 1, "replicas": [1]} for i in range(t.partition_count)], None
+
 
     def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_arn)

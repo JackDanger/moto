@@ -436,6 +436,7 @@ class Connector(BaseModel):
     connector_id: str = field(default="", init=False)
     service_managed_egress_ip_addresses: list[str] = field(default_factory=list)
 
+
     def __post_init__(self) -> None:
         if self.connector_id == "":
             self.connector_id = f"c-{mock_random.get_random_hex(17)}"
@@ -443,6 +444,9 @@ class Connector(BaseModel):
             self.arn = f"arn:aws:transfer:{self.region_name}:{self.account_id}:connector/{self.connector_id}"
 
     def to_dict(self) -> dict[str, Any]:
+        # Set to mock values. Actual AWS values used were not validated.
+        if not self.service_managed_egress_ip_addresses:
+            self.service_managed_egress_ip_addresses = ["127.0.0.1", "127.0.0.2"]
         result: dict[str, Any] = {
             "Arn": self.arn,
             "ConnectorId": self.connector_id,
@@ -462,6 +466,7 @@ class Connector(BaseModel):
         return result
 
     def to_short_dict(self) -> dict[str, Any]:
+
         return {
             "Arn": self.arn,
             "ConnectorId": self.connector_id,
@@ -929,3 +934,4 @@ SECURITY_POLICIES: dict[str, dict[str, Any]] = {
         "Protocols": ["SFTP"],
     },
 }
+

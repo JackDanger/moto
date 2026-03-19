@@ -1,6 +1,7 @@
 from typing import Any
 
-from moto.core.parsers import XFormedDict
+from moto.core.parse import XFormedDict
+
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult, PaginatedResult
 from moto.ec2.models import ec2_backends
 

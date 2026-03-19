@@ -239,7 +239,8 @@ class KmsResponse(BaseResponse):
 
         self._validate_cmk_id(target_key_id)
         if update:
-            # update_alias handles moving the alias between keys atomically
+            self._validate_alias(alias_name)
+
             self.kms_backend.update_alias(target_key_id, alias_name)
         else:
             if self.kms_backend.alias_exists(alias_name):
