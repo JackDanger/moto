@@ -687,6 +687,7 @@ class MediaLiveBackend(BaseBackend):
         self._store_tags(arn, tags)
         return channel
 
+    @paginate(pagination_model=PAGINATION_MODEL)
     def list_channels(self) -> list[Channel]:
         return list(self._channels.values())
 
@@ -819,6 +820,7 @@ class MediaLiveBackend(BaseBackend):
         a_input._resolve_transient_states()
         return a_input
 
+    @paginate(PAGINATION_MODEL)
     def list_inputs(self) -> list[Input]:
         return list(self._inputs.values())
 

@@ -8,24 +8,24 @@ from .models import MediaLiveBackend, medialive_backends
 class MediaLiveResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="medialive")
-        self.automated_parameter_parsing = True
 
     @property
     def medialive_backend(self) -> MediaLiveBackend:
         return medialive_backends[self.current_account][self.region]
 
-    def create_channel(self) -> str:
-        cdi_input_specification = self._get_param("CdiInputSpecification")
-        channel_class = self._get_param("ChannelClass")
-        destinations = self._get_param("Destinations")
-        encoder_settings = self._get_param("EncoderSettings")
-        input_attachments = self._get_param("InputAttachments")
-        input_specification = self._get_param("InputSpecification")
-        log_level = self._get_param("LogLevel")
-        name = self._get_param("Name")
-        role_arn = self._get_param("RoleArn")
-        tags = self._get_param("Tags")
+    # ---- Channel ----
 
+    def create_channel(self) -> str:
+        cdi_input_specification = self._get_param("cdiInputSpecification")
+        channel_class = self._get_param("channelClass")
+        destinations = self._get_param("destinations")
+        encoder_settings = self._get_param("encoderSettings")
+        input_attachments = self._get_param("inputAttachments")
+        input_specification = self._get_param("inputSpecification")
+        log_level = self._get_param("logLevel")
+        name = self._get_param("name")
+        role_arn = self._get_param("roleArn")
+        tags = self._get_param("tags")
         channel = self.medialive_backend.create_channel(
             cdi_input_specification=cdi_input_specification,
             channel_class=channel_class,
@@ -44,42 +44,47 @@ class MediaLiveResponse(BaseResponse):
         )
 
     def list_channels(self) -> str:
-        channels = self.medialive_backend.list_channels()
+        max_results = self._get_int_param("maxResults")
+        next_token = self._get_param("nextToken")
+        channels, next_token = self.medialive_backend.list_channels(
+            max_results=max_results, next_token=next_token
+        )
         channel_dicts = [
             c.to_dict(exclude=["encoderSettings", "pipelineDetails"]) for c in channels
         ]
-        return json.dumps({"channels": channel_dicts, "nextToken": None})
+
+        return json.dumps({"channels": channel_dicts, "nextToken": next_token})
 
     def describe_channel(self) -> str:
-        channel_id = self._get_param("ChannelId")
+        channel_id = self._get_param("channelId")
         channel = self.medialive_backend.describe_channel(channel_id=channel_id)
         return json.dumps(channel.to_dict())
 
     def delete_channel(self) -> str:
-        channel_id = self._get_param("ChannelId")
+        channel_id = self._get_param("channelId")
         channel = self.medialive_backend.delete_channel(channel_id=channel_id)
         return json.dumps(channel.to_dict())
 
     def start_channel(self) -> str:
-        channel_id = self._get_param("ChannelId")
+        channel_id = self._get_param("channelId")
         channel = self.medialive_backend.start_channel(channel_id=channel_id)
         return json.dumps(channel.to_dict())
 
     def stop_channel(self) -> str:
-        channel_id = self._get_param("ChannelId")
+        channel_id = self._get_param("channelId")
         channel = self.medialive_backend.stop_channel(channel_id=channel_id)
         return json.dumps(channel.to_dict())
 
     def update_channel(self) -> str:
-        channel_id = self._get_param("ChannelId")
-        cdi_input_specification = self._get_param("CdiInputSpecification")
-        destinations = self._get_param("Destinations")
-        encoder_settings = self._get_param("EncoderSettings")
-        input_attachments = self._get_param("InputAttachments")
-        input_specification = self._get_param("InputSpecification")
-        log_level = self._get_param("LogLevel")
-        name = self._get_param("Name")
-        role_arn = self._get_param("RoleArn")
+        channel_id = self._get_param("channelId")
+        cdi_input_specification = self._get_param("cdiInputSpecification")
+        destinations = self._get_param("destinations")
+        encoder_settings = self._get_param("encoderSettings")
+        input_attachments = self._get_param("inputAttachments")
+        input_specification = self._get_param("inputSpecification")
+        log_level = self._get_param("logLevel")
+        name = self._get_param("name")
+        role_arn = self._get_param("roleArn")
         channel = self.medialive_backend.update_channel(
             channel_id=channel_id,
             cdi_input_specification=cdi_input_specification,
@@ -116,16 +121,15 @@ class MediaLiveResponse(BaseResponse):
     # ---- Input ----
 
     def create_input(self) -> str:
-        destinations = self._get_param("Destinations")
-        input_devices = self._get_param("InputDevices")
-        input_security_groups = self._get_param("InputSecurityGroups")
-        media_connect_flows = self._get_param("MediaConnectFlows")
-        name = self._get_param("Name")
-        role_arn = self._get_param("RoleArn")
-        sources = self._get_param("Sources")
-        tags = self._get_param("Tags")
-        input_type = self._get_param("Type")
-
+        destinations = self._get_param("destinations")
+        input_devices = self._get_param("inputDevices")
+        input_security_groups = self._get_param("inputSecurityGroups")
+        media_connect_flows = self._get_param("mediaConnectFlows")
+        name = self._get_param("name")
+        role_arn = self._get_param("roleArn")
+        sources = self._get_param("sources")
+        tags = self._get_param("tags")
+        input_type = self._get_param("type")
         a_input = self.medialive_backend.create_input(
             destinations=destinations,
             input_devices=input_devices,
@@ -140,30 +144,35 @@ class MediaLiveResponse(BaseResponse):
         return json.dumps({"input": a_input.to_dict()})
 
     def describe_input(self) -> str:
-        input_id = self._get_param("InputId")
+        input_id = self._get_param("inputId")
         a_input = self.medialive_backend.describe_input(input_id=input_id)
         return json.dumps(a_input.to_dict())
 
     def list_inputs(self) -> str:
-        inputs = self.medialive_backend.list_inputs()
+        max_results = self._get_int_param("maxResults")
+        next_token = self._get_param("nextToken")
+        inputs, next_token = self.medialive_backend.list_inputs(
+            max_results=max_results, next_token=next_token
+        )
+
         return json.dumps(
-            {"inputs": [i.to_dict() for i in inputs], "nextToken": None}
+            {"inputs": [i.to_dict() for i in inputs], "nextToken": next_token}
         )
 
     def delete_input(self) -> str:
-        input_id = self._get_param("InputId")
+        input_id = self._get_param("inputId")
         self.medialive_backend.delete_input(input_id=input_id)
         return json.dumps({})
 
     def update_input(self) -> str:
-        destinations = self._get_param("Destinations")
-        input_devices = self._get_param("InputDevices")
-        input_id = self._get_param("InputId")
-        input_security_groups = self._get_param("InputSecurityGroups")
-        media_connect_flows = self._get_param("MediaConnectFlows")
-        name = self._get_param("Name")
-        role_arn = self._get_param("RoleArn")
-        sources = self._get_param("Sources")
+        destinations = self._get_param("destinations")
+        input_devices = self._get_param("inputDevices")
+        input_id = self._get_param("inputId")
+        input_security_groups = self._get_param("inputSecurityGroups")
+        media_connect_flows = self._get_param("mediaConnectFlows")
+        name = self._get_param("name")
+        role_arn = self._get_param("roleArn")
+        sources = self._get_param("sources")
         a_input = self.medialive_backend.update_input(
             destinations=destinations,
             input_devices=input_devices,
@@ -1120,4 +1129,3 @@ class MediaLiveResponse(BaseResponse):
     def list_versions(self) -> str:
         versions = self.medialive_backend.list_versions()
         return json.dumps({"versions": versions})
-
