@@ -67,7 +67,7 @@ class Route53(BaseResponse):
 
     def list_hosted_zones(self) -> ActionResult:
         max_items = self._get_int_param("MaxItems", 100)
-        marker = self._get_param("Marker")
+        marker = self._get_param("Marker") or ""
         zone_page, next_marker = self.backend.list_hosted_zones(
             marker=marker, max_size=max_items
         )
@@ -76,20 +76,25 @@ class Route53(BaseResponse):
             "Marker": marker,
             "IsTruncated": True if next_marker else False,
             "NextMarker": next_marker,
-            "MaxItems": max_items,
+            "MaxItems": str(max_items),
         }
         return ActionResult(result)
 
     def list_hosted_zones_by_name(self) -> ActionResult:
         dnsname = self._get_param("DNSName")
         dnsname, zones = self.backend.list_hosted_zones_by_name(dnsname)
-        result = {"DNSName": dnsname, "HostedZones": zones}
+        result = {
+            "DNSName": dnsname,
+            "HostedZones": zones,
+            "IsTruncated": False,
+            "MaxItems": "100",
+        }
         return ActionResult(result)
 
     def list_hosted_zones_by_vpc(self) -> ActionResult:
         vpc_id = self._get_param("VPCId")
         zones = self.backend.list_hosted_zones_by_vpc(vpc_id)
-        result = {"HostedZoneSummaries": zones}
+        result = {"HostedZoneSummaries": zones, "MaxItems": "100"}
         return ActionResult(result)
 
     def get_hosted_zone_count(self) -> ActionResult:
@@ -249,7 +254,12 @@ class Route53(BaseResponse):
 
     def list_health_checks(self) -> ActionResult:
         health_checks = self.backend.list_health_checks()
-        result = {"HealthChecks": health_checks}
+        result = {
+            "HealthChecks": health_checks,
+            "Marker": "",
+            "IsTruncated": False,
+            "MaxItems": str(len(health_checks)),
+        }
         return ActionResult(result)
 
     def get_health_check(self) -> ActionResult:
@@ -383,14 +393,13 @@ class Route53(BaseResponse):
         return EmptyResult()
 
     def list_reusable_delegation_sets(self) -> ActionResult:
-        marker = self._get_param("Marker")
+        marker = self._get_param("Marker") or ""
         delegation_sets = self.backend.list_reusable_delegation_sets()
         result = {
             "DelegationSets": delegation_sets,
             "Marker": marker,
             "IsTruncated": False,
-            "NextMarker": None,
-            "MaxItems": 100,
+            "MaxItems": "100",
         }
         return ActionResult(result)
 
