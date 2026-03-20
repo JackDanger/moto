@@ -117,7 +117,7 @@ class PollyResponse(BaseResponse):
         return ""
 
     # StartSpeechSynthesisTask / GetSpeechSynthesisTask / ListSpeechSynthesisTasks
-    def synthesisTasks(self) -> Union[str, tuple[str, dict[str, int]]]:
+    def synthesis_tasks(self) -> Union[str, tuple[str, dict[str, int]]]:
         url_parts = urlsplit(self.uri).path.lstrip("/").split("/")
         # url_parts: ['v1', 'synthesisTasks'] or ['v1', 'synthesisTasks', '<task_id>']
 
