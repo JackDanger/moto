@@ -533,10 +533,7 @@ class DataBrewResponse(BaseResponse):
         # Path: /projects/{name}/sendProjectSessionAction
         path_parts = self._get_path().strip("/").split("/")
         project_name = path_parts[1]
-        action_id = self._get_int_param("ActionId")
-        result = self.databrew_backend.send_project_session_action(
-            project_name, action_id
-        )
+        result = self.databrew_backend.send_project_session_action(project_name)
         return json.dumps(result)
 
     # endregion

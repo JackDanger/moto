@@ -677,13 +677,13 @@ class DataBrewBackend(BaseBackend):
         return project_name, client_session_id
 
     def send_project_session_action(
-        self, project_name: str, action_id: Optional[int], **kwargs: Any
+        self, project_name: str, **kwargs: Any
     ) -> dict[str, Any]:
         if project_name not in self.projects:
             raise ResourceNotFoundException("One or more resources can't be found.")
         return {
             "Name": project_name,
-            "ActionId": action_id or 0,
+            "ActionId": 0,
             "Result": "{}",
         }
 
