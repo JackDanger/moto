@@ -72,6 +72,8 @@ class AccountBackend(BaseBackend):
         self._alternate_contacts: dict[str, AlternateContact] = {}
         self._contact_information: Optional[ContactInformation] = None
         self._region_opt_status: dict[str, str] = dict(_DEFAULT_REGIONS)
+        self._account_name: Optional[str] = None
+        self._pending_primary_email: Optional[str] = None
 
     def put_alternate_contact(
         self,
@@ -175,6 +177,16 @@ class AccountBackend(BaseBackend):
                 continue
             regions.append({"RegionName": region_name, "RegionOptStatus": status})
         return {"Regions": regions}
+
+    def put_account_name(self, account_name: str) -> None:
+        self._account_name = account_name
+
+    def start_primary_email_update(self, primary_email: str) -> dict[str, Any]:
+        self._pending_primary_email = primary_email
+        return {}
+
+    def accept_primary_email_update(self, otp: str, primary_email: str) -> dict[str, Any]:
+        return {}
 
 
 account_backends = BackendDict(

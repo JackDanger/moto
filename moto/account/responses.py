@@ -123,6 +123,28 @@ class AccountResponse(BaseResponse):
         result = backend.list_regions(region_opt_status_contains=region_opt_status_contains)
         return ActionResult(result)
 
+    def put_account_name(self) -> ActionResult:
+        account_name = self._get_param("AccountName")
+        account_id = self._get_account_id()
+        backend = account_backends[account_id][self.partition]
+        backend.put_account_name(account_name=account_name)
+        return EmptyResult()
+
+    def start_primary_email_update(self) -> ActionResult:
+        primary_email = self._get_param("PrimaryEmail")
+        account_id = self._get_account_id()
+        backend = account_backends[account_id][self.partition]
+        result = backend.start_primary_email_update(primary_email=primary_email)
+        return ActionResult(result)
+
+    def accept_primary_email_update(self) -> ActionResult:
+        otp = self._get_param("Otp")
+        primary_email = self._get_param("PrimaryEmail")
+        account_id = self._get_account_id()
+        backend = account_backends[account_id][self.partition]
+        result = backend.accept_primary_email_update(otp=otp, primary_email=primary_email)
+        return ActionResult(result)
+
     def _get_account_id(self) -> str:
         return self._get_param("AccountId") or self.current_account
 

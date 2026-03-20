@@ -19,4 +19,7 @@ url_paths = {
     "{0}/enableRegion$": AccountResponse.dispatch,
     "{0}/disableRegion$": AccountResponse.dispatch,
     "{0}/listRegions$": AccountResponse.dispatch,
+    "{0}/putAccountName$": AccountResponse.dispatch,
+    "{0}/startPrimaryEmailUpdate$": AccountResponse.dispatch,
+    "{0}/acceptPrimaryEmailUpdate$": AccountResponse.dispatch,
 }
