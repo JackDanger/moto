@@ -581,3 +581,82 @@ class GreengrassResponse(BaseResponse):
         group_id = self.path.split("/")[-2]
         self.greengrass_backend.disassociate_role_from_group(group_id=group_id)
         return json.dumps({"DisassociatedAt": iso_8601_datetime_with_milliseconds()})
+
+    def tag_resource(self) -> TYPE_RESPONSE:
+        resource_arn = self.path.split("/tags/")[-1]
+        tags = self._get_param("tags", {})
+        if not hasattr(self.greengrass_backend, "_tags"):
+            self.greengrass_backend._tags = {}
+        self.greengrass_backend._tags[resource_arn] = {
+            **self.greengrass_backend._tags.get(resource_arn, {}),
+            **tags,
+        }
+        return 200, {}, json.dumps({})
+
+    def untag_resource(self) -> TYPE_RESPONSE:
+        resource_arn = self.path.split("/tags/")[-1]
+        tag_keys = list(self.querystring.get("tagKeys", []))
+        if hasattr(self.greengrass_backend, "_tags"):
+            for k in tag_keys:
+                self.greengrass_backend._tags.get(resource_arn, {}).pop(k, None)
+        return 204, {}, json.dumps({})
+
+    def list_tags_for_resource(self) -> str:
+        resource_arn = self.path.split("/tags/")[-1]
+        tags = {}
+        if hasattr(self.greengrass_backend, "_tags"):
+            tags = self.greengrass_backend._tags.get(resource_arn, {})
+        return json.dumps({"tags": tags})
+
+    def get_service_role_for_account(self) -> str:
+        role_arn = getattr(self.greengrass_backend, "_service_role_arn", "")
+        return json.dumps({"AssociatedAt": "", "RoleArn": role_arn})
+
+    def associate_service_role_to_account(self) -> str:
+        role_arn = self._get_param("RoleArn")
+        self.greengrass_backend._service_role_arn = role_arn
+        return json.dumps({"AssociatedAt": ""})
+
+    def disassociate_service_role_from_account(self) -> str:
+        self.greengrass_backend._service_role_arn = ""
+        return json.dumps({"DisassociatedAt": ""})
+
+    def list_bulk_deployments(self) -> str:
+        return json.dumps({"BulkDeployments": []})
+
+    def get_connectivity_info(self) -> str:
+        thing_name = self.path.rstrip("/").split("/")[-2]
+        return json.dumps({"ConnectivityInfo": [], "Message": ""})
+
+    def update_connectivity_info(self) -> TYPE_RESPONSE:
+        return 200, {}, json.dumps({"Message": "", "Version": ""})
+
+    def list_group_certificate_authorities(self) -> str:
+        return json.dumps({"GroupCertificateAuthorities": []})
+
+    def get_group_certificate_authority(self) -> str:
+        return json.dumps({"CertificateAuthorityArn": "", "CertificateAuthorityId": "", "PemEncodedCertificate": ""})
+
+    def get_group_certificate_configuration(self) -> str:
+        return json.dumps({"CertificateAuthorityExpiryInMilliseconds": "", "CertificateExpiryInMilliseconds": "", "GroupId": ""})
+
+    def list_bulk_deployment_detailed_reports(self) -> str:
+        return json.dumps({"Deployments": []})
+
+    def get_bulk_deployment_status(self) -> str:
+        return json.dumps({"BulkDeploymentMetrics": {}, "BulkDeploymentStatus": "Completed"})
+
+    def start_bulk_deployment(self) -> TYPE_RESPONSE:
+        return 200, {}, json.dumps({"BulkDeploymentArn": "", "BulkDeploymentId": ""})
+
+    def stop_bulk_deployment(self) -> TYPE_RESPONSE:
+        return 200, {}, json.dumps({})
+
+    def create_group_certificate_authority(self) -> TYPE_RESPONSE:
+        return 200, {}, json.dumps({"CertificateAuthorityArn": ""})
+
+    def create_software_update_job(self) -> TYPE_RESPONSE:
+        return 200, {}, json.dumps({"IotJobArn": "", "IotJobId": "", "PlatformSoftwareVersion": ""})
+
+    def get_thing_runtime_configuration(self) -> str:
+        return json.dumps({"RuntimeConfiguration": {}})
