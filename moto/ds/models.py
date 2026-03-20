@@ -1546,4 +1546,94 @@ class DirectoryServiceBackend(BaseBackend):
         return
 
 
+    def start_ad_assessment(self, directory_id: str) -> str:
+        """Start an AD assessment and return a new assessment ID."""
+        self._validate_directory_id(directory_id)
+        import uuid
+
+        return str(uuid.uuid4())
+
+    def list_ad_assessments(self, directory_id: Optional[str] = None) -> list[dict[str, Any]]:
+        """List AD assessments — returns empty list (stub)."""
+        return []
+
+    def delete_ad_assessment(self, assessment_id: str) -> None:
+        """Delete an AD assessment — raises not found."""
+        raise EntityDoesNotExistException(f"Assessment {assessment_id} does not exist")
+
+    def enable_directory_data_access(self, directory_id: str) -> None:
+        """Enable directory data access for a directory."""
+        self._validate_directory_id(directory_id)
+
+    def disable_directory_data_access(self, directory_id: str) -> None:
+        """Disable directory data access for a directory."""
+        self._validate_directory_id(directory_id)
+
+    def describe_directory_data_access(self, directory_id: str) -> dict[str, Any]:
+        """Describe directory data access status."""
+        self._validate_directory_id(directory_id)
+        return {"DirectoryId": directory_id, "DataAccessStatus": "Disabled"}
+
+    def enable_ca_enrollment_policy(self, directory_id: str) -> None:
+        """Enable CA enrollment policy for a directory."""
+        self._validate_directory_id(directory_id)
+
+    def disable_ca_enrollment_policy(self, directory_id: str) -> None:
+        """Disable CA enrollment policy for a directory."""
+        self._validate_directory_id(directory_id)
+
+    def add_region(
+        self,
+        directory_id: str,
+        region_name: str,
+        vpc_settings: dict[str, Any],
+    ) -> None:
+        """Add a region to a directory — stub."""
+        self._validate_directory_id(directory_id)
+
+    def remove_region(self, directory_id: str) -> None:
+        """Remove a region from a directory — stub."""
+        self._validate_directory_id(directory_id)
+
+    def update_directory_setup(
+        self,
+        directory_id: str,
+        update_type: str,
+        os_update_settings: Optional[dict[str, Any]] = None,
+        create_snapshot_before_update: bool = False,
+    ) -> None:
+        """Update directory setup — stub."""
+        self._validate_directory_id(directory_id)
+
+    def update_number_of_domain_controllers(
+        self, directory_id: str, desired_number: int
+    ) -> None:
+        """Update number of domain controllers — stub."""
+        self._validate_directory_id(directory_id)
+
+    def share_directory(
+        self,
+        directory_id: str,
+        share_target: dict[str, Any],
+        share_method: str,
+        share_notes: Optional[str] = None,
+    ) -> str:
+        """Share a directory — stub returns a synthetic shared directory ID."""
+        self._validate_directory_id(directory_id)
+        import uuid
+
+        return str(uuid.uuid4())
+
+    def unshare_directory(
+        self,
+        directory_id: str,
+        unshare_target: dict[str, Any],
+    ) -> str:
+        """Unshare a directory — stub."""
+        self._validate_directory_id(directory_id)
+        import uuid
+
+        return str(uuid.uuid4())
+
+
 ds_backends = BackendDict(DirectoryServiceBackend, service_name="ds")
