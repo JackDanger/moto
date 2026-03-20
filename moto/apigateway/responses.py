@@ -853,7 +853,7 @@ class APIGatewayResponse(BaseResponse):
         function_id = url_path_parts[2]
         resource_id = url_path_parts[4]
         resource = self.backend.get_resource(function_id, resource_id)
-        return json.dumps(resource.to_json())
+        return json.dumps(resource.to_dict())
 
     def get_sdk_types(self) -> str:
         sdk_types = [
