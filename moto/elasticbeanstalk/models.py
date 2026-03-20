@@ -1,4 +1,5 @@
 import weakref
+from typing import Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -170,6 +171,46 @@ class EBBackend(BaseBackend):
     ) -> None:
         if application_name in self.applications:
             self.applications.pop(application_name)
+
+    def _find_environment(
+        self,
+        environment_name: Optional[str] = None,
+        environment_id: Optional[str] = None,
+    ) -> Optional[Environment]:
+        for app in self.applications.values():
+            for env in app.environments.values():
+                if environment_name and env.environment_name == environment_name:
+                    return env
+                if environment_id and env.environment_id == environment_id:
+                    return env
+        return None
+
+    def swap_environment_cnames(
+        self,
+        source_environment_name: Optional[str] = None,
+        source_environment_id: Optional[str] = None,
+        destination_environment_name: Optional[str] = None,
+        destination_environment_id: Optional[str] = None,
+    ) -> None:
+        source_env = self._find_environment(
+            source_environment_name, source_environment_id
+        )
+        dest_env = self._find_environment(
+            destination_environment_name, destination_environment_id
+        )
+
+        if not source_env:
+            name = source_environment_name or source_environment_id or ""
+            raise InvalidParameterValueError(
+                f"No Environment named '{name}' found."
+            )
+        if not dest_env:
+            name = destination_environment_name or destination_environment_id or ""
+            raise InvalidParameterValueError(
+                f"No Environment named '{name}' found."
+            )
+
+        source_env.cname, dest_env.cname = dest_env.cname, source_env.cname
 
 
 eb_backends = BackendDict(EBBackend, "elasticbeanstalk")

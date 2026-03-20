@@ -310,3 +310,17 @@ class EBResponse(BaseResponse):
             application_name=application_name,
         )
         return EmptyResult()
+
+    def swap_environment_cnam_es(self) -> ActionResult:
+        # Method name matches camelcase_to_underscores("SwapEnvironmentCNAMEs")
+        source_environment_name = self._get_param("SourceEnvironmentName")
+        source_environment_id = self._get_param("SourceEnvironmentId")
+        destination_environment_name = self._get_param("DestinationEnvironmentName")
+        destination_environment_id = self._get_param("DestinationEnvironmentId")
+        self.elasticbeanstalk_backend.swap_environment_cnames(
+            source_environment_name=source_environment_name,
+            source_environment_id=source_environment_id,
+            destination_environment_name=destination_environment_name,
+            destination_environment_id=destination_environment_id,
+        )
+        return EmptyResult()
