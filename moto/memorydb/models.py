@@ -859,6 +859,101 @@ class MemoryDBBackend(BaseBackend):
     def describe_events(self) -> list[dict[str, Any]]:
         return []
 
+    def copy_snapshot(
+        self,
+        source_snapshot_name: str,
+        target_snapshot_name: str,
+        kms_key_id: Optional[str] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> MemoryDBSnapshot:
+        if source_snapshot_name not in self.snapshots:
+            raise SnapshotNotFoundFault(source_snapshot_name)
+        if target_snapshot_name in self.snapshots:
+            raise SnapshotAlreadyExistsFault(
+                msg="Snapshot with specified name already exists."
+            )
+        source = self.snapshots[source_snapshot_name]
+        target = copy.deepcopy(source)
+        target.snapshot_name = target_snapshot_name
+        target.source = "manual"
+        target.arn = f"arn:aws:memorydb:{self.region_name}:{self.account_id}:snapshot/{target_snapshot_name}"
+        self.snapshots[target_snapshot_name] = target
+        return target
+
+    def update_subnet_group(
+        self,
+        subnet_group_name: str,
+        description: Optional[str] = None,
+        subnet_ids: Optional[list[str]] = None,
+    ) -> MemoryDBSubnetGroup:
+        if subnet_group_name not in self.subnet_groups:
+            raise SubnetGroupNotFoundFault(
+                msg=f"Subnet group {subnet_group_name} not found."
+            )
+        sg = self.subnet_groups[subnet_group_name]
+        if description is not None:
+            sg.description = description
+        if subnet_ids is not None:
+            sg.subnet_ids = subnet_ids
+        return sg
+
+    def reset_parameter_group(
+        self,
+        parameter_group_name: str,
+        all_parameters: bool = False,
+        parameter_names: Optional[list[str]] = None,
+    ) -> "MemoryDBParameterGroup":
+        if parameter_group_name not in self.parameter_groups:
+            raise ParameterGroupNotFoundFault(
+                msg=f"Parameter group {parameter_group_name} not found."
+            )
+        return self.parameter_groups[parameter_group_name]
+
+    def describe_parameters(
+        self, parameter_group_name: str
+    ) -> list[dict[str, Any]]:
+        if parameter_group_name not in self.parameter_groups:
+            raise ParameterGroupNotFoundFault(
+                msg=f"Parameter group {parameter_group_name} not found."
+            )
+        return []
+
+    def list_allowed_node_type_updates(
+        self, cluster_name: str
+    ) -> dict[str, list[str]]:
+        if cluster_name not in self.clusters:
+            raise ClusterNotFoundFault(msg=f"Cluster {cluster_name} not found")
+        return {"ScaleUpNodeTypes": [], "ScaleDownNodeTypes": []}
+
+    def batch_update_cluster(
+        self,
+        cluster_names: list[str],
+        service_update: Optional[dict[str, str]] = None,
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        processed = []
+        unprocessed = []
+        for name in cluster_names:
+            if name in self.clusters:
+                processed.append({"Cluster": self.clusters[name].to_dict()})
+            else:
+                unprocessed.append({"ClusterName": name, "ErrorType": "ClusterNotFound"})
+        return processed, unprocessed
+
+    def purchase_reserved_nodes_offering(
+        self,
+        reserved_nodes_offering_id: str,
+        reservation_id: Optional[str] = None,
+        node_count: int = 1,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> dict[str, Any]:
+        import uuid
+        return {
+            "ReservationId": reservation_id or str(uuid.uuid4()),
+            "ReservedNodesOfferingId": reserved_nodes_offering_id,
+            "NodeCount": node_count,
+            "State": "reserved",
+        }
+
     # Engine versions
     def describe_engine_versions(self) -> list[dict[str, Any]]:
         return [

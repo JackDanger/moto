@@ -275,6 +275,17 @@ class OpenSearchServiceServerlessResponse(BaseResponse):
             {"lifecyclePolicySummaries": [lp.to_dict_list() for lp in policies]}
         )
 
+    def update_lifecycle_policy(self) -> str:
+        params = json.loads(self.body)
+        lp = self.opensearchserverless_backend.update_lifecycle_policy(
+            name=params.get("name"),
+            type=params.get("type"),
+            description=params.get("description"),
+            policy=params.get("policy"),
+            policy_version=params.get("policyVersion"),
+        )
+        return json.dumps({"lifecyclePolicyDetail": lp.to_dict()})
+
     def delete_lifecycle_policy(self) -> str:
         params = json.loads(self.body)
         self.opensearchserverless_backend.delete_lifecycle_policy(
