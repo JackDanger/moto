@@ -1110,3 +1110,30 @@ class APIGatewayResponse(BaseResponse):
     def get_account(self) -> str:
         account = self.backend.get_account()
         return json.dumps(account.to_json())
+
+    def create_domain_name_access_association(self) -> str:
+        return json.dumps(
+            {
+                "domainNameAccessAssociationArn": (
+                    f"arn:aws:apigateway:{self.region}::/domainNameAccessAssociations/stub"
+                ),
+                "domainNameArn": self._get_param("domainNameArn") or "",
+                "accessAssociationSourceType": self._get_param("accessAssociationSourceType") or "",
+                "accessAssociationSource": self._get_param("accessAssociationSource") or "",
+            }
+        )
+
+    def delete_domain_name_access_association(self) -> str:
+        return ""
+
+    def get_domain_name_access_associations(self) -> str:
+        return json.dumps({"items": []})
+
+    def reject_domain_name_access_association(self) -> str:
+        return ""
+
+    def get_model_template(self) -> str:
+        return json.dumps({"value": ""})
+
+    def import_documentation_parts(self) -> str:
+        return json.dumps({"ids": [], "warnings": []})

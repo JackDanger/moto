@@ -53,6 +53,10 @@ url_paths = {
     "{0}/sdktypes/(?P<sdk_type_id>[^/]+)$": APIGatewayResponse.dispatch,
     "{0}/restapis/(?P<function_id>[^/]+)/authorizers/(?P<authorizer_id>[^/]+)/test$": APIGatewayResponse.dispatch,
     r"{0}/restapis/(?P<function_id>[^/]+)/resources/(?P<resource_id>[^/]+)/methods/(?P<method_name>[^/]+)/integration/responses$": APIGatewayResponse.dispatch,
+    "{0}/domainnameaccessassociations/?$": APIGatewayResponse.dispatch,
+    "{0}/domainnameaccessassociations/(?P<arn>.+)$": APIGatewayResponse.dispatch,
+    "{0}/rejectdomainnameaccessassociations$": APIGatewayResponse.dispatch,
+    "{0}/restapis/(?P<function_id>[^/]+)/models/(?P<model_name>[^/]+)/default_template$": APIGatewayResponse.dispatch,
 }
 
 # Also manages the APIGatewayV2

@@ -76,6 +76,9 @@ url_paths = {
     "{0}/indexes/recovery-point/?$": response.dispatch,
     "{0}/audit/scan-job-summaries/?$": response.dispatch,
     "{0}/logically-air-gapped-backup-vaults/(?P<name>[^/]+)/restore-access-backup-vaults/?$": response.dispatch,
+    "{0}/logically-air-gapped-backup-vaults/(?P<name>[^/]+)/restore-access-backup-vaults/(?P<arn>.+)$": response.dispatch,
     "{0}/restore-testing/inferred-metadata$": response.dispatch,
     "{0}/backup-vaults/(?P<name>[^/]+)/recovery-points/(?P<rpArn>.+)/index/?$": response.dispatch,
+    "{0}/backup-vaults/(?P<name>[^/]+)/mpaApprovalTeam.*$": response.dispatch,
+    "{0}/restore-access-backup-vaults/?$": response.dispatch,
 }

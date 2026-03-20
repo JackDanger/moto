@@ -2266,3 +2266,143 @@ class IoTResponse(BaseResponse):
             deprecated=self._get_param("deprecated"),
         )
         return ActionResult(command.to_description_dict())
+
+    # --- Command Executions ---
+
+    def get_command_execution(self) -> ActionResult:
+        return ActionResult(
+            {
+                "executionId": self._get_param("executionId"),
+                "commandArn": "",
+                "targetArn": self._get_param("targetArn") or "",
+                "status": "SUCCEEDED",
+            }
+        )
+
+    def list_command_executions(self) -> ActionResult:
+        return ActionResult({"commandExecutions": [], "nextToken": None})
+
+    def delete_command_execution(self) -> EmptyResult:
+        return EmptyResult()
+
+    # --- Registration / Provisioning ---
+
+    def delete_registration_code(self) -> EmptyResult:
+        return EmptyResult()
+
+    def register_thing(self) -> ActionResult:
+        return ActionResult(
+            {
+                "certificatePem": "",
+                "resourceArns": {},
+            }
+        )
+
+    def create_provisioning_claim(self) -> ActionResult:
+        return ActionResult(
+            {
+                "certificateId": "stub-cert-id",
+                "certificatePem": "-----BEGIN CERTIFICATE-----\nstub\n-----END CERTIFICATE-----",
+                "keyPair": {
+                    "PublicKey": "stub-public-key",
+                    "PrivateKey": "stub-private-key",
+                },
+                "expiration": None,
+            }
+        )
+
+    # --- SBOM ---
+
+    def associate_sbom_with_package_version(self) -> ActionResult:
+        return ActionResult(
+            {
+                "packageName": self._get_param("packageName") or "",
+                "versionName": self._get_param("versionName") or "",
+                "sbom": {},
+                "sbomValidationStatus": "NOT_APPLICABLE",
+            }
+        )
+
+    def disassociate_sbom_from_package_version(self) -> ActionResult:
+        return ActionResult(
+            {
+                "packageName": self._get_param("packageName") or "",
+                "versionName": self._get_param("versionName") or "",
+            }
+        )
+
+    def list_sbom_validation_results(self) -> ActionResult:
+        return ActionResult({"validationResultSummaries": [], "nextToken": None})
+
+    # --- Jobs ---
+
+    def associate_targets_with_job(self) -> ActionResult:
+        return ActionResult(
+            {
+                "jobArn": "",
+                "jobId": self._get_param("jobId") or "",
+                "description": "",
+            }
+        )
+
+    # --- Anomaly Detection / DD ---
+
+    def get_behavior_model_training_summaries(self) -> ActionResult:
+        return ActionResult({"summaries": [], "nextToken": None})
+
+    def cancel_detect_mitigation_actions_task(self) -> EmptyResult:
+        return EmptyResult()
+
+    def start_detect_mitigation_actions_task(self) -> ActionResult:
+        return ActionResult({"taskId": self._get_param("taskId") or "stub-task"})
+
+    def list_thing_registration_tasks(self) -> ActionResult:
+        return ActionResult({"taskIds": [], "nextToken": None})
+
+    def list_thing_registration_task_reports(self) -> ActionResult:
+        return ActionResult({"resourceLinks": [], "reportType": "", "nextToken": None})
+
+    def put_verification_state_on_violation(self) -> EmptyResult:
+        return EmptyResult()
+
+    # --- Fleet Indexing / Search ---
+
+    def get_buckets_aggregation(self) -> ActionResult:
+        return ActionResult({"totalCount": 0, "buckets": []})
+
+    def get_cardinality(self) -> ActionResult:
+        return ActionResult({"cardinality": 0})
+
+    def get_percentiles(self) -> ActionResult:
+        return ActionResult({"percentiles": []})
+
+    # --- Authorizer Testing ---
+
+    def test_authorization(self) -> ActionResult:
+        return ActionResult({"authResults": [], "missing": []})
+
+    def test_invoke_authorizer(self) -> ActionResult:
+        return ActionResult(
+            {
+                "isAuthenticated": True,
+                "principalId": "stub-principal",
+                "policyDocuments": [],
+                "refreshAfterInSeconds": 3600,
+                "disconnectAfterInSeconds": 86400,
+            }
+        )
+
+    # --- Auth ---
+
+    def clear_default_authorizer(self) -> EmptyResult:
+        return EmptyResult()
+
+    # --- Encryption ---
+
+    def update_encryption_configuration(self) -> EmptyResult:
+        return EmptyResult()
+
+    # --- PrincipalThings V2 ---
+
+    def list_principal_things_v2(self) -> ActionResult:
+        return ActionResult({"principalThingObjects": [], "nextToken": None})

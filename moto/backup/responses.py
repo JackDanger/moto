@@ -1157,3 +1157,22 @@ class BackupResponse(BaseResponse):
             tiering_configuration_name=name,
         )
         return EmptyResult()
+
+    def associate_backup_vault_mpa_approval_team(self) -> EmptyResult:
+        return EmptyResult()
+
+    def disassociate_backup_vault_mpa_approval_team(self) -> EmptyResult:
+        return EmptyResult()
+
+    def create_restore_access_backup_vault(self) -> ActionResult:
+        name = self._get_param("BackupVaultName") or "stub-restore-vault"
+        return ActionResult(
+            {
+                "BackupVaultArn": f"arn:aws:backup:{self.region}:{self.current_account}:backup-vault:{name}",
+                "BackupVaultName": name,
+                "CreationDate": None,
+            }
+        )
+
+    def revoke_restore_access_backup_vault(self) -> EmptyResult:
+        return EmptyResult()
