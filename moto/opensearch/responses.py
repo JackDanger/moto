@@ -925,3 +925,31 @@ class OpenSearchServiceResponse(BaseResponse):
         domain_name = parts[-2]
         maintenances = self.opensearch_backend.list_domain_maintenances(domain_name)
         return json.dumps({"DomainMaintenances": maintenances})
+
+    def get_upgrade_history(self) -> str:
+        parts = self.path.rstrip("/").split("/")
+        domain_name = parts[-2]
+        return json.dumps({"UpgradeHistories": [], "NextToken": None})
+
+    def get_upgrade_status(self) -> str:
+        parts = self.path.rstrip("/").split("/")
+        domain_name = parts[-2]
+        return json.dumps({"UpgradeName": "", "StepStatus": "SUCCEEDED", "UpgradeStep": "SNAPSHOT"})
+
+    def cancel_service_software_update(self) -> str:
+        body = json.loads(self.body)
+        domain_name = body.get("DomainName", "")
+        return json.dumps({"ServiceSoftwareOptions": {"CurrentVersion": "", "NewVersion": "", "UpdateAvailable": False, "Cancellable": False, "UpdateStatus": "COMPLETED", "Description": "", "AutomatedUpdateDate": "1970-01-01T00:00:00Z", "OptionalDeployment": False}})
+
+    def start_service_software_update(self) -> str:
+        body = json.loads(self.body)
+        domain_name = body.get("DomainName", "")
+        return json.dumps({"ServiceSoftwareOptions": {"CurrentVersion": "", "NewVersion": "", "UpdateAvailable": False, "Cancellable": True, "UpdateStatus": "PENDING_UPDATE", "Description": "Update pending", "AutomatedUpdateDate": "1970-01-01T00:00:00Z", "OptionalDeployment": False}})
+
+    def list_vpc_endpoint_access(self) -> str:
+        return json.dumps({"AuthorizedPrincipalList": [], "NextToken": None})
+
+    def upgrade_domain(self) -> str:
+        body = json.loads(self.body)
+        domain_name = body.get("DomainName", "")
+        return json.dumps({"DomainName": domain_name, "TargetVersion": body.get("TargetVersion", ""), "PerformCheckOnly": body.get("PerformCheckOnly", False), "AdvancedOptions": {}, "ChangeProgressDetails": {}})
