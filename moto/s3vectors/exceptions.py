@@ -66,3 +66,10 @@ class VectorWrongDimension(ServiceException):
         super().__init__(
             f"Invalid record for key '{key}': vector must have length {actual}, but has length {provided}"
         )
+
+
+class ResourceNotFoundException(ServiceException):
+    code = "NotFoundException"
+
+    def __init__(self, msg: str = "The specified resource could not be found") -> None:
+        super().__init__(msg)

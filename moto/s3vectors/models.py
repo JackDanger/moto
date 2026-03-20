@@ -10,6 +10,7 @@ from moto.utilities.utils import PARTITION_NAMES
 
 from .exceptions import (
     IndexNotFound,
+    ResourceNotFoundException,
     VectorBucketAlreadyExists,
     VectorBucketNotEmpty,
     VectorBucketNotFound,
@@ -67,6 +68,7 @@ class Index(BaseModel):
 
         self._bucket = bucket
         self.vectors: dict[str, Vector] = {}
+        self.tags: dict[str, str] = {}
 
 
 class VectorBucket(BaseModel):
@@ -75,12 +77,14 @@ class VectorBucket(BaseModel):
         arn: str,
         name: str,
         encryption_configuration: dict[str, str],
+        tags: Optional[dict[str, str]] = None,
     ):
         self.vector_bucket_name = name
         self.vector_bucket_arn = arn
         self.encryption_configuration = encryption_configuration or {
             "sseType": "AES256"
         }
+        self.tags: dict[str, str] = tags or {}
 
         self.indexes: dict[str, Index] = {}
         self.policy: Optional[str] = None
@@ -267,6 +271,50 @@ class S3VectorsBackend(BaseBackend):
         )
         for key in keys:
             index.vectors.pop(key, None)
+
+    def _get_resource_by_arn(self, resource_arn: str) -> "VectorBucket | Index":
+        """Look up a VectorBucket or Index by ARN."""
+        # Check if it's a bucket ARN
+        for bucket in self.vector_buckets.values():
+            if bucket.vector_bucket_arn == resource_arn:
+                return bucket
+            for index in bucket.indexes.values():
+                if index.index_arn == resource_arn:
+                    return index
+        raise ResourceNotFoundException(f"Resource {resource_arn} not found")
+
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
+        resource = self._get_resource_by_arn(resource_arn)
+        resource.tags.update(tags)
+
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
+        resource = self._get_resource_by_arn(resource_arn)
+        for key in tag_keys:
+            resource.tags.pop(key, None)
+
+    def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
+        resource = self._get_resource_by_arn(resource_arn)
+        return resource.tags
+
+    def query_vectors(
+        self,
+        vector_bucket_name: str,
+        index_name: str,
+        index_arn: str,
+        query_vector: Any,
+        top_k: int,
+        return_data: bool,
+        return_metadata: bool,
+        filter_expr: Any,
+    ) -> list[dict[str, Any]]:
+        """Return top_k nearest vectors (approximate — sorts by first component for simplicity)."""
+        index = self.get_index(
+            vector_bucket_name, index_name=index_name, index_arn=index_arn
+        )
+        vectors = list(index.vectors.values())
+        # Return up to top_k results (no real distance computation needed for stub)
+        result = vectors[:top_k]
+        return [v.to_dict(return_data=return_data, return_metadata=return_metadata) for v in result]
 
 
 s3vectors_backends = BackendDict(
