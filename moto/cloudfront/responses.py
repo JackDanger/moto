@@ -1009,36 +1009,21 @@ class CloudFrontResponse(BaseResponse):
         template = self.response_template(LIST_KEY_VALUE_STORES_TEMPLATE)
         return 200, {}, template.render(stores=stores)
 
+    # VPC Origins
     def create_vpc_origin(self) -> TYPE_RESPONSE:
-        import json
-
-        body = json.loads(self.body) if self.body else {}
-        config = body.get("VpcOriginEndpointConfig", {})
+        params = self._get_xml_body()
+        root = params.get("CreateVpcOriginRequest", params)
+        config = root.get("VpcOriginEndpointConfig", {})
+        config.pop("@xmlns", None)
         vo = self.backend.create_vpc_origin(config)
-        result = {
-            "Id": vo.id,
-            "Arn": vo.arn,
-            "Status": vo.status,
-            "CreatedTime": vo.created_time,
-            "LastModifiedTime": vo.last_modified_time,
-            "VpcOriginEndpointConfig": vo.vpc_origin_endpoint_config,
-        }
-        return 201, {"status": 201, "ETag": vo.etag}, json.dumps(result)
+        template = self.response_template(VPC_ORIGIN_TEMPLATE)
+        return 202, {"status": 202, "ETag": vo.etag}, template.render(vo=vo, xmlns=XMLNS)
 
     def get_vpc_origin(self) -> TYPE_RESPONSE:
-        import json
-
         vpc_id = self.path.split("/")[-1]
         vo = self.backend.get_vpc_origin(vpc_id)
-        result = {
-            "Id": vo.id,
-            "Arn": vo.arn,
-            "Status": vo.status,
-            "CreatedTime": vo.created_time,
-            "LastModifiedTime": vo.last_modified_time,
-            "VpcOriginEndpointConfig": vo.vpc_origin_endpoint_config,
-        }
-        return 200, {"ETag": vo.etag}, json.dumps(result)
+        template = self.response_template(VPC_ORIGIN_TEMPLATE)
+        return 200, {"ETag": vo.etag}, template.render(vo=vo, xmlns=XMLNS)
 
     def delete_vpc_origin(self) -> TYPE_RESPONSE:
         vpc_id = self.path.split("/")[-1]
@@ -1046,132 +1031,79 @@ class CloudFrontResponse(BaseResponse):
         return 202, {"status": 202}, ""
 
     def update_vpc_origin(self) -> TYPE_RESPONSE:
-        import json
-
         vpc_id = self.path.split("/")[-1]
-        body = json.loads(self.body) if self.body else {}
-        config = body.get("VpcOriginEndpointConfig", {})
+        params = self._get_xml_body()
+        root = params.get("UpdateVpcOriginRequest", params)
+        config = root.get("VpcOriginEndpointConfig", {})
+        config.pop("@xmlns", None)
         vo = self.backend.update_vpc_origin(vpc_id, config)
-        result = {
-            "Id": vo.id,
-            "Arn": vo.arn,
-            "Status": vo.status,
-            "CreatedTime": vo.created_time,
-            "LastModifiedTime": vo.last_modified_time,
-            "VpcOriginEndpointConfig": vo.vpc_origin_endpoint_config,
-        }
-        return 200, {"ETag": vo.etag}, json.dumps(result)
+        template = self.response_template(VPC_ORIGIN_TEMPLATE)
+        return 200, {"ETag": vo.etag}, template.render(vo=vo, xmlns=XMLNS)
 
     def list_vpc_origins(self) -> TYPE_RESPONSE:
-        import json
-
         origins = self.backend.list_vpc_origins()
-        items = [
-            {
-                "Id": vo.id,
-                "Arn": vo.arn,
-                "Status": vo.status,
-                "CreatedTime": vo.created_time,
-                "LastModifiedTime": vo.last_modified_time,
-                "VpcOriginEndpointConfig": vo.vpc_origin_endpoint_config,
-            }
-            for vo in origins
-        ]
-        return (
-            200,
-            {},
-            json.dumps({"VpcOriginList": {"Quantity": len(items), "Items": items}}),
-        )
+        template = self.response_template(LIST_VPC_ORIGINS_TEMPLATE)
+        return 200, {}, template.render(origins=origins, xmlns=XMLNS)
 
+    # Trust Stores
     def create_trust_store(self) -> TYPE_RESPONSE:
-        import json
-
-        body = json.loads(self.body) if self.body else {}
-        name = body.get("Name", "")
-        result = {
-            "Name": name,
-            "Id": random_id(length=14),
-            "Status": "DEPLOYED",
-            "ARN": f"arn:aws:cloudfront::{self.backend.account_id}:trust-store/{name}",
-            "LastModifiedTime": iso_8601_datetime_with_milliseconds(),
-        }
-        return 201, {"status": 201, "ETag": random_id(length=14)}, json.dumps(result)
+        params = self._get_xml_body()
+        root = params.get("CreateTrustStoreRequest", params)
+        root.pop("@xmlns", None)
+        name = root.get("Name", "")
+        ts = self.backend.create_trust_store(name)
+        template = self.response_template(TRUST_STORE_TEMPLATE)
+        return 201, {"status": 201, "ETag": ts.etag}, template.render(ts=ts, xmlns=XMLNS)
 
     def get_trust_store(self) -> TYPE_RESPONSE:
-        import json
-
         store_id = self.path.split("/")[-1]
-        result = {
-            "Name": store_id,
-            "Id": store_id,
-            "Status": "DEPLOYED",
-            "ARN": f"arn:aws:cloudfront::{self.backend.account_id}:trust-store/{store_id}",
-            "LastModifiedTime": iso_8601_datetime_with_milliseconds(),
-        }
-        return 200, {"ETag": random_id(length=14)}, json.dumps(result)
+        ts = self.backend.get_trust_store(store_id)
+        template = self.response_template(TRUST_STORE_TEMPLATE)
+        return 200, {"ETag": ts.etag}, template.render(ts=ts, xmlns=XMLNS)
 
     def delete_trust_store(self) -> TYPE_RESPONSE:
+        store_id = self.path.split("/")[-1]
+        self.backend.delete_trust_store(store_id)
         return 204, {"status": 204}, ""
 
     def update_trust_store(self) -> TYPE_RESPONSE:
-        return self.get_trust_store()
+        store_id = self.path.split("/")[-1]
+        ts = self.backend.update_trust_store(store_id)
+        template = self.response_template(TRUST_STORE_TEMPLATE)
+        return 200, {"ETag": ts.etag}, template.render(ts=ts, xmlns=XMLNS)
 
     def list_trust_stores(self) -> TYPE_RESPONSE:
-        import json
+        stores = self.backend.list_trust_stores()
+        template = self.response_template(LIST_TRUST_STORES_TEMPLATE)
+        return 200, {}, template.render(stores=stores, xmlns=XMLNS)
 
-        return (
-            200,
-            {},
-            json.dumps(
-                {"TrustStoreList": {"MaxItems": 100, "Quantity": 0, "Items": []}}
-            ),
-        )
-
+    # Resource Policy
     def get_resource_policy(self) -> TYPE_RESPONSE:
-        import json
-
-        return 200, {"ETag": random_id(length=14)}, json.dumps({"ResourcePolicy": ""})
+        template = self.response_template(RESOURCE_POLICY_TEMPLATE)
+        return 200, {"ETag": random_id(length=14)}, template.render(xmlns=XMLNS)
 
     def put_resource_policy(self) -> TYPE_RESPONSE:
-        import json
-
-        return 200, {"ETag": random_id(length=14)}, json.dumps({"ResourcePolicy": ""})
+        template = self.response_template(RESOURCE_POLICY_TEMPLATE)
+        return 200, {"ETag": random_id(length=14)}, template.render(xmlns=XMLNS)
 
     def delete_resource_policy(self) -> TYPE_RESPONSE:
         return 204, {"status": 204}, ""
 
+    # Anycast IP Lists
     def create_anycast_ip_list(self) -> TYPE_RESPONSE:
-        import json
-
-        body = json.loads(self.body) if self.body else {}
-        name = body.get("Name", "")
+        params = self._get_xml_body()
+        root = params.get("CreateAnycastIpListRequest", params)
+        root.pop("@xmlns", None)
+        name = root.get("Name", "")
         aip = self.backend.create_anycast_ip_list(name)
-        result = {
-            "Id": aip.id,
-            "Name": aip.name,
-            "Status": aip.status,
-            "Arn": aip.arn,
-            "AnycastIps": aip.anycast_ips,
-            "IpCount": aip.ip_count,
-            "LastModifiedTime": aip.last_modified_time,
-        }
-        return 201, {"status": 201, "ETag": aip.etag}, json.dumps(result)
+        template = self.response_template(ANYCAST_IP_LIST_TEMPLATE)
+        return 201, {"status": 201, "ETag": aip.etag}, template.render(aip=aip, xmlns=XMLNS)
 
     def get_anycast_ip_list(self) -> TYPE_RESPONSE:
-        import json
-
         list_id = self.path.split("/")[-1]
         aip = self.backend.get_anycast_ip_list(list_id)
-        result = {
-            "Id": aip.id,
-            "Name": aip.name,
-            "Status": aip.status,
-            "Arn": aip.arn,
-            "AnycastIps": aip.anycast_ips,
-            "IpCount": aip.ip_count,
-            "LastModifiedTime": aip.last_modified_time,
-        }
-        return 200, {"ETag": aip.etag}, json.dumps(result)
+        template = self.response_template(ANYCAST_IP_LIST_TEMPLATE)
+        return 200, {"ETag": aip.etag}, template.render(aip=aip, xmlns=XMLNS)
 
     def delete_anycast_ip_list(self) -> TYPE_RESPONSE:
         list_id = self.path.split("/")[-1]
@@ -1182,257 +1114,153 @@ class CloudFrontResponse(BaseResponse):
         return self.get_anycast_ip_list()
 
     def list_anycast_ip_lists(self) -> TYPE_RESPONSE:
-        import json
-
         lists = self.backend.list_anycast_ip_lists()
-        items = [
-            {
-                "Id": a.id,
-                "Name": a.name,
-                "Status": a.status,
-                "Arn": a.arn,
-                "IpCount": a.ip_count,
-                "LastModifiedTime": a.last_modified_time,
-            }
-            for a in lists
-        ]
-        return (
-            200,
-            {},
-            json.dumps(
-                {
-                    "AnycastIpLists": {
-                        "MaxItems": 100,
-                        "Quantity": len(items),
-                        "Items": items,
-                    }
-                }
-            ),
-        )
+        template = self.response_template(LIST_ANYCAST_IP_LISTS_TEMPLATE)
+        return 200, {}, template.render(lists=lists, xmlns=XMLNS)
 
+    # Connection Groups
     def create_connection_group(self) -> TYPE_RESPONSE:
-        import json
-
-        body = json.loads(self.body) if self.body else {}
-        cg_id = random_id(length=14)
-        result = {
-            "Id": cg_id,
-            "Name": body.get("Name", ""),
-            "Arn": f"arn:aws:cloudfront::{self.backend.account_id}:connection-group/{cg_id}",
-            "Status": "Deployed",
-            "CreatedTime": iso_8601_datetime_with_milliseconds(),
-            "LastModifiedTime": iso_8601_datetime_with_milliseconds(),
-        }
-        return 201, {"status": 201, "ETag": random_id(length=14)}, json.dumps(result)
+        params = self._get_xml_body()
+        root = params.get("CreateConnectionGroupRequest", params)
+        root.pop("@xmlns", None)
+        name = root.get("Name", "")
+        cg = self.backend.create_connection_group(name)
+        template = self.response_template(CONNECTION_GROUP_TEMPLATE)
+        return 201, {"status": 201, "ETag": cg.etag}, template.render(cg=cg, xmlns=XMLNS)
 
     def get_connection_group(self) -> TYPE_RESPONSE:
-        import json
-
         cg_id = self.path.split("/")[-1]
-        result = {
-            "Id": cg_id,
-            "Name": cg_id,
-            "Arn": f"arn:aws:cloudfront::{self.backend.account_id}:connection-group/{cg_id}",
-            "Status": "Deployed",
-            "CreatedTime": iso_8601_datetime_with_milliseconds(),
-            "LastModifiedTime": iso_8601_datetime_with_milliseconds(),
-        }
-        return 200, {"ETag": random_id(length=14)}, json.dumps(result)
+        cg = self.backend.get_connection_group(cg_id)
+        template = self.response_template(CONNECTION_GROUP_TEMPLATE)
+        return 200, {"ETag": cg.etag}, template.render(cg=cg, xmlns=XMLNS)
 
     def delete_connection_group(self) -> TYPE_RESPONSE:
+        cg_id = self.path.split("/")[-1]
+        self.backend.delete_connection_group(cg_id)
         return 204, {"status": 204}, ""
 
     def update_connection_group(self) -> TYPE_RESPONSE:
-        return self.get_connection_group()
+        cg_id = self.path.split("/")[-1]
+        cg = self.backend.get_connection_group(cg_id)
+        cg.etag = random_id(length=14)
+        template = self.response_template(CONNECTION_GROUP_TEMPLATE)
+        return 200, {"ETag": cg.etag}, template.render(cg=cg, xmlns=XMLNS)
 
     def list_connection_groups(self) -> TYPE_RESPONSE:
-        import json
-
-        return (
-            200,
-            {},
-            json.dumps(
-                {"ConnectionGroupList": {"MaxItems": 100, "Quantity": 0, "Items": []}}
-            ),
-        )
+        groups = self.backend.list_connection_groups()
+        template = self.response_template(LIST_CONNECTION_GROUPS_TEMPLATE)
+        return 200, {}, template.render(groups=groups, xmlns=XMLNS)
 
     def get_connection_group_by_routing_endpoint(self) -> TYPE_RESPONSE:
-        import json
+        template = self.response_template(ERROR_TEMPLATE)
+        return 404, {}, template.render(code="NoSuchResource", message="The specified resource does not exist.", xmlns=XMLNS)
 
-        return 404, {}, json.dumps({"message": "Not found"})
-
+    # Distribution Tenants
     def create_distribution_tenant(self) -> TYPE_RESPONSE:
-        import json
-
-        body = json.loads(self.body) if self.body else {}
-        dt_id = random_id(length=14)
-        result = {
-            "Id": dt_id,
-            "DistributionId": body.get("DistributionId", ""),
-            "Name": body.get("Name", ""),
-            "Arn": f"arn:aws:cloudfront::{self.backend.account_id}:distribution-tenant/{dt_id}",
-            "Status": "Deployed",
-            "CreatedTime": iso_8601_datetime_with_milliseconds(),
-            "LastModifiedTime": iso_8601_datetime_with_milliseconds(),
-        }
-        return 201, {"status": 201, "ETag": random_id(length=14)}, json.dumps(result)
+        params = self._get_xml_body()
+        root = params.get("CreateDistributionTenantRequest", params)
+        root.pop("@xmlns", None)
+        name = root.get("Name", "")
+        dist_id = root.get("DistributionId", "")
+        dt = self.backend.create_distribution_tenant(name, dist_id)
+        template = self.response_template(DISTRIBUTION_TENANT_TEMPLATE)
+        return 201, {"status": 201, "ETag": dt.etag}, template.render(dt=dt, xmlns=XMLNS)
 
     def get_distribution_tenant(self) -> TYPE_RESPONSE:
-        import json
-
         dt_id = self.path.split("/")[-1]
-        result = {
-            "Id": dt_id,
-            "Name": dt_id,
-            "Status": "Deployed",
-            "Arn": f"arn:aws:cloudfront::{self.backend.account_id}:distribution-tenant/{dt_id}",
-            "CreatedTime": iso_8601_datetime_with_milliseconds(),
-            "LastModifiedTime": iso_8601_datetime_with_milliseconds(),
-        }
-        return 200, {"ETag": random_id(length=14)}, json.dumps(result)
+        dt = self.backend.get_distribution_tenant(dt_id)
+        template = self.response_template(DISTRIBUTION_TENANT_TEMPLATE)
+        return 200, {"ETag": dt.etag}, template.render(dt=dt, xmlns=XMLNS)
 
     def delete_distribution_tenant(self) -> TYPE_RESPONSE:
+        dt_id = self.path.split("/")[-1]
+        self.backend.delete_distribution_tenant(dt_id)
         return 204, {"status": 204}, ""
 
     def update_distribution_tenant(self) -> TYPE_RESPONSE:
-        return self.get_distribution_tenant()
+        dt_id = self.path.split("/")[-1]
+        dt = self.backend.get_distribution_tenant(dt_id)
+        dt.etag = random_id(length=14)
+        template = self.response_template(DISTRIBUTION_TENANT_TEMPLATE)
+        return 200, {"ETag": dt.etag}, template.render(dt=dt, xmlns=XMLNS)
 
     def list_distribution_tenants(self) -> TYPE_RESPONSE:
-        import json
-
-        return (
-            200,
-            {},
-            json.dumps(
-                {
-                    "DistributionTenantList": {
-                        "MaxItems": 100,
-                        "Quantity": 0,
-                        "Items": [],
-                    }
-                }
-            ),
-        )
+        tenants = self.backend.list_distribution_tenants()
+        template = self.response_template(LIST_DISTRIBUTION_TENANTS_TEMPLATE)
+        return 200, {}, template.render(tenants=tenants, xmlns=XMLNS)
 
     def get_distribution_tenant_by_domain(self) -> TYPE_RESPONSE:
-        import json
-
-        return 404, {}, json.dumps({"message": "Not found"})
+        template = self.response_template(ERROR_TEMPLATE)
+        return 404, {}, template.render(code="NoSuchResource", message="The specified resource does not exist.", xmlns=XMLNS)
 
     def list_distribution_tenants_by_customization(self) -> TYPE_RESPONSE:
-        import json
-
-        return (
-            200,
-            {},
-            json.dumps(
-                {
-                    "DistributionTenantList": {
-                        "MaxItems": 100,
-                        "Quantity": 0,
-                        "Items": [],
-                    }
-                }
-            ),
-        )
+        template = self.response_template(LIST_DISTRIBUTION_TENANTS_TEMPLATE)
+        return 200, {}, template.render(tenants=[], xmlns=XMLNS)
 
     def create_invalidation_for_distribution_tenant(self) -> TYPE_RESPONSE:
-        import json
-
-        return (
-            201,
-            {"status": 201},
-            json.dumps({"Id": random_id(), "Status": "COMPLETED"}),
-        )
+        inv_id = random_id()
+        template = self.response_template(TENANT_INVALIDATION_TEMPLATE)
+        return 201, {"status": 201}, template.render(inv_id=inv_id, xmlns=XMLNS)
 
     def get_invalidation_for_distribution_tenant(self) -> TYPE_RESPONSE:
-        import json
-
         inv_id = self.path.split("/")[-1]
-        return 200, {}, json.dumps({"Id": inv_id, "Status": "COMPLETED"})
+        template = self.response_template(TENANT_INVALIDATION_TEMPLATE)
+        return 200, {}, template.render(inv_id=inv_id, xmlns=XMLNS)
 
     def list_invalidations_for_distribution_tenant(self) -> TYPE_RESPONSE:
-        import json
+        template = self.response_template(TENANT_INVALIDATION_LIST_TEMPLATE)
+        return 200, {}, template.render(xmlns=XMLNS)
 
-        return (
-            200,
-            {},
-            json.dumps(
-                {
-                    "InvalidationList": {
-                        "MaxItems": 100,
-                        "Quantity": 0,
-                        "Items": [],
-                        "IsTruncated": False,
-                    }
-                }
-            ),
-        )
-
+    # Connection Functions
     def create_connection_function(self) -> TYPE_RESPONSE:
-        import json
-
-        body = json.loads(self.body) if self.body else {}
-        name = body.get("Name", "")
-        result = {
-            "Name": name,
-            "FunctionArn": f"arn:aws:cloudfront::{self.backend.account_id}:connection-function/{name}",
-            "Stage": "DEVELOPMENT",
-            "CreatedTime": iso_8601_datetime_with_milliseconds(),
-            "LastModifiedTime": iso_8601_datetime_with_milliseconds(),
-        }
-        return 201, {"status": 201, "ETag": random_id(length=14)}, json.dumps(result)
+        params = self._get_xml_body()
+        root = params.get("CreateConnectionFunctionRequest", params)
+        root.pop("@xmlns", None)
+        name = root.get("Name", "")
+        cf = self.backend.create_connection_function(name)
+        template = self.response_template(CONNECTION_FUNCTION_TEMPLATE)
+        return 201, {"status": 201, "ETag": cf.etag}, template.render(cf=cf, xmlns=XMLNS)
 
     def get_connection_function(self) -> TYPE_RESPONSE:
-        import json
-
         name = self.path.split("/")[-1]
-        result = {
-            "Name": name,
-            "FunctionArn": f"arn:aws:cloudfront::{self.backend.account_id}:connection-function/{name}",
-            "Stage": "DEVELOPMENT",
-            "CreatedTime": iso_8601_datetime_with_milliseconds(),
-            "LastModifiedTime": iso_8601_datetime_with_milliseconds(),
-        }
-        return 200, {"ETag": random_id(length=14)}, json.dumps(result)
+        cf = self.backend.get_connection_function(name)
+        template = self.response_template(CONNECTION_FUNCTION_TEMPLATE)
+        return 200, {"ETag": cf.etag}, template.render(cf=cf, xmlns=XMLNS)
 
     def describe_connection_function(self) -> TYPE_RESPONSE:
-        return self.get_connection_function()
+        name = self.path.split("/")[-2]
+        cf = self.backend.get_connection_function(name)
+        template = self.response_template(CONNECTION_FUNCTION_TEMPLATE)
+        return 200, {"ETag": cf.etag}, template.render(cf=cf, xmlns=XMLNS)
 
     def delete_connection_function(self) -> TYPE_RESPONSE:
+        name = self.path.split("/")[-1]
+        self.backend.delete_connection_function(name)
         return 204, {"status": 204}, ""
 
     def update_connection_function(self) -> TYPE_RESPONSE:
-        return self.get_connection_function()
+        name = self.path.split("/")[-1]
+        cf = self.backend.get_connection_function(name)
+        cf.etag = random_id(length=14)
+        template = self.response_template(CONNECTION_FUNCTION_TEMPLATE)
+        return 200, {"ETag": cf.etag}, template.render(cf=cf, xmlns=XMLNS)
 
     def publish_connection_function(self) -> TYPE_RESPONSE:
-        return self.get_connection_function()
+        name = self.path.split("/")[-2]
+        cf = self.backend.get_connection_function(name)
+        cf.stage = "LIVE"
+        cf.etag = random_id(length=14)
+        template = self.response_template(CONNECTION_FUNCTION_TEMPLATE)
+        return 200, {"ETag": cf.etag}, template.render(cf=cf, xmlns=XMLNS)
 
     def test_connection_function(self) -> TYPE_RESPONSE:
-        import json
-
-        return (
-            200,
-            {},
-            json.dumps({"FunctionOutput": '{"response":{"statusCode":200}}'}),
-        )
+        template = self.response_template(TEST_CONNECTION_FUNCTION_TEMPLATE)
+        return 200, {}, template.render(xmlns=XMLNS)
 
     def list_connection_functions(self) -> TYPE_RESPONSE:
-        import json
-
-        return (
-            200,
-            {},
-            json.dumps(
-                {
-                    "ConnectionFunctionList": {
-                        "MaxItems": 100,
-                        "Quantity": 0,
-                        "Items": [],
-                    }
-                }
-            ),
-        )
+        funcs = self.backend.list_connection_functions()
+        template = self.response_template(LIST_CONNECTION_FUNCTIONS_TEMPLATE)
+        return 200, {}, template.render(funcs=funcs, xmlns=XMLNS)
 
     def copy_distribution(self) -> TYPE_RESPONSE:
         return self.get_distribution()
@@ -1462,15 +1290,8 @@ class CloudFrontResponse(BaseResponse):
         return 200, {}, template.render(dist_ids=[])
 
     def list_domain_conflicts(self) -> TYPE_RESPONSE:
-        import json
-
-        return (
-            200,
-            {},
-            json.dumps(
-                {"DomainConflictList": {"MaxItems": 100, "Quantity": 0, "Items": []}}
-            ),
-        )
+        template = self.response_template(EMPTY_LIST_TEMPLATE)
+        return 200, {}, template.render(root_tag="DomainConflicts", xmlns=XMLNS)
 
     def update_distribution_with_staging_config(self) -> TYPE_RESPONSE:
         dist_id = self.path.split("/")[-2]
@@ -1483,18 +1304,12 @@ class CloudFrontResponse(BaseResponse):
         return 200, {}, ""
 
     def get_managed_certificate_details(self) -> TYPE_RESPONSE:
-        import json
-
-        return (
-            200,
-            {},
-            json.dumps({"ManagedCertificateDetails": {"CertificateStatus": "ISSUED"}}),
-        )
+        template = self.response_template(MANAGED_CERTIFICATE_TEMPLATE)
+        return 200, {}, template.render(xmlns=XMLNS)
 
     def verify_dns_configuration(self) -> TYPE_RESPONSE:
-        import json
-
-        return 200, {}, json.dumps({"DnsConfigurationList": []})
+        template = self.response_template(VERIFY_DNS_TEMPLATE)
+        return 200, {}, template.render(xmlns=XMLNS)
 
 
 DIST_META_TEMPLATE = """
@@ -2760,4 +2575,252 @@ LIST_KEY_VALUE_STORES_TEMPLATE = """<?xml version="1.0"?>
   </Items>
   {% endif %}
 </KeyValueStoreList>
+"""
+
+VPC_ORIGIN_TEMPLATE = """<?xml version="1.0"?>
+<VpcOrigin xmlns="{{ xmlns }}">
+  <Id>{{ vo.id }}</Id>
+  <Arn>{{ vo.arn }}</Arn>
+  <AccountId>{{ vo.account_id }}</AccountId>
+  <Status>{{ vo.status }}</Status>
+  <CreatedTime>{{ vo.created_time }}</CreatedTime>
+  <LastModifiedTime>{{ vo.last_modified_time }}</LastModifiedTime>
+  <VpcOriginEndpointConfig>
+    <Name>{{ vo.vpc_origin_endpoint_config.get('Name', '') }}</Name>
+    <Arn>{{ vo.vpc_origin_endpoint_config.get('Arn', '') }}</Arn>
+    <HTTPPort>{{ vo.vpc_origin_endpoint_config.get('HTTPPort', 80) }}</HTTPPort>
+    <HTTPSPort>{{ vo.vpc_origin_endpoint_config.get('HTTPSPort', 443) }}</HTTPSPort>
+    <OriginProtocolPolicy>{{ vo.vpc_origin_endpoint_config.get('OriginProtocolPolicy', 'https-only') }}</OriginProtocolPolicy>
+    <OriginSslProtocols>
+      <Quantity>0</Quantity>
+      <Items/>
+    </OriginSslProtocols>
+  </VpcOriginEndpointConfig>
+</VpcOrigin>
+"""
+
+LIST_VPC_ORIGINS_TEMPLATE = """<?xml version="1.0"?>
+<VpcOriginList xmlns="{{ xmlns }}">
+  <Marker></Marker>
+  <MaxItems>100</MaxItems>
+  <IsTruncated>false</IsTruncated>
+  <Quantity>{{ origins|length }}</Quantity>
+  {% if origins %}
+  <Items>
+    {% for vo in origins %}
+    <VpcOriginSummary>
+      <Id>{{ vo.id }}</Id>
+      <Name>{{ vo.vpc_origin_endpoint_config.get('Name', '') }}</Name>
+      <Status>{{ vo.status }}</Status>
+      <CreatedTime>{{ vo.created_time }}</CreatedTime>
+      <LastModifiedTime>{{ vo.last_modified_time }}</LastModifiedTime>
+      <Arn>{{ vo.arn }}</Arn>
+      <AccountId>{{ vo.account_id }}</AccountId>
+      <OriginEndpointArn>{{ vo.vpc_origin_endpoint_config.get('Arn', '') }}</OriginEndpointArn>
+    </VpcOriginSummary>
+    {% endfor %}
+  </Items>
+  {% endif %}
+</VpcOriginList>
+"""
+
+TRUST_STORE_TEMPLATE = """<?xml version="1.0"?>
+<TrustStore xmlns="{{ xmlns }}">
+  <Id>{{ ts.id }}</Id>
+  <Arn>{{ ts.arn }}</Arn>
+  <Name>{{ ts.name }}</Name>
+  <Status>{{ ts.status }}</Status>
+  <NumberOfCaCertificates>{{ ts.number_of_ca_certificates }}</NumberOfCaCertificates>
+  <LastModifiedTime>{{ ts.last_modified_time }}</LastModifiedTime>
+</TrustStore>
+"""
+
+LIST_TRUST_STORES_TEMPLATE = """<?xml version="1.0"?>
+<TrustStoreList xmlns="{{ xmlns }}">
+  {% for ts in stores %}
+  <TrustStoreSummary>
+    <Id>{{ ts.id }}</Id>
+    <Arn>{{ ts.arn }}</Arn>
+    <Name>{{ ts.name }}</Name>
+    <Status>{{ ts.status }}</Status>
+    <LastModifiedTime>{{ ts.last_modified_time }}</LastModifiedTime>
+  </TrustStoreSummary>
+  {% endfor %}
+</TrustStoreList>
+"""
+
+ANYCAST_IP_LIST_TEMPLATE = """<?xml version="1.0"?>
+<AnycastIpList xmlns="{{ xmlns }}">
+  <Id>{{ aip.id }}</Id>
+  <Name>{{ aip.name }}</Name>
+  <Status>{{ aip.status }}</Status>
+  <Arn>{{ aip.arn }}</Arn>
+  <AnycastIps/>
+  <IpCount>{{ aip.ip_count }}</IpCount>
+  <LastModifiedTime>{{ aip.last_modified_time }}</LastModifiedTime>
+</AnycastIpList>
+"""
+
+LIST_ANYCAST_IP_LISTS_TEMPLATE = """<?xml version="1.0"?>
+<AnycastIpLists xmlns="{{ xmlns }}">
+  <Marker></Marker>
+  <MaxItems>100</MaxItems>
+  <IsTruncated>false</IsTruncated>
+  <Quantity>{{ lists|length }}</Quantity>
+  {% if lists %}
+  <Items>
+    {% for a in lists %}
+    <AnycastIpListSummary>
+      <Id>{{ a.id }}</Id>
+      <Name>{{ a.name }}</Name>
+      <Status>{{ a.status }}</Status>
+      <Arn>{{ a.arn }}</Arn>
+      <IpCount>{{ a.ip_count }}</IpCount>
+      <LastModifiedTime>{{ a.last_modified_time }}</LastModifiedTime>
+    </AnycastIpListSummary>
+    {% endfor %}
+  </Items>
+  {% endif %}
+</AnycastIpLists>
+"""
+
+CONNECTION_GROUP_TEMPLATE = """<?xml version="1.0"?>
+<ConnectionGroup xmlns="{{ xmlns }}">
+  <Id>{{ cg.id }}</Id>
+  <Name>{{ cg.name }}</Name>
+  <Arn>{{ cg.arn }}</Arn>
+  <CreatedTime>{{ cg.created_time }}</CreatedTime>
+  <LastModifiedTime>{{ cg.last_modified_time }}</LastModifiedTime>
+  <Status>{{ cg.status }}</Status>
+  <Enabled>true</Enabled>
+  <IsDefault>false</IsDefault>
+</ConnectionGroup>
+"""
+
+LIST_CONNECTION_GROUPS_TEMPLATE = """<?xml version="1.0"?>
+<ConnectionGroups xmlns="{{ xmlns }}">
+  {% for cg in groups %}
+  <ConnectionGroupSummary>
+    <Id>{{ cg.id }}</Id>
+    <Name>{{ cg.name }}</Name>
+    <Arn>{{ cg.arn }}</Arn>
+    <CreatedTime>{{ cg.created_time }}</CreatedTime>
+    <LastModifiedTime>{{ cg.last_modified_time }}</LastModifiedTime>
+    <Status>{{ cg.status }}</Status>
+  </ConnectionGroupSummary>
+  {% endfor %}
+</ConnectionGroups>
+"""
+
+DISTRIBUTION_TENANT_TEMPLATE = """<?xml version="1.0"?>
+<DistributionTenant xmlns="{{ xmlns }}">
+  <Id>{{ dt.id }}</Id>
+  <DistributionId>{{ dt.distribution_id }}</DistributionId>
+  <Name>{{ dt.name }}</Name>
+  <Arn>{{ dt.arn }}</Arn>
+  <Status>{{ dt.status }}</Status>
+  <Enabled>true</Enabled>
+  <CreatedTime>{{ dt.created_time }}</CreatedTime>
+  <LastModifiedTime>{{ dt.last_modified_time }}</LastModifiedTime>
+</DistributionTenant>
+"""
+
+LIST_DISTRIBUTION_TENANTS_TEMPLATE = """<?xml version="1.0"?>
+<DistributionTenantList xmlns="{{ xmlns }}">
+  {% for dt in tenants %}
+  <DistributionTenantSummary>
+    <Id>{{ dt.id }}</Id>
+    <Name>{{ dt.name }}</Name>
+    <Arn>{{ dt.arn }}</Arn>
+    <Status>{{ dt.status }}</Status>
+  </DistributionTenantSummary>
+  {% endfor %}
+</DistributionTenantList>
+"""
+
+TENANT_INVALIDATION_TEMPLATE = """<?xml version="1.0"?>
+<Invalidation xmlns="{{ xmlns }}">
+  <Id>{{ inv_id }}</Id>
+  <Status>COMPLETED</Status>
+  <CreateTime>2021-01-01T00:00:00.000Z</CreateTime>
+  <InvalidationBatch>
+    <Paths><Quantity>0</Quantity></Paths>
+    <CallerReference>ref</CallerReference>
+  </InvalidationBatch>
+</Invalidation>
+"""
+
+TENANT_INVALIDATION_LIST_TEMPLATE = """<?xml version="1.0"?>
+<InvalidationList xmlns="{{ xmlns }}">
+  <Marker></Marker>
+  <MaxItems>100</MaxItems>
+  <IsTruncated>false</IsTruncated>
+  <Quantity>0</Quantity>
+</InvalidationList>
+"""
+
+CONNECTION_FUNCTION_TEMPLATE = """<?xml version="1.0"?>
+<ConnectionFunctionSummary xmlns="{{ xmlns }}">
+  <Name>{{ cf.name }}</Name>
+  <Id>{{ cf.id }}</Id>
+  <ConnectionFunctionArn>{{ cf.connection_function_arn }}</ConnectionFunctionArn>
+  <Status>{{ cf.status }}</Status>
+  <Stage>{{ cf.stage }}</Stage>
+  <CreatedTime>{{ cf.created_time }}</CreatedTime>
+  <LastModifiedTime>{{ cf.last_modified_time }}</LastModifiedTime>
+</ConnectionFunctionSummary>
+"""
+
+LIST_CONNECTION_FUNCTIONS_TEMPLATE = """<?xml version="1.0"?>
+<ConnectionFunctions xmlns="{{ xmlns }}">
+  {% for cf in funcs %}
+  <ConnectionFunctionSummary>
+    <Name>{{ cf.name }}</Name>
+    <Id>{{ cf.id }}</Id>
+    <ConnectionFunctionArn>{{ cf.connection_function_arn }}</ConnectionFunctionArn>
+    <Status>{{ cf.status }}</Status>
+    <Stage>{{ cf.stage }}</Stage>
+    <CreatedTime>{{ cf.created_time }}</CreatedTime>
+    <LastModifiedTime>{{ cf.last_modified_time }}</LastModifiedTime>
+  </ConnectionFunctionSummary>
+  {% endfor %}
+</ConnectionFunctions>
+"""
+
+TEST_CONNECTION_FUNCTION_TEMPLATE = """<?xml version="1.0"?>
+<TestResult xmlns="{{ xmlns }}">
+  <FunctionOutput>{"response":{"statusCode":200}}</FunctionOutput>
+  <ComputeUtilization>12</ComputeUtilization>
+</TestResult>
+"""
+
+ERROR_TEMPLATE = """<?xml version="1.0"?>
+<ErrorResponse xmlns="{{ xmlns }}">
+  <Error>
+    <Type>Sender</Type>
+    <Code>{{ code }}</Code>
+    <Message>{{ message }}</Message>
+  </Error>
+</ErrorResponse>
+"""
+
+RESOURCE_POLICY_TEMPLATE = """<?xml version="1.0"?>
+<GetResourcePolicyResult xmlns="{{ xmlns }}">
+</GetResourcePolicyResult>
+"""
+
+EMPTY_LIST_TEMPLATE = """<?xml version="1.0"?>
+<{{ root_tag }} xmlns="{{ xmlns }}">
+</{{ root_tag }}>
+"""
+
+MANAGED_CERTIFICATE_TEMPLATE = """<?xml version="1.0"?>
+<ManagedCertificateDetails xmlns="{{ xmlns }}">
+  <CertificateStatus>ISSUED</CertificateStatus>
+</ManagedCertificateDetails>
+"""
+
+VERIFY_DNS_TEMPLATE = """<?xml version="1.0"?>
+<VerifyDnsConfigurationResult xmlns="{{ xmlns }}">
+</VerifyDnsConfigurationResult>
 """
