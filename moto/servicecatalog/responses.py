@@ -1219,6 +1219,16 @@ class ServiceCatalogResponse(BaseResponse):
         status = self.servicecatalog_backend.get_aws_organizations_access_status()
         return ActionResult({"AccessStatus": status})
 
+    # camelcase_to_underscores produces get_aws_organizations_access_status (not get_a_w_s_...)
+    def enable_aws_organizations_access(self) -> ActionResult:
+        return self.enable_a_w_s_organizations_access()
+
+    def disable_aws_organizations_access(self) -> ActionResult:
+        return self.disable_a_w_s_organizations_access()
+
+    def get_aws_organizations_access_status(self) -> ActionResult:
+        return self.get_a_w_s_organizations_access_status()
+
     # ---- Notify engine workflow results ----
 
     def notify_provision_product_engine_workflow_result(self) -> ActionResult:

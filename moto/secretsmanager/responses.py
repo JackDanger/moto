@@ -260,3 +260,8 @@ class SecretsManagerResponse(BaseResponse):
             secret_id, replica_regions
         )
         return json.dumps({"ARN": arn, "ReplicationStatus": statuses})
+
+    def stop_replication_to_replica(self) -> str:
+        secret_id = self._get_param("SecretId")
+        arn, name = self.backend.stop_replication_to_replica(secret_id)
+        return json.dumps({"ARN": arn, "Name": name})
