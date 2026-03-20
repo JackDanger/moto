@@ -206,8 +206,8 @@ class OpenSearchIngestionResponse(BaseResponse):
 
     def list_pipeline_endpoints(self) -> str:
         endpoints = self.osis_backend.list_pipeline_endpoints()
-        return json.dumps({"Endpoints": endpoints})
+        return json.dumps({"PipelineEndpoints": endpoints})
 
     def list_pipeline_endpoint_connections(self) -> str:
         connections = self.osis_backend.list_pipeline_endpoint_connections()
-        return json.dumps({"EndpointConnections": connections})
+        return json.dumps({"PipelineEndpointConnections": connections})

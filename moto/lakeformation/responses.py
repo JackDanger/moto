@@ -512,7 +512,7 @@ class LakeFormationResponse(BaseResponse):
             audit_context=self._get_param("AuditContext"),
             supported_permission_types=self._get_param("SupportedPermissionTypes"),
         )
-        return json.dumps(creds)
+        return json.dumps({"Credentials": creds, "AccessibleDataLocations": []})
 
     def list_table_storage_optimizers(self) -> str:
         catalog_id = self._get_param("CatalogId") or self.current_account
