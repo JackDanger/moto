@@ -1066,7 +1066,7 @@ class StepFunctionBackend(BaseBackend):
     def redrive_execution(self, execution_arn: str, client_token: Optional[str] = None) -> dict[str, Any]:
         self._validate_execution_arn(execution_arn)
         execution = None
-        for sm in self.state_machines.values():
+        for sm in self.state_machines:
             for ex in sm.executions:
                 if ex.execution_arn == execution_arn:
                     execution = ex
