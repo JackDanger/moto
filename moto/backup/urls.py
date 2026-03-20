@@ -73,4 +73,9 @@ url_paths = {
     "{0}/scan/jobs/(?P<scan_job_id>[^/]+)/?$": response.dispatch,
     "{0}/tiering-configurations/(?P<tieringConfigurationName>[^/]+)/?$": response.dispatch,
     "{0}/tiering-configurations/?$": response.dispatch,
+    "{0}/indexes/recovery-point/?$": response.dispatch,
+    "{0}/audit/scan-job-summaries/?$": response.dispatch,
+    "{0}/logically-air-gapped-backup-vaults/(?P<name>[^/]+)/restore-access-backup-vaults/?$": response.dispatch,
+    "{0}/restore-testing/inferred-metadata$": response.dispatch,
+    "{0}/backup-vaults/(?P<name>[^/]+)/recovery-points/(?P<rpArn>.+)/index/?$": response.dispatch,
 }

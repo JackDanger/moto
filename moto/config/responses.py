@@ -699,3 +699,28 @@ class ConfigResponse(BaseResponse):
             self._get_param("NextToken"),
         )
         return json.dumps(result)
+
+    def delete_pending_aggregation_request(self) -> str:
+        return json.dumps({})
+
+    def delete_service_linked_configuration_recorder(self) -> str:
+        return json.dumps({"Arn": "", "Name": ""})
+
+    def deliver_config_snapshot(self) -> str:
+        config_snapshot_id = "00000000-0000-0000-0000-000000000000"
+        return json.dumps({"configSnapshotId": config_snapshot_id})
+
+    def get_organization_custom_rule_policy(self) -> str:
+        return json.dumps({"PolicyText": ""})
+
+    def put_service_linked_configuration_recorder(self) -> str:
+        return json.dumps({"Arn": "", "Name": ""})
+
+    def select_aggregate_resource_config(self) -> str:
+        return json.dumps({"Results": [], "QueryInfo": {"SelectFields": []}})
+
+    def associate_resource_types(self) -> str:
+        return json.dumps({"ConfigurationRecorder": {}})
+
+    def disassociate_resource_types(self) -> str:
+        return json.dumps({"ConfigurationRecorder": {}})

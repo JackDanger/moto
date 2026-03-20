@@ -916,7 +916,8 @@ class BackupResponse(BaseResponse):
         return json.dumps({"ReportJobs": jobs})
 
     def start_report_job(self) -> str:
-        report_plan_name = self.path.split("/report-plans/")[1].split("/")[0]
+        # Path: /audit/report-jobs/{reportPlanName}
+        report_plan_name = self.path.split("/audit/report-jobs/")[1].split("/")[0]
         report_job_id = self.backup_backend.start_report_job(
             report_plan_name=report_plan_name,
         )
@@ -1090,6 +1091,63 @@ class BackupResponse(BaseResponse):
                 "LastUpdatedTime": config.last_updated_time,
             }
         )
+
+    # --- Indexed Recovery Points ---
+
+    def list_indexed_recovery_points(self) -> str:
+        return json.dumps({"IndexedRecoveryPoints": []})
+
+    # --- Scan Job Summaries ---
+
+    def list_scan_job_summaries(self) -> str:
+        return json.dumps({"ScanJobSummaries": []})
+
+    # --- Restore Access Backup Vaults ---
+
+    def list_restore_access_backup_vaults(self) -> str:
+        backup_vault_name = self.path.split("/logically-air-gapped-backup-vaults/")[1].split("/")[0]
+        return json.dumps({"RestoreAccessBackupVaults": []})
+
+    # --- Restore Testing Inferred Metadata ---
+
+    def get_restore_testing_inferred_metadata(self) -> str:
+        return json.dumps({"InferredMetadata": {}})
+
+    # --- Recovery Point Index ---
+
+    def get_recovery_point_index_details(self) -> str:
+        parts = self.path.split("/")
+        vault_idx = parts.index("backup-vaults")
+        backup_vault_name = parts[vault_idx + 1]
+        rp_idx = parts.index("recovery-points")
+        index_idx = parts.index("index")
+        recovery_point_arn = unquote("/".join(parts[rp_idx + 1 : index_idx]).rstrip("/"))
+        return json.dumps({
+            "BackupVaultArn": f"arn:aws:backup:{self.region}:{self.current_account}:backup-vault:{backup_vault_name}",
+            "RecoveryPointArn": recovery_point_arn,
+            "SourceResourceArn": "",
+            "IamRoleArn": "",
+            "IndexStatus": "ACTIVE",
+            "IndexStatusMessage": "",
+            "BackupCreationDate": 0,
+            "IndexCreationDate": 0,
+            "IndexDeletionDate": None,
+            "TotalItemsIndexed": 0,
+        })
+
+    def update_recovery_point_index_settings(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        parts = self.path.split("/")
+        vault_idx = parts.index("backup-vaults")
+        backup_vault_name = parts[vault_idx + 1]
+        rp_idx = parts.index("recovery-points")
+        index_idx = parts.index("index")
+        recovery_point_arn = unquote("/".join(parts[rp_idx + 1 : index_idx]).rstrip("/"))
+        return json.dumps({
+            "BackupVaultArn": f"arn:aws:backup:{self.region}:{self.current_account}:backup-vault:{backup_vault_name}",
+            "RecoveryPointArn": recovery_point_arn,
+            "IndexStatus": params.get("Index", "ENABLED"),
+        })
 
     def delete_tiering_configuration(self) -> EmptyResult:
         name = self.path.split("/tiering-configurations/")[-1].rstrip("/")
