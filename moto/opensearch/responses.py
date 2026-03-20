@@ -1026,8 +1026,9 @@ class OpenSearchServiceResponse(BaseResponse):
         return json.dumps({})
 
     def reject_inbound_connection(self) -> str:
-        body = json.loads(self.body)
-        connection_id = body.get("ConnectionId", "")
+        # ConnectionId is in the URL path: /2021-01-01/opensearch/cc/inboundConnection/{ConnectionId}/reject
+        path_parts = self.path.split("/")
+        connection_id = path_parts[-2] if len(path_parts) >= 2 else ""
         return json.dumps({
             "Connection": {
                 "ConnectionId": connection_id,
@@ -1036,8 +1037,10 @@ class OpenSearchServiceResponse(BaseResponse):
         })
 
     def cancel_domain_config_change(self) -> str:
-        body = json.loads(self.body)
-        domain_name = body.get("DomainName", "")
+        # DomainName is in the URL path: /2021-01-01/opensearch/domain/{DomainName}/config/cancel
+        path_parts = self.path.split("/")
+        domain_name = path_parts[-3] if len(path_parts) >= 3 else ""
+        body = json.loads(self.body) if self.body else {}
         return json.dumps({
             "DryRun": body.get("DryRun", False),
             "CancelledChangeIds": [],
