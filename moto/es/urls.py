@@ -57,6 +57,12 @@ url_paths = {
     "{0}/2015-01-01/es/serviceSoftwareUpdate/start$": OpenSearchServiceResponse.es_service_software_start_route,
     # VPC endpoint access
     "{0}/2015-01-01/es/domain/(?P<domainname>[^/]+)/listVpcEndpointAccess$": OpenSearchServiceResponse.es_list_vpc_endpoint_access_route,
+    "{0}/2015-01-01/es/domain/(?P<domainname>[^/]+)/authorizeVpcEndpointAccess$": OpenSearchServiceResponse.authorize_vpc_endpoint_access,
+    "{0}/2015-01-01/es/domain/(?P<domainname>[^/]+)/revokeVpcEndpointAccess$": OpenSearchServiceResponse.revoke_vpc_endpoint_access,
+    # Domain config cancel
+    "{0}/2015-01-01/es/domain/(?P<domainname>[^/]+)/config/cancel$": OpenSearchServiceResponse.cancel_domain_config_change,
+    # Inbound connection reject
+    "{0}/2015-01-01/es/ccs/inboundConnection/(?P<conn_id>[^/]+)/reject$": OpenSearchServiceResponse.reject_inbound_connection,
     # Versions & Instance Types
     "{0}/2015-01-01/es/versions$": OpenSearchServiceResponse.es_versions_route,
     "{0}/2015-01-01/es/instanceTypes/(?P<version>[^/]+)$": OpenSearchServiceResponse.es_instance_types_route,

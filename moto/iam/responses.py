@@ -1446,3 +1446,66 @@ class IamResponse(BaseResponse):
         )
         result = {"ServiceSpecificCredential": credential}
         return ActionResult(result)
+
+    def delete_service_specific_credential(self) -> ActionResult:
+        """Stub: DeleteServiceSpecificCredential."""
+        return ActionResult({})
+
+    def reset_service_specific_credential(self) -> ActionResult:
+        """Stub: ResetServiceSpecificCredential."""
+        return ActionResult({"ServiceSpecificCredential": {}})
+
+    def update_service_specific_credential(self) -> ActionResult:
+        """Stub: UpdateServiceSpecificCredential."""
+        return ActionResult({})
+
+    def generate_organizations_access_report(self) -> ActionResult:
+        """Stub: GenerateOrganizationsAccessReport."""
+        return ActionResult({"JobId": "stub-job-" + "a" * 28})
+
+    def get_organizations_access_report(self) -> ActionResult:
+        """Stub: GetOrganizationsAccessReport."""
+        return ActionResult({
+            "JobStatus": "COMPLETED",
+            "JobCreationDate": None,
+            "JobCompletionDate": None,
+            "NumberOfServicesAccessible": 0,
+            "NumberOfServicesNotAccessed": 0,
+            "IsTruncated": False,
+        })
+
+    def list_policies_granting_service_access(self) -> ActionResult:
+        """Stub: ListPoliciesGrantingServiceAccess."""
+        return ActionResult({"PoliciesGrantingServiceAccess": [], "IsTruncated": False})
+
+    def get_human_readable_summary(self) -> ActionResult:
+        """Stub: GetHumanReadableSummary."""
+        return ActionResult({"SummaryState": "SUCCESS", "SummaryContent": ""})
+
+    def create_delegation_request(self) -> ActionResult:
+        """Stub: CreateDelegationRequest."""
+        return ActionResult({"ConsoleDeepLink": "", "DelegationRequestId": "stub-req-123"})
+
+    def get_delegation_request(self) -> ActionResult:
+        """Stub: GetDelegationRequest."""
+        return ActionResult({"DelegationRequest": {}, "PermissionCheckStatus": "SUCCEEDED"})
+
+    def accept_delegation_request(self) -> ActionResult:
+        """Stub: AcceptDelegationRequest."""
+        return ActionResult({})
+
+    def reject_delegation_request(self) -> ActionResult:
+        """Stub: RejectDelegationRequest."""
+        return ActionResult({})
+
+    def associate_delegation_request(self) -> ActionResult:
+        """Stub: AssociateDelegationRequest."""
+        return ActionResult({})
+
+    def update_delegation_request(self) -> ActionResult:
+        """Stub: UpdateDelegationRequest."""
+        return ActionResult({})
+
+    def send_delegation_token(self) -> ActionResult:
+        """Stub: SendDelegationToken."""
+        return ActionResult({})
