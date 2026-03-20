@@ -918,10 +918,10 @@ class ElastiCacheResponse(BaseResponse):
         return ActionResult({"GlobalReplicationGroup": grg})
 
     def describe_reserved_cache_nodes(self) -> ActionResult:
-        return ActionResult({"DescribeReservedCacheNodesResult": {"ReservedCacheNodes": [], "Marker": None}})
+        return PaginatedResult({"ReservedCacheNodes": []})
 
     def describe_reserved_cache_nodes_offerings(self) -> ActionResult:
-        return ActionResult({"DescribeReservedCacheNodesOfferingsResult": {"ReservedCacheNodesOfferings": [], "Marker": None}})
+        return PaginatedResult({"ReservedCacheNodesOfferings": []})
 
     def describe_engine_default_parameters(self) -> ActionResult:
         family = self._get_param("CacheParameterGroupFamily")
