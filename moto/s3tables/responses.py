@@ -650,8 +650,9 @@ class S3TablesResponse(BaseResponse):
         )
 
     def put_table_record_expiration_configuration(self) -> TYPE_RESPONSE:
+        params = self._get_params()
+        table_arn = unquote(params["tableArn"])
         body = json.loads(self.body)
-        table_arn = body["tableArn"]
         self.s3tables_backend.put_table_record_expiration_configuration(
             table_arn, body.get("value", {})
         )
