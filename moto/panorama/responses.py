@@ -344,8 +344,7 @@ class PanoramaResponse(BaseResponse):
 
     def untag_resource(self) -> str:
         resource_arn = urllib.parse.unquote(self._get_param("ResourceArn"))
-        tag_keys = self._get_param("tagKeys")
-        if tag_keys is None:
-            tag_keys = []
+        # tagKeys is a repeated query param: tagKeys=k1&tagKeys=k2
+        tag_keys = self.querystring.get("tagKeys", [])
         self.panorama_backend.untag_resource(resource_arn=resource_arn, tag_keys=tag_keys)
         return json.dumps({})
