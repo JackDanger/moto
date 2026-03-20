@@ -3521,13 +3521,12 @@ class GlueBackend(BaseBackend):
             del self.integration_table_properties[key]
 
     def list_integration_resource_properties(
-        self, resource_arn: str
+        self, resource_arn: Optional[str] = None
     ) -> list[dict[str, Any]]:
-        return [
-            v
-            for v in self.integration_resource_properties.values()
-            if v.get("ResourceArn") == resource_arn
-        ]
+        results = list(self.integration_resource_properties.values())
+        if resource_arn:
+            results = [v for v in results if v.get("ResourceArn") == resource_arn]
+        return results
 
     def describe_inbound_integrations(
         self,

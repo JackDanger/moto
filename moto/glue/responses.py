@@ -2028,9 +2028,9 @@ class GlueResponse(BaseResponse):
 
     def list_integration_resource_properties(self) -> ActionResult:
         results = self.glue_backend.list_integration_resource_properties(
-            resource_arn=self.parameters["ResourceArn"],
+            resource_arn=self.parameters.get("ResourceArn"),
         )
-        return ActionResult({"ResourceProperties": results})
+        return ActionResult({"IntegrationResourcePropertyList": results})
 
     # --- Integration Table Properties ---
 
@@ -2488,29 +2488,74 @@ class GlueResponse(BaseResponse):
         return json.dumps(result)
 
     def get_plan(self) -> str:
-        result = self.glue_backend.get_plan(self.parameters)
+        result = self.glue_backend.get_plan(
+            mapping=self.parameters.get("Mapping", []),
+            source=self.parameters.get("Source", {}),
+            sinks=self.parameters.get("Sinks"),
+            location=self.parameters.get("Location"),
+            language=self.parameters.get("Language", "PYTHON"),
+        )
         return json.dumps(result)
 
     def get_unfiltered_table_metadata(self) -> str:
-        result = self.glue_backend.get_unfiltered_table_metadata(self.parameters)
+        result = self.glue_backend.get_unfiltered_table_metadata(
+            catalog_id=self.parameters.get("CatalogId", ""),
+            database_name=self.parameters.get("DatabaseName", ""),
+            table_name=self.parameters.get("Name", ""),
+            supported_permission_types=self.parameters.get("SupportedPermissionTypes", []),
+        )
         return json.dumps(result)
 
     def get_unfiltered_partitions_metadata(self) -> str:
-        result = self.glue_backend.get_unfiltered_partitions_metadata(self.parameters)
+        result = self.glue_backend.get_unfiltered_partitions_metadata(
+            catalog_id=self.parameters.get("CatalogId", ""),
+            database_name=self.parameters.get("DatabaseName", ""),
+            table_name=self.parameters.get("TableName", ""),
+            supported_permission_types=self.parameters.get("SupportedPermissionTypes", []),
+        )
         return json.dumps(result)
 
     def get_unfiltered_partition_metadata(self) -> str:
-        result = self.glue_backend.get_unfiltered_partition_metadata(self.parameters)
+        result = self.glue_backend.get_unfiltered_partition_metadata(
+            catalog_id=self.parameters.get("CatalogId", ""),
+            database_name=self.parameters.get("DatabaseName", ""),
+            table_name=self.parameters.get("TableName", ""),
+            partition_values=self.parameters.get("PartitionValues", []),
+            supported_permission_types=self.parameters.get("SupportedPermissionTypes", []),
+        )
         return json.dumps(result)
 
     def test_connection(self) -> str:
-        result = self.glue_backend.test_connection(self.parameters)
-        return json.dumps(result)
+        result = self.glue_backend.test_connection(
+            connection_name=self.parameters.get("ConnectionName"),
+            connection_type=self.parameters.get("ConnectionType"),
+        )
+        return json.dumps(result or {})
 
     def update_job_from_source_control(self) -> str:
-        result = self.glue_backend.update_job_from_source_control(self.parameters)
+        result = self.glue_backend.update_job_from_source_control(
+            job_name=self.parameters.get("JobName"),
+            provider=self.parameters.get("Provider"),
+            repository_name=self.parameters.get("RepositoryName"),
+            repository_owner=self.parameters.get("RepositoryOwner"),
+            branch_name=self.parameters.get("BranchName"),
+            folder=self.parameters.get("Folder"),
+            commit_id=self.parameters.get("CommitId"),
+            auth_strategy=self.parameters.get("AuthStrategy"),
+            auth_token=self.parameters.get("AuthToken"),
+        )
         return json.dumps(result)
 
     def update_source_control_from_job(self) -> str:
-        result = self.glue_backend.update_source_control_from_job(self.parameters)
+        result = self.glue_backend.update_source_control_from_job(
+            job_name=self.parameters.get("JobName"),
+            provider=self.parameters.get("Provider"),
+            repository_name=self.parameters.get("RepositoryName"),
+            repository_owner=self.parameters.get("RepositoryOwner"),
+            branch_name=self.parameters.get("BranchName"),
+            folder=self.parameters.get("Folder"),
+            commit_id=self.parameters.get("CommitId"),
+            auth_strategy=self.parameters.get("AuthStrategy"),
+            auth_token=self.parameters.get("AuthToken"),
+        )
         return json.dumps(result)
