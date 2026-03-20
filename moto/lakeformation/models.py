@@ -1123,15 +1123,11 @@ class LakeFormationBackend(BaseBackend):
 
     def get_temporary_data_location_credentials(
         self,
-        resource_arn: str,
-        vended_s3_path: str,
-        permissions: list[str],
+        data_locations: list[dict[str, Any]],
+        credentials_scope: str,
         duration_seconds: Optional[int] = None,
         audit_context: Optional[dict[str, Any]] = None,
-        supported_permission_types: Optional[list[str]] = None,
     ) -> dict[str, Any]:
-        import uuid
-
         return {
             "AccessKeyId": f"ASIA{uuid.uuid4().hex[:16].upper()}",
             "SecretAccessKey": uuid.uuid4().hex,

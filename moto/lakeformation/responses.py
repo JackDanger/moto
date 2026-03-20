@@ -505,12 +505,10 @@ class LakeFormationResponse(BaseResponse):
 
     def get_temporary_data_location_credentials(self) -> str:
         creds = self.lakeformation_backend.get_temporary_data_location_credentials(
-            resource_arn=self._get_param("ResourceArn", ""),
-            vended_s3_path=self._get_param("VendedS3Path", ""),
-            permissions=self._get_param("Permissions") or [],
+            data_locations=self._get_param("DataLocations") or [],
+            credentials_scope=self._get_param("CredentialsScope", ""),
             duration_seconds=self._get_param("DurationSeconds"),
             audit_context=self._get_param("AuditContext"),
-            supported_permission_types=self._get_param("SupportedPermissionTypes"),
         )
         return json.dumps({"Credentials": creds, "AccessibleDataLocations": []})
 
