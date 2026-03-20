@@ -479,3 +479,83 @@ class DataSyncResponse(BaseResponse):
         # Simulate task being executed
         task_execution.iterate_status()
         return result
+
+    def list_task_executions(self) -> str:
+        task_arn = self._get_param("TaskArn")
+        executions = self.datasync_backend.list_task_executions(task_arn=task_arn)
+        return json.dumps({"TaskExecutions": executions})
+
+    def tag_resource(self) -> str:
+        resource_arn = self._get_param("ResourceArn")
+        tags = self._get_param("Tags", [])
+        self.datasync_backend.tag_resource(resource_arn, tags)
+        return json.dumps({})
+
+    def untag_resource(self) -> str:
+        resource_arn = self._get_param("ResourceArn")
+        keys = self._get_param("Keys", [])
+        self.datasync_backend.untag_resource(resource_arn, keys)
+        return json.dumps({})
+
+    def list_tags_for_resource(self) -> str:
+        resource_arn = self._get_param("ResourceArn")
+        tags = self.datasync_backend.list_tags_for_resource(resource_arn)
+        return json.dumps({"Tags": tags})
+
+    def update_location_s3(self) -> str:
+        location_arn = self._get_param("LocationArn")
+        self.datasync_backend.update_location(location_arn)
+        return json.dumps({})
+
+    def update_location_smb(self) -> str:
+        location_arn = self._get_param("LocationArn")
+        self.datasync_backend.update_location(location_arn)
+        return json.dumps({})
+
+    def update_location_nfs(self) -> str:
+        location_arn = self._get_param("LocationArn")
+        self.datasync_backend.update_location(location_arn)
+        return json.dumps({})
+
+    def update_location_hdfs(self) -> str:
+        location_arn = self._get_param("LocationArn")
+        self.datasync_backend.update_location(location_arn)
+        return json.dumps({})
+
+    def update_location_object_storage(self) -> str:
+        location_arn = self._get_param("LocationArn")
+        self.datasync_backend.update_location(location_arn)
+        return json.dumps({})
+
+    def update_location_azure_blob(self) -> str:
+        location_arn = self._get_param("LocationArn")
+        self.datasync_backend.update_location(location_arn)
+        return json.dumps({})
+
+    def update_location_efs(self) -> str:
+        location_arn = self._get_param("LocationArn")
+        self.datasync_backend.update_location(location_arn)
+        return json.dumps({})
+
+    def update_location_fsx_lustre(self) -> str:
+        location_arn = self._get_param("LocationArn")
+        self.datasync_backend.update_location(location_arn)
+        return json.dumps({})
+
+    def update_location_fsx_ontap(self) -> str:
+        location_arn = self._get_param("LocationArn")
+        self.datasync_backend.update_location(location_arn)
+        return json.dumps({})
+
+    def update_location_fsx_open_zfs(self) -> str:
+        location_arn = self._get_param("LocationArn")
+        self.datasync_backend.update_location(location_arn)
+        return json.dumps({})
+
+    def update_location_fsx_windows(self) -> str:
+        location_arn = self._get_param("LocationArn")
+        self.datasync_backend.update_location(location_arn)
+        return json.dumps({})
+
+    def update_task_execution(self) -> str:
+        return json.dumps({})
