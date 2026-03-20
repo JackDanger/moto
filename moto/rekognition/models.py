@@ -253,6 +253,201 @@ class RekognitionBackend(BaseBackend):
             result["NextToken"] = str(end)
         return result
 
+    def create_user(
+        self,
+        collection_id: str,
+        user_id: str,
+        client_request_token: Optional[str] = None,
+    ) -> dict[str, Any]:
+        if collection_id not in self._collections:
+            raise ResourceNotFoundException(
+                f"The collection id: {collection_id} does not exist"
+            )
+        col = self._collections[collection_id]
+        users = col.get("users", [])
+        for u in users:
+            if u["UserId"] == user_id:
+                raise ResourceAlreadyExistsException(
+                    f"A user with the specified ID already exists. UserId: {user_id}"
+                )
+        users.append({"UserId": user_id, "UserStatus": "ACTIVE"})
+        col["users"] = users
+        return {}
+
+    def delete_user(
+        self,
+        collection_id: str,
+        user_id: str,
+        client_request_token: Optional[str] = None,
+    ) -> dict[str, Any]:
+        if collection_id not in self._collections:
+            raise ResourceNotFoundException(
+                f"The collection id: {collection_id} does not exist"
+            )
+        col = self._collections[collection_id]
+        users = col.get("users", [])
+        original_count = len(users)
+        col["users"] = [u for u in users if u["UserId"] != user_id]
+        if len(col["users"]) == original_count:
+            raise ResourceNotFoundException(
+                f"The user id: {user_id} does not exist in the collection"
+            )
+        return {}
+
+    def search_users(
+        self,
+        collection_id: str,
+        user_id: Optional[str] = None,
+        face_id: Optional[str] = None,
+        max_users: int = 100,
+        user_match_threshold: float = 80.0,
+        quality_filter: str = "AUTO",
+    ) -> dict[str, Any]:
+        if collection_id not in self._collections:
+            raise ResourceNotFoundException(
+                f"The collection id: {collection_id} does not exist"
+            )
+        col = self._collections[collection_id]
+        # Return all users as matches (synthetic similarity)
+        users = col.get("users", [])
+        matches = []
+        for user in users[:max_users]:
+            if user_id and user["UserId"] == user_id:
+                continue  # exclude the searched user itself
+            matches.append(
+                {
+                    "User": {"UserId": user["UserId"], "UserStatus": user["UserStatus"]},
+                    "Similarity": 99.99,
+                    "MatchConfidence": 99.99,
+                }
+            )
+        result: dict[str, Any] = {
+            "UserMatches": matches,
+            "FaceModelVersion": col["FaceModelVersion"],
+        }
+        if user_id:
+            result["SearchedUser"] = {"UserId": user_id}
+        if face_id:
+            result["SearchedFace"] = {"FaceId": face_id}
+        return result
+
+    def search_users_by_image(
+        self,
+        collection_id: str,
+        image: dict[str, Any],
+        max_users: int = 100,
+        quality_filter: str = "AUTO",
+        user_match_threshold: float = 80.0,
+    ) -> dict[str, Any]:
+        if collection_id not in self._collections:
+            raise ResourceNotFoundException(
+                f"The collection id: {collection_id} does not exist"
+            )
+        col = self._collections[collection_id]
+        users = col.get("users", [])
+        matches = []
+        for user in users[:max_users]:
+            matches.append(
+                {
+                    "User": {"UserId": user["UserId"], "UserStatus": user["UserStatus"]},
+                    "Similarity": 99.99,
+                    "MatchConfidence": 99.99,
+                }
+            )
+        return {
+            "UserMatches": matches,
+            "FaceModelVersion": col["FaceModelVersion"],
+            "SearchedFace": {
+                "FaceDetail": {
+                    "BoundingBox": {
+                        "Width": 0.55,
+                        "Top": 0.12,
+                        "Left": 0.24,
+                        "Height": 0.31,
+                    },
+                    "Confidence": 99.99,
+                }
+            },
+        }
+
+    def associate_faces(
+        self,
+        collection_id: str,
+        user_id: str,
+        face_ids: list[str],
+        user_matching_threshold: float = 75.0,
+        client_request_token: Optional[str] = None,
+    ) -> dict[str, Any]:
+        if collection_id not in self._collections:
+            raise ResourceNotFoundException(
+                f"The collection id: {collection_id} does not exist"
+            )
+        col = self._collections[collection_id]
+        users = col.get("users", [])
+        user = next((u for u in users if u["UserId"] == user_id), None)
+        if user is None:
+            raise ResourceNotFoundException(
+                f"The user id: {user_id} does not exist in the collection"
+            )
+        # Track associated faces on the user
+        user.setdefault("AssociatedFaces", [])
+        associated = []
+        unsuccessful = []
+        for face_id in face_ids:
+            if face_id in col["faces"]:
+                if face_id not in user["AssociatedFaces"]:
+                    user["AssociatedFaces"].append(face_id)
+                associated.append({"FaceId": face_id})
+            else:
+                unsuccessful.append(
+                    {"FaceId": face_id, "Reasons": ["FACE_NOT_FOUND"], "Confidence": 0.0}
+                )
+        return {
+            "AssociatedFaces": associated,
+            "UnsuccessfulFaceAssociations": unsuccessful,
+            "UserStatus": user["UserStatus"],
+        }
+
+    def disassociate_faces(
+        self,
+        collection_id: str,
+        user_id: str,
+        face_ids: list[str],
+        client_request_token: Optional[str] = None,
+    ) -> dict[str, Any]:
+        if collection_id not in self._collections:
+            raise ResourceNotFoundException(
+                f"The collection id: {collection_id} does not exist"
+            )
+        col = self._collections[collection_id]
+        users = col.get("users", [])
+        user = next((u for u in users if u["UserId"] == user_id), None)
+        if user is None:
+            raise ResourceNotFoundException(
+                f"The user id: {user_id} does not exist in the collection"
+            )
+        associated = user.get("AssociatedFaces", [])
+        disassociated = []
+        unsuccessful = []
+        for face_id in face_ids:
+            if face_id in associated:
+                associated.remove(face_id)
+                disassociated.append({"FaceId": face_id})
+            else:
+                unsuccessful.append(
+                    {
+                        "FaceId": face_id,
+                        "Reasons": ["ASSOCIATED_TO_A_DIFFERENT_USER"],
+                        "Confidence": 0.0,
+                    }
+                )
+        user["AssociatedFaces"] = associated
+        return {
+            "DisassociatedFaces": disassociated,
+            "UnsuccessfulFaceDisassociations": unsuccessful,
+            "UserStatus": user["UserStatus"],
+        }
+
     def delete_faces(self, collection_id: str, face_ids: list[str]) -> dict[str, Any]:
         if collection_id not in self._collections:
             raise ResourceNotFoundException(
@@ -779,6 +974,31 @@ class RekognitionBackend(BaseBackend):
         sp["Status"] = "STOPPED"
         sp["LastUpdateTimestamp"] = unix_time()
         return {"Status": "STOPPING"}
+
+    def update_stream_processor(
+        self,
+        name: str,
+        settings_for_update: Optional[dict[str, Any]] = None,
+        regions_of_interest_for_update: Optional[list[dict[str, Any]]] = None,
+        data_sharing_preference_for_update: Optional[dict[str, Any]] = None,
+        parameters_to_delete: Optional[list[str]] = None,
+    ) -> dict[str, Any]:
+        if name not in self._stream_processors:
+            raise ResourceNotFoundException(
+                f"The stream processor with name {name} does not exist"
+            )
+        sp = self._stream_processors[name]
+        if settings_for_update:
+            sp["Settings"].update(settings_for_update)
+        if regions_of_interest_for_update is not None:
+            sp["RegionsOfInterest"] = regions_of_interest_for_update
+        if data_sharing_preference_for_update is not None:
+            sp["DataSharingPreference"] = data_sharing_preference_for_update
+        if parameters_to_delete:
+            for param in parameters_to_delete:
+                sp.pop(param, None)
+        sp["LastUpdateTimestamp"] = unix_time()
+        return {"StreamProcessorArn": sp["StreamProcessorArn"]}
 
     # ---- Existing operations (preserved) ----
 

@@ -275,6 +275,88 @@ class RekognitionResponse(BaseResponse):
         body = self._get_body()
         return json.dumps(self.rekognition_backend.stop_stream_processor(body["Name"]))
 
+    def update_stream_processor(self) -> str:
+        body = self._get_body()
+        return json.dumps(
+            self.rekognition_backend.update_stream_processor(
+                name=body["Name"],
+                settings_for_update=body.get("SettingsForUpdate"),
+                regions_of_interest_for_update=body.get("RegionsOfInterestForUpdate"),
+                data_sharing_preference_for_update=body.get(
+                    "DataSharingPreferenceForUpdate"
+                ),
+                parameters_to_delete=body.get("ParametersToDelete"),
+            )
+        )
+
+    def create_user(self) -> str:
+        body = self._get_body()
+        return json.dumps(
+            self.rekognition_backend.create_user(
+                collection_id=body["CollectionId"],
+                user_id=body["UserId"],
+                client_request_token=body.get("ClientRequestToken"),
+            )
+        )
+
+    def delete_user(self) -> str:
+        body = self._get_body()
+        return json.dumps(
+            self.rekognition_backend.delete_user(
+                collection_id=body["CollectionId"],
+                user_id=body["UserId"],
+                client_request_token=body.get("ClientRequestToken"),
+            )
+        )
+
+    def search_users(self) -> str:
+        body = self._get_body()
+        return json.dumps(
+            self.rekognition_backend.search_users(
+                collection_id=body["CollectionId"],
+                user_id=body.get("UserId"),
+                face_id=body.get("FaceId"),
+                max_users=body.get("MaxUsers", 100),
+                user_match_threshold=body.get("UserMatchThreshold", 80.0),
+                quality_filter=body.get("QualityFilter", "AUTO"),
+            )
+        )
+
+    def search_users_by_image(self) -> str:
+        body = self._get_body()
+        return json.dumps(
+            self.rekognition_backend.search_users_by_image(
+                collection_id=body["CollectionId"],
+                image=body["Image"],
+                max_users=body.get("MaxUsers", 100),
+                quality_filter=body.get("QualityFilter", "AUTO"),
+                user_match_threshold=body.get("UserMatchThreshold", 80.0),
+            )
+        )
+
+    def associate_faces(self) -> str:
+        body = self._get_body()
+        return json.dumps(
+            self.rekognition_backend.associate_faces(
+                collection_id=body["CollectionId"],
+                user_id=body["UserId"],
+                face_ids=body["FaceIds"],
+                user_matching_threshold=body.get("UserMatchingThreshold", 75.0),
+                client_request_token=body.get("ClientRequestToken"),
+            )
+        )
+
+    def disassociate_faces(self) -> str:
+        body = self._get_body()
+        return json.dumps(
+            self.rekognition_backend.disassociate_faces(
+                collection_id=body["CollectionId"],
+                user_id=body["UserId"],
+                face_ids=body["FaceIds"],
+                client_request_token=body.get("ClientRequestToken"),
+            )
+        )
+
     # ---- Existing operations (preserved) ----
 
     def get_face_search(self) -> str:
