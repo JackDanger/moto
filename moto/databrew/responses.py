@@ -348,6 +348,27 @@ class DataBrewResponse(BaseResponse):
 
     # endregion
 
+    # region Tags
+
+    def tag_resource(self) -> str:
+        resource_arn = unquote(self._get_path().split("/tags/", 1)[1])
+        tags = self.parameters.get("Tags", {})
+        self.databrew_backend.tag_resource(resource_arn, tags)
+        return json.dumps({})
+
+    def untag_resource(self) -> str:
+        resource_arn = unquote(self._get_path().split("/tags/", 1)[1])
+        tag_keys = self.querystring.get("tagKeys", [])
+        self.databrew_backend.untag_resource(resource_arn, tag_keys)
+        return json.dumps({})
+
+    def list_tags_for_resource(self) -> str:
+        resource_arn = unquote(self._get_path().split("/tags/", 1)[1])
+        tags = self.databrew_backend.list_tags_for_resource(resource_arn)
+        return json.dumps({"Tags": tags})
+
+    # endregion
+
     # region Jobs
     def list_jobs(self) -> str:
         # https://docs.aws.amazon.com/databrew/latest/dg/API_ListJobs.html
@@ -458,5 +479,64 @@ class DataBrewResponse(BaseResponse):
             "timeout": self._get_int_param("Timeout"),
         }
         return json.dumps(self.databrew_backend.update_recipe_job(**kwargs).as_dict())
+
+    def start_job_run(self) -> str:
+        # Path: /jobs/{name}/startJobRun
+        path_parts = self._get_path().strip("/").split("/")
+        job_name = path_parts[1]
+        run_id = self.databrew_backend.start_job_run(job_name)
+        return json.dumps({"RunId": run_id})
+
+    def stop_job_run(self) -> str:
+        # Path: /jobs/{name}/jobRun/{runId}/stopJobRun
+        path_parts = self._get_path().strip("/").split("/")
+        job_name = path_parts[1]
+        run_id = path_parts[3]
+        result_run_id = self.databrew_backend.stop_job_run(job_name, run_id)
+        return json.dumps({"RunId": result_run_id})
+
+    def list_job_runs(self) -> str:
+        # Path: /jobs/{name}/jobRuns
+        path_parts = self._get_path().strip("/").split("/")
+        job_name = path_parts[1]
+        runs = self.databrew_backend.list_job_runs(job_name)
+        return json.dumps({"JobRuns": runs})
+
+    def describe_job_run(self) -> str:
+        # Path: /jobs/{name}/jobRun/{runId}
+        path_parts = self._get_path().strip("/").split("/")
+        job_name = path_parts[1]
+        run_id = path_parts[3]
+        run = self.databrew_backend.describe_job_run(job_name, run_id)
+        return json.dumps(run)
+
+    def batch_delete_recipe_version(self) -> str:
+        # Path: /recipes/{name}/batchDeleteRecipeVersion
+        path_parts = self._get_path().strip("/").split("/")
+        recipe_name = path_parts[1]
+        recipe_versions = self.parameters.get("RecipeVersions", [])
+        errors = self.databrew_backend.batch_delete_recipe_version(
+            recipe_name, recipe_versions
+        )
+        return json.dumps({"Errors": errors, "Recipe": recipe_name})
+
+    def start_project_session(self) -> str:
+        # Path: /projects/{name}/startProjectSession
+        path_parts = self._get_path().strip("/").split("/")
+        project_name = path_parts[1]
+        project_name_result, client_session_id = self.databrew_backend.start_project_session(
+            project_name
+        )
+        return json.dumps({"Name": project_name_result, "ClientSessionId": client_session_id})
+
+    def send_project_session_action(self) -> str:
+        # Path: /projects/{name}/sendProjectSessionAction
+        path_parts = self._get_path().strip("/").split("/")
+        project_name = path_parts[1]
+        action_id = self._get_int_param("ActionId")
+        result = self.databrew_backend.send_project_session_action(
+            project_name, action_id
+        )
+        return json.dumps(result)
 
     # endregion

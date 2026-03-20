@@ -1,4 +1,5 @@
 import math
+import uuid
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 from copy import deepcopy
@@ -545,6 +546,146 @@ class DataBrewBackend(BaseBackend):
         if schedule_name not in self.schedules:
             raise ResourceNotFoundException("One or more resources can't be found.")
         del self.schedules[schedule_name]
+
+    def _find_resource_by_arn(self, resource_arn: str) -> Any:
+        """Find any DataBrew resource by its ARN."""
+        # ARN format: arn:aws:databrew:{region}:{account}:{type}/{name}
+        # Extract the resource type and name from the ARN
+        try:
+            resource_part = resource_arn.split(":", 5)[5]  # e.g. "dataset/my-ds"
+            resource_type, resource_name = resource_part.split("/", 1)
+        except (IndexError, ValueError):
+            return None
+
+        store_map = {
+            "dataset": self.datasets,
+            "job": self.jobs,
+            "recipe": self.recipes,
+            "ruleset": self.rulesets,
+            "project": self.projects,
+            "schedule": self.schedules,
+        }
+        store = store_map.get(resource_type)
+        if store is None:
+            return None
+        return store.get(resource_name)
+
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
+        resource = self._find_resource_by_arn(resource_arn)
+        if resource is None:
+            raise ResourceNotFoundException(
+                f"The resource with ARN {resource_arn} wasn't found."
+            )
+        if resource.tags is None:
+            resource.tags = {}
+        resource.tags.update(tags)
+
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
+        resource = self._find_resource_by_arn(resource_arn)
+        if resource is None:
+            raise ResourceNotFoundException(
+                f"The resource with ARN {resource_arn} wasn't found."
+            )
+        if resource.tags:
+            for key in tag_keys:
+                resource.tags.pop(key, None)
+
+    def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
+        resource = self._find_resource_by_arn(resource_arn)
+        if resource is None:
+            raise ResourceNotFoundException(
+                f"The resource with ARN {resource_arn} wasn't found."
+            )
+        return resource.tags or {}
+
+    def start_job_run(self, job_name: str) -> str:
+        if job_name not in self.jobs:
+            raise ResourceNotFoundException(f"Job {job_name} wasn't found.")
+        run_id = str(uuid.uuid4())
+        run = {
+            "RunId": run_id,
+            "JobName": job_name,
+            "State": "RUNNING",
+            "StartedOn": utcnow().timestamp(),
+        }
+        self.jobs[job_name]._job_runs = getattr(self.jobs[job_name], "_job_runs", {})
+        self.jobs[job_name]._job_runs[run_id] = run
+        return run_id
+
+    def stop_job_run(self, job_name: str, run_id: str) -> str:
+        if job_name not in self.jobs:
+            raise ResourceNotFoundException(f"Job {job_name} wasn't found.")
+        job = self.jobs[job_name]
+        runs = getattr(job, "_job_runs", {})
+        if run_id not in runs:
+            raise ResourceNotFoundException(f"Job run {run_id} wasn't found.")
+        runs[run_id]["State"] = "STOPPED"
+        return run_id
+
+    def list_job_runs(self, job_name: str) -> list[dict[str, Any]]:
+        if job_name not in self.jobs:
+            raise ResourceNotFoundException(f"Job {job_name} wasn't found.")
+        job = self.jobs[job_name]
+        runs = getattr(job, "_job_runs", {})
+        return list(runs.values())
+
+    def describe_job_run(self, job_name: str, run_id: str) -> dict[str, Any]:
+        if job_name not in self.jobs:
+            raise ResourceNotFoundException(f"Job {job_name} wasn't found.")
+        job = self.jobs[job_name]
+        runs = getattr(job, "_job_runs", {})
+        if run_id not in runs:
+            raise ResourceNotFoundException(f"Job run {run_id} wasn't found.")
+        return runs[run_id]
+
+    def batch_delete_recipe_version(
+        self, recipe_name: str, recipe_versions: list[str]
+    ) -> list[dict[str, Any]]:
+        if recipe_name not in self.recipes:
+            raise ResourceNotFoundException(f"The recipe {recipe_name} wasn't found")
+        errors = []
+        for version in recipe_versions:
+            try:
+                self.delete_recipe_version(recipe_name, version)
+            except ResourceNotFoundException:
+                errors.append(
+                    {
+                        "RecipeName": recipe_name,
+                        "RecipeVersion": version,
+                        "ErrorCode": "ResourceNotFoundException",
+                        "Message": f"Recipe version {version} wasn't found.",
+                    }
+                )
+            except ValidationException as e:
+                errors.append(
+                    {
+                        "RecipeName": recipe_name,
+                        "RecipeVersion": version,
+                        "ErrorCode": "ValidationException",
+                        "Message": str(e),
+                    }
+                )
+        return errors
+
+    def start_project_session(self, project_name: str) -> tuple[str, bool]:
+        if project_name not in self.projects:
+            raise ResourceNotFoundException("One or more resources can't be found.")
+        project = self.projects[project_name]
+        client_session_id = str(uuid.uuid4())
+        project._session_id = client_session_id
+        project._session_status = "ASSIGNED"
+        return project_name, client_session_id
+
+    def send_project_session_action(
+        self, project_name: str, action_id: Optional[int], **kwargs: Any
+    ) -> dict[str, Any]:
+        if project_name not in self.projects:
+            raise ResourceNotFoundException("One or more resources can't be found.")
+        return {
+            "Name": project_name,
+            "ActionId": action_id or 0,
+            "Result": "{}",
+        }
 
 
 class FakeRecipe(BaseModel):

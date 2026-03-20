@@ -22,4 +22,12 @@ url_paths = {
     "{0}/recipeJobs$": DataBrewResponse.dispatch,
     "{0}/profileJobs/(?P<job_name>[^/]+)$": DataBrewResponse.dispatch,
     "{0}/recipeJobs/(?P<job_name>[^/]+)$": DataBrewResponse.dispatch,
+    "{0}/tags/(?P<resource_arn>.+)$": DataBrewResponse.dispatch,
+    "{0}/jobs/(?P<job_name>[^/]+)/jobRuns$": DataBrewResponse.dispatch,
+    "{0}/jobs/(?P<job_name>[^/]+)/jobRun/(?P<run_id>[^/]+)/stopJobRun$": DataBrewResponse.dispatch,
+    "{0}/jobs/(?P<job_name>[^/]+)/jobRun/(?P<run_id>[^/]+)$": DataBrewResponse.dispatch,
+    "{0}/jobs/(?P<job_name>[^/]+)/startJobRun$": DataBrewResponse.dispatch,
+    "{0}/recipes/(?P<recipe_name>[^/]+)/batchDeleteRecipeVersion$": DataBrewResponse.dispatch,
+    "{0}/projects/(?P<project_name>[^/]+)/startProjectSession$": DataBrewResponse.dispatch,
+    "{0}/projects/(?P<project_name>[^/]+)/sendProjectSessionAction$": DataBrewResponse.dispatch,
 }
