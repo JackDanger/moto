@@ -60,6 +60,17 @@ class APIGatewayResponse(BaseResponse):
                 )
         return None
 
+    def import_rest_api(self) -> TYPE_RESPONSE:
+        """Handle POST /restapis.
+
+        Botocore maps POST /restapis to ImportRestApi, but both CreateRestApi
+        and ImportRestApi share this endpoint.  The presence of an OpenAPI
+        document (with an ``openapi`` or ``swagger`` key) in the body
+        distinguishes an import from a plain create.  Delegate to
+        ``create_rest_api`` which already handles both cases.
+        """
+        return self.create_rest_api()
+
     def create_rest_api(self) -> TYPE_RESPONSE:
         api_doc = deserialize_body(self.body)
         if api_doc:
@@ -596,6 +607,23 @@ class APIGatewayResponse(BaseResponse):
         function_id = self.path.replace("/restapis/", "", 1).split("/")[0]
         deployments = self.backend.get_deployments(function_id)
         return json.dumps({"item": [d.to_json() for d in deployments]})
+
+    def import_api_keys(self) -> TYPE_RESPONSE:
+        """Handle POST /apikeys.
+
+        Botocore maps POST /apikeys to ImportApiKeys, but both CreateApiKey
+        and ImportApiKeys share this endpoint.  If the body is valid JSON
+        (i.e. a CreateApiKey call), delegate to create_api_key.  Otherwise
+        it is a true ImportApiKeys call (CSV format) which is not yet
+        implemented.
+        """
+        try:
+            json.loads(self.body)
+        except (json.JSONDecodeError, TypeError, UnicodeDecodeError):
+            raise NotImplementedError(
+                "The import_api_keys action has not been implemented"
+            )
+        return self.create_api_key()
 
     def create_api_key(self) -> TYPE_RESPONSE:
         apikey_response = self.backend.create_api_key(json.loads(self.body))
