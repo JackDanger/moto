@@ -1071,6 +1071,8 @@ class StepFunctionBackend(BaseBackend):
                 if ex.execution_arn == execution_arn:
                     execution = ex
                     break
+            if execution:
+                break
         if execution is None:
             from .exceptions import ExecutionDoesNotExist
             raise ExecutionDoesNotExist(f"Execution Does Not Exist: '{execution_arn}'")
