@@ -57,3 +57,57 @@ class AuroraDSQLResponse(BaseResponse):
         identifier = arn.split("/")[-1]
         tags = self.dsql_backend.list_tags_for_resource(identifier)
         return ActionResult({"tags": tags})
+
+    def list_clusters(self) -> ActionResult:
+        clusters = self.dsql_backend.list_clusters()
+        return ActionResult({"clusters": clusters, "nextToken": None})
+
+    def update_cluster(self) -> ActionResult:
+        identifier = self.path.split("/")[-1]
+        params = json.loads(self.body) if self.body else {}
+        deletion_protection_enabled = params.get("deletionProtectionEnabled")
+        client_token = params.get("clientToken")
+        cluster = self.dsql_backend.update_cluster(
+            identifier=identifier,
+            deletion_protection_enabled=deletion_protection_enabled,
+            client_token=client_token,
+        )
+        return ActionResult(cluster)
+
+    def get_cluster_policy(self) -> ActionResult:
+        # path: /cluster/{identifier}/policy
+        parts = self.path.split("/")
+        identifier = parts[-2]
+        policy = self.dsql_backend.get_cluster_policy(identifier=identifier)
+        return ActionResult({"policy": policy or ""})
+
+    def put_cluster_policy(self) -> ActionResult:
+        parts = self.path.split("/")
+        identifier = parts[-2]
+        params = json.loads(self.body) if self.body else {}
+        policy = params.get("policy", "")
+        result = self.dsql_backend.put_cluster_policy(
+            identifier=identifier, policy=policy
+        )
+        return ActionResult({"policy": result})
+
+    def delete_cluster_policy(self) -> ActionResult:
+        parts = self.path.split("/")
+        identifier = parts[-2]
+        self.dsql_backend.delete_cluster_policy(identifier=identifier)
+        return ActionResult({})
+
+    def tag_resource(self) -> ActionResult:
+        arn = unquote(self.path.split("/", 2)[-1])
+        identifier = arn.split("/")[-1]
+        params = json.loads(self.body) if self.body else {}
+        tags = params.get("tags", {})
+        self.dsql_backend.tag_resource(identifier=identifier, tags=tags)
+        return ActionResult({})
+
+    def untag_resource(self) -> ActionResult:
+        arn = unquote(self.path.split("/", 2)[-1])
+        identifier = arn.split("/")[-1]
+        tag_keys = self.querystring.get("tagKeys", [])
+        self.dsql_backend.untag_resource(identifier=identifier, tag_keys=tag_keys)
+        return ActionResult({})

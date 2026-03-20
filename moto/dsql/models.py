@@ -95,6 +95,46 @@ class AuroraDSQLBackend(BaseBackend):
         cluster = self.get_cluster(identifier=identifier)
         return cluster.tags or {}
 
+    def list_clusters(self) -> list[Cluster]:
+        return list(self.clusters.values())
+
+    def update_cluster(
+        self,
+        identifier: str,
+        deletion_protection_enabled: Optional[bool],
+        client_token: Optional[str],
+    ) -> Cluster:
+        cluster = self.get_cluster(identifier=identifier)
+        if deletion_protection_enabled is not None:
+            cluster.deletion_protection_enabled = deletion_protection_enabled
+        return cluster
+
+    def get_cluster_policy(self, identifier: str) -> Optional[str]:
+        cluster = self.get_cluster(identifier=identifier)
+        return getattr(cluster, "policy", None)
+
+    def put_cluster_policy(self, identifier: str, policy: str) -> str:
+        cluster = self.get_cluster(identifier=identifier)
+        cluster.policy = policy  # type: ignore[attr-defined]
+        return policy
+
+    def delete_cluster_policy(self, identifier: str) -> None:
+        cluster = self.get_cluster(identifier=identifier)
+        cluster.policy = None  # type: ignore[attr-defined]
+
+    def tag_resource(self, identifier: str, tags: dict[str, str]) -> None:
+        cluster = self.get_cluster(identifier=identifier)
+        existing = dict(cluster.tags or {})
+        existing.update(tags)
+        cluster.tags = existing
+
+    def untag_resource(self, identifier: str, tag_keys: list[str]) -> None:
+        cluster = self.get_cluster(identifier=identifier)
+        existing = dict(cluster.tags or {})
+        for key in tag_keys:
+            existing.pop(key, None)
+        cluster.tags = existing
+
 
 dsql_backends = BackendDict(
     AuroraDSQLBackend,
