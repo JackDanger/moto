@@ -633,3 +633,15 @@ class AutoScalingResponse(BaseResponse):
             group_name, policy_name, start_time, end_time
         )
         return ActionResult(forecast)
+
+    def launch_instances(self) -> ActionResult:
+        group_name = self._get_param("AutoScalingGroupName")
+        client_token = self._get_param("ClientToken")
+        return ActionResult(
+            {
+                "AutoScalingGroupName": group_name or "",
+                "ClientToken": client_token or "",
+                "Instances": [],
+                "Errors": [],
+            }
+        )
