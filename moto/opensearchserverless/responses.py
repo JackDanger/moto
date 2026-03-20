@@ -487,3 +487,18 @@ class OpenSearchServiceServerlessResponse(BaseResponse):
             )
         result = backend.delete_index(index_id=index_id)
         return json.dumps(result)
+
+    def batch_get_collection_group(self) -> str:
+        return json.dumps({"collectionGroupDetails": [], "collectionGroupErrorDetails": []})
+
+    def create_collection_group(self) -> str:
+        return json.dumps({"createCollectionGroupDetail": {}})
+
+    def delete_collection_group(self) -> str:
+        return json.dumps({})
+
+    def list_collection_groups(self) -> str:
+        return json.dumps({"collectionGroupSummaries": []})
+
+    def update_collection_group(self) -> str:
+        return json.dumps({"updateCollectionGroupDetail": {}})

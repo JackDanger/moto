@@ -209,3 +209,21 @@ class ConnectCampaignServiceResponse(BaseResponse):
         campaign_ids = self._get_param("campaignIds") or []
         result = self.connectcampaigns_backend.get_campaign_state_batch(campaign_ids=campaign_ids)
         return json.dumps({"successfulRequests": result, "failedRequests": []})
+
+    def delete_connect_instance_config(self) -> str:
+        return json.dumps({})
+
+    def delete_instance_onboarding_job(self) -> str:
+        return json.dumps({})
+
+    def get_instance_onboarding_job_status(self) -> str:
+        connect_instance_id = self.path.split("/")[-2]
+        return json.dumps({
+            "connectInstanceOnboardingJobStatus": {
+                "connectInstanceId": connect_instance_id,
+                "status": "SUCCEEDED",
+            }
+        })
+
+    def put_dial_request_batch(self) -> str:
+        return json.dumps({"successfulRequests": [], "failedRequests": []})
