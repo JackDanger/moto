@@ -62,4 +62,8 @@ url_paths = {
     "{0}/DescribeLakeFormationIdentityCenterConfiguration$": response.dispatch,
     "{0}/UpdateLakeFormationIdentityCenterConfiguration$": response.dispatch,
     "{0}/DeleteLakeFormationIdentityCenterConfiguration$": response.dispatch,
+    "{0}/ListLakeFormationOptIns$": response.dispatch,
+    "{0}/GetTemporaryDataLocationCredentials$": response.dispatch,
+    "{0}/ListTableStorageOptimizers$": response.dispatch,
+    "{0}/GetTableObjects$": response.dispatch,
 }
