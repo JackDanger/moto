@@ -1127,7 +1127,8 @@ class APIGatewayResponse(BaseResponse):
         return ""
 
     def get_domain_name_access_associations(self) -> str:
-        return json.dumps({"items": []})
+        # botocore maps the wire key "item" to the Python key "items"
+        return json.dumps({"item": []})
 
     def reject_domain_name_access_association(self) -> str:
         return ""
