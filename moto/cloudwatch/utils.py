@@ -11,3 +11,7 @@ def make_arn_for_alarm(region: str, account_id: str, alarm_name: str) -> str:
 
 def make_arn_for_rule(region: str, account_id: str, rule_name: str) -> str:
     return f"arn:{get_partition(region)}:cloudwatch:{region}:{account_id}:insight-rule/{rule_name}"
+
+
+def make_arn_for_metric_stream(region: str, account_id: str, stream_name: str) -> str:
+    return f"arn:{get_partition(region)}:cloudwatch:{region}:{account_id}:metric-stream/{stream_name}"
