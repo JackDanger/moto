@@ -218,3 +218,134 @@ class PanoramaResponse(BaseResponse):
             "PackageImportJobs": [job.response_listed() for job in jobs],
             "NextToken": next_token,
         })
+
+    def create_job_for_devices(self) -> str:
+        device_ids = self._get_param("DeviceIds")
+        device_job_config = self._get_param("DeviceJobConfig")
+        job_type = self._get_param("JobType")
+        jobs = self.panorama_backend.create_job_for_devices(
+            device_ids=device_ids,
+            device_job_config=device_job_config,
+            job_type=job_type,
+        )
+        return json.dumps({"Jobs": [{"DeviceId": j.device_id, "JobId": j.job_id} for j in jobs]})
+
+    def describe_device_job(self) -> str:
+        job_id = urllib.parse.unquote(self._get_param("JobId"))
+        job = self.panorama_backend.describe_device_job(job_id=job_id)
+        return json.dumps(job.response_object())
+
+    def list_devices_jobs(self) -> str:
+        device_id = self._get_param("DeviceId")
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        jobs, next_token = self.panorama_backend.list_devices_jobs(
+            device_id=device_id,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return json.dumps({
+            "DeviceJobs": [j.response_listed() for j in jobs],
+            "NextToken": next_token,
+        })
+
+    def register_package_version(self) -> str:
+        owner_account = self._get_param("OwnerAccount")
+        package_id = urllib.parse.unquote(self._get_param("PackageId"))
+        package_version = urllib.parse.unquote(self._get_param("PackageVersion"))
+        patch_version = urllib.parse.unquote(self._get_param("PatchVersion"))
+        mark_latest = self._get_param("MarkLatest") or False
+        self.panorama_backend.register_package_version(
+            owner_account=owner_account,
+            package_id=package_id,
+            package_version=package_version,
+            patch_version=patch_version,
+            mark_latest=mark_latest,
+        )
+        return json.dumps({})
+
+    def deregister_package_version(self) -> str:
+        owner_account = self._get_param("OwnerAccount")
+        package_id = urllib.parse.unquote(self._get_param("PackageId"))
+        package_version = urllib.parse.unquote(self._get_param("PackageVersion"))
+        patch_version = urllib.parse.unquote(self._get_param("PatchVersion"))
+        updated_latest_patch_version = self._get_param("UpdatedLatestPatchVersion")
+        self.panorama_backend.deregister_package_version(
+            owner_account=owner_account,
+            package_id=package_id,
+            package_version=package_version,
+            patch_version=patch_version,
+            updated_latest_patch_version=updated_latest_patch_version,
+        )
+        return json.dumps({})
+
+    def describe_package_version(self) -> str:
+        owner_account = self._get_param("ownerAccount")
+        package_id = urllib.parse.unquote(self._get_param("PackageId"))
+        package_version = urllib.parse.unquote(self._get_param("PackageVersion"))
+        patch_version = self._get_param("PatchVersion")
+        if patch_version:
+            patch_version = urllib.parse.unquote(patch_version)
+        pv = self.panorama_backend.describe_package_version(
+            owner_account=owner_account,
+            package_id=package_id,
+            package_version=package_version,
+            patch_version=patch_version,
+        )
+        return json.dumps(pv.response_object())
+
+    def list_application_instance_dependencies(self) -> str:
+        application_instance_id = urllib.parse.unquote(
+            self._get_param("ApplicationInstanceId")
+        )
+        max_results = self._get_int_param("maxResults")
+        next_token = self._get_param("nextToken")
+        deps, next_token = self.panorama_backend.list_application_instance_dependencies(
+            application_instance_id=application_instance_id,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return json.dumps({"PackageObjects": deps, "NextToken": next_token})
+
+    def list_application_instance_node_instances(self) -> str:
+        application_instance_id = urllib.parse.unquote(
+            self._get_param("ApplicationInstanceId")
+        )
+        max_results = self._get_int_param("maxResults")
+        next_token = self._get_param("nextToken")
+        nodes, next_token = self.panorama_backend.list_application_instance_node_instances(
+            application_instance_id=application_instance_id,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return json.dumps({"NodeInstances": nodes, "NextToken": next_token})
+
+    def signal_application_instance_node_instances(self) -> str:
+        application_instance_id = urllib.parse.unquote(
+            self._get_param("ApplicationInstanceId")
+        )
+        node_signals = self._get_param("NodeSignals")
+        result_id = self.panorama_backend.signal_application_instance_node_instances(
+            application_instance_id=application_instance_id,
+            node_signals=node_signals,
+        )
+        return json.dumps({"ApplicationInstanceId": result_id})
+
+    def list_tags_for_resource(self) -> str:
+        resource_arn = urllib.parse.unquote(self._get_param("ResourceArn"))
+        tags = self.panorama_backend.list_tags_for_resource(resource_arn=resource_arn)
+        return json.dumps({"Tags": tags})
+
+    def tag_resource(self) -> str:
+        resource_arn = urllib.parse.unquote(self._get_param("ResourceArn"))
+        tags = self._get_param("Tags")
+        self.panorama_backend.tag_resource(resource_arn=resource_arn, tags=tags)
+        return json.dumps({})
+
+    def untag_resource(self) -> str:
+        resource_arn = urllib.parse.unquote(self._get_param("ResourceArn"))
+        tag_keys = self._get_param("tagKeys")
+        if tag_keys is None:
+            tag_keys = []
+        self.panorama_backend.untag_resource(resource_arn=resource_arn, tag_keys=tag_keys)
+        return json.dumps({})
