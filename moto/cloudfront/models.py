@@ -16,6 +16,7 @@ from .exceptions import (
     NoSuchDistribution,
     NoSuchInvalidation,
     NoSuchOriginAccessControl,
+    NoSuchResource,
     OriginDoesNotExist,
 )
 
@@ -350,6 +351,90 @@ class KeyGroup(BaseModel):
         }
 
 
+class VpcOrigin:
+    def __init__(self, config: dict[str, Any], account_id: str) -> None:
+        self.id = random_id(length=14)
+        self.account_id = account_id
+        self.arn = f"arn:aws:cloudfront::{account_id}:vpcorigin/{self.id}"
+        self.status = "Deployed"
+        self.created_time = utcnow()
+        self.last_modified_time = utcnow()
+        self.vpc_origin_endpoint_config = config
+        self.etag = random_id(length=14)
+
+    def update(self, config: dict[str, Any]) -> None:
+        self.vpc_origin_endpoint_config = config
+        self.last_modified_time = utcnow()
+        self.etag = random_id(length=14)
+
+
+class TrustStore:
+    def __init__(self, name: str, account_id: str) -> None:
+        self.id = random_id(length=14)
+        self.name = name
+        self.status = "DEPLOYED"
+        self.arn = f"arn:aws:cloudfront::{account_id}:trust-store/{self.id}"
+        self.number_of_ca_certificates = 0
+        self.last_modified_time = utcnow()
+        self.etag = random_id(length=14)
+
+    def update(self) -> None:
+        self.last_modified_time = utcnow()
+        self.etag = random_id(length=14)
+
+
+class AnycastIpList:
+    def __init__(self, name: str, account_id: str) -> None:
+        self.id = random_id(length=14)
+        self.name = name
+        self.status = "Deployed"
+        self.arn = f"arn:aws:cloudfront::{account_id}:anycast-ip-list/{self.id}"
+        self.anycast_ips: list[str] = []
+        self.ip_count = 0
+        self.last_modified_time = utcnow()
+        self.etag = random_id(length=14)
+
+
+class ConnectionGroup:
+    def __init__(self, name: str, account_id: str) -> None:
+        self.id = random_id(length=14)
+        self.name = name
+        self.arn = f"arn:aws:cloudfront::{account_id}:connection-group/{self.id}"
+        self.status = "Deployed"
+        self.enabled = True
+        self.is_default = False
+        self.created_time = utcnow()
+        self.last_modified_time = utcnow()
+        self.etag = random_id(length=14)
+
+
+class ConnectionFunction:
+    def __init__(self, name: str, account_id: str) -> None:
+        self.id = random_id(length=14)
+        self.name = name
+        self.connection_function_arn = (
+            f"arn:aws:cloudfront::{account_id}:connection-function/{name}"
+        )
+        self.status = "UNASSOCIATED"
+        self.stage = "DEVELOPMENT"
+        self.created_time = utcnow()
+        self.last_modified_time = utcnow()
+        self.etag = random_id(length=14)
+
+
+class DistributionTenant:
+    def __init__(self, name: str, distribution_id: str, account_id: str) -> None:
+        self.id = random_id(length=14)
+        self.name = name
+        self.distribution_id = distribution_id
+        self.arn = f"arn:aws:cloudfront::{account_id}:distribution-tenant/{self.id}"
+        self.status = "Deployed"
+        self.enabled = True
+        self.created_time = utcnow()
+        self.last_modified_time = utcnow()
+        self.etag = random_id(length=14)
+
+
 class CloudFrontBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -358,6 +443,12 @@ class CloudFrontBackend(BaseBackend):
         self.origin_access_controls: dict[str, OriginAccessControl] = {}
         self.public_keys: dict[str, PublicKey] = {}
         self.key_groups: dict[str, KeyGroup] = {}
+        self.vpc_origins: dict[str, VpcOrigin] = {}
+        self.trust_stores: dict[str, TrustStore] = {}
+        self.anycast_ip_lists: dict[str, AnycastIpList] = {}
+        self.connection_groups: dict[str, ConnectionGroup] = {}
+        self.connection_functions: dict[str, ConnectionFunction] = {}
+        self.distribution_tenants: dict[str, DistributionTenant] = {}
         self.tagger = TaggingService()
 
     def create_distribution(
@@ -556,6 +647,130 @@ class CloudFrontBackend(BaseBackend):
         Pagination is not yet implemented
         """
         return list(self.key_groups.values())
+
+    # VPC Origins
+    def create_vpc_origin(self, config: dict[str, Any]) -> VpcOrigin:
+        vo = VpcOrigin(config=config, account_id=self.account_id)
+        self.vpc_origins[vo.id] = vo
+        return vo
+
+    def get_vpc_origin(self, vpc_origin_id: str) -> VpcOrigin:
+        if vpc_origin_id not in self.vpc_origins:
+            raise NoSuchResource(f"The VPC origin {vpc_origin_id} does not exist.")
+        return self.vpc_origins[vpc_origin_id]
+
+    def update_vpc_origin(
+        self, vpc_origin_id: str, config: dict[str, Any]
+    ) -> VpcOrigin:
+        vo = self.get_vpc_origin(vpc_origin_id)
+        vo.update(config)
+        return vo
+
+    def delete_vpc_origin(self, vpc_origin_id: str) -> None:
+        self.vpc_origins.pop(vpc_origin_id, None)
+
+    def list_vpc_origins(self) -> list[VpcOrigin]:
+        return list(self.vpc_origins.values())
+
+    # Trust Stores
+    def create_trust_store(self, name: str) -> TrustStore:
+        ts = TrustStore(name=name, account_id=self.account_id)
+        self.trust_stores[ts.id] = ts
+        return ts
+
+    def get_trust_store(self, store_id: str) -> TrustStore:
+        if store_id not in self.trust_stores:
+            raise NoSuchResource(f"The trust store {store_id} does not exist.")
+        return self.trust_stores[store_id]
+
+    def update_trust_store(self, store_id: str) -> TrustStore:
+        ts = self.get_trust_store(store_id)
+        ts.update()
+        return ts
+
+    def delete_trust_store(self, store_id: str) -> None:
+        self.trust_stores.pop(store_id, None)
+
+    def list_trust_stores(self) -> list[TrustStore]:
+        return list(self.trust_stores.values())
+
+    # Anycast IP Lists
+    def create_anycast_ip_list(self, name: str) -> AnycastIpList:
+        aip = AnycastIpList(name=name, account_id=self.account_id)
+        self.anycast_ip_lists[aip.id] = aip
+        return aip
+
+    def get_anycast_ip_list(self, list_id: str) -> AnycastIpList:
+        if list_id not in self.anycast_ip_lists:
+            raise NoSuchResource(f"The anycast IP list {list_id} does not exist.")
+        return self.anycast_ip_lists[list_id]
+
+    def delete_anycast_ip_list(self, list_id: str) -> None:
+        self.anycast_ip_lists.pop(list_id, None)
+
+    def list_anycast_ip_lists(self) -> list[AnycastIpList]:
+        return list(self.anycast_ip_lists.values())
+
+    # Connection Groups
+    def create_connection_group(self, name: str) -> ConnectionGroup:
+        cg = ConnectionGroup(name=name, account_id=self.account_id)
+        self.connection_groups[cg.id] = cg
+        return cg
+
+    def get_connection_group(self, group_id: str) -> ConnectionGroup:
+        if group_id not in self.connection_groups:
+            raise NoSuchResource(
+                f"The connection group {group_id} does not exist."
+            )
+        return self.connection_groups[group_id]
+
+    def delete_connection_group(self, group_id: str) -> None:
+        self.connection_groups.pop(group_id, None)
+
+    def list_connection_groups(self) -> list[ConnectionGroup]:
+        return list(self.connection_groups.values())
+
+    # Connection Functions
+    def create_connection_function(self, name: str) -> ConnectionFunction:
+        cf = ConnectionFunction(name=name, account_id=self.account_id)
+        self.connection_functions[cf.name] = cf
+        return cf
+
+    def get_connection_function(self, name: str) -> ConnectionFunction:
+        if name not in self.connection_functions:
+            raise NoSuchResource(
+                f"The connection function {name} does not exist."
+            )
+        return self.connection_functions[name]
+
+    def delete_connection_function(self, name: str) -> None:
+        self.connection_functions.pop(name, None)
+
+    def list_connection_functions(self) -> list[ConnectionFunction]:
+        return list(self.connection_functions.values())
+
+    # Distribution Tenants
+    def create_distribution_tenant(
+        self, name: str, distribution_id: str
+    ) -> DistributionTenant:
+        dt = DistributionTenant(
+            name=name, distribution_id=distribution_id, account_id=self.account_id
+        )
+        self.distribution_tenants[dt.id] = dt
+        return dt
+
+    def get_distribution_tenant(self, tenant_id: str) -> DistributionTenant:
+        if tenant_id not in self.distribution_tenants:
+            raise NoSuchResource(
+                f"The distribution tenant {tenant_id} does not exist."
+            )
+        return self.distribution_tenants[tenant_id]
+
+    def delete_distribution_tenant(self, tenant_id: str) -> None:
+        self.distribution_tenants.pop(tenant_id, None)
+
+    def list_distribution_tenants(self) -> list[DistributionTenant]:
+        return list(self.distribution_tenants.values())
 
 
 cloudfront_backends = BackendDict(

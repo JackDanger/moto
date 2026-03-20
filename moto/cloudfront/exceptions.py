@@ -57,3 +57,8 @@ class NoSuchInvalidation(CloudFrontException):
         super().__init__(
             "NoSuchInvalidation", "The specified invalidation does not exist."
         )
+
+
+class NoSuchResource(CloudFrontException):
+    def __init__(self, message: str = "The specified resource does not exist.") -> None:
+        super().__init__("NoSuchResource", message)

@@ -1,6 +1,6 @@
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
 
-from .models import CloudFrontBackend, cloudfront_backends
+from .models import CloudFrontBackend, cloudfront_backends, random_id
 
 
 class CloudFrontResponse(BaseResponse):
@@ -250,3 +250,360 @@ class CloudFrontResponse(BaseResponse):
             }
         }
         return ActionResult(result)
+
+    # VPC Origins
+    def create_vpc_origin(self) -> ActionResult:
+        config = self._get_param("VpcOriginEndpointConfig", {})
+        vo = self.backend.create_vpc_origin(config)
+        result = {"VpcOrigin": vo, "ETag": vo.etag}
+        return ActionResult(result, status_code=202)
+
+    def get_vpc_origin(self) -> ActionResult:
+        vpc_id = self._get_param("Id")
+        vo = self.backend.get_vpc_origin(vpc_id)
+        result = {"VpcOrigin": vo, "ETag": vo.etag}
+        return ActionResult(result)
+
+    def update_vpc_origin(self) -> ActionResult:
+        vpc_id = self._get_param("Id")
+        config = self._get_param("VpcOriginEndpointConfig", {})
+        vo = self.backend.update_vpc_origin(vpc_id, config)
+        result = {"VpcOrigin": vo, "ETag": vo.etag}
+        return ActionResult(result)
+
+    def delete_vpc_origin(self) -> ActionResult:
+        vpc_id = self._get_param("Id")
+        self.backend.delete_vpc_origin(vpc_id)
+        return EmptyResult(status_code=202)
+
+    def list_vpc_origins(self) -> ActionResult:
+        origins = self.backend.list_vpc_origins()
+        items = [
+            {
+                "Id": vo.id,
+                "Name": vo.vpc_origin_endpoint_config.get("Name", ""),
+                "Status": vo.status,
+                "CreatedTime": vo.created_time,
+                "LastModifiedTime": vo.last_modified_time,
+                "Arn": vo.arn,
+                "AccountId": vo.account_id,
+                "OriginEndpointArn": vo.vpc_origin_endpoint_config.get("Arn", ""),
+            }
+            for vo in origins
+        ]
+        result = {
+            "VpcOriginList": {
+                "Marker": "",
+                "MaxItems": 100,
+                "IsTruncated": False,
+                "Quantity": len(items),
+                "Items": items if items else None,
+            }
+        }
+        return ActionResult(result)
+
+    # Trust Stores
+    def create_trust_store(self) -> ActionResult:
+        name = self._get_param("Name", "")
+        ts = self.backend.create_trust_store(name)
+        result = {"TrustStore": ts, "ETag": ts.etag}
+        return ActionResult(result, status_code=201)
+
+    def get_trust_store(self) -> ActionResult:
+        store_id = self._get_param("Id")
+        ts = self.backend.get_trust_store(store_id)
+        result = {"TrustStore": ts, "ETag": ts.etag}
+        return ActionResult(result)
+
+    def update_trust_store(self) -> ActionResult:
+        store_id = self._get_param("Id")
+        ts = self.backend.update_trust_store(store_id)
+        result = {"TrustStore": ts, "ETag": ts.etag}
+        return ActionResult(result)
+
+    def delete_trust_store(self) -> ActionResult:
+        store_id = self._get_param("Id")
+        self.backend.delete_trust_store(store_id)
+        return EmptyResult()
+
+    def list_trust_stores(self) -> ActionResult:
+        stores = self.backend.list_trust_stores()
+        result = {"TrustStoreList": stores if stores else None}
+        return ActionResult(result)
+
+    # Anycast IP Lists
+    def create_anycast_ip_list(self) -> ActionResult:
+        name = self._get_param("Name", "")
+        aip = self.backend.create_anycast_ip_list(name)
+        result = {"AnycastIpList": aip, "ETag": aip.etag}
+        return ActionResult(result, status_code=201)
+
+    def get_anycast_ip_list(self) -> ActionResult:
+        list_id = self._get_param("Id")
+        aip = self.backend.get_anycast_ip_list(list_id)
+        result = {"AnycastIpList": aip, "ETag": aip.etag}
+        return ActionResult(result)
+
+    def delete_anycast_ip_list(self) -> ActionResult:
+        list_id = self._get_param("Id")
+        self.backend.delete_anycast_ip_list(list_id)
+        return EmptyResult()
+
+    def list_anycast_ip_lists(self) -> ActionResult:
+        lists = self.backend.list_anycast_ip_lists()
+        items = [
+            {
+                "Id": a.id,
+                "Name": a.name,
+                "Status": a.status,
+                "Arn": a.arn,
+                "IpCount": a.ip_count,
+                "LastModifiedTime": a.last_modified_time,
+            }
+            for a in lists
+        ]
+        result = {
+            "AnycastIpLists": {
+                "Marker": "",
+                "MaxItems": 100,
+                "IsTruncated": False,
+                "Quantity": len(items),
+                "Items": items if items else None,
+            }
+        }
+        return ActionResult(result)
+
+    # Connection Groups
+    def create_connection_group(self) -> ActionResult:
+        name = self._get_param("Name", "")
+        cg = self.backend.create_connection_group(name)
+        result = {"ConnectionGroup": cg, "ETag": cg.etag}
+        return ActionResult(result, status_code=201)
+
+    def get_connection_group(self) -> ActionResult:
+        group_id = self._get_param("Id")
+        cg = self.backend.get_connection_group(group_id)
+        result = {"ConnectionGroup": cg, "ETag": cg.etag}
+        return ActionResult(result)
+
+    def update_connection_group(self) -> ActionResult:
+        group_id = self._get_param("Id")
+        cg = self.backend.get_connection_group(group_id)
+        cg.etag = random_id(length=14)
+        result = {"ConnectionGroup": cg, "ETag": cg.etag}
+        return ActionResult(result)
+
+    def delete_connection_group(self) -> ActionResult:
+        group_id = self._get_param("Id")
+        self.backend.delete_connection_group(group_id)
+        return EmptyResult()
+
+    def list_connection_groups(self) -> ActionResult:
+        groups = self.backend.list_connection_groups()
+        result = {"ConnectionGroups": groups if groups else None}
+        return ActionResult(result)
+
+    # Connection Functions
+    def create_connection_function(self) -> ActionResult:
+        name = self._get_param("Name", "")
+        cf = self.backend.create_connection_function(name)
+        result = {"ConnectionFunctionSummary": cf, "ETag": cf.etag}
+        return ActionResult(result, status_code=201)
+
+    def describe_connection_function(self) -> ActionResult:
+        name = self._get_param("Name")
+        cf = self.backend.get_connection_function(name)
+        result = {"ConnectionFunctionSummary": cf, "ETag": cf.etag}
+        return ActionResult(result)
+
+    def update_connection_function(self) -> ActionResult:
+        name = self._get_param("Name")
+        cf = self.backend.get_connection_function(name)
+        cf.etag = random_id(length=14)
+        result = {"ConnectionFunctionSummary": cf, "ETag": cf.etag}
+        return ActionResult(result)
+
+    def publish_connection_function(self) -> ActionResult:
+        name = self._get_param("Name")
+        cf = self.backend.get_connection_function(name)
+        cf.stage = "LIVE"
+        cf.etag = random_id(length=14)
+        result = {"ConnectionFunctionSummary": cf, "ETag": cf.etag}
+        return ActionResult(result)
+
+    def delete_connection_function(self) -> ActionResult:
+        name = self._get_param("Name")
+        self.backend.delete_connection_function(name)
+        return EmptyResult()
+
+    def list_connection_functions(self) -> ActionResult:
+        funcs = self.backend.list_connection_functions()
+        result = {"ConnectionFunctions": funcs if funcs else None}
+        return ActionResult(result)
+
+    def test_connection_function(self) -> ActionResult:
+        result = {
+            "TestResult": {
+                "FunctionOutput": '{"response":{"statusCode":200}}',
+                "ComputeUtilization": "12",
+            }
+        }
+        return ActionResult(result)
+
+    # Distribution Tenants
+    def create_distribution_tenant(self) -> ActionResult:
+        name = self._get_param("Name", "")
+        dist_id = self._get_param("DistributionId", "")
+        dt = self.backend.create_distribution_tenant(name, dist_id)
+        result = {"DistributionTenant": dt, "ETag": dt.etag}
+        return ActionResult(result, status_code=201)
+
+    def get_distribution_tenant(self) -> ActionResult:
+        dt_id = self._get_param("Id")
+        dt = self.backend.get_distribution_tenant(dt_id)
+        result = {"DistributionTenant": dt, "ETag": dt.etag}
+        return ActionResult(result)
+
+    def update_distribution_tenant(self) -> ActionResult:
+        dt_id = self._get_param("Id")
+        dt = self.backend.get_distribution_tenant(dt_id)
+        dt.etag = random_id(length=14)
+        result = {"DistributionTenant": dt, "ETag": dt.etag}
+        return ActionResult(result)
+
+    def delete_distribution_tenant(self) -> ActionResult:
+        dt_id = self._get_param("Id")
+        self.backend.delete_distribution_tenant(dt_id)
+        return EmptyResult()
+
+    def list_distribution_tenants(self) -> ActionResult:
+        tenants = self.backend.list_distribution_tenants()
+        result = {"DistributionTenantList": tenants if tenants else None}
+        return ActionResult(result)
+
+    def list_distribution_tenants_by_customization(self) -> ActionResult:
+        result = {"DistributionTenantList": None}
+        return ActionResult(result)
+
+    def create_invalidation_for_distribution_tenant(self) -> ActionResult:
+        inv_id = random_id()
+        result = {
+            "Invalidation": {
+                "Id": inv_id,
+                "Status": "COMPLETED",
+                "CreateTime": "2021-01-01T00:00:00.000Z",
+                "InvalidationBatch": {
+                    "Paths": {"Quantity": 0},
+                    "CallerReference": "ref",
+                },
+            }
+        }
+        return ActionResult(result, status_code=201)
+
+    def get_invalidation_for_distribution_tenant(self) -> ActionResult:
+        inv_id = self._get_param("Id")
+        result = {
+            "Invalidation": {
+                "Id": inv_id,
+                "Status": "COMPLETED",
+                "CreateTime": "2021-01-01T00:00:00.000Z",
+                "InvalidationBatch": {
+                    "Paths": {"Quantity": 0},
+                    "CallerReference": "ref",
+                },
+            }
+        }
+        return ActionResult(result)
+
+    def list_invalidations_for_distribution_tenant(self) -> ActionResult:
+        result = {
+            "InvalidationList": {
+                "Marker": "",
+                "MaxItems": 100,
+                "IsTruncated": False,
+                "Quantity": 0,
+            }
+        }
+        return ActionResult(result)
+
+    # Resource Policy
+    def get_resource_policy(self) -> ActionResult:
+        return ActionResult({}, status_code=200)
+
+    def put_resource_policy(self) -> ActionResult:
+        return ActionResult({}, status_code=200)
+
+    def delete_resource_policy(self) -> ActionResult:
+        return EmptyResult()
+
+    # Other stubs
+    def list_domain_conflicts(self) -> ActionResult:
+        return ActionResult({})
+
+    def verify_dns_configuration(self) -> ActionResult:
+        return ActionResult({})
+
+    def get_managed_certificate_details(self) -> ActionResult:
+        result = {"ManagedCertificateDetails": {"CertificateStatus": "ISSUED"}}
+        return ActionResult(result)
+
+    def list_distributions_by_vpc_origin_id(self) -> ActionResult:
+        result = {
+            "DistributionIdList": {
+                "Marker": "",
+                "MaxItems": 100,
+                "IsTruncated": False,
+                "Quantity": 0,
+            }
+        }
+        return ActionResult(result)
+
+    def list_distributions_by_anycast_ip_list_id(self) -> ActionResult:
+        result = {
+            "DistributionIdList": {
+                "Marker": "",
+                "MaxItems": 100,
+                "IsTruncated": False,
+                "Quantity": 0,
+            }
+        }
+        return ActionResult(result)
+
+    def list_distributions_by_trust_store(self) -> ActionResult:
+        result = {
+            "DistributionIdList": {
+                "Marker": "",
+                "MaxItems": 100,
+                "IsTruncated": False,
+                "Quantity": 0,
+            }
+        }
+        return ActionResult(result)
+
+    def list_distributions_by_connection_function(self) -> ActionResult:
+        result = {
+            "DistributionIdList": {
+                "Marker": "",
+                "MaxItems": 100,
+                "IsTruncated": False,
+                "Quantity": 0,
+            }
+        }
+        return ActionResult(result)
+
+    def list_distributions_by_owned_resource(self) -> ActionResult:
+        result = {
+            "DistributionIdList": {
+                "Marker": "",
+                "MaxItems": 100,
+                "IsTruncated": False,
+                "Quantity": 0,
+            }
+        }
+        return ActionResult(result)
+
+    def get_distribution_tenant_by_domain(self) -> ActionResult:
+        return ActionResult({}, status_code=404)
+
+    def get_connection_group_by_routing_endpoint(self) -> ActionResult:
+        return ActionResult({}, status_code=404)
