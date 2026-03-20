@@ -998,7 +998,7 @@ class RekognitionBackend(BaseBackend):
             for param in parameters_to_delete:
                 sp.pop(param, None)
         sp["LastUpdateTimestamp"] = unix_time()
-        return {"StreamProcessorArn": sp["StreamProcessorArn"]}
+        return {}
 
     # ---- Existing operations (preserved) ----
 
