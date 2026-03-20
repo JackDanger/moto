@@ -121,6 +121,7 @@ class DataSyncBackend(BaseBackend):
         self.locations: dict[str, Location] = OrderedDict()
         self.tasks: dict[str, Task] = OrderedDict()
         self.task_executions: dict[str, TaskExecution] = OrderedDict()
+        self._tags: dict[str, list[dict[str, str]]] = {}
 
     def create_agent(
         self,
@@ -267,6 +268,27 @@ class DataSyncBackend(BaseBackend):
             self.tasks[task_arn].status = "AVAILABLE"
             return
         raise InvalidRequestException(f"Sync task {task_execution_arn} is not found.")
+
+    def list_task_executions(self, task_arn: Optional[str] = None) -> list[dict]:
+        executions = list(self.task_executions.values())
+        if task_arn:
+            executions = [e for e in executions if e.task_arn == task_arn]
+        return [{"TaskExecutionArn": e.arn, "Status": e.status} for e in executions]
+
+    def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
+        self._tags[resource_arn] = self._tags.get(resource_arn, []) + tags
+
+    def untag_resource(self, resource_arn: str, keys: list[str]) -> None:
+        existing = self._tags.get(resource_arn, [])
+        self._tags[resource_arn] = [t for t in existing if t.get("Key") not in keys]
+
+    def list_tags_for_resource(self, resource_arn: str) -> list[dict[str, str]]:
+        return self._tags.get(resource_arn, [])
+
+    def update_location(self, location_arn: str, **kwargs: Any) -> Location:
+        if location_arn not in self.locations:
+            raise InvalidRequestException(f"Location {location_arn} is not found.")
+        return self.locations[location_arn]
 
 
 datasync_backends = BackendDict(DataSyncBackend, "datasync")
