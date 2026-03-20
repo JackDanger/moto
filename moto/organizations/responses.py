@@ -335,4 +335,4 @@ class OrganizationsResponse(BaseResponse):
 
     def list_accounts_with_invalid_effective_policy(self) -> str:
         policy_type = self._get_param("PolicyType")
-        return json.dumps({"AccountIds": [], "PolicyType": policy_type})
+        return json.dumps({"Accounts": [], "PolicyType": policy_type})
