@@ -344,9 +344,6 @@ class KinesisVideoBackend(BaseBackend):
         stream = self._get_stream(stream_name or "", stream_arn or "")
         return getattr(stream, "mapped_resource_configuration", []) or []
 
-
-kinesisvideo_backends = BackendDict(KinesisVideoBackend, "kinesisvideo")
-
     def update_image_generation_configuration(
         self,
         stream_name: Optional[str],
@@ -364,3 +361,6 @@ kinesisvideo_backends = BackendDict(KinesisVideoBackend, "kinesisvideo")
     ) -> None:
         stream = self._get_stream(stream_name or "", stream_arn or "")
         stream.notification_configuration = notification_configuration or {}
+
+
+kinesisvideo_backends = BackendDict(KinesisVideoBackend, "kinesisvideo")
