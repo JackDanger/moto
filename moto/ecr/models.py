@@ -1681,6 +1681,144 @@ class ECRBackend(BaseBackend):
             "credentialArn": rule.get("credentialArn", ""),
         }
 
+    # ---- Layer upload stubs ----
+
+    def initiate_layer_upload(
+        self, repository_name: str, registry_id: Optional[str]
+    ) -> dict[str, Any]:
+        import uuid as _uuid
+        upload_id = str(_uuid.uuid4())
+        return {"uploadId": upload_id, "partSize": 10 * 1024 * 1024}
+
+    def upload_layer_part(
+        self,
+        repository_name: str,
+        upload_id: str,
+        part_first_byte: int,
+        part_last_byte: int,
+        layer_part_blob: bytes,
+        registry_id: Optional[str],
+    ) -> dict[str, Any]:
+        return {
+            "registryId": registry_id or self.account_id,
+            "repositoryName": repository_name,
+            "uploadId": upload_id,
+            "lastByteReceived": part_last_byte,
+        }
+
+    def complete_layer_upload(
+        self,
+        repository_name: str,
+        upload_id: str,
+        layer_digests: list[str],
+        registry_id: Optional[str],
+    ) -> dict[str, Any]:
+        import uuid as _uuid
+        layer_digest = layer_digests[0] if layer_digests else f"sha256:{_uuid.uuid4().hex}"
+        return {
+            "registryId": registry_id or self.account_id,
+            "repositoryName": repository_name,
+            "uploadId": upload_id,
+            "layerDigest": layer_digest,
+        }
+
+    def get_download_url_for_layer(
+        self, repository_name: str, layer_digest: str, registry_id: Optional[str]
+    ) -> dict[str, Any]:
+        reg_id = registry_id or self.account_id
+        url = (
+            f"https://{reg_id}.dkr.ecr.{self.region_name}.amazonaws.com"
+            f"/v2/{repository_name}/blobs/{layer_digest}"
+        )
+        return {"downloadUrl": url, "layerDigest": layer_digest}
+
+    # ---- Signing configuration stubs ----
+
+    _signing_config: dict[str, Any] = {}
+
+    def put_signing_configuration(
+        self, rules: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        self._signing_config["rules"] = rules
+        return {"registryId": self.account_id, "rules": rules}
+
+    def get_signing_configuration(self) -> dict[str, Any]:
+        rules = self._signing_config.get("rules", [])
+        return {"registryId": self.account_id, "rules": rules}
+
+    def delete_signing_configuration(self) -> dict[str, Any]:
+        self._signing_config.pop("rules", None)
+        return {}
+
+    def describe_image_signing_status(
+        self,
+        repository_name: str,
+        image_ids: list[dict[str, str]],
+        registry_id: Optional[str],
+    ) -> dict[str, Any]:
+        statuses = [
+            {
+                "imageId": img_id,
+                "imageScanningSigningStatus": "ACTIVE",
+                "lastSigningJobArn": "",
+            }
+            for img_id in image_ids
+        ]
+        return {"repositoryName": repository_name, "signingStatuses": statuses}
+
+    # ---- PullTimeUpdateExclusion stubs ----
+
+    _pull_time_exclusions: dict[str, dict[str, Any]] = {}
+
+    def register_pull_time_update_exclusion(
+        self, ecr_repository_prefix: str, repository_filter: str, title: str
+    ) -> dict[str, Any]:
+        import uuid as _uuid
+        exclusion_id = str(_uuid.uuid4())
+        record = {
+            "exclusionId": exclusion_id,
+            "ecrRepositoryPrefix": ecr_repository_prefix,
+            "repositoryFilter": repository_filter,
+            "title": title,
+            "registryId": self.account_id,
+        }
+        self._pull_time_exclusions[exclusion_id] = record
+        return record
+
+    def deregister_pull_time_update_exclusion(self, exclusion_id: str) -> dict[str, Any]:
+        return self._pull_time_exclusions.pop(exclusion_id, {})
+
+    def list_pull_time_update_exclusions(self) -> dict[str, Any]:
+        return {
+            "pullTimeUpdateExclusions": list(self._pull_time_exclusions.values()),
+        }
+
+    # ---- UpdateImageStorageClass stub ----
+
+    def update_image_storage_class(
+        self,
+        repository_name: str,
+        image_ids: list[dict[str, str]],
+        lifecycle_policy_preview_image_storage_class: str,
+        registry_id: Optional[str],
+    ) -> dict[str, Any]:
+        return {
+            "repositoryName": repository_name,
+            "imageIds": image_ids,
+        }
+
+    # ---- ListImageReferrers stub ----
+
+    def list_image_referrers(
+        self,
+        repository_name: str,
+        image_digest: str,
+        registry_id: Optional[str],
+    ) -> dict[str, Any]:
+        return {
+            "referrers": [],
+        }
+
     def _validate_mutability_exclusion_filters(
         self,
         image_tag_mutability_exclusion_filters: Optional[

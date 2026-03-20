@@ -140,8 +140,19 @@ class ECRResponse(BaseResponse):
             }
         )
 
-    def complete_layer_upload(self) -> None:
-        raise NotImplementedError("ECR.complete_layer_upload is not yet implemented")
+    def complete_layer_upload(self) -> ActionResult:
+        registry_id = self._get_param("registryId")
+        repository_name = self._get_param("repositoryName")
+        upload_id = self._get_param("uploadId")
+        layer_digests = self._get_param("layerDigests", [])
+        return ActionResult(
+            self.ecr_backend.complete_layer_upload(
+                repository_name=repository_name,
+                upload_id=upload_id,
+                layer_digests=layer_digests,
+                registry_id=registry_id,
+            )
+        )
 
     def delete_repository_policy(self) -> ActionResult:
         registry_id = self._get_param("registryId")
@@ -170,9 +181,16 @@ class ECRResponse(BaseResponse):
             )
         return ActionResult({"authorizationData": auth_data})
 
-    def get_download_url_for_layer(self) -> None:
-        raise NotImplementedError(
-            "ECR.get_download_url_for_layer is not yet implemented"
+    def get_download_url_for_layer(self) -> ActionResult:
+        registry_id = self._get_param("registryId")
+        repository_name = self._get_param("repositoryName")
+        layer_digest = self._get_param("layerDigest")
+        return ActionResult(
+            self.ecr_backend.get_download_url_for_layer(
+                repository_name=repository_name,
+                layer_digest=layer_digest,
+                registry_id=registry_id,
+            )
         )
 
     def get_repository_policy(self) -> ActionResult:
@@ -185,8 +203,15 @@ class ECRResponse(BaseResponse):
             )
         )
 
-    def initiate_layer_upload(self) -> None:
-        raise NotImplementedError("ECR.initiate_layer_upload is not yet implemented")
+    def initiate_layer_upload(self) -> ActionResult:
+        registry_id = self._get_param("registryId")
+        repository_name = self._get_param("repositoryName")
+        return ActionResult(
+            self.ecr_backend.initiate_layer_upload(
+                repository_name=repository_name,
+                registry_id=registry_id,
+            )
+        )
 
     def set_repository_policy(self) -> ActionResult:
         registry_id = self._get_param("registryId")
@@ -204,8 +229,23 @@ class ECRResponse(BaseResponse):
             )
         )
 
-    def upload_layer_part(self) -> None:
-        raise NotImplementedError("ECR.upload_layer_part is not yet implemented")
+    def upload_layer_part(self) -> ActionResult:
+        registry_id = self._get_param("registryId")
+        repository_name = self._get_param("repositoryName")
+        upload_id = self._get_param("uploadId")
+        part_first_byte = self._get_param("partFirstByte", 0)
+        part_last_byte = self._get_param("partLastByte", 0)
+        layer_part_blob = self._get_param("layerPartBlob", b"")
+        return ActionResult(
+            self.ecr_backend.upload_layer_part(
+                repository_name=repository_name,
+                upload_id=upload_id,
+                part_first_byte=part_first_byte,
+                part_last_byte=part_last_byte,
+                layer_part_blob=layer_part_blob,
+                registry_id=registry_id,
+            )
+        )
 
     def list_tags_for_resource(self) -> ActionResult:
         arn = self._get_param("resourceArn")
@@ -529,5 +569,74 @@ class ECRResponse(BaseResponse):
             self.ecr_backend.update_pull_through_cache_rule(
                 ecr_repository_prefix=prefix,
                 credential_arn=cred,
+            )
+        )
+
+    def put_signing_configuration(self) -> ActionResult:
+        rules = self._get_param("rules", [])
+        return ActionResult(self.ecr_backend.put_signing_configuration(rules))
+
+    def get_signing_configuration(self) -> ActionResult:
+        return ActionResult(self.ecr_backend.get_signing_configuration())
+
+    def delete_signing_configuration(self) -> ActionResult:
+        self.ecr_backend.delete_signing_configuration()
+        return EmptyResult()
+
+    def describe_image_signing_status(self) -> ActionResult:
+        registry_id = self._get_param("registryId")
+        repository_name = self._get_param("repositoryName")
+        image_ids = self._get_param("imageIds", [])
+        return ActionResult(
+            self.ecr_backend.describe_image_signing_status(
+                repository_name=repository_name,
+                image_ids=image_ids,
+                registry_id=registry_id,
+            )
+        )
+
+    def register_pull_time_update_exclusion(self) -> ActionResult:
+        ecr_repository_prefix = self._get_param("ecrRepositoryPrefix", "")
+        repository_filter = self._get_param("repositoryFilter", "")
+        title = self._get_param("title", "")
+        return ActionResult(
+            self.ecr_backend.register_pull_time_update_exclusion(
+                ecr_repository_prefix=ecr_repository_prefix,
+                repository_filter=repository_filter,
+                title=title,
+            )
+        )
+
+    def deregister_pull_time_update_exclusion(self) -> ActionResult:
+        exclusion_id = self._get_param("exclusionId")
+        self.ecr_backend.deregister_pull_time_update_exclusion(exclusion_id)
+        return EmptyResult()
+
+    def list_pull_time_update_exclusions(self) -> ActionResult:
+        return ActionResult(self.ecr_backend.list_pull_time_update_exclusions())
+
+    def update_image_storage_class(self) -> ActionResult:
+        registry_id = self._get_param("registryId")
+        repository_name = self._get_param("repositoryName")
+        image_ids = self._get_param("imageIds", [])
+        storage_class = self._get_param("lifecyclePolicyPreviewImageStorageClass", "")
+        return ActionResult(
+            self.ecr_backend.update_image_storage_class(
+                repository_name=repository_name,
+                image_ids=image_ids,
+                lifecycle_policy_preview_image_storage_class=storage_class,
+                registry_id=registry_id,
+            )
+        )
+
+    def list_image_referrers(self) -> ActionResult:
+        registry_id = self._get_param("registryId")
+        repository_name = self._get_param("repositoryName")
+        image_digest = self._get_param("imageDigest", "")
+        return ActionResult(
+            self.ecr_backend.list_image_referrers(
+                repository_name=repository_name,
+                image_digest=image_digest,
+                registry_id=registry_id,
             )
         )
