@@ -477,3 +477,56 @@ class ELBV2Response(BaseResponse):
     def describe_capacity_reservation(self) -> ActionResult:
         result = {"CapacityReservationState": [{"State": {"Code": "provisioned"}}]}
         return ActionResult(result)
+
+    def create_trust_store(self) -> ActionResult:
+        name = self._get_param("Name")
+        result = {
+            "TrustStores": [{
+                "TrustStoreArn": f"arn:aws:elasticloadbalancing:us-east-1:123456789012:truststore/{name}/1234567890",
+                "Name": name,
+                "Status": "ACTIVE",
+                "NumberOfCaCertificates": 0,
+            }]
+        }
+        return ActionResult(result)
+
+    def describe_trust_stores(self) -> ActionResult:
+        return ActionResult({"TrustStores": []})
+
+    def delete_trust_store(self) -> ActionResult:
+        return ActionResult({})
+
+    def modify_trust_store(self) -> ActionResult:
+        trust_store_arn = self._get_param("TrustStoreArn")
+        return ActionResult({"TrustStores": [{"TrustStoreArn": trust_store_arn}]})
+
+    def add_trust_store_revocations(self) -> ActionResult:
+        return ActionResult({"TrustStoreRevocations": []})
+
+    def remove_trust_store_revocations(self) -> ActionResult:
+        return ActionResult({})
+
+    def describe_trust_store_revocations(self) -> ActionResult:
+        return ActionResult({"TrustStoreRevocations": []})
+
+    def describe_trust_store_associations(self) -> ActionResult:
+        return ActionResult({"TrustStoreAssociations": []})
+
+    def delete_shared_trust_store_association(self) -> ActionResult:
+        return ActionResult({})
+
+    def get_trust_store_ca_certificates_bundle(self) -> ActionResult:
+        return ActionResult({"Location": ""})
+
+    def get_trust_store_revocation_content(self) -> ActionResult:
+        return ActionResult({"Location": ""})
+
+    def get_resource_policy(self) -> ActionResult:
+        return ActionResult({"Policy": ""})
+
+    def modify_capacity_reservation(self) -> ActionResult:
+        result = {"CapacityReservationState": [{"State": {"Code": "provisioned"}}]}
+        return ActionResult(result)
+
+    def modify_ip_pools(self) -> ActionResult:
+        return ActionResult({"IpamPools": {}})
