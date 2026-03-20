@@ -341,7 +341,7 @@ class S3TablesResponse(BaseResponse):
     # --- Table Bucket Policy ---
 
     def get_table_bucket_policy(self) -> TYPE_RESPONSE:
-        (table_bucket_arn,) = _parse_path(self.raw_path, 0)
+        table_bucket_arn, _ = _parse_path(self.raw_path, 1)
         policy = self.s3tables_backend.get_table_bucket_policy(table_bucket_arn)
         return (
             200,
@@ -350,7 +350,7 @@ class S3TablesResponse(BaseResponse):
         )
 
     def put_table_bucket_policy(self) -> TYPE_RESPONSE:
-        (table_bucket_arn,) = _parse_path(self.raw_path, 0)
+        table_bucket_arn, _ = _parse_path(self.raw_path, 1)
         body = json.loads(self.body)
         self.s3tables_backend.put_table_bucket_policy(
             table_bucket_arn, body["resourcePolicy"]
@@ -358,14 +358,14 @@ class S3TablesResponse(BaseResponse):
         return 200, self.default_response_headers, json.dumps({})
 
     def delete_table_bucket_policy(self) -> TYPE_RESPONSE:
-        (table_bucket_arn,) = _parse_path(self.raw_path, 0)
+        table_bucket_arn, _ = _parse_path(self.raw_path, 1)
         self.s3tables_backend.delete_table_bucket_policy(table_bucket_arn)
         return 204, {}, ""
 
     # --- Table Bucket Maintenance Configuration ---
 
     def get_table_bucket_maintenance_configuration(self) -> TYPE_RESPONSE:
-        (table_bucket_arn,) = _parse_path(self.raw_path, 0)
+        table_bucket_arn, _ = _parse_path(self.raw_path, 1)
         config = self.s3tables_backend.get_table_bucket_maintenance_configuration(
             table_bucket_arn
         )
@@ -390,7 +390,7 @@ class S3TablesResponse(BaseResponse):
     # --- Table Bucket Encryption ---
 
     def get_table_bucket_encryption(self) -> TYPE_RESPONSE:
-        (table_bucket_arn,) = _parse_path(self.raw_path, 0)
+        table_bucket_arn, _ = _parse_path(self.raw_path, 1)
         config = self.s3tables_backend.get_table_bucket_encryption(table_bucket_arn)
         return (
             200,
@@ -399,7 +399,7 @@ class S3TablesResponse(BaseResponse):
         )
 
     def put_table_bucket_encryption(self) -> TYPE_RESPONSE:
-        (table_bucket_arn,) = _parse_path(self.raw_path, 0)
+        table_bucket_arn, _ = _parse_path(self.raw_path, 1)
         body = json.loads(self.body)
         self.s3tables_backend.put_table_bucket_encryption(
             table_bucket_arn, body["encryptionConfiguration"]
@@ -407,14 +407,14 @@ class S3TablesResponse(BaseResponse):
         return 200, self.default_response_headers, json.dumps({})
 
     def delete_table_bucket_encryption(self) -> TYPE_RESPONSE:
-        (table_bucket_arn,) = _parse_path(self.raw_path, 0)
+        table_bucket_arn, _ = _parse_path(self.raw_path, 1)
         self.s3tables_backend.delete_table_bucket_encryption(table_bucket_arn)
         return 204, {}, ""
 
     # --- Table Bucket Metrics Configuration ---
 
     def get_table_bucket_metrics_configuration(self) -> TYPE_RESPONSE:
-        (table_bucket_arn,) = _parse_path(self.raw_path, 0)
+        table_bucket_arn, _ = _parse_path(self.raw_path, 1)
         metrics_id = self.s3tables_backend.get_table_bucket_metrics_configuration(
             table_bucket_arn
         )
@@ -427,12 +427,12 @@ class S3TablesResponse(BaseResponse):
         )
 
     def put_table_bucket_metrics_configuration(self) -> TYPE_RESPONSE:
-        (table_bucket_arn,) = _parse_path(self.raw_path, 0)
+        table_bucket_arn, _ = _parse_path(self.raw_path, 1)
         self.s3tables_backend.put_table_bucket_metrics_configuration(table_bucket_arn)
         return 204, {}, ""
 
     def delete_table_bucket_metrics_configuration(self) -> TYPE_RESPONSE:
-        (table_bucket_arn,) = _parse_path(self.raw_path, 0)
+        table_bucket_arn, _ = _parse_path(self.raw_path, 1)
         self.s3tables_backend.delete_table_bucket_metrics_configuration(
             table_bucket_arn
         )
@@ -441,7 +441,7 @@ class S3TablesResponse(BaseResponse):
     # --- Table Bucket Storage Class ---
 
     def get_table_bucket_storage_class(self) -> TYPE_RESPONSE:
-        (table_bucket_arn,) = _parse_path(self.raw_path, 0)
+        table_bucket_arn, _ = _parse_path(self.raw_path, 1)
         config = self.s3tables_backend.get_table_bucket_storage_class(table_bucket_arn)
         return (
             200,
@@ -450,7 +450,7 @@ class S3TablesResponse(BaseResponse):
         )
 
     def put_table_bucket_storage_class(self) -> TYPE_RESPONSE:
-        (table_bucket_arn,) = _parse_path(self.raw_path, 0)
+        table_bucket_arn, _ = _parse_path(self.raw_path, 1)
         body = json.loads(self.body)
         self.s3tables_backend.put_table_bucket_storage_class(
             table_bucket_arn, body["storageClassConfiguration"]
