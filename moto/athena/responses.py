@@ -119,7 +119,7 @@ class AthenaResponse(BaseResponse):
     def create_capacity_reservation(self) -> Union[tuple[str, dict[str, int]], str]:
         name = self._get_param("Name")
         target_dpus = self._get_param("TargetDpus")
-        tags = self._get_param("Tags")
+        tags = self._get_param("Tags") or []
         self.athena_backend.create_capacity_reservation(name, target_dpus, tags)
         return json.dumps({})
 
