@@ -114,7 +114,13 @@ def _get_method_urls(service_name: str, region: str) -> dict[str, dict[str, str]
             request_uri += "?"
         if service_name == "backup" and request_uri.endswith("/"):
             request_uri += "?"
-        uri_regexp = BaseResponse.uri_to_regexp(request_uri)
+        # Strip query-string markers from requestUri before building the regexp.
+        # Some botocore operations use query params to disambiguate actions on the
+        # same path (e.g. POST /path?delete).  The `?` would be treated as a regex
+        # quantifier by uri_to_regexp, producing incorrect patterns.  Since
+        # raw_path never contains a query string, stripping is safe.
+        path_only_uri = request_uri.split("?")[0] if "?" in request_uri else request_uri
+        uri_regexp = BaseResponse.uri_to_regexp(path_only_uri)
         method_urls[_method][uri_regexp] = op_model.name
 
     return method_urls
