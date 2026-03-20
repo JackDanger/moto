@@ -736,3 +736,84 @@ class Route53ResolverResponse(BaseResponse):
     def list_resolver_configs(self) -> str:
         """List all resolver configs."""
         return json.dumps({"ResolverConfigs": []})
+
+    def get_firewall_config(self) -> str:
+        resource_id = self._get_param("ResourceId")
+        return json.dumps(
+            {
+                "FirewallConfig": {
+                    "ResourceId": resource_id,
+                    "OwnerId": self.current_account,
+                    "FirewallFailOpen": "DISABLED",
+                    "Id": f"fc-{resource_id}",
+                }
+            }
+        )
+
+    def get_resolver_config(self) -> str:
+        resource_id = self._get_param("ResourceId")
+        return json.dumps(
+            {
+                "ResolverConfig": {
+                    "ResourceId": resource_id,
+                    "OwnerId": self.current_account,
+                    "AutodefinedReverse": "DISABLED",
+                    "Id": f"rslvr-rc-{resource_id}",
+                }
+            }
+        )
+
+    def import_firewall_domains(self) -> str:
+        firewall_domain_list_id = self._get_param("FirewallDomainListId")
+        return json.dumps(
+            {
+                "Id": firewall_domain_list_id,
+                "Status": "IMPORTING",
+                "StatusMessage": "Import in progress",
+            }
+        )
+
+    def update_firewall_config(self) -> str:
+        resource_id = self._get_param("ResourceId")
+        firewall_fail_open = self._get_param("FirewallFailOpen")
+        return json.dumps(
+            {
+                "FirewallConfig": {
+                    "ResourceId": resource_id,
+                    "OwnerId": self.current_account,
+                    "FirewallFailOpen": firewall_fail_open or "DISABLED",
+                    "Id": f"fc-{resource_id}",
+                }
+            }
+        )
+
+    def update_firewall_rule_group_association(self) -> str:
+        association_id = self._get_param("FirewallRuleGroupAssociationId")
+        name = self._get_param("Name")
+        priority = self._get_param("Priority")
+        mutation_protection = self._get_param("MutationProtection")
+        return json.dumps(
+            {
+                "FirewallRuleGroupAssociation": {
+                    "Id": association_id,
+                    "Name": name or "",
+                    "Priority": priority or 100,
+                    "MutationProtection": mutation_protection or "DISABLED",
+                    "Status": "COMPLETE",
+                }
+            }
+        )
+
+    def update_resolver_config(self) -> str:
+        resource_id = self._get_param("ResourceId")
+        autodefined_reverse_flag = self._get_param("AutodefinedReverseFlag")
+        return json.dumps(
+            {
+                "ResolverConfig": {
+                    "ResourceId": resource_id,
+                    "OwnerId": self.current_account,
+                    "AutodefinedReverse": autodefined_reverse_flag or "DISABLED",
+                    "Id": f"rslvr-rc-{resource_id}",
+                }
+            }
+        )
