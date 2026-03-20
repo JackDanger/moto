@@ -826,3 +826,42 @@ class RDSResponse(BaseResponse):
             feature_name=feature_name,
         )
         return EmptyResult()
+
+    def remove_role_from_db_cluster(self) -> ActionResult:
+        db_cluster_identifier = self.params.get("DBClusterIdentifier")
+        role_arn = self.params.get("RoleArn")
+        feature_name = self.params.get("FeatureName")
+        self.backend.remove_role_from_db_cluster(
+            db_cluster_identifier=db_cluster_identifier,
+            role_arn=role_arn,
+            feature_name=feature_name,
+        )
+        return EmptyResult()
+
+    def reboot_db_cluster(self) -> ActionResult:
+        db_cluster_identifier = self.params.get("DBClusterIdentifier")
+        cluster = self.backend.reboot_db_cluster(db_cluster_identifier)
+        result = {"DBCluster": cluster}
+        return ActionResult(result)
+
+    def reset_db_parameter_group(self) -> ActionResult:
+        db_parameter_group_name = self.params.get("DBParameterGroupName")
+        group = self.backend.reset_db_parameter_group(db_parameter_group_name)
+        result = {"DBParameterGroupName": group.name}
+        return ActionResult(result)
+
+    def reset_db_cluster_parameter_group(self) -> ActionResult:
+        db_cluster_parameter_group_name = self.params.get("DBClusterParameterGroupName")
+        group = self.backend.reset_db_cluster_parameter_group(db_cluster_parameter_group_name)
+        result = {"DBClusterParameterGroupName": group.name}
+        return ActionResult(result)
+
+    def describe_source_regions(self) -> ActionResult:
+        regions = self.backend.describe_source_regions()
+        result = {"SourceRegions": regions}
+        return ActionResult(result)
+
+    def describe_db_major_engine_versions(self) -> ActionResult:
+        versions = self.backend.describe_db_major_engine_versions()
+        result = {"DBMajorEngineVersions": versions}
+        return ActionResult(result)

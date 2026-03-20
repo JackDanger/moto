@@ -3016,6 +3016,60 @@ class RDSBackend(BaseBackend):
             AssociatedRole(role_arn=role_arn, feature_name=feature_name)
         )
 
+    def remove_role_from_db_cluster(
+        self, db_cluster_identifier: str, role_arn: str, feature_name: str
+    ) -> None:
+        if db_cluster_identifier not in self.clusters:
+            raise DBClusterNotFoundError(db_cluster_identifier)
+        cluster = self.clusters[db_cluster_identifier]
+        cluster._associated_roles = [
+            r for r in cluster._associated_roles if r.role_arn != role_arn
+        ]
+
+    def reboot_db_cluster(self, db_cluster_identifier: str) -> "Cluster":
+        if db_cluster_identifier not in self.clusters:
+            raise DBClusterNotFoundError(db_cluster_identifier)
+        return self.clusters[db_cluster_identifier]
+
+    def reset_db_parameter_group(
+        self, db_parameter_group_name: str
+    ) -> DBParameterGroup:
+        if db_parameter_group_name not in self.db_parameter_groups:
+            raise DBParameterGroupNotFoundError(db_parameter_group_name)
+        group = self.db_parameter_groups[db_parameter_group_name]
+        group.parameters.clear()
+        return group
+
+    def reset_db_cluster_parameter_group(
+        self, db_cluster_parameter_group_name: str
+    ) -> DBClusterParameterGroup:
+        if db_cluster_parameter_group_name not in self.db_cluster_parameter_groups:
+            raise DBClusterParameterGroupNotFoundError(db_cluster_parameter_group_name)
+        group = self.db_cluster_parameter_groups[db_cluster_parameter_group_name]
+        group.parameters.clear()
+        return group
+
+    def describe_source_regions(self) -> list[dict[str, Any]]:
+        # Return a minimal stub list of source regions
+        return [
+            {"RegionName": r, "Endpoint": f"rds.{r}.amazonaws.com", "Status": "available"}
+            for r in ["us-east-1", "us-east-2", "us-west-1", "us-west-2",
+                      "eu-west-1", "eu-west-2", "eu-central-1", "ap-northeast-1",
+                      "ap-southeast-1", "ap-southeast-2"]
+            if r != self.region_name
+        ]
+
+    def describe_db_major_engine_versions(self) -> list[dict[str, Any]]:
+        return [
+            {"Engine": "mysql", "MajorEngineVersion": "8.0"},
+            {"Engine": "postgres", "MajorEngineVersion": "15"},
+            {"Engine": "aurora-mysql", "MajorEngineVersion": "8.0"},
+            {"Engine": "aurora-postgresql", "MajorEngineVersion": "15"},
+            {"Engine": "mariadb", "MajorEngineVersion": "10.6"},
+            {"Engine": "oracle-ee", "MajorEngineVersion": "19"},
+            {"Engine": "sqlserver-ee", "MajorEngineVersion": "15.00"},
+        ]
+
     def add_role_to_db_cluster(
         self, db_cluster_identifier: str, role_arn: str, feature_name: str
     ) -> None:
