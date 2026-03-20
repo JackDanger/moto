@@ -1944,8 +1944,6 @@ class DatabaseMigrationServiceBackend(BaseBackend):
                 "Lifecycle": "GA",
                 "ReleaseStatus": "GA",
                 "LaunchDate": "2023-01-01T00:00:00Z",
-                "AutoUpgradeDate": "",
-                "DeprecationDate": "",
                 "AvailableUpgrades": [],
             },
             {
@@ -1953,8 +1951,6 @@ class DatabaseMigrationServiceBackend(BaseBackend):
                 "Lifecycle": "GA",
                 "ReleaseStatus": "GA",
                 "LaunchDate": "2022-01-01T00:00:00Z",
-                "AutoUpgradeDate": "",
-                "DeprecationDate": "",
                 "AvailableUpgrades": ["3.5.2"],
             },
         ]
