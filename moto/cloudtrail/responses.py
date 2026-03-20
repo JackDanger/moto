@@ -555,6 +555,106 @@ class CloudTrailResponse(BaseResponse):
         )
         return json.dumps(config)
 
+    # LookupEvents
+    def lookup_events(self) -> str:
+        params = json.loads(self.body)
+        result = self.cloudtrail_backend.lookup_events(
+            lookup_attributes=params.get("LookupAttributes"),
+            start_time=params.get("StartTime"),
+            end_time=params.get("EndTime"),
+            max_results=params.get("MaxResults"),
+            next_token=params.get("NextToken"),
+        )
+        return json.dumps(result)
+
+    # ListPublicKeys
+    def list_public_keys(self) -> str:
+        params = json.loads(self.body)
+        result = self.cloudtrail_backend.list_public_keys(
+            start_time=params.get("StartTime"),
+            end_time=params.get("EndTime"),
+            next_token=params.get("NextToken"),
+        )
+        return json.dumps(result)
+
+    # StartDashboardRefresh
+    def start_dashboard_refresh(self) -> str:
+        dashboard_id = self._get_param("DashboardId")
+        result = self.cloudtrail_backend.start_dashboard_refresh(dashboard_id)
+        return json.dumps(result)
+
+    # EventDataStore ingestion
+    def start_event_data_store_ingestion(self) -> str:
+        event_data_store = self._get_param("EventDataStore")
+        self.cloudtrail_backend.start_event_data_store_ingestion(event_data_store)
+        return json.dumps({})
+
+    def stop_event_data_store_ingestion(self) -> str:
+        event_data_store = self._get_param("EventDataStore")
+        self.cloudtrail_backend.stop_event_data_store_ingestion(event_data_store)
+        return json.dumps({})
+
+    # GenerateQuery
+    def generate_query(self) -> str:
+        params = json.loads(self.body)
+        result = self.cloudtrail_backend.generate_query(
+            event_data_stores=params.get("EventDataStores"),
+            prompt=params.get("Prompt"),
+        )
+        return json.dumps(result)
+
+    # SearchSampleQueries
+    def search_sample_queries(self) -> str:
+        params = json.loads(self.body)
+        result = self.cloudtrail_backend.search_sample_queries(
+            search_phrase=params.get("SearchPhrase"),
+            max_results=params.get("MaxResults"),
+            next_token=params.get("NextToken"),
+        )
+        return json.dumps(result)
+
+    # ListImportFailures
+    def list_import_failures(self) -> str:
+        import_id = self._get_param("ImportId")
+        result = self.cloudtrail_backend.list_import_failures(
+            import_id=import_id,
+            max_results=self._get_param("MaxResults"),
+            next_token=self._get_param("NextToken"),
+        )
+        return json.dumps(result)
+
+    # ListInsightsData
+    def list_insights_data(self) -> str:
+        params = json.loads(self.body)
+        result = self.cloudtrail_backend.list_insights_data(
+            insight_source=params.get("InsightSource"),
+            data_type=params.get("DataType"),
+            dimensions=params.get("Dimensions"),
+            start_time=params.get("StartTime"),
+            end_time=params.get("EndTime"),
+            max_results=params.get("MaxResults"),
+            next_token=params.get("NextToken"),
+        )
+        return json.dumps(result)
+
+    # ListInsightsMetricData
+    def list_insights_metric_data(self) -> str:
+        params = json.loads(self.body)
+        result = self.cloudtrail_backend.list_insights_metric_data(
+            trail_name=params.get("TrailName"),
+            event_source=params.get("EventSource"),
+            event_name=params.get("EventName"),
+            insight_type=params.get("InsightType"),
+            error_code=params.get("ErrorCode"),
+            start_time=params.get("StartTime"),
+            end_time=params.get("EndTime"),
+            period=params.get("Period"),
+            data_type=params.get("DataType"),
+            max_results=params.get("MaxResults"),
+            next_token=params.get("NextToken"),
+        )
+        return json.dumps(result)
+
     # Resource Policy delete
 
     def delete_resource_policy(self) -> str:
