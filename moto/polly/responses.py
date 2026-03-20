@@ -116,6 +116,71 @@ class PollyResponse(BaseResponse):
 
         return ""
 
+    # StartSpeechSynthesisTask / GetSpeechSynthesisTask / ListSpeechSynthesisTasks
+    def synthesisTasks(self) -> Union[str, tuple[str, dict[str, int]]]:
+        url_parts = urlsplit(self.uri).path.lstrip("/").split("/")
+        # url_parts: ['v1', 'synthesisTasks'] or ['v1', 'synthesisTasks', '<task_id>']
+
+        if self.method == "POST":
+            return self._start_speech_synthesis_task()
+        elif self.method == "GET":
+            if len(url_parts) >= 3 and url_parts[2]:
+                task_id = url_parts[2]
+                return self._get_speech_synthesis_task(task_id)
+            else:
+                return self._list_speech_synthesis_tasks()
+        return self._error("InvalidAction", "Bad route")
+
+    def _start_speech_synthesis_task(self) -> Union[str, tuple[str, dict[str, int]]]:
+        if "OutputFormat" not in self.json:
+            return self._error("MissingParameter", "Missing parameter OutputFormat")
+        if "OutputS3BucketName" not in self.json:
+            return self._error("MissingParameter", "Missing parameter OutputS3BucketName")
+        if "Text" not in self.json:
+            return self._error("MissingParameter", "Missing parameter Text")
+        if "VoiceId" not in self.json:
+            return self._error("MissingParameter", "Missing parameter VoiceId")
+
+        task = self.polly_backend.start_speech_synthesis_task(
+            engine=self.json.get("Engine"),
+            language_code=self.json.get("LanguageCode"),
+            lexicon_names=self.json.get("LexiconNames"),
+            output_format=self.json["OutputFormat"],
+            output_s3_bucket_name=self.json["OutputS3BucketName"],
+            output_s3_key_prefix=self.json.get("OutputS3KeyPrefix"),
+            sample_rate=self.json.get("SampleRate"),
+            sns_topic_arn=self.json.get("SnsTopicArn"),
+            speech_mark_types=self.json.get("SpeechMarkTypes"),
+            text_type=self.json.get("TextType"),
+            voice_id=self.json["VoiceId"],
+        )
+        return json.dumps({"SynthesisTask": task})
+
+    def _get_speech_synthesis_task(
+        self, task_id: str
+    ) -> Union[str, tuple[str, dict[str, int]]]:
+        try:
+            task = self.polly_backend.get_speech_synthesis_task(task_id)
+        except KeyError:
+            return self._error("SynthesisTaskNotFoundException", "Synthesis task not found")
+        return json.dumps({"SynthesisTask": task})
+
+    def _list_speech_synthesis_tasks(self) -> str:
+        max_results_str = self._get_param("MaxResults")
+        max_results = int(max_results_str) if max_results_str is not None else None
+        next_token = self._get_param("NextToken")
+        status = self._get_param("Status")
+
+        tasks, new_next_token = self.polly_backend.list_speech_synthesis_tasks(
+            max_results=max_results,
+            next_token=next_token,
+            status=status,
+        )
+        result: dict[str, Any] = {"SynthesisTasks": tasks}
+        if new_next_token is not None:
+            result["NextToken"] = new_next_token
+        return json.dumps(result)
+
     # SynthesizeSpeech
     def speech(self) -> tuple[str, dict[str, Any]]:
         # Sanity check params
