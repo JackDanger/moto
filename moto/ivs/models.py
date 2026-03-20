@@ -37,6 +37,24 @@ class IVSBackend(BaseBackend):
             "limit_default": 100,
             "unique_attribute": "arn",
         },
+        "list_playback_restriction_policies": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "arn",
+        },
+        "list_streams": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "channelArn",
+        },
+        "list_stream_sessions": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "streamId",
+        },
     }
 
     def __init__(self, region_name: str, account_id: str):
@@ -46,6 +64,8 @@ class IVSBackend(BaseBackend):
         self.playback_key_pairs: list[dict[str, Any]] = []
         self.recording_configurations: list[dict[str, Any]] = []
         self.playback_restriction_policies: dict[str, dict[str, Any]] = {}
+        self.streams: list[dict[str, Any]] = []
+        self.stream_sessions: dict[str, list[dict[str, Any]]] = {}
         self.tags_store: dict[str, dict[str, str]] = {}
 
     def _arn_partition(self) -> str:
@@ -345,6 +365,94 @@ class IVSBackend(BaseBackend):
         self.get_playback_restriction_policy(arn)
         del self.playback_restriction_policies[arn]
         self.tags_store.pop(arn, None)
+
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    def list_playback_restriction_policies(  # type: ignore[misc]
+        self,
+    ) -> list[dict[str, Any]]:
+        return list(self.playback_restriction_policies.values())
+
+    # Stream operations
+
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    def list_streams(  # type: ignore[misc]
+        self,
+        filter_by: Optional[dict[str, Any]] = None,
+    ) -> list[dict[str, Any]]:
+        streams = self.streams
+        if filter_by:
+            health = filter_by.get("health")
+            if health:
+                streams = [s for s in streams if s.get("health") == health]
+        return streams
+
+    def stop_stream(self, channel_arn: str) -> None:
+        self._find_channel(channel_arn)
+        self.streams = [s for s in self.streams if s.get("channelArn") != channel_arn]
+
+    def put_metadata(self, channel_arn: str, metadata: str) -> None:
+        self._find_channel(channel_arn)
+
+    @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
+    def list_stream_sessions(  # type: ignore[misc]
+        self,
+        channel_arn: str,
+    ) -> list[dict[str, Any]]:
+        return self.stream_sessions.get(channel_arn, [])
+
+    def get_stream_session(
+        self, channel_arn: str, stream_id: Optional[str] = None
+    ) -> dict[str, Any]:
+        self._find_channel(channel_arn)
+        sessions = self.stream_sessions.get(channel_arn, [])
+        if stream_id:
+            try:
+                session = next(s for s in sessions if s["streamId"] == stream_id)
+            except StopIteration:
+                raise ResourceNotFoundException(
+                    f"Resource: {stream_id} not found"
+                )
+        elif sessions:
+            session = sessions[-1]
+        else:
+            session = {
+                "channelArn": channel_arn,
+                "streamId": mock_random.get_random_string(12),
+                "startTime": "",
+                "endTime": "",
+                "health": "HEALTHY",
+                "state": "LIVE",
+                "truncatedEvents": [],
+            }
+        return session
+
+    def start_viewer_session_revocation(
+        self,
+        channel_arn: str,
+        viewer_id: str,
+        viewer_session_versions_less_than_or_equal_to: Optional[int] = None,
+    ) -> None:
+        self._find_channel(channel_arn)
+
+    def batch_start_viewer_session_revocation(
+        self,
+        viewer_sessions: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        errors = []
+        for vs in viewer_sessions:
+            channel_arn = vs.get("channelArn", "")
+            try:
+                self._find_channel(channel_arn)
+            except ResourceNotFoundException:
+                errors.append(
+                    {
+                        "channelArn": channel_arn,
+                        "viewerId": vs.get("viewerId", ""),
+                        "code": "ResourceNotFoundException",
+                        "message": f"Resource: {channel_arn} not found",
+                    }
+                )
+        return errors
 
     # Tag operations
 
