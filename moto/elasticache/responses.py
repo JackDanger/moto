@@ -917,6 +917,32 @@ class ElastiCacheResponse(BaseResponse):
         )
         return ActionResult({"GlobalReplicationGroup": grg})
 
+    def describe_reserved_cache_nodes(self) -> ActionResult:
+        return ActionResult({"DescribeReservedCacheNodesResult": {"ReservedCacheNodes": [], "Marker": None}})
+
+    def describe_reserved_cache_nodes_offerings(self) -> ActionResult:
+        return ActionResult({"DescribeReservedCacheNodesOfferingsResult": {"ReservedCacheNodesOfferings": [], "Marker": None}})
+
+    def describe_engine_default_parameters(self) -> ActionResult:
+        family = self._get_param("CacheParameterGroupFamily")
+        return ActionResult({
+            "EngineDefaults": {
+                "CacheParameterGroupFamily": family,
+                "Parameters": [],
+                "CacheNodeTypeSpecificParameters": [],
+                "Marker": None,
+            }
+        })
+
+    def list_allowed_node_type_modifications(self) -> ActionResult:
+        return ActionResult({"ScaleUpModifications": [], "ScaleDownModifications": []})
+
+    def reboot_cache_cluster(self) -> ActionResult:
+        cluster_id = self._get_param("CacheClusterId")
+        clusters = self.elasticache_backend.describe_cache_clusters(cache_cluster_id=cluster_id)
+        cluster = clusters[0]
+        return ActionResult({"CacheCluster": cluster})
+
     def disassociate_global_replication_group(self) -> ActionResult:
         grg_id = self._get_param("GlobalReplicationGroupId")
         rg_id = self._get_param("ReplicationGroupId")
