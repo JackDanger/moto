@@ -573,8 +573,8 @@ class ECRResponse(BaseResponse):
         )
 
     def put_signing_configuration(self) -> ActionResult:
-        rules = self._get_param("rules", [])
-        return ActionResult(self.ecr_backend.put_signing_configuration(rules))
+        signing_configuration = self._get_param("signingConfiguration", {})
+        return ActionResult(self.ecr_backend.put_signing_configuration(signing_configuration))
 
     def get_signing_configuration(self) -> ActionResult:
         return ActionResult(self.ecr_backend.get_signing_configuration())
@@ -586,11 +586,11 @@ class ECRResponse(BaseResponse):
     def describe_image_signing_status(self) -> ActionResult:
         registry_id = self._get_param("registryId")
         repository_name = self._get_param("repositoryName")
-        image_ids = self._get_param("imageIds", [])
+        image_id = self._get_param("imageId", {})
         return ActionResult(
             self.ecr_backend.describe_image_signing_status(
                 repository_name=repository_name,
-                image_ids=image_ids,
+                image_id=image_id,
                 registry_id=registry_id,
             )
         )
@@ -618,13 +618,13 @@ class ECRResponse(BaseResponse):
     def update_image_storage_class(self) -> ActionResult:
         registry_id = self._get_param("registryId")
         repository_name = self._get_param("repositoryName")
-        image_ids = self._get_param("imageIds", [])
-        storage_class = self._get_param("lifecyclePolicyPreviewImageStorageClass", "")
+        image_id = self._get_param("imageId", {})
+        target_storage_class = self._get_param("targetStorageClass", "STANDARD")
         return ActionResult(
             self.ecr_backend.update_image_storage_class(
                 repository_name=repository_name,
-                image_ids=image_ids,
-                lifecycle_policy_preview_image_storage_class=storage_class,
+                image_id=image_id,
+                target_storage_class=target_storage_class,
                 registry_id=registry_id,
             )
         )
@@ -632,11 +632,11 @@ class ECRResponse(BaseResponse):
     def list_image_referrers(self) -> ActionResult:
         registry_id = self._get_param("registryId")
         repository_name = self._get_param("repositoryName")
-        image_digest = self._get_param("imageDigest", "")
+        subject_id = self._get_param("subjectId", "")
         return ActionResult(
             self.ecr_backend.list_image_referrers(
                 repository_name=repository_name,
-                image_digest=image_digest,
+                image_digest=subject_id,
                 registry_id=registry_id,
             )
         )

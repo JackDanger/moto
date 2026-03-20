@@ -1734,37 +1734,37 @@ class ECRBackend(BaseBackend):
 
     # ---- Signing configuration stubs ----
 
-    _signing_config: dict[str, Any] = {}
+    _signing_configuration: dict[str, Any] = {}
 
     def put_signing_configuration(
-        self, rules: list[dict[str, Any]]
+        self, signing_configuration: dict[str, Any]
     ) -> dict[str, Any]:
-        self._signing_config["rules"] = rules
-        return {"registryId": self.account_id, "rules": rules}
+        self._signing_configuration = signing_configuration
+        return {"signingConfiguration": signing_configuration}
 
     def get_signing_configuration(self) -> dict[str, Any]:
-        rules = self._signing_config.get("rules", [])
-        return {"registryId": self.account_id, "rules": rules}
+        return {
+            "registryId": self.account_id,
+            "signingConfiguration": self._signing_configuration,
+        }
 
     def delete_signing_configuration(self) -> dict[str, Any]:
-        self._signing_config.pop("rules", None)
-        return {}
+        config = self._signing_configuration.copy()
+        self._signing_configuration = {}
+        return {"registryId": self.account_id, "signingConfiguration": config}
 
     def describe_image_signing_status(
         self,
         repository_name: str,
-        image_ids: list[dict[str, str]],
+        image_id: dict[str, str],
         registry_id: Optional[str],
     ) -> dict[str, Any]:
-        statuses = [
-            {
-                "imageId": img_id,
-                "imageScanningSigningStatus": "ACTIVE",
-                "lastSigningJobArn": "",
-            }
-            for img_id in image_ids
-        ]
-        return {"repositoryName": repository_name, "signingStatuses": statuses}
+        return {
+            "repositoryName": repository_name,
+            "imageId": image_id,
+            "registryId": registry_id or self.account_id,
+            "signingStatuses": [],
+        }
 
     # ---- PullTimeUpdateExclusion stubs ----
 
@@ -1798,13 +1798,15 @@ class ECRBackend(BaseBackend):
     def update_image_storage_class(
         self,
         repository_name: str,
-        image_ids: list[dict[str, str]],
-        lifecycle_policy_preview_image_storage_class: str,
+        image_id: dict[str, str],
+        target_storage_class: str,
         registry_id: Optional[str],
     ) -> dict[str, Any]:
         return {
+            "registryId": registry_id or self.account_id,
             "repositoryName": repository_name,
-            "imageIds": image_ids,
+            "imageId": image_id,
+            "imageStatus": "COMPLETE",
         }
 
     # ---- ListImageReferrers stub ----
