@@ -1012,6 +1012,116 @@ class CloudTrailBackend(BaseBackend):
         eds = self.get_event_data_store(event_data_store)
         return eds.arn, eds.insight_selectors
 
+    # LookupEvents - returns empty events list (we don't track real events)
+    def lookup_events(
+        self,
+        lookup_attributes: Optional[list[dict[str, str]]] = None,
+        start_time: Optional[str] = None,
+        end_time: Optional[str] = None,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> dict[str, Any]:
+        # CloudTrail doesn't actually record events in moto, so return empty
+        return {"Events": [], "NextToken": None}
+
+    # ListPublicKeys - return stub public keys
+    def list_public_keys(
+        self,
+        start_time: Optional[str] = None,
+        end_time: Optional[str] = None,
+        next_token: Optional[str] = None,
+    ) -> dict[str, Any]:
+        return {"PublicKeyList": [], "NextToken": None}
+
+    # StartDashboardRefresh
+    def start_dashboard_refresh(self, dashboard_id: str) -> dict[str, Any]:
+        self.get_dashboard(dashboard_id)  # Validate dashboard exists
+        refresh_id = str(_uuid.uuid4())
+        return {"RefreshId": refresh_id}
+
+    # EventDataStore ingestion operations
+    def start_event_data_store_ingestion(self, event_data_store: str) -> None:
+        eds = self.get_event_data_store(event_data_store)
+        eds.status = "ENABLED"
+
+    def stop_event_data_store_ingestion(self, event_data_store: str) -> None:
+        eds = self.get_event_data_store(event_data_store)
+        eds.status = "STOPPED_INGESTION"
+
+    # GenerateQuery
+    def generate_query(
+        self,
+        event_data_stores: Optional[list[str]] = None,
+        prompt: Optional[str] = None,
+    ) -> dict[str, Any]:
+        query_statement = "SELECT eventTime, eventName FROM {} LIMIT 100".format(
+            event_data_stores[0] if event_data_stores else "default"
+        )
+        return {
+            "QueryStatement": query_statement,
+            "QueryAlias": "generated-query",
+        }
+
+    # SearchSampleQueries
+    def search_sample_queries(
+        self,
+        search_phrase: Optional[str] = None,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> dict[str, Any]:
+        return {"SearchResults": [], "NextToken": None}
+
+    # ListImportFailures
+    def list_import_failures(
+        self,
+        import_id: str,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> dict[str, Any]:
+        # Validate import exists
+        self.get_import(import_id)
+        return {"Failures": [], "NextToken": None}
+
+    # ListInsightsData
+    def list_insights_data(
+        self,
+        insight_source: Optional[str] = None,
+        data_type: Optional[str] = None,
+        dimensions: Optional[dict[str, str]] = None,
+        start_time: Optional[str] = None,
+        end_time: Optional[str] = None,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> dict[str, Any]:
+        return {
+            "Events": [],
+        }
+
+    # ListInsightsMetricData
+    def list_insights_metric_data(
+        self,
+        trail_name: Optional[str] = None,
+        event_source: Optional[str] = None,
+        event_name: Optional[str] = None,
+        insight_type: Optional[str] = None,
+        error_code: Optional[str] = None,
+        start_time: Optional[str] = None,
+        end_time: Optional[str] = None,
+        period: Optional[int] = None,
+        data_type: Optional[str] = None,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> dict[str, Any]:
+        return {
+            "Timestamps": [],
+            "Values": [],
+            "EventSource": event_source or "",
+            "EventName": event_name or "",
+            "InsightType": insight_type or "ApiCallRateInsight",
+            "ErrorCode": error_code or "Success",
+            "NextToken": None,
+        }
+
     def put_insight_selectors_for_event_data_store(
         self,
         event_data_store: str,
