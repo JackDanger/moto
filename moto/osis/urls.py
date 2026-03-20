@@ -18,4 +18,8 @@ url_paths = {
     "{0}/2022-01-01/osis/updatePipeline/(?P<PipelineName>[^/]+)$": OpenSearchIngestionResponse.dispatch,
     "{0}/2022-01-01/osis/tagResource/$": OpenSearchIngestionResponse.dispatch,
     "{0}/2022-01-01/osis/untagResource/$": OpenSearchIngestionResponse.dispatch,
+    "{0}/2022-01-01/osis/listPipelineBlueprints$": OpenSearchIngestionResponse.dispatch,
+    "{0}/2022-01-01/osis/getPipelineBlueprint/(?P<BlueprintName>[^/]+)$": OpenSearchIngestionResponse.dispatch,
+    "{0}/2022-01-01/osis/validatePipeline$": OpenSearchIngestionResponse.dispatch,
+    "{0}/2022-01-01/osis/getPipelineChangeProgress/(?P<PipelineName>[^/]+)$": OpenSearchIngestionResponse.dispatch,
 }

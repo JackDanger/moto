@@ -153,3 +153,53 @@ class OpenSearchIngestionResponse(BaseResponse):
             resource_arn=resource_arn,
         )
         return json.dumps({})
+
+    def list_pipeline_blueprints(self) -> str:
+        blueprints = [
+            {"BlueprintName": "AWS-ApacheLogToS3"},
+            {"BlueprintName": "AWS-CloudTrailToS3"},
+            {"BlueprintName": "AWS-CloudWatchToS3"},
+            {"BlueprintName": "AWS-DynamoDBToS3"},
+            {"BlueprintName": "AWS-KinesisToS3"},
+            {"BlueprintName": "AWS-MSKToS3"},
+        ]
+        return json.dumps({"Blueprints": blueprints})
+
+    def get_pipeline_blueprint(self) -> str:
+        blueprint_name = self._get_param("BlueprintName")
+        blueprint = {
+            "BlueprintName": blueprint_name,
+            "PipelineConfigurationBody": f"# Blueprint: {blueprint_name}\nversion: 2023-01-01\n",
+            "DisplayName": blueprint_name,
+            "DisplayDescription": f"Blueprint for {blueprint_name}",
+            "Service": "S3",
+            "UseCase": "Log Enrichment",
+        }
+        return json.dumps({"Blueprint": blueprint})
+
+    def validate_pipeline(self) -> str:
+        return json.dumps({"isValid": True, "Errors": []})
+
+    def get_pipeline_change_progress(self) -> str:
+        pipeline_name = self._get_param("PipelineName")
+        try:
+            pipeline = self.osis_backend.get_pipeline(pipeline_name=pipeline_name)
+            status = pipeline.status
+        except Exception:
+            status = "ACTIVE"
+        change_progress_statuses = [
+            {
+                "StartTime": "2023-01-01T00:00:00Z",
+                "Status": "COMPLETED",
+                "TotalNumberOfStages": 1,
+                "ChangeProgressStages": [
+                    {
+                        "Name": "CREATING_NEW_PIPELINE",
+                        "Status": "SUCCEEDED",
+                        "Description": "New pipeline creation",
+                        "LastUpdatedAt": "2023-01-01T00:00:00Z",
+                    }
+                ],
+            }
+        ]
+        return json.dumps({"ChangeProgressStatuses": change_progress_statuses})
