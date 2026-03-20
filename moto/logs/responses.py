@@ -1061,4 +1061,4 @@ class LogsResponse(BaseResponse):
         return json.dumps({"ResponseStream": []})
 
     def test_transformer(self) -> str:
-        return json.dumps({"TransformedLogs": []})
+        return json.dumps({"transformedLogs": []})
