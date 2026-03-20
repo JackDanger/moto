@@ -2099,7 +2099,18 @@ class EventsBackend(BaseBackend):
         client_backend = events_backends[account_id][self.region_name]
         client_backend.event_sources[name] = self.partner_event_sources[name]
 
-    def describe_event_source(self, name: str) -> PartnerEventSource:
+    def activate_event_source(self, name: str) -> None:
+        if name in self.event_sources:
+            self.event_sources[name].state = "ACTIVE"
+
+    def deactivate_event_source(self, name: str) -> None:
+        if name in self.event_sources:
+            self.event_sources[name].state = "PENDING"
+
+    def describe_event_source(self, name: str) -> "PartnerEventSource":
+        if name not in self.event_sources:
+            from .exceptions import ResourceNotFoundException
+            raise ResourceNotFoundException(f"Event source {name} does not exist.")
         return self.event_sources[name]
 
     def describe_partner_event_source(self, name: str) -> PartnerEventSource:

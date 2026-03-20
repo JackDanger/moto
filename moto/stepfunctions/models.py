@@ -1056,5 +1056,26 @@ class StepFunctionBackend(BaseBackend):
     def list_activities(self) -> list[Activity]:
         return sorted(self.activities.values(), key=lambda x: x.creation_date)
 
+    def get_activity_task(self, activity_arn: str, worker_name: Optional[str] = None) -> dict[str, Any]:
+        self._validate_activity_arn(activity_arn)
+        if activity_arn not in self.activities:
+            raise ActivityDoesNotExist(activity_arn)
+        # Return an empty task token response (no tasks queued)
+        return {"taskToken": "", "input": ""}
+
+    def redrive_execution(self, execution_arn: str, client_token: Optional[str] = None) -> dict[str, Any]:
+        self._validate_execution_arn(execution_arn)
+        execution = None
+        for sm in self.state_machines.values():
+            for ex in sm.executions:
+                if ex.execution_arn == execution_arn:
+                    execution = ex
+                    break
+        if execution is None:
+            from .exceptions import ExecutionDoesNotExist
+            raise ExecutionDoesNotExist(f"Execution Does Not Exist: '{execution_arn}'")
+        import datetime
+        return {"redriveDate": datetime.datetime.now(datetime.timezone.utc).timestamp()}
+
 
 stepfunctions_backends = BackendDict(StepFunctionBackend, "stepfunctions")

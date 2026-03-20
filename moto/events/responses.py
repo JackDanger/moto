@@ -549,6 +549,16 @@ class EventsHandler(BaseResponse):
         )
         return "{}"
 
+    def activate_event_source(self) -> str:
+        name = self._get_param("Name")
+        self.events_backend.activate_event_source(name)
+        return "{}"
+
+    def deactivate_event_source(self) -> str:
+        name = self._get_param("Name")
+        self.events_backend.deactivate_event_source(name)
+        return "{}"
+
     def describe_event_source(self) -> str:
         name = self._get_param("Name")
         event_source = self.events_backend.describe_event_source(name)

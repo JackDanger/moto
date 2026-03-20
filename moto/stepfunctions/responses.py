@@ -420,3 +420,15 @@ class StepFunctionResponse(BaseResponse):
         ]
         response = {"activities": activities, "nextToken": next_token}
         return ActionResult(response)
+
+    def get_activity_task(self) -> ActionResult:
+        activity_arn = self._get_param("activityArn")
+        worker_name = self._get_param("workerName")
+        result = self.stepfunction_backend.get_activity_task(activity_arn, worker_name=worker_name)
+        return ActionResult(result)
+
+    def redrive_execution(self) -> ActionResult:
+        execution_arn = self._get_param("executionArn")
+        client_token = self._get_param("clientToken")
+        result = self.stepfunction_backend.redrive_execution(execution_arn, client_token=client_token)
+        return ActionResult(result)
