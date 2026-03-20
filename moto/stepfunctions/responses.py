@@ -268,7 +268,7 @@ class StepFunctionResponse(BaseResponse):
     def list_map_runs(self) -> ActionResult:
         execution_arn = self._get_param("executionArn")
         runs = self.stepfunction_backend.list_map_runs(execution_arn)
-        return ActionResult(runs)
+        return ActionResult({"mapRuns": runs})
 
     def describe_map_run(self) -> ActionResult:
         map_run_arn = self._get_param("mapRunArn")
@@ -287,6 +287,91 @@ class StepFunctionResponse(BaseResponse):
             tolerated_failure_percentage=tolerated_failure_percentage,
         )
         return EmptyResult()
+
+    def validate_state_machine_definition(self) -> ActionResult:
+        definition = self._get_param("definition")
+        type_ = self._get_param("type")
+        result = self.stepfunction_backend.validate_state_machine_definition(
+            definition=definition, type=type_
+        )
+        return ActionResult(result)
+
+    def publish_state_machine_version(self) -> ActionResult:
+        arn = self._get_param("stateMachineArn")
+        description = self._get_param("description")
+        result = self.stepfunction_backend.publish_state_machine_version(
+            arn=arn, description=description
+        )
+        return ActionResult(result)
+
+    def list_state_machine_versions(self) -> ActionResult:
+        arn = self._get_param("stateMachineArn")
+        max_results = self._get_int_param("maxResults")
+        next_token = self._get_param("nextToken")
+        result = self.stepfunction_backend.list_state_machine_versions(
+            arn=arn, max_results=max_results, next_token=next_token
+        )
+        return ActionResult(result)
+
+    def delete_state_machine_version(self) -> ActionResult:
+        arn = self._get_param("stateMachineVersionArn")
+        self.stepfunction_backend.delete_state_machine_version(version_arn=arn)
+        return EmptyResult()
+
+    def create_state_machine_alias(self) -> ActionResult:
+        name = self._get_param("name")
+        description = self._get_param("description")
+        routing_configuration = self._get_param("routingConfiguration")
+        alias = self.stepfunction_backend.create_state_machine_alias(
+            name=name,
+            description=description,
+            routing_configuration=routing_configuration,
+        )
+        return ActionResult(
+            {
+                "stateMachineAliasArn": alias.arn,
+                "creationDate": alias.creation_date,
+            }
+        )
+
+    def describe_state_machine_alias(self) -> ActionResult:
+        arn = self._get_param("stateMachineAliasArn")
+        alias = self.stepfunction_backend.describe_state_machine_alias(arn)
+        return ActionResult(alias.to_dict())
+
+    def list_state_machine_aliases(self) -> ActionResult:
+        sm_arn = self._get_param("stateMachineArn")
+        aliases = self.stepfunction_backend.list_state_machine_aliases(sm_arn)
+        return ActionResult(
+            {
+                "stateMachineAliases": [
+                    {
+                        "stateMachineAliasArn": a.arn,
+                        "creationDate": a.creation_date,
+                    }
+                    for a in aliases
+                ]
+            }
+        )
+
+    def delete_state_machine_alias(self) -> ActionResult:
+        arn = self._get_param("stateMachineAliasArn")
+        self.stepfunction_backend.delete_state_machine_alias(arn)
+        return EmptyResult()
+
+    def update_state_machine_alias(self) -> ActionResult:
+        arn = self._get_param("stateMachineAliasArn")
+        description = self._get_param("description")
+        routing_configuration = self._get_param("routingConfiguration")
+        alias = self.stepfunction_backend.update_state_machine_alias(
+            arn, description=description, routing_configuration=routing_configuration
+        )
+        return ActionResult(
+            {
+                "stateMachineAliasArn": alias.arn,
+                "updateDate": alias.update_date,
+            }
+        )
 
     def create_activity(self) -> ActionResult:
         name = self._get_param("name")

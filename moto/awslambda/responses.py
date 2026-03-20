@@ -8,7 +8,11 @@ from moto.core.responses import TYPE_RESPONSE, ActionResult, BaseResponse
 from moto.utilities.aws_headers import amz_crc32
 from moto.utilities.utils import ARN_PARTITION_REGEX
 
-from .exceptions import FunctionAlreadyExists, UnknownFunctionException
+from .exceptions import (
+    FunctionAlreadyExists,
+    UnknownCodeSigningConfigException,
+    UnknownFunctionException,
+)
 from .models import LambdaBackend
 from .utils import get_backend
 
@@ -319,6 +323,62 @@ class LambdaResponse(BaseResponse):
         function_name = unquote(self.path.rsplit("/", 2)[-2])
         resp = self.backend.get_function_code_signing_config(function_name)
         return json.dumps(resp)
+
+    def create_code_signing_config(self) -> TYPE_RESPONSE:
+        body = self.json_body
+        allowed_publishers = body.get("AllowedPublishers", {})
+        description = body.get("Description", "")
+        policies = body.get("CodeSigningPolicies")
+        config = self.backend.create_code_signing_config(
+            allowed_publishers=allowed_publishers,
+            description=description,
+            policies=policies,
+        )
+        return 201, {"status": 201}, json.dumps({"CodeSigningConfig": config.to_dict()})
+
+    def get_code_signing_config(self) -> TYPE_RESPONSE:
+        # ARN is in path: .../code-signing-configs/{CodeSigningConfigArn}
+        parts = self.path.rstrip("/").split("/")
+        config_arn = unquote(parts[-1]) if parts else ""
+        try:
+            config = self.backend.get_code_signing_config(config_arn)
+            return 200, {}, json.dumps({"CodeSigningConfig": config.to_dict()})
+        except UnknownCodeSigningConfigException as e:
+            err_body = json.dumps({"__type": e.error_type, "message": e.message})
+            return e.code, {"x-amzn-errortype": e.error_type}, err_body
+
+    def list_code_signing_configs(self) -> TYPE_RESPONSE:
+        configs = self.backend.list_code_signing_configs()
+        result = {
+            "CodeSigningConfigs": [c.to_dict() for c in configs],
+            "NextMarker": None,
+        }
+        return 200, {}, json.dumps(result)
+
+    def delete_code_signing_config(self) -> TYPE_RESPONSE:
+        parts = self.path.rstrip("/").split("/")
+        config_arn = unquote(parts[-1]) if parts else ""
+        try:
+            self.backend.delete_code_signing_config(config_arn)
+            return 204, {"status": 204}, "{}"
+        except UnknownCodeSigningConfigException as e:
+            err_body = json.dumps({"__type": e.error_type, "message": e.message})
+            return e.code, {"x-amzn-errortype": e.error_type}, err_body
+
+    def list_functions_by_code_signing_config(self) -> TYPE_RESPONSE:
+        # ARN is in path: .../code-signing-configs/{CodeSigningConfigArn}/functions
+        parts = self.path.rstrip("/").split("/")
+        config_arn = unquote(parts[-2]) if len(parts) >= 2 else ""
+        try:
+            functions = self.backend.list_functions_by_code_signing_config(config_arn)
+            result = {
+                "FunctionArns": [fn.function_arn for fn in functions],
+                "NextMarker": None,
+            }
+            return 200, {}, json.dumps(result)
+        except UnknownCodeSigningConfigException as e:
+            err_body = json.dumps({"__type": e.error_type, "message": e.message})
+            return e.code, {"x-amzn-errortype": e.error_type}, err_body
 
     def get_function_concurrency(self) -> TYPE_RESPONSE:
         path_function_name = unquote(self.path.rsplit("/", 2)[-2])

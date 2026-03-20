@@ -333,6 +333,42 @@ class ServiceDiscoveryResponse(BaseResponse):
             }
         )
 
+    def get_service_attributes(self) -> str:
+        params = json.loads(self.body)
+        service_id = params.get("ServiceId")
+        attributes = self.servicediscovery_backend.get_service_attributes(
+            service_id=service_id,
+        )
+        service = self.servicediscovery_backend.get_service(service_id=service_id)
+        return json.dumps(
+            {
+                "ServiceAttributes": {
+                    "ServiceArn": service.arn,
+                    "Attributes": attributes,
+                }
+            }
+        )
+
+    def update_service_attributes(self) -> str:
+        params = json.loads(self.body)
+        service_id = params.get("ServiceId")
+        attributes = params.get("Attributes", {})
+        self.servicediscovery_backend.update_service_attributes(
+            service_id=service_id,
+            attributes=attributes,
+        )
+        return "{}"
+
+    def delete_service_attributes(self) -> str:
+        params = json.loads(self.body)
+        service_id = params.get("ServiceId")
+        attributes = params.get("Attributes", [])
+        self.servicediscovery_backend.delete_service_attributes(
+            service_id=service_id,
+            attributes=attributes,
+        )
+        return "{}"
+
     def discover_instances_revision(self) -> str:
         params = json.loads(self.body)
         namespace_name = params.get("NamespaceName")

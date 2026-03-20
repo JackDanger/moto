@@ -13,6 +13,49 @@ class DataSyncResponse(BaseResponse):
     def datasync_backend(self) -> DataSyncBackend:
         return datasync_backends[self.current_account][self.region]
 
+    # --- Agent operations ---
+
+    def create_agent(self) -> str:
+        activation_key = self._get_param("ActivationKey")
+        agent_name = self._get_param("AgentName")
+        tags = self._get_param("Tags")
+        arn = self.datasync_backend.create_agent(
+            activation_key=activation_key, agent_name=agent_name, tags=tags
+        )
+        return json.dumps({"AgentArn": arn})
+
+    def describe_agent(self) -> str:
+        agent_arn = self._get_param("AgentArn")
+        agent = self.datasync_backend.describe_agent(agent_arn)
+        return json.dumps(
+            {
+                "AgentArn": agent.arn,
+                "Name": agent.agent_name,
+                "Status": agent.status,
+            }
+        )
+
+    def list_agents(self) -> str:
+        agents = []
+        for arn, agent in self.datasync_backend.agents.items():
+            agents.append(
+                {"AgentArn": arn, "Name": agent.agent_name, "Status": agent.status}
+            )
+        return json.dumps({"Agents": agents})
+
+    def update_agent(self) -> str:
+        agent_arn = self._get_param("AgentArn")
+        name = self._get_param("Name")
+        self.datasync_backend.update_agent(agent_arn, name=name)
+        return json.dumps({})
+
+    def delete_agent(self) -> str:
+        agent_arn = self._get_param("AgentArn")
+        self.datasync_backend.delete_agent(agent_arn)
+        return json.dumps({})
+
+    # --- Location operations ---
+
     def list_locations(self) -> str:
         locations = []
         for arn, location in self.datasync_backend.locations.items():
@@ -75,6 +118,281 @@ class DataSyncResponse(BaseResponse):
                 "User": location.metadata["User"],
                 "Domain": location.metadata["Domain"],
                 "MountOptions": location.metadata["MountOptions"],
+            }
+        )
+
+    # --- EFS ---
+
+    def create_location_efs(self) -> str:
+        efs_filesystem_arn = self._get_param("EfsFilesystemArn")
+        subdirectory = self._get_param("Subdirectory", "/")
+        ec2_config = self._get_param("Ec2Config")
+        metadata = {"EfsFilesystemArn": efs_filesystem_arn, "Ec2Config": ec2_config}
+        location_uri = f"efs://{efs_filesystem_arn.split(':')[-1]}{subdirectory}"
+        arn = self.datasync_backend.create_location(
+            location_uri, metadata=metadata, typ="EFS"
+        )
+        return json.dumps({"LocationArn": arn})
+
+    def describe_location_efs(self) -> str:
+        location_arn = self._get_param("LocationArn")
+        location = self._get_location(location_arn, typ="EFS")
+        return json.dumps(
+            {
+                "LocationArn": location.arn,
+                "LocationUri": location.uri,
+                "Ec2Config": location.metadata.get("Ec2Config"),
+            }
+        )
+
+    # --- NFS ---
+
+    def create_location_nfs(self) -> str:
+        server_hostname = self._get_param("ServerHostname")
+        subdirectory = self._get_param("Subdirectory")
+        on_prem_config = self._get_param("OnPremConfig")
+        mount_options = self._get_param("MountOptions")
+        metadata = {"OnPremConfig": on_prem_config, "MountOptions": mount_options}
+        location_uri = f"nfs://{server_hostname}{subdirectory}"
+        arn = self.datasync_backend.create_location(
+            location_uri, metadata=metadata, typ="NFS"
+        )
+        return json.dumps({"LocationArn": arn})
+
+    def describe_location_nfs(self) -> str:
+        location_arn = self._get_param("LocationArn")
+        location = self._get_location(location_arn, typ="NFS")
+        return json.dumps(
+            {
+                "LocationArn": location.arn,
+                "LocationUri": location.uri,
+                "OnPremConfig": location.metadata.get("OnPremConfig"),
+                "MountOptions": location.metadata.get("MountOptions"),
+            }
+        )
+
+    # --- HDFS ---
+
+    def create_location_hdfs(self) -> str:
+        subdirectory = self._get_param("Subdirectory", "/")
+        name_nodes = self._get_param("NameNodes")
+        authentication_type = self._get_param("AuthenticationType", "SIMPLE")
+        agent_arns = self._get_param("AgentArns")
+        metadata = {
+            "NameNodes": name_nodes,
+            "AuthenticationType": authentication_type,
+            "AgentArns": agent_arns,
+        }
+        hostname = name_nodes[0]["Hostname"] if name_nodes else "localhost"
+        location_uri = f"hdfs://{hostname}{subdirectory}"
+        arn = self.datasync_backend.create_location(
+            location_uri, metadata=metadata, typ="HDFS"
+        )
+        return json.dumps({"LocationArn": arn})
+
+    def describe_location_hdfs(self) -> str:
+        location_arn = self._get_param("LocationArn")
+        location = self._get_location(location_arn, typ="HDFS")
+        return json.dumps(
+            {
+                "LocationArn": location.arn,
+                "LocationUri": location.uri,
+                "NameNodes": location.metadata.get("NameNodes"),
+                "AuthenticationType": location.metadata.get("AuthenticationType"),
+                "AgentArns": location.metadata.get("AgentArns"),
+            }
+        )
+
+    # --- ObjectStorage ---
+
+    def create_location_object_storage(self) -> str:
+        server_hostname = self._get_param("ServerHostname")
+        server_port = self._get_param("ServerPort", 443)
+        server_protocol = self._get_param("ServerProtocol", "HTTPS")
+        subdirectory = self._get_param("Subdirectory", "/")
+        bucket_name = self._get_param("BucketName")
+        agent_arns = self._get_param("AgentArns")
+        metadata = {
+            "ServerHostname": server_hostname,
+            "ServerPort": server_port,
+            "ServerProtocol": server_protocol,
+            "BucketName": bucket_name,
+            "AgentArns": agent_arns,
+        }
+        location_uri = f"object-storage://{server_hostname}/{bucket_name}{subdirectory}"
+        arn = self.datasync_backend.create_location(
+            location_uri, metadata=metadata, typ="ObjectStorage"
+        )
+        return json.dumps({"LocationArn": arn})
+
+    def describe_location_object_storage(self) -> str:
+        location_arn = self._get_param("LocationArn")
+        location = self._get_location(location_arn, typ="ObjectStorage")
+        return json.dumps(
+            {
+                "LocationArn": location.arn,
+                "LocationUri": location.uri,
+                "ServerHostname": location.metadata.get("ServerHostname"),
+                "ServerPort": location.metadata.get("ServerPort"),
+                "ServerProtocol": location.metadata.get("ServerProtocol"),
+                "BucketName": location.metadata.get("BucketName"),
+                "AgentArns": location.metadata.get("AgentArns"),
+            }
+        )
+
+    # --- AzureBlob ---
+
+    def create_location_azure_blob(self) -> str:
+        container_url = self._get_param("ContainerUrl")
+        authentication_type = self._get_param("AuthenticationType", "SAS")
+        agent_arns = self._get_param("AgentArns")
+        subdirectory = self._get_param("Subdirectory", "/")
+        metadata = {
+            "ContainerUrl": container_url,
+            "AuthenticationType": authentication_type,
+            "AgentArns": agent_arns,
+        }
+        location_uri = f"{container_url}{subdirectory}"
+        arn = self.datasync_backend.create_location(
+            location_uri, metadata=metadata, typ="AzureBlob"
+        )
+        return json.dumps({"LocationArn": arn})
+
+    def describe_location_azure_blob(self) -> str:
+        location_arn = self._get_param("LocationArn")
+        location = self._get_location(location_arn, typ="AzureBlob")
+        return json.dumps(
+            {
+                "LocationArn": location.arn,
+                "LocationUri": location.uri,
+                "ContainerUrl": location.metadata.get("ContainerUrl"),
+                "AuthenticationType": location.metadata.get("AuthenticationType"),
+                "AgentArns": location.metadata.get("AgentArns"),
+            }
+        )
+
+    # --- FSx Lustre ---
+
+    def create_location_fsx_lustre(self) -> str:
+        fsx_filesystem_arn = self._get_param("FsxFilesystemArn")
+        security_group_arns = self._get_param("SecurityGroupArns")
+        subdirectory = self._get_param("Subdirectory", "/")
+        metadata = {
+            "FsxFilesystemArn": fsx_filesystem_arn,
+            "SecurityGroupArns": security_group_arns,
+        }
+        location_uri = f"fsxl://{fsx_filesystem_arn.split(':')[-1]}{subdirectory}"
+        arn = self.datasync_backend.create_location(
+            location_uri, metadata=metadata, typ="FsxLustre"
+        )
+        return json.dumps({"LocationArn": arn})
+
+    def describe_location_fsx_lustre(self) -> str:
+        location_arn = self._get_param("LocationArn")
+        location = self._get_location(location_arn, typ="FsxLustre")
+        return json.dumps(
+            {
+                "LocationArn": location.arn,
+                "LocationUri": location.uri,
+                "SecurityGroupArns": location.metadata.get("SecurityGroupArns"),
+            }
+        )
+
+    # --- FSx ONTAP ---
+
+    def create_location_fsx_ontap(self) -> str:
+        storage_virtual_machine_arn = self._get_param("StorageVirtualMachineArn")
+        protocol = self._get_param("Protocol")
+        security_group_arns = self._get_param("SecurityGroupArns")
+        subdirectory = self._get_param("Subdirectory", "/")
+        metadata = {
+            "StorageVirtualMachineArn": storage_virtual_machine_arn,
+            "Protocol": protocol,
+            "SecurityGroupArns": security_group_arns,
+        }
+        location_uri = (
+            f"fsxo://{storage_virtual_machine_arn.split(':')[-1]}{subdirectory}"
+        )
+        arn = self.datasync_backend.create_location(
+            location_uri, metadata=metadata, typ="FsxOntap"
+        )
+        return json.dumps({"LocationArn": arn})
+
+    def describe_location_fsx_ontap(self) -> str:
+        location_arn = self._get_param("LocationArn")
+        location = self._get_location(location_arn, typ="FsxOntap")
+        return json.dumps(
+            {
+                "LocationArn": location.arn,
+                "LocationUri": location.uri,
+                "StorageVirtualMachineArn": location.metadata.get(
+                    "StorageVirtualMachineArn"
+                ),
+                "Protocol": location.metadata.get("Protocol"),
+                "SecurityGroupArns": location.metadata.get("SecurityGroupArns"),
+            }
+        )
+
+    # --- FSx OpenZFS ---
+
+    def create_location_fsx_open_zfs(self) -> str:
+        fsx_filesystem_arn = self._get_param("FsxFilesystemArn")
+        protocol = self._get_param("Protocol")
+        security_group_arns = self._get_param("SecurityGroupArns")
+        subdirectory = self._get_param("Subdirectory", "/")
+        metadata = {
+            "FsxFilesystemArn": fsx_filesystem_arn,
+            "Protocol": protocol,
+            "SecurityGroupArns": security_group_arns,
+        }
+        location_uri = f"fsxz://{fsx_filesystem_arn.split(':')[-1]}{subdirectory}"
+        arn = self.datasync_backend.create_location(
+            location_uri, metadata=metadata, typ="FsxOpenZfs"
+        )
+        return json.dumps({"LocationArn": arn})
+
+    def describe_location_fsx_open_zfs(self) -> str:
+        location_arn = self._get_param("LocationArn")
+        location = self._get_location(location_arn, typ="FsxOpenZfs")
+        return json.dumps(
+            {
+                "LocationArn": location.arn,
+                "LocationUri": location.uri,
+                "Protocol": location.metadata.get("Protocol"),
+                "SecurityGroupArns": location.metadata.get("SecurityGroupArns"),
+            }
+        )
+
+    # --- FSx Windows ---
+
+    def create_location_fsx_windows(self) -> str:
+        fsx_filesystem_arn = self._get_param("FsxFilesystemArn")
+        security_group_arns = self._get_param("SecurityGroupArns")
+        subdirectory = self._get_param("Subdirectory", "/")
+        user = self._get_param("User")
+        domain = self._get_param("Domain")
+        metadata = {
+            "FsxFilesystemArn": fsx_filesystem_arn,
+            "SecurityGroupArns": security_group_arns,
+            "User": user,
+            "Domain": domain,
+        }
+        location_uri = f"fsxw://{fsx_filesystem_arn.split(':')[-1]}{subdirectory}"
+        arn = self.datasync_backend.create_location(
+            location_uri, metadata=metadata, typ="FsxWindows"
+        )
+        return json.dumps({"LocationArn": arn})
+
+    def describe_location_fsx_windows(self) -> str:
+        location_arn = self._get_param("LocationArn")
+        location = self._get_location(location_arn, typ="FsxWindows")
+        return json.dumps(
+            {
+                "LocationArn": location.arn,
+                "LocationUri": location.uri,
+                "SecurityGroupArns": location.metadata.get("SecurityGroupArns"),
+                "User": location.metadata.get("User"),
+                "Domain": location.metadata.get("Domain"),
             }
         )
 

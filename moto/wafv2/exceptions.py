@@ -49,3 +49,11 @@ class WAFOptimisticLockException(WAFv2ClientError):
             "WAFOptimisticLockException",
             "AWS WAF couldn’t save your changes because someone changed the resource after you started to edit it. Reapply your changes.",
         )
+
+
+class WAFInvalidParameterException(WAFv2ClientError):
+    def __init__(self, message: str) -> None:
+        super().__init__(
+            "WAFInvalidParameterException",
+            message,
+        )

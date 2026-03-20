@@ -544,6 +544,38 @@ class FakeWarmPool(CloudFormationModel):
         self.instance_reuse_policy = instance_reuse_policy
 
 
+class InstanceRefresh:
+    def __init__(
+        self,
+        instance_refresh_id: str,
+        auto_scaling_group_name: str,
+        status: str = "Pending",
+        status_reason: Optional[str] = None,
+        preferences: Optional[dict[str, Any]] = None,
+    ):
+        self.instance_refresh_id = instance_refresh_id
+        self.auto_scaling_group_name = auto_scaling_group_name
+        self.status = status
+        self.status_reason = status_reason
+        self.start_time = utcnow()
+        self.end_time: Optional[datetime] = None
+        self.percentage_complete = 0
+        self.instances_to_update = 0
+        self.preferences = preferences or {}
+
+
+class NotificationConfiguration:
+    def __init__(
+        self,
+        auto_scaling_group_name: str,
+        topic_arn: str,
+        notification_types: list[str],
+    ):
+        self.auto_scaling_group_name = auto_scaling_group_name
+        self.topic_arn = topic_arn
+        self.notification_types = notification_types
+
+
 class FakeAutoScalingGroup(CloudFormationModel):
     def __init__(
         self,
@@ -627,6 +659,7 @@ class FakeAutoScalingGroup(CloudFormationModel):
 
         self.metrics: list[str] = []
         self.warm_pool: Optional[FakeWarmPool] = None
+        self.traffic_sources: list[dict[str, str]] = []
         self.created_time = datetime.now().isoformat()
 
     @property
@@ -1124,6 +1157,12 @@ class FakeAutoScalingGroup(CloudFormationModel):
     def enable_metrics_collection(self, metrics: list[str]) -> None:
         self.metrics = metrics or []
 
+    def disable_metrics_collection(self, metrics: Optional[list[str]]) -> None:
+        if metrics:
+            self.metrics = [m for m in self.metrics if m not in metrics]
+        else:
+            self.metrics = []
+
     def put_warm_pool(
         self,
         max_group_prepared_capacity: Optional[int],
@@ -1150,6 +1189,8 @@ class AutoScalingBackend(BaseBackend):
         self.scheduled_actions: dict[str, FakeScheduledAction] = OrderedDict()
         self.policies: dict[str, FakeScalingPolicy] = {}
         self.lifecycle_hooks: dict[str, LifecycleHook] = {}
+        self.notification_configurations: list[NotificationConfiguration] = []
+        self.instance_refreshes: dict[str, list[InstanceRefresh]] = {}
         self.ec2_backend: EC2Backend = ec2_backends[self.account_id][region_name]
         self.elb_backend: ELBBackend = elb_backends[self.account_id][region_name]
         self.elbv2_backend: ELBv2Backend = elbv2_backends[self.account_id][region_name]
@@ -1946,6 +1987,12 @@ class AutoScalingBackend(BaseBackend):
         group = self.describe_auto_scaling_groups([group_name])[0]
         group.enable_metrics_collection(metrics)
 
+    def disable_metrics_collection(
+        self, group_name: str, metrics: Optional[list[str]]
+    ) -> None:
+        group = self.describe_auto_scaling_groups([group_name])[0]
+        group.disable_metrics_collection(metrics)
+
     def put_warm_pool(
         self,
         group_name: str,
@@ -1972,6 +2019,340 @@ class AutoScalingBackend(BaseBackend):
     def delete_warm_pool(self, group_name: str) -> None:
         group = self.describe_auto_scaling_groups([group_name])[0]
         group.warm_pool = None
+
+    def describe_account_limits(self) -> dict[str, int]:
+        return {
+            "MaxNumberOfAutoScalingGroups": 200,
+            "MaxNumberOfLaunchConfigurations": 200,
+            "NumberOfAutoScalingGroups": len(self.autoscaling_groups),
+            "NumberOfLaunchConfigurations": len(self.launch_configurations),
+        }
+
+    def describe_adjustment_types(self) -> list[dict[str, str]]:
+        return [
+            {"AdjustmentType": "ChangeInCapacity"},
+            {"AdjustmentType": "ExactCapacity"},
+            {"AdjustmentType": "PercentChangeInCapacity"},
+        ]
+
+    def describe_auto_scaling_notification_types(self) -> list[str]:
+        return [
+            "autoscaling:EC2_INSTANCE_LAUNCH",
+            "autoscaling:EC2_INSTANCE_LAUNCH_ERROR",
+            "autoscaling:EC2_INSTANCE_TERMINATE",
+            "autoscaling:EC2_INSTANCE_TERMINATE_ERROR",
+            "autoscaling:TEST_NOTIFICATION",
+        ]
+
+    def describe_lifecycle_hook_types(self) -> list[str]:
+        return [
+            "autoscaling:EC2_INSTANCE_LAUNCHING",
+            "autoscaling:EC2_INSTANCE_TERMINATING",
+        ]
+
+    def describe_scaling_process_types(self) -> list[dict[str, str]]:
+        return [
+            {"ProcessName": "Launch"},
+            {"ProcessName": "Terminate"},
+            {"ProcessName": "AddToLoadBalancer"},
+            {"ProcessName": "AlarmNotification"},
+            {"ProcessName": "AZRebalance"},
+            {"ProcessName": "HealthCheck"},
+            {"ProcessName": "InstanceRefresh"},
+            {"ProcessName": "ReplaceUnhealthy"},
+            {"ProcessName": "ScheduledActions"},
+        ]
+
+    def describe_termination_policy_types(self) -> list[str]:
+        return [
+            "AllocationStrategy",
+            "ClosestToNextInstanceHour",
+            "Default",
+            "NewestInstance",
+            "OldestInstance",
+            "OldestLaunchConfiguration",
+            "OldestLaunchTemplate",
+        ]
+
+    def describe_metric_collection_types(self) -> dict[str, list[dict[str, str]]]:
+        metrics = [
+            {"Metric": "GroupMinSize"},
+            {"Metric": "GroupMaxSize"},
+            {"Metric": "GroupDesiredCapacity"},
+            {"Metric": "GroupInServiceInstances"},
+            {"Metric": "GroupPendingInstances"},
+            {"Metric": "GroupStandbyInstances"},
+            {"Metric": "GroupTerminatingInstances"},
+            {"Metric": "GroupTotalInstances"},
+            {"Metric": "GroupInServiceCapacity"},
+            {"Metric": "GroupPendingCapacity"},
+            {"Metric": "GroupStandbyCapacity"},
+            {"Metric": "GroupTerminatingCapacity"},
+            {"Metric": "GroupTotalCapacity"},
+            {"Metric": "WarmPoolDesiredCapacity"},
+            {"Metric": "WarmPoolWarmedCapacity"},
+            {"Metric": "WarmPoolPendingCapacity"},
+            {"Metric": "WarmPoolTerminatingCapacity"},
+            {"Metric": "WarmPoolTotalCapacity"},
+            {"Metric": "GroupAndWarmPoolDesiredCapacity"},
+            {"Metric": "GroupAndWarmPoolTotalCapacity"},
+        ]
+        granularities = [{"Granularity": "1Minute"}]
+        return {"Metrics": metrics, "Granularities": granularities}
+
+    def put_notification_configuration(
+        self,
+        auto_scaling_group_name: str,
+        topic_arn: str,
+        notification_types: list[str],
+    ) -> None:
+        # Remove existing config for same group+topic combo
+        self.notification_configurations = [
+            nc
+            for nc in self.notification_configurations
+            if not (
+                nc.auto_scaling_group_name == auto_scaling_group_name
+                and nc.topic_arn == topic_arn
+            )
+        ]
+        self.notification_configurations.append(
+            NotificationConfiguration(
+                auto_scaling_group_name=auto_scaling_group_name,
+                topic_arn=topic_arn,
+                notification_types=notification_types,
+            )
+        )
+
+    def describe_notification_configurations(
+        self,
+        auto_scaling_group_names: Optional[list[str]] = None,
+    ) -> list[dict[str, str]]:
+        configs = self.notification_configurations
+        if auto_scaling_group_names:
+            configs = [
+                nc
+                for nc in configs
+                if nc.auto_scaling_group_name in auto_scaling_group_names
+            ]
+        # Flatten: one entry per notification type
+        result = []
+        for nc in configs:
+            for nt in nc.notification_types:
+                result.append(
+                    {
+                        "AutoScalingGroupName": nc.auto_scaling_group_name,
+                        "TopicARN": nc.topic_arn,
+                        "NotificationType": nt,
+                    }
+                )
+        return result
+
+    def delete_notification_configuration(
+        self,
+        auto_scaling_group_name: str,
+        topic_arn: str,
+    ) -> None:
+        self.notification_configurations = [
+            nc
+            for nc in self.notification_configurations
+            if not (
+                nc.auto_scaling_group_name == auto_scaling_group_name
+                and nc.topic_arn == topic_arn
+            )
+        ]
+
+    def start_instance_refresh(
+        self,
+        auto_scaling_group_name: str,
+        strategy: Optional[str] = None,
+        preferences: Optional[dict[str, Any]] = None,
+    ) -> InstanceRefresh:
+        # Verify the ASG exists
+        if auto_scaling_group_name not in self.autoscaling_groups:
+            raise ValidationError(
+                f"AutoScalingGroup name not found - AutoScalingGroup '{auto_scaling_group_name}' not found"
+            )
+        # Check for in-progress refresh
+        existing = self.instance_refreshes.get(auto_scaling_group_name, [])
+        for refresh in existing:
+            if refresh.status in ("Pending", "InProgress"):
+                raise ResourceContentionError()
+        refresh_id = str(random.uuid4())
+        refresh = InstanceRefresh(
+            instance_refresh_id=refresh_id,
+            auto_scaling_group_name=auto_scaling_group_name,
+            status="Pending",
+            preferences=preferences,
+        )
+        if auto_scaling_group_name not in self.instance_refreshes:
+            self.instance_refreshes[auto_scaling_group_name] = []
+        self.instance_refreshes[auto_scaling_group_name].append(refresh)
+        return refresh
+
+    def describe_instance_refreshes(
+        self,
+        auto_scaling_group_name: str,
+        instance_refresh_ids: Optional[list[str]] = None,
+    ) -> list[InstanceRefresh]:
+        if auto_scaling_group_name not in self.autoscaling_groups:
+            raise ValidationError(
+                f"AutoScalingGroup name not found - AutoScalingGroup '{auto_scaling_group_name}' not found"
+            )
+        refreshes = self.instance_refreshes.get(auto_scaling_group_name, [])
+        if instance_refresh_ids:
+            refreshes = [
+                r for r in refreshes if r.instance_refresh_id in instance_refresh_ids
+            ]
+        return refreshes
+
+    def cancel_instance_refresh(
+        self,
+        auto_scaling_group_name: str,
+    ) -> Optional[str]:
+        if auto_scaling_group_name not in self.autoscaling_groups:
+            raise ValidationError(
+                f"AutoScalingGroup name not found - AutoScalingGroup '{auto_scaling_group_name}' not found"
+            )
+        refreshes = self.instance_refreshes.get(auto_scaling_group_name, [])
+        for refresh in refreshes:
+            if refresh.status in ("Pending", "InProgress"):
+                refresh.status = "Cancelling"
+                refresh.end_time = utcnow()
+                return refresh.instance_refresh_id
+        raise ResourceContentionError()
+
+    def rollback_instance_refresh(
+        self,
+        auto_scaling_group_name: str,
+    ) -> str:
+        if auto_scaling_group_name not in self.autoscaling_groups:
+            raise ValidationError(
+                "AutoScalingGroup name not found - AutoScalingGroup "
+                f"'{auto_scaling_group_name}' not found"
+            )
+        refreshes = self.instance_refreshes.get(auto_scaling_group_name, [])
+        for refresh in refreshes:
+            if refresh.status in ("InProgress", "Pending"):
+                refresh.status = "RollbackInProgress"
+                return refresh.instance_refresh_id
+        raise ResourceContentionError()
+
+    def complete_lifecycle_action(
+        self,
+        lifecycle_hook_name: str,
+        auto_scaling_group_name: str,
+        lifecycle_action_result: str,
+        instance_id: Optional[str] = None,
+        lifecycle_action_token: Optional[str] = None,
+    ) -> None:
+        if auto_scaling_group_name not in self.autoscaling_groups:
+            raise ValidationError(
+                "AutoScalingGroup name not found - AutoScalingGroup "
+                f"'{auto_scaling_group_name}' not found"
+            )
+        hooks = self.describe_lifecycle_hooks(
+            as_name=auto_scaling_group_name,
+            lifecycle_hook_names=[lifecycle_hook_name],
+        )
+        if not hooks:
+            raise ValidationError(
+                f"No Lifecycle Hook found with name '{lifecycle_hook_name}'"
+            )
+
+    def record_lifecycle_action_heartbeat(
+        self,
+        lifecycle_hook_name: str,
+        auto_scaling_group_name: str,
+        instance_id: Optional[str] = None,
+        lifecycle_action_token: Optional[str] = None,
+    ) -> None:
+        if auto_scaling_group_name not in self.autoscaling_groups:
+            raise ValidationError(
+                "AutoScalingGroup name not found - AutoScalingGroup "
+                f"'{auto_scaling_group_name}' not found"
+            )
+        hooks = self.describe_lifecycle_hooks(
+            as_name=auto_scaling_group_name,
+            lifecycle_hook_names=[lifecycle_hook_name],
+        )
+        if not hooks:
+            raise ValidationError(
+                f"No Lifecycle Hook found with name '{lifecycle_hook_name}'"
+            )
+
+    def attach_traffic_sources(
+        self,
+        auto_scaling_group_name: str,
+        traffic_sources: list[dict[str, str]],
+    ) -> None:
+        if auto_scaling_group_name not in self.autoscaling_groups:
+            raise ValidationError(
+                "AutoScalingGroup name not found - AutoScalingGroup "
+                f"'{auto_scaling_group_name}' not found"
+            )
+        group = self.autoscaling_groups[auto_scaling_group_name]
+        existing_ids = {ts["Identifier"] for ts in group.traffic_sources}
+        for ts in traffic_sources:
+            if ts["Identifier"] not in existing_ids:
+                group.traffic_sources.append(ts)
+                existing_ids.add(ts["Identifier"])
+
+    def describe_traffic_sources(
+        self,
+        auto_scaling_group_name: str,
+        traffic_source_type: Optional[str] = None,
+    ) -> list[dict[str, str]]:
+        if auto_scaling_group_name not in self.autoscaling_groups:
+            raise ValidationError(
+                "AutoScalingGroup name not found - AutoScalingGroup "
+                f"'{auto_scaling_group_name}' not found"
+            )
+        group = self.autoscaling_groups[auto_scaling_group_name]
+        sources = group.traffic_sources
+        if traffic_source_type:
+            sources = [
+                s for s in sources if s.get("Type") == traffic_source_type
+            ]
+        return sources
+
+    def detach_traffic_sources(
+        self,
+        auto_scaling_group_name: str,
+        traffic_sources: list[dict[str, str]],
+    ) -> None:
+        if auto_scaling_group_name not in self.autoscaling_groups:
+            raise ValidationError(
+                "AutoScalingGroup name not found - AutoScalingGroup "
+                f"'{auto_scaling_group_name}' not found"
+            )
+        group = self.autoscaling_groups[auto_scaling_group_name]
+        ids_to_remove = {ts["Identifier"] for ts in traffic_sources}
+        group.traffic_sources = [
+            ts
+            for ts in group.traffic_sources
+            if ts["Identifier"] not in ids_to_remove
+        ]
+
+    def get_predictive_scaling_forecast(
+        self,
+        auto_scaling_group_name: str,
+        policy_name: str,
+        start_time: str,
+        end_time: str,
+    ) -> dict[str, Any]:
+        if auto_scaling_group_name not in self.autoscaling_groups:
+            raise ValidationError(
+                "AutoScalingGroup name not found - AutoScalingGroup "
+                f"'{auto_scaling_group_name}' not found"
+            )
+        return {
+            "LoadForecast": [],
+            "CapacityForecast": {
+                "Timestamps": [],
+                "Values": [],
+            },
+            "UpdateTime": utcnow(),
+        }
 
 
 autoscaling_backends = BackendDict(AutoScalingBackend, "autoscaling")

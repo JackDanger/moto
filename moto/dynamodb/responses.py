@@ -1590,7 +1590,7 @@ class DynamoHandler(BaseResponse):
         return ActionResult({"ExportDescription": export_table.response()})
 
     def list_exports(self) -> ActionResult:
-        table_arn = self.body["TableArn"]
+        table_arn = self.body.get("TableArn")
         exports = self.dynamodb_backend.list_exports(table_arn)
         response = []
         for export_table in exports:
@@ -1602,6 +1602,35 @@ class DynamoHandler(BaseResponse):
                 }
             )
         return ActionResult({"ExportSummaries": response})
+
+    def list_contributor_insights(self) -> ActionResult:
+        return ActionResult({"ContributorInsightsSummaries": []})
+
+    def describe_contributor_insights(self) -> ActionResult:
+        body = self.body
+        table_name = body["TableName"]
+        index_name = body.get("IndexName")
+        result = self.dynamodb_backend.describe_contributor_insights(
+            table_name, index_name
+        )
+        return ActionResult(result)
+
+    def describe_global_table_settings(self) -> ActionResult:
+        body = self.body
+        global_table_name = body["GlobalTableName"]
+        result = self.dynamodb_backend.describe_global_table_settings(global_table_name)
+        return ActionResult(result)
+
+    def describe_kinesis_streaming_destination(self) -> ActionResult:
+        body = self.body
+        table_name = body["TableName"]
+        result = self.dynamodb_backend.describe_kinesis_streaming_destination(
+            table_name
+        )
+        return ActionResult(result)
+
+    def list_imports(self) -> ActionResult:
+        return ActionResult({"ImportSummaryList": []})
 
     def put_resource_policy(self) -> ActionResult:
         policy = self.dynamodb_backend.put_resource_policy(

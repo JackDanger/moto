@@ -78,6 +78,14 @@ class ApigwVpcLinkIdentifier(ApigwIdentifier):
     resource = "vpc_link"
 
 
+class ApigwDocumentationPartIdentifier(ApigwIdentifier):
+    resource = "documentation_part"
+
+
+class ApigwClientCertificateIdentifier(ApigwIdentifier):
+    resource = "client_certificate"
+
+
 def create_id() -> str:
     size = 10
     chars = list(range(10)) + list(string.ascii_lowercase)

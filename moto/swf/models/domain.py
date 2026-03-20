@@ -43,6 +43,7 @@ class Domain(BaseModel):
         self.workflow_executions: list[WorkflowExecution] = []
         self.activity_task_lists: dict[list[str], list[ActivityTask]] = {}
         self.decision_task_lists: dict[str, list[DecisionTask]] = {}
+        self.tags: list[dict[str, str]] = []
 
     def __repr__(self) -> str:
         return f"Domain(name: {self.name}, status: {self.status})"
@@ -153,3 +154,10 @@ class Domain(BaseModel):
         for tasks in self.decision_task_lists.values():
             _all += tasks
         return _all
+
+    def delete_type(self, kind: str, name: str, version: str) -> None:
+        if name in self.types[kind] and version in self.types[kind][name]:
+            del self.types[kind][name][version]
+            # Clean up empty name dict
+            if not self.types[kind][name]:
+                del self.types[kind][name]

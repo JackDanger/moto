@@ -9,6 +9,7 @@ from moto.utilities.utils import filter_resources, merge_multiple_dicts
 from ..exceptions import (
     DuplicateTransitGatewayAttachmentError,
     InvalidParameterValueErrorPeeringAttachment,
+    InvalidTransitGatewayAttachmentIdError,
     InvalidTransitGatewayID,
 )
 from ..utils import describe_tag_filter, random_transit_gateway_attachment_id
@@ -130,6 +131,14 @@ class TransitGatewayAttachmentBackend:
             if backend is not None:
                 yield backend
 
+    def _get_transit_gateway_attachment(
+        self, transit_gateway_attachment_id: str
+    ) -> TransitGatewayAttachment:
+        attachment = self.transit_gateway_attachments.get(transit_gateway_attachment_id)
+        if not attachment:
+            raise InvalidTransitGatewayAttachmentIdError(transit_gateway_attachment_id)
+        return attachment
+
     def create_transit_gateway_vpn_attachment(
         self,
         vpn_id: str,
@@ -243,6 +252,7 @@ class TransitGatewayAttachmentBackend:
     def delete_transit_gateway_vpc_attachment(
         self, transit_gateway_attachment_id: str
     ) -> TransitGatewayAttachment:
+        self._get_transit_gateway_attachment(transit_gateway_attachment_id)
         transit_gateway_attachment = self.transit_gateway_attachments.pop(
             transit_gateway_attachment_id
         )
@@ -270,7 +280,7 @@ class TransitGatewayAttachmentBackend:
         options: Optional[dict[str, str]] = None,
         remove_subnet_ids: Optional[list[str]] = None,
     ) -> TransitGatewayAttachment:
-        tgw_attachment = self.transit_gateway_attachments[transit_gateway_attachment_id]
+        tgw_attachment = self._get_transit_gateway_attachment(transit_gateway_attachment_id)
         if remove_subnet_ids:
             tgw_attachment.subnet_ids = [  # type: ignore[attr-defined]
                 id
@@ -290,31 +300,34 @@ class TransitGatewayAttachmentBackend:
     def set_attachment_association(
         self, transit_gateway_attachment_id: str, transit_gateway_route_table_id: str
     ) -> None:
-        self.transit_gateway_attachments[transit_gateway_attachment_id].association = {
+        attachment = self._get_transit_gateway_attachment(transit_gateway_attachment_id)
+        attachment.association = {
             "state": "associated",
             "transitGatewayRouteTableId": transit_gateway_route_table_id,
         }
 
     def unset_attachment_association(self, tgw_attach_id: str) -> None:
-        self.transit_gateway_attachments[tgw_attach_id].association = {}
+        attachment = self._get_transit_gateway_attachment(tgw_attach_id)
+        attachment.association = {}
 
     def set_attachment_propagation(
         self, transit_gateway_attachment_id: str, transit_gateway_route_table_id: str
     ) -> None:
-        self.transit_gateway_attachments[transit_gateway_attachment_id].propagation = {
+        attachment = self._get_transit_gateway_attachment(transit_gateway_attachment_id)
+        attachment.propagation = {
             "state": "enabled",
             "transitGatewayRouteTableId": transit_gateway_route_table_id,
         }
 
     def unset_attachment_propagation(self, tgw_attach_id: str) -> None:
-        self.transit_gateway_attachments[tgw_attach_id].propagation = {}
+        attachment = self._get_transit_gateway_attachment(tgw_attach_id)
+        attachment.propagation = {}
 
     def disable_attachment_propagation(
         self, transit_gateway_attachment_id: str
     ) -> None:
-        self.transit_gateway_attachments[transit_gateway_attachment_id].propagation[
-            "state"
-        ] = "disabled"
+        attachment = self._get_transit_gateway_attachment(transit_gateway_attachment_id)
+        attachment.propagation["state"] = "disabled"
 
     def create_transit_gateway_peering_attachment(
         self,
@@ -387,9 +400,9 @@ class TransitGatewayAttachmentBackend:
     def accept_transit_gateway_peering_attachment(
         self, transit_gateway_attachment_id: str
     ) -> TransitGatewayAttachment:
-        transit_gateway_attachment = self.transit_gateway_attachments[
+        transit_gateway_attachment = self._get_transit_gateway_attachment(
             transit_gateway_attachment_id
-        ]
+        )
 
         requester_account_id = transit_gateway_attachment.requester_tgw_info["ownerId"]  # type: ignore[attr-defined]
         requester_region_name = transit_gateway_attachment.requester_tgw_info["region"]  # type: ignore[attr-defined]
@@ -422,9 +435,9 @@ class TransitGatewayAttachmentBackend:
     def reject_transit_gateway_peering_attachment(
         self, transit_gateway_attachment_id: str
     ) -> TransitGatewayAttachment:
-        transit_gateway_attachment = self.transit_gateway_attachments[
+        transit_gateway_attachment = self._get_transit_gateway_attachment(
             transit_gateway_attachment_id
-        ]
+        )
 
         requester_account_id = transit_gateway_attachment.requester_tgw_info["ownerId"]  # type: ignore[attr-defined]
         requester_region_name = transit_gateway_attachment.requester_tgw_info["region"]  # type: ignore[attr-defined]
@@ -454,9 +467,9 @@ class TransitGatewayAttachmentBackend:
     def delete_transit_gateway_peering_attachment(
         self, transit_gateway_attachment_id: str
     ) -> TransitGatewayAttachment:
-        transit_gateway_attachment = self.transit_gateway_attachments[
+        transit_gateway_attachment = self._get_transit_gateway_attachment(
             transit_gateway_attachment_id
-        ]
+        )
         transit_gateway_attachment.state = "deleted"
         transit_gateway_attachment.status.deleted(deleter_id=self.account_id)  # type: ignore[attr-defined]
         return transit_gateway_attachment

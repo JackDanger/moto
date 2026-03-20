@@ -234,6 +234,596 @@ class EKSResponse(BaseResponse):
 
         return ActionResult({"nodegroup": nodegroup})
 
+    # --- Addon operations ---
+
+    def create_addon(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        addon_name = self._get_param("addonName")
+        addon_version = self._get_param("addonVersion")
+        service_account_role_arn = self._get_param("serviceAccountRoleArn")
+        resolve_conflicts = self._get_param("resolveConflicts")
+        client_request_token = self._get_param("clientRequestToken")
+        tags = self._get_param("tags")
+        configuration_values = self._get_param("configurationValues")
+
+        addon = self.eks_backend.create_addon(
+            cluster_name=cluster_name,
+            addon_name=addon_name,
+            addon_version=addon_version,
+            service_account_role_arn=service_account_role_arn,
+            resolve_conflicts=resolve_conflicts,
+            client_request_token=client_request_token,
+            tags=tags,
+            configuration_values=configuration_values,
+        )
+
+        return ActionResult({"addon": addon})
+
+    def describe_addon(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        addon_name = self._get_param("addonName")
+
+        addon = self.eks_backend.describe_addon(
+            cluster_name=cluster_name, addon_name=addon_name
+        )
+
+        return ActionResult({"addon": addon})
+
+    def delete_addon(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        addon_name = self._get_param("addonName")
+
+        addon = self.eks_backend.delete_addon(
+            cluster_name=cluster_name, addon_name=addon_name
+        )
+
+        return ActionResult({"addon": addon})
+
+    def list_addons(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
+        next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
+
+        addons, next_token = self.eks_backend.list_addons(
+            cluster_name=cluster_name, max_results=max_results, next_token=next_token
+        )
+
+        return ActionResult({"addons": addons, "nextToken": next_token})
+
+    def describe_addon_versions(self) -> ActionResult:
+        kubernetes_version = self._get_param("kubernetesVersion")
+        addon_name = self._get_param("addonName")
+        max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
+        next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
+
+        result = self.eks_backend.describe_addon_versions(
+            kubernetes_version=kubernetes_version,
+            addon_name=addon_name,
+            max_results=max_results,
+            next_token=next_token,
+        )
+
+        return ActionResult(result)
+
+    # --- Access Entry operations ---
+
+    def create_access_entry(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        principal_arn = self._get_param("principalArn")
+        kubernetes_groups = self._get_param("kubernetesGroups")
+        tags = self._get_param("tags")
+        client_request_token = self._get_param("clientRequestToken")
+        username = self._get_param("username")
+        entry_type = self._get_param("type")
+
+        access_entry = self.eks_backend.create_access_entry(
+            cluster_name=cluster_name,
+            principal_arn=principal_arn,
+            kubernetes_groups=kubernetes_groups,
+            tags=tags,
+            client_request_token=client_request_token,
+            username=username,
+            entry_type=entry_type,
+        )
+
+        return ActionResult({"accessEntry": access_entry})
+
+    def describe_access_entry(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        principal_arn = unquote(self._get_param("principalArn"))
+
+        access_entry = self.eks_backend.describe_access_entry(
+            cluster_name=cluster_name, principal_arn=principal_arn
+        )
+
+        return ActionResult({"accessEntry": access_entry})
+
+    def delete_access_entry(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        principal_arn = unquote(self._get_param("principalArn"))
+
+        self.eks_backend.delete_access_entry(
+            cluster_name=cluster_name, principal_arn=principal_arn
+        )
+
+        return EmptyResult()
+
+    def list_access_entries(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
+        next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
+
+        access_entries, next_token = self.eks_backend.list_access_entries(
+            cluster_name=cluster_name, max_results=max_results, next_token=next_token
+        )
+
+        return ActionResult({"accessEntries": access_entries, "nextToken": next_token})
+
+    # --- Access Policy operations ---
+
+    def associate_access_policy(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        principal_arn = unquote(self._get_param("principalArn"))
+        policy_arn = self._get_param("policyArn")
+        access_scope = self._get_param("accessScope")
+
+        result = self.eks_backend.associate_access_policy(
+            cluster_name=cluster_name,
+            principal_arn=principal_arn,
+            policy_arn=policy_arn,
+            access_scope=access_scope,
+        )
+
+        return ActionResult(result)
+
+    def disassociate_access_policy(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        principal_arn = unquote(self._get_param("principalArn"))
+        policy_arn = unquote(self._get_param("policyArn"))
+
+        self.eks_backend.disassociate_access_policy(
+            cluster_name=cluster_name,
+            principal_arn=principal_arn,
+            policy_arn=policy_arn,
+        )
+
+        return EmptyResult()
+
+    # --- Pod Identity Association operations ---
+
+    def create_pod_identity_association(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        namespace = self._get_param("namespace")
+        service_account = self._get_param("serviceAccount")
+        role_arn = self._get_param("roleArn")
+        client_request_token = self._get_param("clientRequestToken")
+        tags = self._get_param("tags")
+
+        association = self.eks_backend.create_pod_identity_association(
+            cluster_name=cluster_name,
+            namespace=namespace,
+            service_account=service_account,
+            role_arn=role_arn,
+            client_request_token=client_request_token,
+            tags=tags,
+        )
+
+        return ActionResult({"association": association})
+
+    def describe_pod_identity_association(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        association_id = self._get_param("associationId")
+
+        association = self.eks_backend.describe_pod_identity_association(
+            cluster_name=cluster_name, association_id=association_id
+        )
+
+        return ActionResult({"association": association})
+
+    def delete_pod_identity_association(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        association_id = self._get_param("associationId")
+
+        association = self.eks_backend.delete_pod_identity_association(
+            cluster_name=cluster_name, association_id=association_id
+        )
+
+        return ActionResult({"association": association})
+
+    def list_pod_identity_associations(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        namespace = self._get_param("namespace")
+        service_account = self._get_param("serviceAccount")
+        max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
+        next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
+
+        result = self.eks_backend.list_pod_identity_associations(
+            cluster_name=cluster_name,
+            namespace=namespace,
+            service_account=service_account,
+            max_results=max_results,
+            next_token=next_token,
+        )
+
+        return ActionResult(result)
+
+    def update_access_entry(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        principal_arn = unquote(self._get_param("principalArn"))
+        kubernetes_groups = self._get_param("kubernetesGroups")
+        username = self._get_param("username")
+
+        access_entry = self.eks_backend.update_access_entry(
+            cluster_name=cluster_name,
+            principal_arn=principal_arn,
+            kubernetes_groups=kubernetes_groups,
+            username=username,
+        )
+
+        return ActionResult({"accessEntry": access_entry})
+
+    def list_associated_access_policies(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        principal_arn = unquote(self._get_param("principalArn"))
+        max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
+        next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
+
+        result = self.eks_backend.list_associated_access_policies(
+            cluster_name=cluster_name,
+            principal_arn=principal_arn,
+            max_results=max_results,
+            next_token=next_token,
+        )
+
+        return ActionResult(result)
+
+    def list_access_policies(self) -> ActionResult:
+        max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
+        next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
+
+        result = self.eks_backend.list_access_policies(
+            max_results=max_results,
+            next_token=next_token,
+        )
+
+        return ActionResult(result)
+
+    def update_addon(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        addon_name = self._get_param("addonName")
+        addon_version = self._get_param("addonVersion")
+        service_account_role_arn = self._get_param("serviceAccountRoleArn")
+        resolve_conflicts = self._get_param("resolveConflicts")
+        client_request_token = self._get_param("clientRequestToken")
+        configuration_values = self._get_param("configurationValues")
+
+        update = self.eks_backend.update_addon(
+            cluster_name=cluster_name,
+            addon_name=addon_name,
+            addon_version=addon_version,
+            service_account_role_arn=service_account_role_arn,
+            resolve_conflicts=resolve_conflicts,
+            client_request_token=client_request_token,
+            configuration_values=configuration_values,
+        )
+
+        return ActionResult({"update": update})
+
+    def update_cluster_version(self) -> ActionResult:
+        name = self._get_param("name")
+        version = self._get_param("version")
+
+        update = self.eks_backend.update_cluster_version(
+            name=name,
+            version=version,
+        )
+
+        return ActionResult({"update": update})
+
+    def associate_encryption_config(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        encryption_config = self._get_param("encryptionConfig")
+        client_request_token = self._get_param("clientRequestToken")
+
+        update = self.eks_backend.associate_encryption_config(
+            cluster_name=cluster_name,
+            encryption_config=encryption_config,
+            client_request_token=client_request_token,
+        )
+
+        return ActionResult({"update": update})
+
+    # --- Identity Provider Config operations ---
+
+    def associate_identity_provider_config(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        oidc = self._get_param("oidc")
+        tags = self._get_param("tags")
+        client_request_token = self._get_param("clientRequestToken")
+
+        update = self.eks_backend.associate_identity_provider_config(
+            cluster_name=cluster_name,
+            oidc=oidc,
+            tags=tags,
+            client_request_token=client_request_token,
+        )
+
+        return ActionResult({"update": update})
+
+    def describe_identity_provider_config(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        identity_provider_config = self._get_param("identityProviderConfig")
+
+        result = self.eks_backend.describe_identity_provider_config(
+            cluster_name=cluster_name,
+            identity_provider_config=identity_provider_config,
+        )
+
+        return ActionResult(result)
+
+    def disassociate_identity_provider_config(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        identity_provider_config = self._get_param("identityProviderConfig")
+        client_request_token = self._get_param("clientRequestToken")
+
+        update = self.eks_backend.disassociate_identity_provider_config(
+            cluster_name=cluster_name,
+            identity_provider_config=identity_provider_config,
+            client_request_token=client_request_token,
+        )
+
+        return ActionResult({"update": update})
+
+    def list_identity_provider_configs(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
+        next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
+
+        result = self.eks_backend.list_identity_provider_configs(
+            cluster_name=cluster_name,
+            max_results=max_results,
+            next_token=next_token,
+        )
+
+        return ActionResult(result)
+
+    # --- Insight operations ---
+
+    def describe_insight(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        insight_id = self._get_param("id")
+
+        result = self.eks_backend.describe_insight(
+            cluster_name=cluster_name,
+            insight_id=insight_id,
+        )
+
+        return ActionResult({"insight": result})
+
+    def list_insights(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        filter_param = self._get_param("filter")
+        max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
+        next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
+
+        result = self.eks_backend.list_insights(
+            cluster_name=cluster_name,
+            filter_param=filter_param,
+            max_results=max_results,
+            next_token=next_token,
+        )
+
+        return ActionResult(result)
+
+    def start_insights_refresh(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        insight_ids = self._get_param("insightIds")
+
+        result = self.eks_backend.start_insights_refresh(
+            cluster_name=cluster_name,
+            insight_ids=insight_ids,
+        )
+
+        return ActionResult(result)
+
+    def describe_insights_refresh(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+
+        result = self.eks_backend.describe_insights_refresh(cluster_name=cluster_name)
+
+        return ActionResult(result)
+
+    # --- Describe Addon Configuration ---
+
+    def describe_addon_configuration(self) -> ActionResult:
+        addon_name = self._get_param("addonName")
+        addon_version = self._get_param("addonVersion")
+
+        result = self.eks_backend.describe_addon_configuration(
+            addon_name=addon_name,
+            addon_version=addon_version,
+        )
+
+        return ActionResult(result)
+
+    # --- Describe Cluster Versions ---
+
+    def describe_cluster_versions(self) -> ActionResult:
+        cluster_type = self._get_param("clusterType")
+        max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
+        next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
+        default_only = self._get_param("defaultOnly")
+        include_all = self._get_param("includeAll")
+        cluster_versions_only = self._get_param("clusterVersions")
+        status = self._get_param("status")
+
+        result = self.eks_backend.describe_cluster_versions(
+            cluster_type=cluster_type,
+            max_results=max_results,
+            next_token=next_token,
+            default_only=default_only,
+            include_all=include_all,
+            cluster_versions_only=cluster_versions_only,
+            status=status,
+        )
+
+        return ActionResult(result)
+
+    # --- Deregister Cluster ---
+
+    def deregister_cluster(self) -> ActionResult:
+        name = self._get_param("name")
+        cluster = self.eks_backend.deregister_cluster(name=name)
+        return ActionResult({"cluster": cluster})
+
+    # --- EKS Anywhere Subscription operations ---
+
+    def create_eks_anywhere_subscription(self) -> ActionResult:
+        name = self._get_param("name")
+        term = self._get_param("term")
+        auto_renew = self._get_param("autoRenew")
+        license_quantity = self._get_int_param("licenseQuantity")
+        license_type = self._get_param("licenseType")
+        tags = self._get_param("tags")
+        client_request_token = self._get_param("clientRequestToken")
+
+        subscription = self.eks_backend.create_eks_anywhere_subscription(
+            name=name,
+            term=term,
+            auto_renew=auto_renew if auto_renew is not None else True,
+            license_quantity=license_quantity,
+            license_type=license_type,
+            tags=tags,
+            client_request_token=client_request_token,
+        )
+
+        return ActionResult({"subscription": subscription})
+
+    def describe_eks_anywhere_subscription(self) -> ActionResult:
+        subscription_id = self._get_param("id")
+
+        subscription = self.eks_backend.describe_eks_anywhere_subscription(
+            subscription_id=subscription_id,
+        )
+
+        return ActionResult({"subscription": subscription})
+
+    def delete_eks_anywhere_subscription(self) -> ActionResult:
+        subscription_id = self._get_param("id")
+
+        subscription = self.eks_backend.delete_eks_anywhere_subscription(
+            subscription_id=subscription_id,
+        )
+
+        return ActionResult({"subscription": subscription})
+
+    def list_eks_anywhere_subscriptions(self) -> ActionResult:
+        max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
+        next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
+        include_status = self._get_param("includeStatus")
+
+        result = self.eks_backend.list_eks_anywhere_subscriptions(
+            max_results=max_results,
+            next_token=next_token,
+            include_status=include_status,
+        )
+
+        return ActionResult(result)
+
+    def update_eks_anywhere_subscription(self) -> ActionResult:
+        subscription_id = self._get_param("id")
+        auto_renew = self._get_param("autoRenew")
+        client_request_token = self._get_param("clientRequestToken")
+
+        subscription = self.eks_backend.update_eks_anywhere_subscription(
+            subscription_id=subscription_id,
+            auto_renew=auto_renew if auto_renew is not None else True,
+            client_request_token=client_request_token,
+        )
+
+        return ActionResult({"subscription": subscription})
+
+    # --- Capability operations ---
+
+    def create_capability(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        capability_name = self._get_param("capabilityName")
+        capability_type = self._get_param("type")
+        role_arn = self._get_param("roleArn")
+        configuration = self._get_param("configuration")
+        tags = self._get_param("tags")
+        client_request_token = self._get_param("clientRequestToken")
+        delete_propagation_policy = self._get_param("deletePropagationPolicy")
+
+        capability = self.eks_backend.create_capability(
+            cluster_name=cluster_name,
+            capability_name=capability_name,
+            capability_type=capability_type,
+            role_arn=role_arn,
+            configuration=configuration,
+            tags=tags,
+            client_request_token=client_request_token,
+            delete_propagation_policy=delete_propagation_policy,
+        )
+
+        return ActionResult({"capability": capability})
+
+    def describe_capability(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        capability_name = self._get_param("capabilityName")
+
+        capability = self.eks_backend.describe_capability(
+            cluster_name=cluster_name,
+            capability_name=capability_name,
+        )
+
+        return ActionResult({"capability": capability})
+
+    def delete_capability(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        capability_name = self._get_param("capabilityName")
+
+        capability = self.eks_backend.delete_capability(
+            cluster_name=cluster_name,
+            capability_name=capability_name,
+        )
+
+        return ActionResult({"capability": capability})
+
+    def list_capabilities(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
+        next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
+
+        result = self.eks_backend.list_capabilities(
+            cluster_name=cluster_name,
+            max_results=max_results,
+            next_token=next_token,
+        )
+
+        return ActionResult(result)
+
+    def update_capability(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        capability_name = self._get_param("capabilityName")
+        role_arn = self._get_param("roleArn")
+        configuration = self._get_param("configuration")
+        client_request_token = self._get_param("clientRequestToken")
+        delete_propagation_policy = self._get_param("deletePropagationPolicy")
+
+        update = self.eks_backend.update_capability(
+            cluster_name=cluster_name,
+            capability_name=capability_name,
+            role_arn=role_arn,
+            configuration=configuration,
+            client_request_token=client_request_token,
+            delete_propagation_policy=delete_propagation_policy,
+        )
+
+        return ActionResult({"update": update})
+
+    # --- Tagging operations ---
+
     def tag_resource(self) -> ActionResult:
         self.eks_backend.tag_resource(
             self._extract_arn_from_path(), self._get_param("tags")

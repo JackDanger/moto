@@ -140,6 +140,9 @@ class ResourceGroupsResponse(BaseResponse):
 
     def update_group(self) -> str:
         group_name = self._get_param("GroupName")
+        group_arn = self._get_param("Group")
+        if group_arn and not group_name:
+            group_name = re.split(r":[0-9]{12}:group/", group_arn)[-1]
         description = self._get_param("Description", "")
         group = self.resourcegroups_backend.update_group(
             group_name=group_name, description=description
@@ -168,15 +171,23 @@ class ResourceGroupsResponse(BaseResponse):
         )
 
     def get_group_configuration(self) -> str:
-        group_name = self._get_param("Group")
+        group_identifier = self._get_param("Group")
+        if group_identifier and ":group/" in group_identifier:
+            group_name = re.split(r":[0-9]{12}:group/", group_identifier)[-1]
+        else:
+            group_name = group_identifier
         configuration = self.resourcegroups_backend.get_group_configuration(
             group_name=group_name
         )
-        return json.dumps({"GroupConfiguration": {"Configuration": configuration}})
+        return json.dumps({"GroupConfiguration": {"Configuration": configuration or []}})
 
     def put_group_configuration(self) -> str:
-        group_name = self._get_param("Group")
-        configuration = self._get_param("Configuration")
+        group_identifier = self._get_param("Group")
+        if group_identifier and ":group/" in group_identifier:
+            group_name = re.split(r":[0-9]{12}:group/", group_identifier)[-1]
+        else:
+            group_name = group_identifier
+        configuration = self._get_param("Configuration", [])
         self.resourcegroups_backend.put_group_configuration(
             group_name=group_name, configuration=configuration
         )

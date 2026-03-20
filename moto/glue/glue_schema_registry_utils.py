@@ -111,6 +111,8 @@ def validate_schema_version_metadata_value_pattern_and_length(param_value: str) 
 def validate_param_pattern_and_length(
     param_value: str, param_name: str, max_name_length: int, pattern: Pattern[str]
 ) -> None:
+    if param_value is None:
+        raise ParamValueContainsInvalidCharactersException(param_name)
     if len(param_value.encode("utf-8")) > max_name_length:
         raise ResourceNameTooLongException(param_name)
 
@@ -265,7 +267,8 @@ def validate_schema_params(
     if tags:
         validate_number_of_tags(tags)
 
-    validate_schema_definition(schema_definition, data_format)
+    if schema_definition is not None:
+        validate_schema_definition(schema_definition, data_format)
 
     if num_schemas >= MAX_SCHEMAS_ALLOWED:
         raise GeneralResourceNumberLimitExceededException(resource="schemas")
@@ -391,6 +394,8 @@ def get_schema_version_if_definition_exists(
 ) -> Optional[dict[str, Any]]:
     if data_format in ["AVRO", "JSON"]:
         for schema_version in schema_versions:
+            if schema_version.schema_definition is None:
+                continue
             if json.loads(schema_definition) == json.loads(
                 schema_version.schema_definition
             ):

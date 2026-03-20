@@ -4,6 +4,8 @@ from .responses import LakeFormationResponse
 
 url_bases = [
     r"https?://lakeformation\.(.+)\.amazonaws\.com",
+    r"https?://query-lakeformation\.(.+)\.amazonaws\.com",
+    r"https?://data-lakeformation\.(.+)\.amazonaws\.com",
 ]
 
 
@@ -31,4 +33,33 @@ url_paths = {
     "{0}/ListDataCellsFilter$": response.dispatch,
     "{0}/BatchGrantPermissions$": response.dispatch,
     "{0}/BatchRevokePermissions$": response.dispatch,
+    "{0}/DescribeTransaction$": response.dispatch,
+    "{0}/ListTransactions$": response.dispatch,
+    "{0}/StartTransaction$": response.dispatch,
+    "{0}/CommitTransaction$": response.dispatch,
+    "{0}/CancelTransaction$": response.dispatch,
+    "{0}/GetDataLakePrincipal$": response.dispatch,
+    "{0}/GetEffectivePermissionsForPath$": response.dispatch,
+    "{0}/GetQueryState$": response.dispatch,
+    "{0}/GetQueryStatistics$": response.dispatch,
+    "{0}/GetWorkUnits$": response.dispatch,
+    "{0}/GetWorkUnitResults$": response.dispatch,
+    "{0}/GetTemporaryGluePartitionCredentials$": response.dispatch,
+    "{0}/GetTemporaryGlueTableCredentials$": response.dispatch,
+    "{0}/CreateDataCellsFilter$": response.dispatch,
+    "{0}/GetDataCellsFilter$": response.dispatch,
+    "{0}/DeleteDataCellsFilter$": response.dispatch,
+    "{0}/UpdateDataCellsFilter$": response.dispatch,
+    "{0}/SearchDatabasesByLFTags$": response.dispatch,
+    "{0}/SearchTablesByLFTags$": response.dispatch,
+    "{0}/StartQueryPlanning$": response.dispatch,
+    "{0}/CreateLFTagExpression$": response.dispatch,
+    "{0}/GetLFTagExpression$": response.dispatch,
+    "{0}/ListLFTagExpressions$": response.dispatch,
+    "{0}/UpdateLFTagExpression$": response.dispatch,
+    "{0}/DeleteLFTagExpression$": response.dispatch,
+    "{0}/CreateLakeFormationIdentityCenterConfiguration$": response.dispatch,
+    "{0}/DescribeLakeFormationIdentityCenterConfiguration$": response.dispatch,
+    "{0}/UpdateLakeFormationIdentityCenterConfiguration$": response.dispatch,
+    "{0}/DeleteLakeFormationIdentityCenterConfiguration$": response.dispatch,
 }

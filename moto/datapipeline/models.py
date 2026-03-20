@@ -76,6 +76,21 @@ class Pipeline(CloudFormationModel):
     def activate(self) -> None:
         self.status = "SCHEDULED"
 
+    def deactivate(self) -> None:
+        self.status = "DEACTIVATING"
+
+    def add_tags(self, tags: list[dict[str, str]]) -> None:
+        # Merge: new tags override existing ones with same key
+        existing_keys = {t["key"]: i for i, t in enumerate(self.tags)}
+        for tag in tags:
+            if tag["key"] in existing_keys:
+                self.tags[existing_keys[tag["key"]]] = tag
+            else:
+                self.tags.append(tag)
+
+    def remove_tags(self, tag_keys: list[str]) -> None:
+        self.tags = [t for t in self.tags if t["key"] not in tag_keys]
+
     @staticmethod
     def cloudformation_name_type() -> str:
         return "Name"
@@ -157,6 +172,74 @@ class DataPipelineBackend(BaseBackend):
     def activate_pipeline(self, pipeline_id: str) -> None:
         pipeline = self.get_pipeline(pipeline_id)
         pipeline.activate()
+
+    def deactivate_pipeline(self, pipeline_id: str) -> None:
+        pipeline = self.get_pipeline(pipeline_id)
+        pipeline.deactivate()
+
+    def add_tags(self, pipeline_id: str, tags: list[dict[str, str]]) -> None:
+        pipeline = self.get_pipeline(pipeline_id)
+        pipeline.add_tags(tags)
+
+    def remove_tags(self, pipeline_id: str, tag_keys: list[str]) -> None:
+        pipeline = self.get_pipeline(pipeline_id)
+        pipeline.remove_tags(tag_keys)
+
+    def validate_pipeline_definition(
+        self, pipeline_id: str, pipeline_objects: Any
+    ) -> dict[str, Any]:
+        # Basic validation: just check that the pipeline exists
+        self.get_pipeline(pipeline_id)
+        return {"errored": False, "validationErrors": [], "validationWarnings": []}
+
+    def query_objects(
+        self, pipeline_id: str, sphere: str
+    ) -> list[str]:
+        pipeline = self.get_pipeline(pipeline_id)
+        if sphere == "INSTANCE":
+            return []
+        elif sphere == "ATTEMPT":
+            return []
+        else:
+            # COMPONENT sphere - return object IDs
+            return [obj.object_id for obj in pipeline.objects]
+
+    def evaluate_expression(
+        self, pipeline_id: str, object_id: str, expression: str
+    ) -> str:
+        self.get_pipeline(pipeline_id)
+        # Return the expression as-is (basic stub)
+        return expression
+
+    def set_status(
+        self, pipeline_id: str, object_ids: list[str], status: str
+    ) -> None:
+        pipeline = self.get_pipeline(pipeline_id)
+        for obj in pipeline.objects:
+            if obj.object_id in object_ids:
+                # Update the status field
+                for field in obj.fields:
+                    if field.get("key") == "@status":
+                        field["stringValue"] = status
+                        break
+                else:
+                    obj.fields.append({"key": "@status", "stringValue": status})
+
+    def set_task_status(self, task_id: str, task_status: str) -> None:
+        # Task management is a stub - just acknowledge
+        pass
+
+    def report_task_progress(self, task_id: str) -> bool:
+        # Return False = not canceled
+        return False
+
+    def report_task_runner_heartbeat(self, taskrunner_id: str) -> bool:
+        # Return False = do not terminate
+        return False
+
+    def poll_for_task(self, worker_group: str) -> dict[str, Any]:
+        # No tasks to return in mock
+        return {}
 
 
 datapipeline_backends = BackendDict(DataPipelineBackend, "datapipeline")

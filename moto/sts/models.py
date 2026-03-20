@@ -1,4 +1,5 @@
 import datetime
+import json
 import re
 from base64 import b64decode
 from typing import Any, Optional
@@ -199,6 +200,109 @@ class STSBackend(BaseBackend):
                     return {"Account": user.account_id}
         # Default: return the calling account
         return {"Account": self.account_id}
+
+    def assume_root(
+        self,
+        target_principal: str,
+        task_policy_arn: str,
+        duration: int,
+    ) -> AssumedRole:
+        """
+        Assume a privileged root session for a member account.
+
+        Returns temporary credentials scoped to the task policy.
+        The target_principal is the member account ID, and
+        task_policy_arn restricts the session to a specific task.
+        """
+        account_id, access_key = self._create_access_key(
+            role=f"arn:aws:iam::{self.account_id}:root"
+        )
+        role = AssumedRole(
+            account_id=account_id,
+            region_name=self.region_name,
+            access_key=access_key,
+            role_session_name="AssumeRootSession",
+            role_arn=f"arn:aws:iam::{target_principal}:root",
+            policy=task_policy_arn,
+            duration=duration,
+            external_id=None,
+        )
+        self.assumed_roles.append(role)
+        return role
+
+    def get_delegated_access_token(
+        self,
+        trade_in_token: str,
+    ) -> dict[str, Any]:
+        """
+        Exchange a trade-in token for delegated access credentials.
+
+        In real AWS this is used by AWS services for cross-service delegation.
+        We return mock credentials with a 1-hour expiry.
+        """
+        now = utcnow()
+        expiration = now + datetime.timedelta(seconds=3600)
+        return {
+            "Credentials": {
+                "AccessKeyId": "ASIADELEGATEDEXAMPLE",
+                "SecretAccessKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYDELEGATEDKEY",
+                "SessionToken": random_session_token(),
+                "Expiration": expiration,
+            },
+            "PackedPolicySize": 6,
+            "AssumedPrincipal": f"arn:aws:iam::{self.account_id}:root",
+        }
+
+    def get_web_identity_token(
+        self,
+        audience: list[str],
+        duration: int,
+        signing_algorithm: str,
+    ) -> dict[str, Any]:
+        """
+        Get a web identity token.
+
+        Returns a mock web identity token and expiration.
+        """
+        now = utcnow()
+        expiration = now + datetime.timedelta(seconds=duration)
+        token = random_session_token()
+        return {
+            "WebIdentityToken": token,
+            "Expiration": expiration,
+        }
+
+    def decode_authorization_message(self, encoded_message: str) -> str:
+        """
+        Decode an encoded authorization message.
+
+        In real AWS, this decodes a message returned by EC2 when an
+        authorization error occurs. In moto, we return a mock decoded
+        message containing a plausible policy structure.
+        """
+        decoded_message = {
+            "allowed": False,
+            "explicitDeny": False,
+            "matchedStatements": {
+                "items": []
+            },
+            "failures": {
+                "items": []
+            },
+            "context": {
+                "principal": {
+                    "id": "AIDACKCEVSQ6C2EXAMPLE",
+                    "name": "ExampleUser",
+                    "arn": f"arn:aws:iam::{self.account_id}:user/ExampleUser",
+                },
+                "action": "ec2:RunInstances",
+                "resource": f"arn:aws:ec2:{self.region_name}:{self.account_id}:instance/*",
+                "conditions": {
+                    "items": []
+                },
+            },
+        }
+        return json.dumps(decoded_message)
 
     def _create_access_key(self, role: str) -> tuple[str, AccessKey]:
         account_id_match = re.search(ARN_PARTITION_REGEX + r":iam::([0-9]+).+", role)

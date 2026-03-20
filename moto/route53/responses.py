@@ -1,6 +1,12 @@
 """Handles Route53 API requests, invokes method and returns response."""
 
-from moto.core.responses import ActionResult, BaseResponse, EmptyResult
+import re
+from urllib.parse import parse_qs
+
+import xmltodict
+from jinja2 import Template
+
+from moto.core.responses import ActionResult, BaseResponse, EmptyResult, TYPE_RESPONSE
 from moto.core.utils import utcnow
 from moto.route53.exceptions import InvalidChangeBatch, InvalidInput
 from moto.route53.models import Route53Backend, route53_backends
@@ -67,23 +73,28 @@ class Route53(BaseResponse):
         )
         result = {
             "HostedZones": zone_page,
-            "Marker": marker,
+            "Marker": marker or "",
             "IsTruncated": True if next_marker else False,
             "NextMarker": next_marker,
-            "MaxItems": max_items,
+            "MaxItems": str(max_items),
         }
         return ActionResult(result)
 
     def list_hosted_zones_by_name(self) -> ActionResult:
         dnsname = self._get_param("DNSName")
         dnsname, zones = self.backend.list_hosted_zones_by_name(dnsname)
-        result = {"DNSName": dnsname, "HostedZones": zones}
+        result = {
+            "DNSName": dnsname,
+            "HostedZones": zones,
+            "IsTruncated": False,
+            "MaxItems": "100",
+        }
         return ActionResult(result)
 
     def list_hosted_zones_by_vpc(self) -> ActionResult:
         vpc_id = self._get_param("VPCId")
         zones = self.backend.list_hosted_zones_by_vpc(vpc_id)
-        result = {"HostedZoneSummaries": zones}
+        result = {"HostedZoneSummaries": zones, "MaxItems": "100"}
         return ActionResult(result)
 
     def get_hosted_zone_count(self) -> ActionResult:
@@ -126,7 +137,7 @@ class Route53(BaseResponse):
         # TODO: implement enable/disable dnssec apis
         zoneid = self._get_param("HostedZoneId")
         self.backend.get_dnssec(zoneid)
-        result = {"Status": {"ServeSignature": "NOT_SIGNING"}}
+        result = {"KeySigningKeys": [], "Status": {"ServeSignature": "NOT_SIGNING"}}
         return ActionResult(result)
 
     def associate_vpc_with_hosted_zone(self) -> ActionResult:
@@ -243,7 +254,12 @@ class Route53(BaseResponse):
 
     def list_health_checks(self) -> ActionResult:
         health_checks = self.backend.list_health_checks()
-        result = {"HealthChecks": health_checks}
+        result = {
+            "HealthChecks": health_checks,
+            "Marker": "",
+            "IsTruncated": False,
+            "MaxItems": str(len(health_checks)),
+        }
         return ActionResult(result)
 
     def get_health_check(self) -> ActionResult:
@@ -377,14 +393,13 @@ class Route53(BaseResponse):
         return EmptyResult()
 
     def list_reusable_delegation_sets(self) -> ActionResult:
-        marker = self._get_param("Marker")
+        marker = self._get_param("Marker") or ""
         delegation_sets = self.backend.list_reusable_delegation_sets()
         result = {
             "DelegationSets": delegation_sets,
             "Marker": marker,
             "IsTruncated": False,
-            "NextMarker": None,
-            "MaxItems": 100,
+            "MaxItems": "100",
         }
         return ActionResult(result)
 
@@ -410,14 +425,695 @@ class Route53(BaseResponse):
         self.backend.delete_reusable_delegation_set(delegation_set_id=ds_id)
         return EmptyResult()
 
+    def get_account_limit(self) -> str:
+        limit_type = self.parsed_url.path.rstrip("/").rsplit("/", 1)[1]
+        value = self.backend.get_account_limit(limit_type)
+        count = 0
+        if limit_type == "MAX_HEALTH_CHECKS_BY_OWNER":
+            count = len(self.backend.health_checks)
+        elif limit_type == "MAX_HOSTED_ZONES_BY_OWNER":
+            count = len(self.backend.zones)
+        elif limit_type == "MAX_REUSABLE_DELEGATION_SETS_BY_OWNER":
+            count = len(self.backend.delegation_sets)
+        template = Template(GET_ACCOUNT_LIMIT_RESPONSE)
+        return template.render(limit_type=limit_type, value=value, count=count)
+
+    def get_hosted_zone_limit(self) -> str:
+        parts = self.parsed_url.path.rstrip("/").rsplit("/", 2)
+        zone_id = parts[-2]
+        limit_type = parts[-1]
+        value = self.backend.get_hosted_zone_limit(zone_id, limit_type)
+        count = 0
+        zone = self.backend.get_hosted_zone(zone_id)
+        if limit_type == "MAX_RRSETS_BY_ZONE":
+            count = len(zone.rrsets)
+        elif limit_type == "MAX_VPCS_ASSOCIATED_BY_ZONE":
+            count = len(zone.vpcs)
+        template = Template(GET_HOSTED_ZONE_LIMIT_RESPONSE)
+        return template.render(limit_type=limit_type, value=value, count=count)
+
+    def get_reusable_delegation_set_limit(self) -> str:
+        parts = self.parsed_url.path.rstrip("/").rsplit("/", 2)
+        ds_id = parts[-2]
+        limit_type = parts[-1]
+        value = self.backend.get_reusable_delegation_set_limit(ds_id, limit_type)
+        count = 0
+        template = Template(GET_REUSABLE_DELEGATION_SET_LIMIT_RESPONSE)
+        return template.render(limit_type=limit_type, value=value, count=count)
+
+    def get_health_check_last_failure_reason(self) -> str:
+        health_check_match = re.search(
+            r"healthcheck/(?P<health_check_id>[^/]+)/lastfailurereason$",
+            self.parsed_url.path,
+        )
+        health_check_id = health_check_match.group("health_check_id")  # type: ignore[union-attr]
+        self.backend.get_health_check_last_failure_reason(health_check_id)
+        template = Template(GET_HEALTH_CHECK_LAST_FAILURE_REASON_RESPONSE)
+        return template.render()
+
+    def create_cidr_collection(self) -> TYPE_RESPONSE:
+        elements = xmltodict.parse(self.body)
+        req = elements["CreateCidrCollectionRequest"]
+        name = req["Name"]
+        caller_reference = req["CallerReference"]
+        collection = self.backend.create_cidr_collection(name, caller_reference)
+        template = Template(CREATE_CIDR_COLLECTION_RESPONSE)
+        return (
+            201,
+            {
+                "status": 201,
+                "Location": f"https://route53.amazonaws.com/2013-04-01/cidrcollection/{collection.id}",
+            },
+            template.render(collection=collection),
+        )
+
+    def list_cidr_collections(self) -> str:
+        collections = self.backend.list_cidr_collections()
+        template = Template(LIST_CIDR_COLLECTIONS_RESPONSE)
+        return template.render(collections=collections)
+
+    def delete_cidr_collection(self) -> str:
+        collection_id = self.parsed_url.path.rstrip("/").rsplit("/", 1)[1]
+        self.backend.delete_cidr_collection(collection_id)
+        return ""
+
+    def change_cidr_collection(self) -> str:
+        collection_id = self.parsed_url.path.rstrip("/").rsplit("/", 1)[1]
+        elements = xmltodict.parse(self.body)
+        req = elements["ChangeCidrCollectionRequest"]
+        changes = req["Changes"]["Change"]
+        if not isinstance(changes, list):
+            changes = [changes]
+        version = self.backend.change_cidr_collection(collection_id, changes)
+        template = Template(CHANGE_CIDR_COLLECTION_RESPONSE)
+        return template.render(version=version)
+
+    def list_cidr_blocks(self) -> str:
+        collection_id = self.parsed_url.path.rstrip("/").rsplit("/", 2)[1]
+        query_params = parse_qs(self.parsed_url.query)
+        location_name = query_params.get("location", [None])[0]
+        blocks = self.backend.list_cidr_blocks(collection_id, location_name)
+        template = Template(LIST_CIDR_BLOCKS_RESPONSE)
+        return template.render(blocks=blocks)
+
+    def list_cidr_locations(self) -> str:
+        collection_id = self.parsed_url.path.rstrip("/").rsplit("/", 1)[1]
+        locations = self.backend.list_cidr_locations(collection_id)
+        template = Template(LIST_CIDR_LOCATIONS_RESPONSE)
+        return template.render(locations=locations)
+
+    def create_vpc_association_authorization(self) -> TYPE_RESPONSE:
+        zone_id = self.parsed_url.path.rstrip("/").rsplit("/", 2)[1]
+        elements = xmltodict.parse(self.body)
+        req = elements["CreateVPCAssociationAuthorizationRequest"]
+        vpc = req["VPC"]
+        vpc_id = vpc["VPCId"]
+        vpc_region = vpc.get("VPCRegion", "us-east-1")
+        auth = self.backend.create_vpc_association_authorization(
+            zone_id, vpc_id, vpc_region
+        )
+        template = Template(CREATE_VPC_ASSOCIATION_AUTHORIZATION_RESPONSE)
+        return 200, {}, template.render(zone_id=zone_id, auth=auth)
+
+    def delete_vpc_association_authorization(self) -> str:
+        zone_id = self.parsed_url.path.rstrip("/").rsplit("/", 2)[1]
+        elements = xmltodict.parse(self.body)
+        req = elements["DeleteVPCAssociationAuthorizationRequest"]
+        vpc = req["VPC"]
+        vpc_id = vpc["VPCId"]
+        vpc_region = vpc.get("VPCRegion", "us-east-1")
+        self.backend.delete_vpc_association_authorization(
+            zone_id, vpc_id, vpc_region
+        )
+        template = Template(DELETE_VPC_ASSOCIATION_AUTHORIZATION_RESPONSE)
+        return template.render()
+
+    def list_vpc_association_authorizations(self) -> str:
+        zone_id = self.parsed_url.path.rstrip("/").rsplit("/", 2)[1]
+        auths = self.backend.list_vpc_association_authorizations(zone_id)
+        template = Template(LIST_VPC_ASSOCIATION_AUTHORIZATIONS_RESPONSE)
+        return template.render(zone_id=zone_id, auths=auths)
+
     @staticmethod
     def _validate_resource_id(resource_id: str, resource_type: str) -> None:
         # Method extracted from https://github.com/getmoto/moto/pull/8984
-        # From testing, it looks like Route53 creates ID's that are either 21 or 22 characters long
-        # In practice, this error will typically appear when passing in the full ID: `/hostedzone/{id}`
-        # Users should pass in {id} instead
-        # NOTE: we don't know (yet) what kind of validation (if any) is in place for type_==healthcheck.
         if resource_type == "hostedzone" and len(resource_id) > 32:
             raise InvalidInput(
-                f"1 validation error detected: Value '{resource_id}' at 'resourceId' failed to satisfy constraint: Member must have length less than or equal to 32"
+                f"1 validation error detected: Value '{resource_id}' at 'resourceId'"
+                f" failed to satisfy constraint:"
+                f" Member must have length less than or equal to 32"
             )
+
+
+LIST_TAGS_FOR_RESOURCE_RESPONSE = """
+<ListTagsForResourceResponse xmlns="https://route53.amazonaws.com/doc/2015-01-01/">
+    <ResourceTagSet>
+        <ResourceType>{{resource_type}}</ResourceType>
+        <ResourceId>{{resource_id}}</ResourceId>
+        <Tags>
+            {% for key, value in tags.items() %}
+            <Tag>
+                <Key>{{key}}</Key>
+                <Value>{{value}}</Value>
+            </Tag>
+            {% endfor %}
+        </Tags>
+    </ResourceTagSet>
+</ListTagsForResourceResponse>
+"""
+
+LIST_TAGS_FOR_RESOURCES_RESPONSE = """
+<ListTagsForResourcesResponse xmlns="https://route53.amazonaws.com/doc/2015-01-01/">
+    <ResourceTagSets>
+        {% for set in tag_sets %}
+        <ResourceTagSet>
+            <ResourceType>{{resource_type}}</ResourceType>
+            <ResourceId>{{set["ResourceId"]}}</ResourceId>
+            <Tags>
+                {% for key, value in set["Tags"].items() %}
+                <Tag>
+                    <Key>{{key}}</Key>
+                    <Value>{{value}}</Value>
+                </Tag>
+                {% endfor %}
+            </Tags>
+        </ResourceTagSet>
+        {% endfor %}
+    </ResourceTagSets>
+</ListTagsForResourcesResponse>
+"""
+
+CHANGE_TAGS_FOR_RESOURCE_RESPONSE = """<ChangeTagsForResourceResponse xmlns="https://route53.amazonaws.com/doc/2015-01-01/">
+</ChangeTagsForResourceResponse>
+"""
+
+LIST_RRSET_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<ListResourceRecordSetsResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
+   <ResourceRecordSets>
+       {% for record in record_sets %}
+       <ResourceRecordSet>
+           <Name>{{ record.name }}</Name>
+           <Type>{{ record.type_ }}</Type>
+           {% if record.set_identifier %}
+               <SetIdentifier>{{ record.set_identifier }}</SetIdentifier>
+           {% endif %}
+           {% if record.weight %}
+               <Weight>{{ record.weight }}</Weight>
+           {% endif %}
+           {% if record.region %}
+               <Region>{{ record.region }}</Region>
+           {% endif %}
+           {% if record.ttl %}
+               <TTL>{{ record.ttl }}</TTL>
+           {% endif %}
+           {% if record.failover %}
+               <Failover>{{ record.failover }}</Failover>
+           {% endif %}
+           {% if record.multi_value %}
+               <MultiValueAnswer>{{ record.multi_value }}</MultiValueAnswer>
+           {% endif %}
+           {% if record.geo_location %}
+           <GeoLocation>
+           {% for geo_key in ['ContinentCode','CountryCode','SubdivisionCode'] %}
+             {% if record.geo_location[geo_key] %}<{{ geo_key }}>{{ record.geo_location[geo_key] }}</{{ geo_key }}>{% endif %}
+           {% endfor %}
+           </GeoLocation>
+           {% endif %}
+           {% if record.alias_target %}
+           <AliasTarget>
+               <HostedZoneId>{{ record.alias_target['HostedZoneId'] }}</HostedZoneId>
+               <DNSName>{{ record.alias_target['DNSName'] }}</DNSName>
+               <EvaluateTargetHealth>{{ record.alias_target['EvaluateTargetHealth'] }}</EvaluateTargetHealth>
+           </AliasTarget>
+           {% else %}
+           <ResourceRecords>
+               {% for resource in record.records %}
+               <ResourceRecord>
+                   <Value><![CDATA[{{ resource }}]]></Value>
+               </ResourceRecord>
+               {% endfor %}
+           </ResourceRecords>
+           {% endif %}
+           {% if record.health_check %}
+               <HealthCheckId>{{ record.health_check }}</HealthCheckId>
+           {% endif %}
+        </ResourceRecordSet>
+       {% endfor %}
+   </ResourceRecordSets>
+   {% if is_truncated %}<NextRecordName>{{ next_name }}</NextRecordName>{% endif %}
+   {% if is_truncated %}<NextRecordType>{{ next_type }}</NextRecordType>{% endif %}
+   <MaxItems>{{ max_items }}</MaxItems>
+   <IsTruncated>{{ 'true' if is_truncated else 'false' }}</IsTruncated>
+</ListResourceRecordSetsResponse>"""
+
+CHANGE_RRSET_RESPONSE = """<ChangeResourceRecordSetsResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
+   <ChangeInfo>
+      <Status>INSYNC</Status>
+      <SubmittedAt>2010-09-10T01:36:41.958Z</SubmittedAt>
+      <Id>/change/C2682N5HXP0BZ4</Id>
+   </ChangeInfo>
+</ChangeResourceRecordSetsResponse>"""
+
+DELETE_HOSTED_ZONE_RESPONSE = """<DeleteHostedZoneResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
+    <ChangeInfo>
+      <Status>INSYNC</Status>
+      <SubmittedAt>2010-09-10T01:36:41.958Z</SubmittedAt>
+      <Id>/change/C2682N5HXP0BZ4</Id>
+   </ChangeInfo>
+</DeleteHostedZoneResponse>"""
+
+GET_HOSTED_ZONE_COUNT_RESPONSE = """<GetHostedZoneCountResponse> xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
+   <HostedZoneCount>{{ zone_count }}</HostedZoneCount>
+</GetHostedZoneCountResponse>"""
+
+
+GET_HOSTED_ZONE_RESPONSE = """<GetHostedZoneResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
+   <HostedZone>
+      <Id>/hostedzone/{{ zone.id }}</Id>
+      <Name>{{ zone.name }}</Name>
+        <CallerReference>{{ zone.caller_reference }}</CallerReference>
+      <ResourceRecordSetCount>{{ zone.rrsets|count }}</ResourceRecordSetCount>
+      <Config>
+        {% if zone.comment %}
+            <Comment>{{ zone.comment }}</Comment>
+        {% endif %}
+        <PrivateZone>{{ 'true' if zone.private_zone else 'false' }}</PrivateZone>
+      </Config>
+   </HostedZone>
+   {% if not zone.private_zone %}
+   <DelegationSet>
+      <Id>{{ zone.delegation_set.id }}</Id>
+      <NameServers>
+        {% for name in zone.delegation_set.name_servers %}<NameServer>{{ name }}</NameServer>{% endfor %}
+      </NameServers>
+   </DelegationSet>
+   {% endif %}
+   {% if zone.private_zone %}
+   <VPCs>
+      {% for vpc in zone.vpcs %}
+      <VPC>
+         <VPCId>{{vpc.vpc_id}}</VPCId>
+         <VPCRegion>{{vpc.vpc_region}}</VPCRegion>
+      </VPC>
+      {% endfor %}
+   </VPCs>
+   {% endif %}
+</GetHostedZoneResponse>"""
+
+CREATE_HOSTED_ZONE_RESPONSE = """<CreateHostedZoneResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
+    {% if zone.private_zone %}
+    <VPC>
+      <VPCId>{{zone.vpcid}}</VPCId>
+      <VPCRegion>{{zone.vpcregion}}</VPCRegion>
+    </VPC>
+    {% endif %}
+   <HostedZone>
+      <Id>/hostedzone/{{ zone.id }}</Id>
+      <Name>{{ zone.name }}</Name>
+      <CallerReference>{{ zone.caller_reference }}</CallerReference>
+      <ResourceRecordSetCount>{{ zone.rrsets|count }}</ResourceRecordSetCount>
+      <Config>
+        {% if zone.comment %}
+            <Comment>{{ zone.comment }}</Comment>
+        {% endif %}
+        <PrivateZone>{{ 'true' if zone.private_zone else 'false' }}</PrivateZone>
+      </Config>
+   </HostedZone>
+   {% if not zone.private_zone %}
+   <DelegationSet>
+      <Id>{{ zone.delegation_set.id }}</Id>
+      <NameServers>
+         {% for name in zone.delegation_set.name_servers %}<NameServer>{{ name }}</NameServer>{% endfor %}
+      </NameServers>
+   </DelegationSet>
+   {% endif %}
+   <ChangeInfo>
+      <Id>/change/C1PA6795UKMFR9</Id>
+      <Status>INSYNC</Status>
+      <SubmittedAt>2017-03-15T01:36:41.958Z</SubmittedAt>
+   </ChangeInfo>
+</CreateHostedZoneResponse>"""
+
+LIST_HOSTED_ZONES_RESPONSE = """<ListHostedZonesResponse xmlns="https://route53.amazonaws.com/doc/2012-12-12/">
+   <HostedZones>
+      {% for zone in zones %}
+      <HostedZone>
+         <Id>/hostedzone/{{ zone.id }}</Id>
+         <Name>{{ zone.name }}</Name>
+         <CallerReference>{{ zone.caller_reference }}</CallerReference>
+         <Config>
+            {% if zone.comment %}
+                <Comment>{{ zone.comment }}</Comment>
+            {% endif %}
+           <PrivateZone>{{ 'true' if zone.private_zone else 'false' }}</PrivateZone>
+         </Config>
+         <ResourceRecordSetCount>{{ zone.rrsets|count  }}</ResourceRecordSetCount>
+      </HostedZone>
+      {% endfor %}
+   </HostedZones>
+   <Marker>{{ marker or "" }}</Marker>
+   {%if next_marker %}<NextMarker>{{ next_marker }}</NextMarker>{% endif %}
+   <MaxItems>{{ max_items or "100" }}</MaxItems>
+   <IsTruncated>{{ 'true' if next_marker else 'false'}}</IsTruncated>
+</ListHostedZonesResponse>"""
+
+LIST_HOSTED_ZONES_BY_NAME_RESPONSE = """<ListHostedZonesByNameResponse xmlns="{{ xmlns }}">
+  {% if dnsname %}
+  <DNSName>{{ dnsname }}</DNSName>
+  {% endif %}
+  <HostedZones>
+      {% for zone in zones %}
+      <HostedZone>
+         <Id>/hostedzone/{{ zone.id }}</Id>
+         <Name>{{ zone.name }}</Name>
+         <CallerReference>{{ zone.caller_reference }}</CallerReference>
+         <Config>
+            {% if zone.comment %}
+                <Comment>{{ zone.comment }}</Comment>
+            {% endif %}
+           <PrivateZone>{{ 'true' if zone.private_zone else 'false' }}</PrivateZone>
+         </Config>
+         <ResourceRecordSetCount>{{ zone.rrsets|count  }}</ResourceRecordSetCount>
+      </HostedZone>
+      {% endfor %}
+   </HostedZones>
+   <IsTruncated>false</IsTruncated>
+   <MaxItems>100</MaxItems>
+</ListHostedZonesByNameResponse>"""
+
+LIST_HOSTED_ZONES_BY_VPC_RESPONSE = """<ListHostedZonesByVpcResponse xmlns="{{xmlns}}">
+   <HostedZoneSummaries>
+       {% for zone in zones -%}
+       <HostedZoneSummary>
+           <HostedZoneId>{{zone["HostedZoneId"]}}</HostedZoneId>
+           <Name>{{zone["Name"]}}</Name>
+           <Owner>
+               {% if zone["Owner"]["OwningAccount"] -%}
+               <OwningAccount>{{zone["Owner"]["OwningAccount"]}}</OwningAccount>
+               {% endif -%}
+               {% if zone["Owner"]["OwningService"] -%}
+               <OwningService>zone["Owner"]["OwningService"]</OwningService>
+               {% endif -%}
+           </Owner>
+       </HostedZoneSummary>
+       {% endfor -%}
+   </HostedZoneSummaries>
+   <MaxItems>100</MaxItems>
+</ListHostedZonesByVpcResponse>"""
+
+CREATE_HEALTH_CHECK_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<CreateHealthCheckResponse xmlns="{{ xmlns }}">
+  {{ health_check.to_xml() }}
+</CreateHealthCheckResponse>"""
+
+UPDATE_HEALTH_CHECK_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<UpdateHealthCheckResponse>
+  {{ health_check.to_xml() }}
+</UpdateHealthCheckResponse>
+"""
+
+LIST_HEALTH_CHECKS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<ListHealthChecksResponse xmlns="{{ xmlns }}">
+   <HealthChecks>
+   {% for health_check in health_checks %}
+      {{ health_check.to_xml() }}
+    {% endfor %}
+   </HealthChecks>
+   <Marker></Marker>
+   <IsTruncated>false</IsTruncated>
+   <MaxItems>{{ health_checks|length }}</MaxItems>
+</ListHealthChecksResponse>"""
+
+DELETE_HEALTH_CHECK_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+    <DeleteHealthCheckResponse xmlns="{{ xmlns }}">
+</DeleteHealthCheckResponse>"""
+
+GET_CHANGE_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<GetChangeResponse xmlns="{{ xmlns }}">
+   <ChangeInfo>
+      <Status>INSYNC</Status>
+      <SubmittedAt>2010-09-10T01:36:41.958Z</SubmittedAt>
+      <Id>{{ change_id }}</Id>
+   </ChangeInfo>
+</GetChangeResponse>"""
+
+CREATE_QUERY_LOGGING_CONFIG_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<CreateQueryLoggingConfigResponse xmlns="{{ xmlns }}">
+  {{ query_logging_config.to_xml() }}
+</CreateQueryLoggingConfigResponse>"""
+
+GET_QUERY_LOGGING_CONFIG_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<CreateQueryLoggingConfigResponse xmlns="{{ xmlns }}">
+  {{ query_logging_config.to_xml() }}
+</CreateQueryLoggingConfigResponse>"""
+
+LIST_QUERY_LOGGING_CONFIGS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<ListQueryLoggingConfigsResponse xmlns="{{ xmlns }}">
+   <QueryLoggingConfigs>
+      {% for query_logging_config in query_logging_configs %}
+         {{ query_logging_config.to_xml() }}
+      {% endfor %}
+   </QueryLoggingConfigs>
+   {% if next_token %}
+      <NextToken>{{ next_token }}</NextToken>
+   {% endif %}
+</ListQueryLoggingConfigsResponse>"""
+
+
+CREATE_REUSABLE_DELEGATION_SET_TEMPLATE = """<CreateReusableDelegationSetResponse>
+  <DelegationSet>
+      <Id>{{ delegation_set.id }}</Id>
+      <CallerReference>{{ delegation_set.caller_reference }}</CallerReference>
+      <NameServers>
+        {% for name in delegation_set.name_servers %}<NameServer>{{ name }}</NameServer>{% endfor %}
+      </NameServers>
+  </DelegationSet>
+</CreateReusableDelegationSetResponse>
+"""
+
+
+LIST_REUSABLE_DELEGATION_SETS_TEMPLATE = """<ListReusableDelegationSetsResponse>
+  <DelegationSets>
+    {% for delegation in delegation_sets %}
+    <DelegationSet>
+  <Id>{{ delegation.id }}</Id>
+  <CallerReference>{{ delegation.caller_reference }}</CallerReference>
+  <NameServers>
+    {% for name in delegation.name_servers %}<NameServer>{{ name }}</NameServer>{% endfor %}
+  </NameServers>
+</DelegationSet>
+    {% endfor %}
+  </DelegationSets>
+  <Marker>{{ marker }}</Marker>
+  <IsTruncated>{{ is_truncated }}</IsTruncated>
+  <MaxItems>{{ max_items }}</MaxItems>
+</ListReusableDelegationSetsResponse>
+"""
+
+
+DELETE_REUSABLE_DELEGATION_SET_TEMPLATE = """<DeleteReusableDelegationSetResponse>
+  <DeleteReusableDelegationSetResponse/>
+</DeleteReusableDelegationSetResponse>
+"""
+
+GET_REUSABLE_DELEGATION_SET_TEMPLATE = """<GetReusableDelegationSetResponse>
+<DelegationSet>
+  <Id>{{ delegation_set.id }}</Id>
+  <CallerReference>{{ delegation_set.caller_reference }}</CallerReference>
+  <NameServers>
+    {% for name in delegation_set.name_servers %}<NameServer>{{ name }}</NameServer>{% endfor %}
+  </NameServers>
+</DelegationSet>
+</GetReusableDelegationSetResponse>
+"""
+
+GET_DNSSEC = """<?xml version="1.0"?>
+<GetDNSSECResponse>
+    <Status>
+        <ServeSignature>NOT_SIGNING</ServeSignature>
+    </Status>
+    <KeySigningKeys/>
+</GetDNSSECResponse>
+"""
+
+GET_HEALTH_CHECK_RESPONSE = """<?xml version="1.0"?>
+<GetHealthCheckResponse>
+    {{ health_check.to_xml() }}
+</GetHealthCheckResponse>
+"""
+
+GET_HEALTH_CHECK_STATUS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<GetHealthCheckStatusResponse>
+   <HealthCheckObservations>
+      <HealthCheckObservation>
+         <IPAddress>127.0.13.37</IPAddress>
+         <Region>us-east-1</Region>
+         <StatusReport>
+            <CheckedTime>{{ timestamp }}</CheckedTime>
+            <Status>Success: HTTP Status Code: 200. Resolved IP: 127.0.13.37. OK</Status>
+         </StatusReport>
+      </HealthCheckObservation>
+   </HealthCheckObservations>
+</GetHealthCheckStatusResponse>
+"""
+
+UPDATE_HOSTED_ZONE_COMMENT_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<UpdateHostedZoneCommentResponse>
+   <HostedZone>
+      <Config>
+         {% if zone.comment %}
+         <Comment>{{ zone.comment }}</Comment>
+         {% endif %}
+         <PrivateZone>{{ 'true' if zone.private_zone else 'false' }}</PrivateZone>
+      </Config>
+      <Id>/hostedzone/{{ zone.id }}</Id>
+      <Name>{{ zone.name }}</Name>
+      <ResourceRecordSetCount>{{ zone.rrsets|count }}</ResourceRecordSetCount>
+   </HostedZone>
+</UpdateHostedZoneCommentResponse>
+"""
+
+ASSOCIATE_VPC_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<AssociateVPCWithHostedZoneResponse>
+   <ChangeInfo>
+      <Comment>{{ comment or "" }}</Comment>
+      <Id>/change/a1b2c3d4</Id>
+      <Status>INSYNC</Status>
+      <SubmittedAt>2017-03-31T01:36:41.958Z</SubmittedAt>
+   </ChangeInfo>
+</AssociateVPCWithHostedZoneResponse>
+"""
+
+DISASSOCIATE_VPC_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<DisassociateVPCFromHostedZoneResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+   <ChangeInfo>
+      <Comment>{{ comment or "" }}</Comment>
+      <Id>/change/a1b2c3d4</Id>
+      <Status>INSYNC</Status>
+      <SubmittedAt>2017-03-31T01:36:41.958Z</SubmittedAt>
+   </ChangeInfo>
+</DisassociateVPCFromHostedZoneResponse>
+"""
+
+GET_HEALTH_CHECK_LAST_FAILURE_REASON_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<GetHealthCheckLastFailureReasonResponse>
+   <HealthCheckObservations/>
+</GetHealthCheckLastFailureReasonResponse>
+"""
+
+GET_ACCOUNT_LIMIT_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<GetAccountLimitResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+   <Limit>
+      <Type>{{ limit_type }}</Type>
+      <Value>{{ value }}</Value>
+   </Limit>
+   <Count>{{ count }}</Count>
+</GetAccountLimitResponse>
+"""
+
+GET_HOSTED_ZONE_LIMIT_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<GetHostedZoneLimitResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+   <Limit>
+      <Type>{{ limit_type }}</Type>
+      <Value>{{ value }}</Value>
+   </Limit>
+   <Count>{{ count }}</Count>
+</GetHostedZoneLimitResponse>
+"""
+
+GET_REUSABLE_DELEGATION_SET_LIMIT_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<GetReusableDelegationSetLimitResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+   <Limit>
+      <Type>{{ limit_type }}</Type>
+      <Value>{{ value }}</Value>
+   </Limit>
+   <Count>{{ count }}</Count>
+</GetReusableDelegationSetLimitResponse>
+"""
+
+CREATE_CIDR_COLLECTION_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<CreateCidrCollectionResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+   <Collection>
+      <Arn>{{ collection.arn }}</Arn>
+      <Id>{{ collection.id }}</Id>
+      <Name>{{ collection.name }}</Name>
+      <Version>{{ collection.version }}</Version>
+   </Collection>
+   <Location>https://route53.amazonaws.com/2013-04-01/cidrcollection/{{ collection.id }}</Location>
+</CreateCidrCollectionResponse>
+"""
+
+LIST_CIDR_COLLECTIONS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<ListCidrCollectionsResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+   <CidrCollections>
+      {% for collection in collections %}
+      <CidrCollection>
+         <Arn>{{ collection.arn }}</Arn>
+         <Id>{{ collection.id }}</Id>
+         <Name>{{ collection.name }}</Name>
+         <Version>{{ collection.version }}</Version>
+      </CidrCollection>
+      {% endfor %}
+   </CidrCollections>
+</ListCidrCollectionsResponse>
+"""
+
+CHANGE_CIDR_COLLECTION_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<ChangeCidrCollectionResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+   <Id>{{ version }}</Id>
+</ChangeCidrCollectionResponse>
+"""
+
+LIST_CIDR_BLOCKS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<ListCidrBlocksResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+   <CidrBlocks>
+      {% for block in blocks %}
+      <CidrBlock>
+         <CidrBlock>{{ block.CidrBlock }}</CidrBlock>
+         <LocationName>{{ block.LocationName }}</LocationName>
+      </CidrBlock>
+      {% endfor %}
+   </CidrBlocks>
+</ListCidrBlocksResponse>
+"""
+
+LIST_CIDR_LOCATIONS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<ListCidrLocationsResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+   <CidrLocations>
+      {% for location in locations %}
+      <LocationSummary>
+         <LocationName>{{ location.LocationName }}</LocationName>
+      </LocationSummary>
+      {% endfor %}
+   </CidrLocations>
+</ListCidrLocationsResponse>
+"""
+
+CREATE_VPC_ASSOCIATION_AUTHORIZATION_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<CreateVPCAssociationAuthorizationResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+   <HostedZoneId>{{ zone_id }}</HostedZoneId>
+   <VPC>
+      <VPCId>{{ auth.VPCId }}</VPCId>
+      <VPCRegion>{{ auth.VPCRegion }}</VPCRegion>
+   </VPC>
+</CreateVPCAssociationAuthorizationResponse>
+"""
+
+DELETE_VPC_ASSOCIATION_AUTHORIZATION_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<DeleteVPCAssociationAuthorizationResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+</DeleteVPCAssociationAuthorizationResponse>
+"""
+
+LIST_VPC_ASSOCIATION_AUTHORIZATIONS_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<ListVPCAssociationAuthorizationsResponse xmlns="https://route53.amazonaws.com/doc/2013-04-01/">
+   <HostedZoneId>{{ zone_id }}</HostedZoneId>
+   <VPCs>
+      {% for auth in auths %}
+      <VPC>
+         <VPCId>{{ auth.VPCId }}</VPCId>
+         <VPCRegion>{{ auth.VPCRegion }}</VPCRegion>
+      </VPC>
+      {% endfor %}
+   </VPCs>
+</ListVPCAssociationAuthorizationsResponse>
+"""

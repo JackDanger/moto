@@ -602,3 +602,415 @@ class LogsResponse(BaseResponse):
             name=name,
         )
         return ""
+
+    def put_query_definition(self) -> str:
+        name = self._get_param("name")
+        query_string = self._get_param("queryString")
+        log_group_names = self._get_param("logGroupNames", [])
+        query_definition_id = self._get_param("queryDefinitionId")
+        result = self.logs_backend.put_query_definition(
+            name=name,
+            query_string=query_string,
+            log_group_names=log_group_names,
+            query_definition_id=query_definition_id,
+        )
+        return json.dumps({"queryDefinitionId": result})
+
+    def delete_query_definition(self) -> str:
+        query_definition_id = self._get_param("queryDefinitionId")
+        success = self.logs_backend.delete_query_definition(
+            query_definition_id=query_definition_id,
+        )
+        return json.dumps({"success": success})
+
+    def describe_query_definitions(self) -> str:
+        query_definition_name_prefix = self._get_param("queryDefinitionNamePrefix")
+        query_definitions = self.logs_backend.describe_query_definitions(
+            query_definition_name_prefix=query_definition_name_prefix,
+        )
+        return json.dumps({"queryDefinitions": query_definitions})
+
+    def get_log_group_fields(self) -> str:
+        log_group_name = self._get_param("logGroupName")
+        log_group_identifier = self._get_param("logGroupIdentifier")
+        fields = self.logs_backend.get_log_group_fields(
+            log_group_name=log_group_name or log_group_identifier,
+        )
+        return json.dumps({"logGroupFields": fields})
+
+    def list_log_groups(self) -> str:
+        log_group_name_prefix = self._get_param("logGroupNamePrefix")
+        log_group_name_pattern = self._get_param("logGroupNamePattern")
+        next_token = self._get_param("nextToken")
+        limit = self._get_param("limit", 50)
+        log_groups, next_token = self.logs_backend.list_log_groups(
+            log_group_name_prefix=log_group_name_prefix,
+            log_group_name_pattern=log_group_name_pattern,
+            limit=limit,
+            next_token=next_token,
+        )
+        result: dict[str, Any] = {"logGroups": log_groups}
+        if next_token:
+            result["nextToken"] = next_token
+        return json.dumps(result)
+
+    def describe_configuration_templates(self) -> str:
+        templates = self.logs_backend.describe_configuration_templates()
+        return json.dumps({"configurationTemplates": templates})
+
+    def describe_import_tasks(self) -> str:
+        import_tasks = self.logs_backend.describe_import_tasks()
+        return json.dumps({"importTasks": import_tasks})
+
+    def list_anomalies(self) -> str:
+        anomaly_detector_arn = self._get_param("anomalyDetectorArn")
+        anomalies = self.logs_backend.list_anomalies(
+            anomaly_detector_arn=anomaly_detector_arn,
+        )
+        return json.dumps({"anomalies": anomalies})
+
+    def list_log_anomaly_detectors(self) -> str:
+        filter_log_group_arn = self._get_param("filterLogGroupArn")
+        detectors = self.logs_backend.list_log_anomaly_detectors(
+            filter_log_group_arn=filter_log_group_arn,
+        )
+        return json.dumps({"anomalyDetectors": detectors})
+
+    def delete_integration(self) -> str:
+        integration_name = self._get_param("integrationName")
+        self.logs_backend.delete_integration(
+            integration_name=integration_name,
+        )
+        return "{}"
+
+    def list_aggregate_log_group_summaries(self) -> str:
+        log_group_name_pattern = self._get_param("logGroupNamePattern")
+        group_by = self._get_param("groupBy")
+        next_token = self._get_param("nextToken")
+        limit = self._get_param("limit", 50)
+        summaries, new_next_token = self.logs_backend.list_aggregate_log_group_summaries(
+            log_group_name_pattern=log_group_name_pattern,
+            group_by=group_by,
+            limit=limit,
+            next_token=next_token,
+        )
+        result: dict[str, Any] = {"aggregateLogGroupSummaries": summaries}
+        if new_next_token:
+            result["nextToken"] = new_next_token
+        return json.dumps(result)
+
+    def put_bearer_token_authentication(self) -> str:
+        log_group_identifier = self._get_param("logGroupIdentifier")
+        enabled = self._get_param("bearerTokenAuthenticationEnabled", True)
+        self.logs_backend.put_bearer_token_authentication(
+            log_group_identifier=log_group_identifier,
+            enabled=enabled,
+        )
+        return "{}"
+
+    def list_integrations(self) -> str:
+        integration_name_prefix = self._get_param("integrationNamePrefix")
+        integration_type = self._get_param("integrationType")
+        integrations = self.logs_backend.list_integrations(
+            integration_name_prefix=integration_name_prefix,
+            integration_type=integration_type,
+        )
+        return json.dumps({"integrationSummaries": integrations})
+
+    def list_scheduled_queries(self) -> str:
+        scheduled_queries = self.logs_backend.list_scheduled_queries()
+        return json.dumps({"scheduledQueries": scheduled_queries})
+
+    def put_account_policy(self) -> str:
+        policy_name = self._get_param("policyName")
+        policy_document = self._get_param("policyDocument")
+        policy_type = self._get_param("policyType")
+        scope = self._get_param("scope")
+        selection_criteria = self._get_param("selectionCriteria")
+        policy = self.logs_backend.put_account_policy(
+            policy_name=policy_name,
+            policy_document=policy_document,
+            policy_type=policy_type,
+            scope=scope,
+            selection_criteria=selection_criteria,
+        )
+        return json.dumps({"accountPolicy": policy.to_dict()})
+
+    def describe_account_policies(self) -> str:
+        policy_type = self._get_param("policyType")
+        policy_name = self._get_param("policyName")
+        policies = self.logs_backend.describe_account_policies(
+            policy_type=policy_type,
+            policy_name=policy_name,
+        )
+        return json.dumps({"accountPolicies": [p.to_dict() for p in policies]})
+
+    def delete_account_policy(self) -> str:
+        policy_name = self._get_param("policyName")
+        policy_type = self._get_param("policyType")
+        self.logs_backend.delete_account_policy(
+            policy_name=policy_name,
+            policy_type=policy_type,
+        )
+        return "{}"
+
+    def create_log_anomaly_detector(self) -> str:
+        log_group_arn_list = self._get_param("logGroupArnList")
+        detector_name = self._get_param("detectorName")
+        evaluation_frequency = self._get_param("evaluationFrequency")
+        filter_pattern = self._get_param("filterPattern")
+        kms_key_id = self._get_param("kmsKeyId")
+        anomaly_visibility_time = self._get_param("anomalyVisibilityTime")
+        tags = self._get_param("tags")
+        anomaly_detector_arn = self.logs_backend.create_log_anomaly_detector(
+            log_group_arn_list=log_group_arn_list,
+            detector_name=detector_name,
+            evaluation_frequency=evaluation_frequency,
+            filter_pattern=filter_pattern,
+            kms_key_id=kms_key_id,
+            anomaly_visibility_time=anomaly_visibility_time,
+            tags=tags,
+        )
+        return json.dumps({"anomalyDetectorArn": anomaly_detector_arn})
+
+    def get_log_anomaly_detector(self) -> str:
+        anomaly_detector_arn = self._get_param("anomalyDetectorArn")
+        detector = self.logs_backend.get_log_anomaly_detector(
+            anomaly_detector_arn=anomaly_detector_arn,
+        )
+        return json.dumps(detector.to_dict())
+
+    def update_log_anomaly_detector(self) -> str:
+        anomaly_detector_arn = self._get_param("anomalyDetectorArn")
+        evaluation_frequency = self._get_param("evaluationFrequency")
+        filter_pattern = self._get_param("filterPattern")
+        anomaly_visibility_time = self._get_param("anomalyVisibilityTime")
+        enabled = self._get_param("enabled", True)
+        self.logs_backend.update_log_anomaly_detector(
+            anomaly_detector_arn=anomaly_detector_arn,
+            evaluation_frequency=evaluation_frequency,
+            filter_pattern=filter_pattern,
+            anomaly_visibility_time=anomaly_visibility_time,
+            enabled=enabled,
+        )
+        return "{}"
+
+    def delete_log_anomaly_detector(self) -> str:
+        anomaly_detector_arn = self._get_param("anomalyDetectorArn")
+        self.logs_backend.delete_log_anomaly_detector(
+            anomaly_detector_arn=anomaly_detector_arn,
+        )
+        return "{}"
+
+    def put_index_policy(self) -> str:
+        log_group_identifier = self._get_param("logGroupIdentifier")
+        policy_document = self._get_param("policyDocument")
+        policy = self.logs_backend.put_index_policy(
+            log_group_identifier=log_group_identifier,
+            policy_document=policy_document,
+        )
+        return json.dumps({"indexPolicy": policy.to_dict()})
+
+    def describe_index_policies(self) -> str:
+        log_group_identifiers = self._get_param("logGroupIdentifiers")
+        policies = self.logs_backend.describe_index_policies(
+            log_group_identifiers=log_group_identifiers,
+        )
+        return json.dumps({"indexPolicies": [p.to_dict() for p in policies]})
+
+    def delete_index_policy(self) -> str:
+        log_group_identifier = self._get_param("logGroupIdentifier")
+        self.logs_backend.delete_index_policy(
+            log_group_identifier=log_group_identifier,
+        )
+        return "{}"
+
+    def put_data_protection_policy(self) -> str:
+        log_group_identifier = self._get_param("logGroupIdentifier")
+        policy_document = self._get_param("policyDocument")
+        result = self.logs_backend.put_data_protection_policy(
+            log_group_identifier=log_group_identifier,
+            policy_document=policy_document,
+        )
+        return json.dumps(result)
+
+    def delete_data_protection_policy(self) -> str:
+        log_group_identifier = self._get_param("logGroupIdentifier")
+        self.logs_backend.delete_data_protection_policy(
+            log_group_identifier=log_group_identifier,
+        )
+        return "{}"
+
+    def get_data_protection_policy(self) -> str:
+        log_group_identifier = self._get_param("logGroupIdentifier")
+        policy = self.logs_backend.get_data_protection_policy(
+            log_group_identifier=log_group_identifier,
+        )
+        return json.dumps(policy)
+
+    def get_log_record(self) -> str:
+        log_record_pointer = self._get_param("logRecordPointer")
+        record = self.logs_backend.get_log_record(
+            log_record_pointer=log_record_pointer,
+        )
+        return json.dumps({"logRecord": record})
+
+    def put_transformer(self) -> str:
+        log_group_identifier = self._get_param("logGroupIdentifier")
+        transformer_config = self._get_param("transformerConfig")
+        self.logs_backend.put_transformer(
+            log_group_identifier=log_group_identifier,
+            transformer_config=transformer_config,
+        )
+        return "{}"
+
+    def delete_transformer(self) -> str:
+        log_group_identifier = self._get_param("logGroupIdentifier")
+        self.logs_backend.delete_transformer(
+            log_group_identifier=log_group_identifier,
+        )
+        return "{}"
+
+    def get_transformer(self) -> str:
+        log_group_identifier = self._get_param("logGroupIdentifier")
+        transformer = self.logs_backend.get_transformer(
+            log_group_identifier=log_group_identifier,
+        )
+        return json.dumps(transformer)
+
+    def list_transformers(self) -> str:
+        log_group_name_prefix = self._get_param("logGroupNamePrefix")
+        transformers = self.logs_backend.list_transformers(
+            log_group_name_prefix=log_group_name_prefix,
+        )
+        return json.dumps({"transformers": transformers})
+
+    def get_integration(self) -> str:
+        integration_name = self._get_param("integrationName")
+        integration = self.logs_backend.get_integration(
+            integration_name=integration_name,
+        )
+        return json.dumps(integration)
+
+    def get_log_fields(self) -> str:
+        log_group_name = self._get_param("logGroupName")
+        log_group_identifier = self._get_param("logGroupIdentifier")
+        fields = self.logs_backend.get_log_fields(
+            log_group_name=log_group_name,
+            log_group_identifier=log_group_identifier,
+        )
+        return json.dumps({"logGroupFields": fields})
+
+    def describe_field_indexes(self) -> str:
+        log_group_identifiers = self._get_param("logGroupIdentifiers")
+        indexes = self.logs_backend.describe_field_indexes(
+            log_group_identifiers=log_group_identifiers,
+        )
+        return json.dumps({"fieldIndexes": indexes})
+
+    # Alias for compatibility
+    def list_field_indexes(self) -> str:
+        return self.describe_field_indexes()
+
+    def describe_import_task_batches(self) -> str:
+        import_id = self._get_param("importId")
+        batches = self.logs_backend.describe_import_task_batches(
+            import_task_identifier=import_id,
+        )
+        return json.dumps({"importBatches": batches})
+
+    def list_log_groups_for_query(self) -> str:
+        query_id = self._get_param("queryId")
+        log_group_names = self.logs_backend.list_log_groups_for_query(
+            query_id=query_id,
+        )
+        return json.dumps({"logGroupIdentifiers": log_group_names})
+
+    def put_log_group_deletion_protection(self) -> str:
+        log_group_name = self._get_param("logGroupName")
+        deletion_protection_enabled = self._get_param(
+            "deletionProtectionEnabled", True
+        )
+        self.logs_backend.put_log_group_deletion_protection(
+            log_group_name=log_group_name,
+            deletion_protection_enabled=deletion_protection_enabled,
+        )
+        return "{}"
+
+    def update_anomaly(self) -> str:
+        anomaly_id = self._get_param("anomalyId")
+        pattern_id = self._get_param("patternId")
+        anomaly_detector_arn = self._get_param("anomalyDetectorArn")
+        suppression = self._get_param("suppression")
+        baseline = self._get_param("baseline")
+        self.logs_backend.update_anomaly(
+            anomaly_id=anomaly_id,
+            pattern_id=pattern_id,
+            anomaly_detector_arn=anomaly_detector_arn,
+            suppression=suppression,
+            baseline=baseline,
+        )
+        return "{}"
+
+    def update_delivery_configuration(self) -> str:
+        delivery_id = self._get_param("id")
+        record_fields = self._get_param("recordFields")
+        field_delimiter = self._get_param("fieldDelimiter")
+        s3_delivery_configuration = self._get_param("s3DeliveryConfiguration")
+        self.logs_backend.update_delivery_configuration(
+            delivery_id=delivery_id,
+            record_fields=record_fields,
+            field_delimiter=field_delimiter,
+            s3_delivery_configuration=s3_delivery_configuration,
+        )
+        return "{}"
+
+    def create_scheduled_query(self) -> str:
+        name = self._get_param("name")
+        query_language = self._get_param("queryLanguage", "CWLI")
+        query_string = self._get_param("queryString")
+        log_group_names = self._get_param("logGroupIdentifiers", [])
+        schedule_expression = self._get_param("scheduleExpression")
+        target_configuration = self._get_param("destinationConfiguration")
+        sq = self.logs_backend.create_scheduled_query(
+            name=name,
+            query_language=query_language,
+            query_string=query_string,
+            log_group_names=log_group_names,
+            schedule_expression=schedule_expression,
+            target_configuration=target_configuration,
+        )
+        return json.dumps({"scheduledQueryArn": sq.arn, "state": sq.status})
+
+    def get_scheduled_query(self) -> str:
+        identifier = self._get_param("identifier")
+        sq = self.logs_backend.get_scheduled_query(arn=identifier)
+        return json.dumps(sq.to_dict())
+
+    def update_scheduled_query(self) -> str:
+        identifier = self._get_param("identifier")
+        query_string = self._get_param("queryString")
+        schedule_expression = self._get_param("scheduleExpression")
+        log_group_names = self._get_param("logGroupIdentifiers")
+        target_configuration = self._get_param("destinationConfiguration")
+        state = self._get_param("state")
+        enabled = None if state is None else (state == "ACTIVE")
+        sq = self.logs_backend.update_scheduled_query(
+            arn=identifier,
+            query_string=query_string,
+            schedule_expression=schedule_expression,
+            log_group_names=log_group_names,
+            target_configuration=target_configuration,
+            enabled=enabled,
+        )
+        return json.dumps(sq.to_dict())
+
+    def delete_scheduled_query(self) -> str:
+        identifier = self._get_param("identifier")
+        self.logs_backend.delete_scheduled_query(arn=identifier)
+        return "{}"
+
+    def get_scheduled_query_history(self) -> str:
+        identifier = self._get_param("identifier")
+        history = self.logs_backend.get_scheduled_query_history(arn=identifier)
+        return json.dumps({"scheduledQueryRunSummaries": history})

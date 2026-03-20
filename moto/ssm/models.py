@@ -1263,6 +1263,361 @@ class FakePatchGroup:
         self.default_associations = latest_patch_baselines[self.region_name]
 
 
+class FakeAssociation:
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        partition: str,
+        name: str,
+        instance_id: Optional[str] = None,
+        targets: Optional[list[dict[str, Any]]] = None,
+        parameters: Optional[dict[str, list[str]]] = None,
+        schedule_expression: Optional[str] = None,
+        output_location: Optional[dict[str, Any]] = None,
+        association_name: Optional[str] = None,
+        document_version: Optional[str] = None,
+        max_errors: Optional[str] = None,
+        max_concurrency: Optional[str] = None,
+        compliance_severity: Optional[str] = None,
+        apply_only_at_cron_interval: bool = False,
+    ):
+        self.association_id = str(random.uuid4())
+        self.name = name  # Document name
+        self.instance_id = instance_id
+        self.targets = targets or []
+        self.parameters = parameters or {}
+        self.schedule_expression = schedule_expression
+        self.output_location = output_location
+        self.association_name = association_name
+        self.document_version = document_version or "$DEFAULT"
+        self.max_errors = max_errors
+        self.max_concurrency = max_concurrency
+        self.compliance_severity = compliance_severity or "UNSPECIFIED"
+        self.apply_only_at_cron_interval = apply_only_at_cron_interval
+        self.association_version = "1"
+        now = utcnow()
+        self.date = now
+        self.last_update_association_date = now
+        self.last_execution_date = now
+        self.status = "Success"
+        self.overview = {"Status": "Success", "AssociationStatusAggregatedCount": {"Success": 1}}
+        self.account_id = account_id
+        self.region_name = region_name
+        self.partition = partition
+
+    def to_json(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "AssociationId": self.association_id,
+            "Name": self.name,
+            "AssociationVersion": self.association_version,
+            "DocumentVersion": self.document_version,
+            "Targets": self.targets,
+            "LastExecutionDate": self.last_execution_date.isoformat(),
+            "Overview": self.overview,
+            "ScheduleExpression": self.schedule_expression,
+        }
+        if self.association_name:
+            result["AssociationName"] = self.association_name
+        if self.instance_id:
+            result["InstanceId"] = self.instance_id
+        return result
+
+    def describe(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "AssociationId": self.association_id,
+            "Name": self.name,
+            "AssociationVersion": self.association_version,
+            "DocumentVersion": self.document_version,
+            "Targets": self.targets,
+            "Parameters": self.parameters,
+            "LastExecutionDate": self.last_execution_date.isoformat(),
+            "Date": self.date.isoformat(),
+            "LastUpdateAssociationDate": self.last_update_association_date.isoformat(),
+            "Overview": self.overview,
+            "Status": {
+                "Date": self.date.isoformat(),
+                "Name": self.status,
+                "Message": "Associated with " + self.name,
+                "AdditionalInfo": "",
+            },
+            "ComplianceSeverity": self.compliance_severity,
+            "ApplyOnlyAtCronInterval": self.apply_only_at_cron_interval,
+        }
+        if self.schedule_expression:
+            result["ScheduleExpression"] = self.schedule_expression
+        if self.output_location:
+            result["OutputLocation"] = self.output_location
+        if self.association_name:
+            result["AssociationName"] = self.association_name
+        if self.instance_id:
+            result["InstanceId"] = self.instance_id
+        if self.max_errors:
+            result["MaxErrors"] = self.max_errors
+        if self.max_concurrency:
+            result["MaxConcurrency"] = self.max_concurrency
+        return result
+
+
+class FakeOpsMetadata:
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        partition: str,
+        resource_id: str,
+        metadata: Optional[dict[str, dict[str, str]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+    ):
+        self.resource_id = resource_id
+        self.metadata = metadata or {}
+        self.tags = tags or []
+        self.account_id = account_id
+        self.region_name = region_name
+        self.partition = partition
+        now = utcnow()
+        self.creation_date = now
+        self.last_modified_date = now
+        self.last_modified_user = f"arn:{partition}:iam::{account_id}:root"
+
+    @property
+    def ops_metadata_arn(self) -> str:
+        return f"arn:{self.partition}:ssm:{self.region_name}:{self.account_id}:opsmetadata/{self.resource_id}"
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "OpsMetadataArn": self.ops_metadata_arn,
+            "ResourceId": self.resource_id,
+            "CreationDate": self.creation_date.isoformat(),
+            "LastModifiedDate": self.last_modified_date.isoformat(),
+            "LastModifiedUser": self.last_modified_user,
+        }
+
+
+class FakeOpsItem:
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        partition: str,
+        title: str,
+        source: str,
+        description: Optional[str] = None,
+        priority: Optional[int] = None,
+        category: Optional[str] = None,
+        severity: Optional[str] = None,
+        operational_data: Optional[dict[str, Any]] = None,
+        notifications: Optional[list[dict[str, Any]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+    ):
+        self.ops_item_id = f"oi-{str(random.uuid4()).replace('-', '')[:12]}"
+        self.title = title
+        self.description = description or ""
+        self.source = source
+        self.status = "Open"
+        self.priority = priority
+        self.category = category
+        self.severity = severity
+        self.operational_data = operational_data or {}
+        self.notifications = notifications or []
+        self.tags = tags or []
+        self.account_id = account_id
+        self.region_name = region_name
+        self.partition = partition
+        now = utcnow()
+        self.created_time = now
+        self.last_modified_time = now
+        self.created_by = f"arn:{partition}:iam::{account_id}:root"
+        self.last_modified_by = self.created_by
+        self.version = "1"
+        self.related_items: list[dict[str, Any]] = []
+
+    @property
+    def arn(self) -> str:
+        return f"arn:{self.partition}:ssm:{self.region_name}:{self.account_id}:opsitem/{self.ops_item_id}"
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "OpsItemId": self.ops_item_id,
+            "Title": self.title,
+            "Description": self.description,
+            "Source": self.source,
+            "Status": self.status,
+            "Priority": self.priority,
+            "Category": self.category,
+            "Severity": self.severity,
+            "OperationalData": self.operational_data,
+            "Notifications": self.notifications,
+            "CreatedTime": self.created_time.isoformat(),
+            "LastModifiedTime": self.last_modified_time.isoformat(),
+            "CreatedBy": self.created_by,
+            "LastModifiedBy": self.last_modified_by,
+            "Version": self.version,
+        }
+
+    def summary(self) -> dict[str, Any]:
+        return {
+            "OpsItemId": self.ops_item_id,
+            "Title": self.title,
+            "Source": self.source,
+            "Status": self.status,
+            "Priority": self.priority,
+            "Category": self.category,
+            "Severity": self.severity,
+            "CreatedTime": self.created_time.isoformat(),
+            "LastModifiedTime": self.last_modified_time.isoformat(),
+            "CreatedBy": self.created_by,
+            "LastModifiedBy": self.last_modified_by,
+        }
+
+
+class FakeActivation:
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        partition: str,
+        iam_role: str,
+        description: Optional[str] = None,
+        default_instance_name: Optional[str] = None,
+        registration_limit: int = 1,
+        expiration_date: Optional[str] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+    ):
+        self.activation_id = f"act-{str(random.uuid4()).replace('-', '')[:17]}"
+        self.iam_role = iam_role
+        self.description = description or ""
+        self.default_instance_name = default_instance_name or ""
+        self.registration_limit = registration_limit
+        self.registrations_count = 0
+        self.expired = False
+        self.tags = tags or []
+        self.account_id = account_id
+        self.region_name = region_name
+        self.partition = partition
+        now = utcnow()
+        self.created_date = now
+        if expiration_date:
+            self.expiration_date = expiration_date
+        else:
+            self.expiration_date = (now + datetime.timedelta(hours=24)).isoformat()
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "ActivationId": self.activation_id,
+            "Description": self.description,
+            "DefaultInstanceName": self.default_instance_name,
+            "IamRole": self.iam_role,
+            "RegistrationLimit": self.registration_limit,
+            "RegistrationsCount": self.registrations_count,
+            "ExpirationDate": self.expiration_date,
+            "Expired": self.expired,
+            "CreatedDate": self.created_date.isoformat(),
+            "Tags": self.tags,
+        }
+
+
+class FakeResourceDataSync:
+    def __init__(
+        self,
+        sync_name: str,
+        s3_destination: Optional[dict[str, Any]] = None,
+        sync_type: Optional[str] = None,
+        sync_source: Optional[dict[str, Any]] = None,
+    ):
+        self.sync_name = sync_name
+        self.s3_destination = s3_destination
+        self.sync_type = sync_type or "SyncToDestination"
+        self.sync_source = sync_source
+        now = utcnow()
+        self.sync_created_time = now
+        self.last_sync_time = now
+        self.last_successful_sync_time = now
+        self.sync_last_modified_time = now
+        self.last_status = "Successful"
+
+    def to_json(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "SyncName": self.sync_name,
+            "SyncType": self.sync_type,
+            "SyncCreatedTime": self.sync_created_time.isoformat(),
+            "LastSyncTime": self.last_sync_time.isoformat(),
+            "LastSuccessfulSyncTime": self.last_successful_sync_time.isoformat(),
+            "SyncLastModifiedTime": self.sync_last_modified_time.isoformat(),
+            "LastStatus": self.last_status,
+        }
+        if self.s3_destination:
+            result["S3Destination"] = self.s3_destination
+        if self.sync_source:
+            result["SyncSource"] = self.sync_source
+        return result
+
+
+class FakeAutomationExecution:
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        partition: str,
+        document_name: str,
+        document_version: Optional[str] = None,
+        parameters: Optional[dict[str, list[str]]] = None,
+        target_parameter_name: Optional[str] = None,
+        targets: Optional[list[dict[str, Any]]] = None,
+        mode: Optional[str] = None,
+        max_concurrency: Optional[str] = None,
+        max_errors: Optional[str] = None,
+    ):
+        self.automation_execution_id = str(random.uuid4())
+        self.document_name = document_name
+        self.document_version = document_version or "1"
+        self.parameters = parameters or {}
+        self.target_parameter_name = target_parameter_name
+        self.targets = targets or []
+        self.mode = mode or "Auto"
+        self.max_concurrency = max_concurrency
+        self.max_errors = max_errors
+        self.automation_execution_status = "InProgress"
+        self.account_id = account_id
+        self.region_name = region_name
+        self.partition = partition
+        now = utcnow()
+        self.execution_start_time = now
+        self.execution_end_time: Optional[datetime.datetime] = None
+        self.executed_by = f"arn:{partition}:iam::{account_id}:root"
+        self.outputs: dict[str, list[str]] = {}
+        self.failure_message: Optional[str] = None
+
+    def to_json(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "AutomationExecutionId": self.automation_execution_id,
+            "DocumentName": self.document_name,
+            "DocumentVersion": self.document_version,
+            "AutomationExecutionStatus": self.automation_execution_status,
+            "ExecutionStartTime": self.execution_start_time.isoformat(),
+            "ExecutedBy": self.executed_by,
+            "Mode": self.mode,
+            "Outputs": self.outputs,
+            "Parameters": self.parameters,
+            "Targets": self.targets,
+        }
+        if self.execution_end_time:
+            result["ExecutionEndTime"] = self.execution_end_time.isoformat()
+        if self.max_concurrency:
+            result["MaxConcurrency"] = self.max_concurrency
+        if self.max_errors:
+            result["MaxErrors"] = self.max_errors
+        if self.failure_message:
+            result["FailureMessage"] = self.failure_message
+        return result
+
+    def get_execution(self) -> dict[str, Any]:
+        result = self.to_json()
+        if self.target_parameter_name:
+            result["TargetParameterName"] = self.target_parameter_name
+        return result
+
+
 class SimpleSystemManagerBackend(BaseBackend):
     """
     Moto supports the following default parameters out of the box:
@@ -1293,6 +1648,14 @@ class SimpleSystemManagerBackend(BaseBackend):
             f"arn:{self.partition}:ssm:{self.region_name}:{self.account_id}:parameter"
         )
         self.default_parameter_tier = "Standard"
+        self.associations: dict[str, FakeAssociation] = {}
+        self.ops_items: dict[str, FakeOpsItem] = {}
+        self.ops_metadata: dict[str, FakeOpsMetadata] = {}
+        self.resource_policies: dict[str, dict[str, Any]] = {}
+        self.inventory_entries: dict[str, dict[str, list[dict[str, Any]]]] = {}
+        self.activations: dict[str, FakeActivation] = {}
+        self.resource_data_syncs: dict[str, FakeResourceDataSync] = {}
+        self.automation_executions: dict[str, FakeAutomationExecution] = {}
 
     def _generate_document_information(
         self, ssm_document: Document, document_format: str
@@ -2342,6 +2705,10 @@ class SimpleSystemManagerBackend(BaseBackend):
     def _validate_resource_type_and_id(
         self, resource_type: str, resource_id: str
     ) -> str:
+        if not resource_type:
+            raise InvalidResourceType()
+        if not resource_id:
+            raise InvalidResourceId()
         if resource_type == "Parameter":
             if not (parameter := self.get_parameter(resource_id)):
                 raise InvalidResourceId()
@@ -2689,14 +3056,18 @@ class SimpleSystemManagerBackend(BaseBackend):
         return baseline_id, patch_group
 
     def get_patch_baseline_for_patch_group(
-        self, patch_group: str, operating_system: str
+        self, patch_group: str, operating_system: Optional[str] = None
     ) -> tuple[str, str, str]:
         """get baselineid for patch group for operating system"""
-        if patch_group not in self.patch_groups.keys():
+        if operating_system is None:
+            operating_system = "WINDOWS"
+        if patch_group not in self.patch_groups:
             fake_patch_group = FakePatchGroup("Fake", self.region_name)
-            baseline_id = fake_patch_group.associations[operating_system]
+            baseline_id = fake_patch_group.associations.get(operating_system, "")
         else:
-            baseline_id = self.patch_groups[patch_group].associations[operating_system]
+            baseline_id = self.patch_groups[patch_group].associations.get(
+                operating_system, ""
+            )
         return baseline_id, patch_group, operating_system
 
     def deregister_patch_baseline_for_patch_group(
@@ -2709,6 +3080,1057 @@ class SimpleSystemManagerBackend(BaseBackend):
             baseline_os = self.baselines[baseline_id].operating_system
             self.patch_groups[patch_group].associations[baseline_os] = baseline_id
         return baseline_id, patch_group
+
+
+    def create_association(
+        self,
+        name: str,
+        instance_id: Optional[str] = None,
+        targets: Optional[list[dict[str, Any]]] = None,
+        parameters: Optional[dict[str, list[str]]] = None,
+        schedule_expression: Optional[str] = None,
+        output_location: Optional[dict[str, Any]] = None,
+        association_name: Optional[str] = None,
+        document_version: Optional[str] = None,
+        max_errors: Optional[str] = None,
+        max_concurrency: Optional[str] = None,
+        compliance_severity: Optional[str] = None,
+        apply_only_at_cron_interval: bool = False,
+    ) -> FakeAssociation:
+        association = FakeAssociation(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            partition=self.partition,
+            name=name,
+            instance_id=instance_id,
+            targets=targets,
+            parameters=parameters,
+            schedule_expression=schedule_expression,
+            output_location=output_location,
+            association_name=association_name,
+            document_version=document_version,
+            max_errors=max_errors,
+            max_concurrency=max_concurrency,
+            compliance_severity=compliance_severity,
+            apply_only_at_cron_interval=apply_only_at_cron_interval,
+        )
+        self.associations[association.association_id] = association
+        return association
+
+    def update_association(
+        self,
+        association_id: str,
+        parameters: Optional[dict[str, list[str]]] = None,
+        schedule_expression: Optional[str] = None,
+        output_location: Optional[dict[str, Any]] = None,
+        association_name: Optional[str] = None,
+        document_version: Optional[str] = None,
+        max_errors: Optional[str] = None,
+        max_concurrency: Optional[str] = None,
+        compliance_severity: Optional[str] = None,
+        apply_only_at_cron_interval: Optional[bool] = None,
+        name: Optional[str] = None,
+        targets: Optional[list[dict[str, Any]]] = None,
+    ) -> FakeAssociation:
+        if association_id not in self.associations:
+            raise DoesNotExistException(association_id)
+        association = self.associations[association_id]
+        if parameters is not None:
+            association.parameters = parameters
+        if schedule_expression is not None:
+            association.schedule_expression = schedule_expression
+        if output_location is not None:
+            association.output_location = output_location
+        if association_name is not None:
+            association.association_name = association_name
+        if document_version is not None:
+            association.document_version = document_version
+        if max_errors is not None:
+            association.max_errors = max_errors
+        if max_concurrency is not None:
+            association.max_concurrency = max_concurrency
+        if compliance_severity is not None:
+            association.compliance_severity = compliance_severity
+        if apply_only_at_cron_interval is not None:
+            association.apply_only_at_cron_interval = apply_only_at_cron_interval
+        if name is not None:
+            association.name = name
+        if targets is not None:
+            association.targets = targets
+        association.association_version = str(int(association.association_version) + 1)
+        association.last_update_association_date = utcnow()
+        return association
+
+    def delete_association(self, name: Optional[str] = None, association_id: Optional[str] = None) -> None:
+        if association_id:
+            if association_id not in self.associations:
+                raise DoesNotExistException(association_id)
+            del self.associations[association_id]
+            return
+        if name:
+            for aid, assoc in list(self.associations.items()):
+                if assoc.name == name:
+                    del self.associations[aid]
+                    return
+            raise DoesNotExistException(name)
+
+    def describe_activations(self) -> list[dict[str, Any]]:
+        return [act.to_json() for act in self.activations.values()]
+
+    def describe_association(
+        self,
+        name: Optional[str] = None,
+        instance_id: Optional[str] = None,
+        association_id: Optional[str] = None,
+        association_version: Optional[str] = None,
+    ) -> dict[str, Any]:
+        if association_id:
+            if association_id in self.associations:
+                return self.associations[association_id].describe()
+            raise DoesNotExistException(association_id)
+        if name:
+            for assoc in self.associations.values():
+                if assoc.name == name:
+                    if instance_id and assoc.instance_id != instance_id:
+                        continue
+                    return assoc.describe()
+        raise DoesNotExistException(name or "")
+
+    def describe_automation_executions(self) -> list[dict[str, Any]]:
+        return [exe.to_json() for exe in self.automation_executions.values()]
+
+    def describe_available_patches(self) -> list[Any]:
+        return []
+
+    def describe_instance_information(self) -> list[Any]:
+        return []
+
+    def describe_instance_properties(self) -> list[Any]:
+        return []
+
+    def describe_inventory_deletions(self) -> list[Any]:
+        return []
+
+    def describe_maintenance_window_schedule(self) -> list[Any]:
+        return []
+
+    def describe_ops_items(self) -> list[dict[str, Any]]:
+        return [item.summary() for item in self.ops_items.values()]
+
+    def describe_patch_groups(self) -> list[Any]:
+        return []
+
+    def get_default_patch_baseline(self, operating_system: Optional[str] = None) -> dict[str, str]:
+        os_name = operating_system or "WINDOWS"
+        return {
+            "BaselineId": f"pb-{os_name.lower()[:8]}0000000000000",
+            "OperatingSystem": os_name,
+        }
+
+    def get_inventory(self) -> list[Any]:
+        return []
+
+    def get_inventory_schema(self) -> list[Any]:
+        return []
+
+    def get_ops_summary(self) -> list[dict[str, Any]]:
+        return [
+            {
+                "Id": item.ops_item_id,
+                "Data": {
+                    "AWS:OpsItem": {
+                        "Content": [item.summary()],
+                        "Count": 1,
+                    }
+                },
+            }
+            for item in self.ops_items.values()
+        ]
+
+    def get_service_setting(self, setting_id: str) -> dict[str, Any]:
+        return {
+            "ServiceSetting": {
+                "SettingId": setting_id,
+                "SettingValue": "",
+                "LastModifiedDate": 0,
+                "LastModifiedUser": "",
+                "ARN": f"arn:{self.partition}:ssm:{self.region_name}:{self.account_id}:servicesetting/{setting_id}",
+                "Status": "Default",
+            }
+        }
+
+    def list_associations(self) -> list[dict[str, Any]]:
+        return [assoc.to_json() for assoc in self.associations.values()]
+
+    def list_command_invocations(self) -> list[Any]:
+        return []
+
+    def list_compliance_items(self) -> list[Any]:
+        return []
+
+    def list_compliance_summaries(self) -> list[Any]:
+        return []
+
+    def list_nodes(self) -> list[Any]:
+        return []
+
+    def list_ops_item_events(self) -> list[Any]:
+        return []
+
+    def list_ops_item_related_items(
+        self, ops_item_id: Optional[str] = None
+    ) -> list[dict[str, Any]]:
+        if ops_item_id:
+            if ops_item_id not in self.ops_items:
+                raise DoesNotExistException(ops_item_id)
+            return self.ops_items[ops_item_id].related_items
+        all_items: list[dict[str, Any]] = []
+        for item in self.ops_items.values():
+            all_items.extend(item.related_items)
+        return all_items
+
+    def list_ops_metadata(self) -> list[dict[str, Any]]:
+        return [m.to_json() for m in self.ops_metadata.values()]
+
+    def list_resource_compliance_summaries(self) -> list[Any]:
+        return []
+
+    def list_resource_data_sync(self) -> list[dict[str, Any]]:
+        return [sync.to_json() for sync in self.resource_data_syncs.values()]
+
+    def create_ops_item(
+        self,
+        title: str,
+        source: str,
+        description: Optional[str] = None,
+        priority: Optional[int] = None,
+        category: Optional[str] = None,
+        severity: Optional[str] = None,
+        operational_data: Optional[dict[str, Any]] = None,
+        notifications: Optional[list[dict[str, Any]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> FakeOpsItem:
+        ops_item = FakeOpsItem(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            partition=self.partition,
+            title=title,
+            source=source,
+            description=description,
+            priority=priority,
+            category=category,
+            severity=severity,
+            operational_data=operational_data,
+            notifications=notifications,
+            tags=tags,
+        )
+        self.ops_items[ops_item.ops_item_id] = ops_item
+        return ops_item
+
+    def get_ops_item(self, ops_item_id: str) -> FakeOpsItem:
+        if ops_item_id not in self.ops_items:
+            raise DoesNotExistException(ops_item_id)
+        return self.ops_items[ops_item_id]
+
+    def update_ops_item(
+        self,
+        ops_item_id: str,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
+        status: Optional[str] = None,
+        priority: Optional[int] = None,
+        category: Optional[str] = None,
+        severity: Optional[str] = None,
+        operational_data: Optional[dict[str, Any]] = None,
+        notifications: Optional[list[dict[str, Any]]] = None,
+    ) -> None:
+        if ops_item_id not in self.ops_items:
+            raise DoesNotExistException(ops_item_id)
+        item = self.ops_items[ops_item_id]
+        if title is not None:
+            item.title = title
+        if description is not None:
+            item.description = description
+        if status is not None:
+            item.status = status
+        if priority is not None:
+            item.priority = priority
+        if category is not None:
+            item.category = category
+        if severity is not None:
+            item.severity = severity
+        if operational_data is not None:
+            item.operational_data = operational_data
+        if notifications is not None:
+            item.notifications = notifications
+        item.last_modified_time = utcnow()
+        item.version = str(int(item.version) + 1)
+
+    def create_activation(
+        self,
+        iam_role: str,
+        description: Optional[str] = None,
+        default_instance_name: Optional[str] = None,
+        registration_limit: int = 1,
+        expiration_date: Optional[str] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> FakeActivation:
+        activation = FakeActivation(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            partition=self.partition,
+            iam_role=iam_role,
+            description=description,
+            default_instance_name=default_instance_name,
+            registration_limit=registration_limit,
+            expiration_date=expiration_date,
+            tags=tags,
+        )
+        self.activations[activation.activation_id] = activation
+        return activation
+
+    def delete_activation(self, activation_id: str) -> None:
+        if activation_id not in self.activations:
+            raise DoesNotExistException(activation_id)
+        del self.activations[activation_id]
+
+    def create_resource_data_sync(
+        self,
+        sync_name: str,
+        s3_destination: Optional[dict[str, Any]] = None,
+        sync_type: Optional[str] = None,
+        sync_source: Optional[dict[str, Any]] = None,
+    ) -> FakeResourceDataSync:
+        if sync_name in self.resource_data_syncs:
+            raise ValidationException(
+                f"A sync with the name {sync_name} already exists."
+            )
+        sync = FakeResourceDataSync(
+            sync_name=sync_name,
+            s3_destination=s3_destination,
+            sync_type=sync_type,
+            sync_source=sync_source,
+        )
+        self.resource_data_syncs[sync_name] = sync
+        return sync
+
+    def delete_resource_data_sync(self, sync_name: str) -> None:
+        if sync_name not in self.resource_data_syncs:
+            raise DoesNotExistException(sync_name)
+        del self.resource_data_syncs[sync_name]
+
+    def start_automation_execution(
+        self,
+        document_name: str,
+        document_version: Optional[str] = None,
+        parameters: Optional[dict[str, list[str]]] = None,
+        target_parameter_name: Optional[str] = None,
+        targets: Optional[list[dict[str, Any]]] = None,
+        mode: Optional[str] = None,
+        max_concurrency: Optional[str] = None,
+        max_errors: Optional[str] = None,
+    ) -> FakeAutomationExecution:
+        execution = FakeAutomationExecution(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            partition=self.partition,
+            document_name=document_name,
+            document_version=document_version,
+            parameters=parameters,
+            target_parameter_name=target_parameter_name,
+            targets=targets,
+            mode=mode,
+            max_concurrency=max_concurrency,
+            max_errors=max_errors,
+        )
+        self.automation_executions[execution.automation_execution_id] = execution
+        return execution
+
+    def get_automation_execution(self, automation_execution_id: str) -> FakeAutomationExecution:
+        if automation_execution_id not in self.automation_executions:
+            raise DoesNotExistException(automation_execution_id)
+        return self.automation_executions[automation_execution_id]
+
+    def stop_automation_execution(self, automation_execution_id: str, type_: Optional[str] = None) -> None:
+        if automation_execution_id not in self.automation_executions:
+            raise DoesNotExistException(automation_execution_id)
+        execution = self.automation_executions[automation_execution_id]
+        if type_ == "Cancel":
+            execution.automation_execution_status = "Cancelled"
+        else:
+            execution.automation_execution_status = "Cancelled"
+        execution.execution_end_time = utcnow()
+
+    def describe_association_execution_targets(
+        self, association_id: str, execution_id: str
+    ) -> list[dict[str, Any]]:
+        if association_id not in self.associations:
+            raise DoesNotExistException(association_id)
+        return []
+
+    def describe_association_executions(
+        self, association_id: str
+    ) -> list[dict[str, Any]]:
+        if association_id not in self.associations:
+            raise DoesNotExistException(association_id)
+        assoc = self.associations[association_id]
+        return [
+            {
+                "AssociationId": association_id,
+                "AssociationVersion": assoc.association_version,
+                "ExecutionId": str(uuid4()),
+                "Status": "Success",
+                "DetailedStatus": "Success",
+                "CreatedTime": assoc.last_execution_date.isoformat(),
+                "ResourceCountByStatus": json.dumps({"Success": 1}),
+            }
+        ]
+
+    def describe_effective_instance_associations(
+        self, instance_id: str
+    ) -> list[dict[str, Any]]:
+        results = []
+        for assoc in self.associations.values():
+            if assoc.instance_id == instance_id:
+                results.append({
+                    "AssociationId": assoc.association_id,
+                    "InstanceId": instance_id,
+                    "Content": assoc.name,
+                    "AssociationVersion": assoc.association_version,
+                })
+            for target in assoc.targets:
+                if target.get("Key") == "InstanceIds" and instance_id in target.get("Values", []):
+                    results.append({
+                        "AssociationId": assoc.association_id,
+                        "InstanceId": instance_id,
+                        "Content": assoc.name,
+                        "AssociationVersion": assoc.association_version,
+                    })
+        return results
+
+    def describe_instance_associations_status(
+        self, instance_id: str
+    ) -> list[dict[str, Any]]:
+        results = []
+        for assoc in self.associations.values():
+            match = False
+            if assoc.instance_id == instance_id:
+                match = True
+            for target in assoc.targets:
+                if target.get("Key") == "InstanceIds" and instance_id in target.get("Values", []):
+                    match = True
+            if match:
+                results.append({
+                    "AssociationId": assoc.association_id,
+                    "Name": assoc.name,
+                    "DocumentVersion": assoc.document_version,
+                    "AssociationVersion": assoc.association_version,
+                    "InstanceId": instance_id,
+                    "ExecutionDate": assoc.last_execution_date.isoformat(),
+                    "ExecutionSummary": assoc.status,
+                    "Status": assoc.status,
+                    "DetailedStatus": "Success",
+                    "OutputUrl": {},
+                })
+        return results
+
+    def describe_instance_patch_states(
+        self, instance_ids: list[str]
+    ) -> list[dict[str, Any]]:
+        return [
+            {
+                "InstanceId": iid,
+                "PatchGroup": "",
+                "BaselineId": "",
+                "OperationStartTime": utcnow().isoformat(),
+                "OperationEndTime": utcnow().isoformat(),
+                "Operation": "Scan",
+                "InstalledCount": 0,
+                "InstalledOtherCount": 0,
+                "MissingCount": 0,
+                "FailedCount": 0,
+                "NotApplicableCount": 0,
+            }
+            for iid in instance_ids
+        ]
+
+    def describe_instance_patch_states_for_patch_group(
+        self, patch_group: str
+    ) -> list[dict[str, Any]]:
+        return []
+
+    def describe_patch_group_state(
+        self, patch_group: str
+    ) -> dict[str, int]:
+        return {
+            "Instances": 0,
+            "InstancesWithInstalledPatches": 0,
+            "InstancesWithInstalledOtherPatches": 0,
+            "InstancesWithInstalledRejectedPatches": 0,
+            "InstancesWithMissingPatches": 0,
+            "InstancesWithFailedPatches": 0,
+            "InstancesWithNotApplicablePatches": 0,
+            "InstancesWithInstalledPendingRebootPatches": 0,
+            "InstancesWithCriticalNonCompliantPatches": 0,
+            "InstancesWithSecurityNonCompliantPatches": 0,
+            "InstancesWithOtherNonCompliantPatches": 0,
+        }
+
+    def describe_patch_properties(
+        self, operating_system: str, property_: str, patch_set: Optional[str] = None
+    ) -> list[dict[str, str]]:
+        return []
+
+    def describe_sessions(
+        self, state: str
+    ) -> list[dict[str, Any]]:
+        return []
+
+    def get_calendar_state(
+        self, calendar_names: list[str]
+    ) -> dict[str, Any]:
+        return {
+            "State": "OPEN",
+            "AtTime": utcnow().isoformat(),
+            "NextTransitionTime": "",
+        }
+
+    def get_connection_status(
+        self, target: str
+    ) -> dict[str, str]:
+        return {
+            "Target": target,
+            "Status": "notconnected",
+        }
+
+    def get_ops_metadata(
+        self, ops_metadata_arn: str
+    ) -> dict[str, Any]:
+        for meta in self.ops_metadata.values():
+            if meta.ops_metadata_arn == ops_metadata_arn:
+                return {
+                    "ResourceId": meta.resource_id,
+                    "Metadata": meta.metadata,
+                    "OpsMetadataArn": meta.ops_metadata_arn,
+                }
+        raise DoesNotExistException(ops_metadata_arn)
+
+    def create_ops_metadata(
+        self,
+        resource_id: str,
+        metadata: Optional[dict[str, dict[str, str]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> FakeOpsMetadata:
+        if resource_id in self.ops_metadata:
+            raise ValidationException(
+                f"An OpsMetadata entry already exists for ResourceId: {resource_id}."
+            )
+        ops_meta = FakeOpsMetadata(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            partition=self.partition,
+            resource_id=resource_id,
+            metadata=metadata,
+            tags=tags,
+        )
+        self.ops_metadata[resource_id] = ops_meta
+        return ops_meta
+
+    def update_ops_metadata(
+        self,
+        ops_metadata_arn: str,
+        metadata_to_update: Optional[dict[str, dict[str, str]]] = None,
+        keys_to_delete: Optional[list[str]] = None,
+    ) -> str:
+        target = None
+        for meta in self.ops_metadata.values():
+            if meta.ops_metadata_arn == ops_metadata_arn:
+                target = meta
+                break
+        if target is None:
+            raise DoesNotExistException(ops_metadata_arn)
+        if metadata_to_update:
+            target.metadata.update(metadata_to_update)
+        if keys_to_delete:
+            for key in keys_to_delete:
+                target.metadata.pop(key, None)
+        target.last_modified_date = utcnow()
+        return target.ops_metadata_arn
+
+    def delete_ops_metadata(self, ops_metadata_arn: str) -> None:
+        target_key = None
+        for key, meta in self.ops_metadata.items():
+            if meta.ops_metadata_arn == ops_metadata_arn:
+                target_key = key
+                break
+        if target_key is None:
+            raise DoesNotExistException(ops_metadata_arn)
+        del self.ops_metadata[target_key]
+
+    def delete_ops_item(self, ops_item_id: str) -> None:
+        self.ops_items.pop(ops_item_id, None)
+
+    def associate_ops_item_related_item(
+        self,
+        ops_item_id: str,
+        association_type: str,
+        resource_type: str,
+        resource_uri: str,
+    ) -> str:
+        if ops_item_id not in self.ops_items:
+            raise DoesNotExistException(ops_item_id)
+        association_id = str(random.uuid4())
+        self.ops_items[ops_item_id].related_items.append({
+            "AssociationId": association_id,
+            "OpsItemId": ops_item_id,
+            "AssociationType": association_type,
+            "ResourceType": resource_type,
+            "ResourceUri": resource_uri,
+            "CreatedBy": f"arn:{self.partition}:iam::{self.account_id}:root",
+            "CreatedTime": utcnow().isoformat(),
+            "LastModifiedBy": f"arn:{self.partition}:iam::{self.account_id}:root",
+            "LastModifiedTime": utcnow().isoformat(),
+        })
+        return association_id
+
+    def disassociate_ops_item_related_item(
+        self,
+        ops_item_id: str,
+        association_id: str,
+    ) -> None:
+        if ops_item_id not in self.ops_items:
+            raise DoesNotExistException(ops_item_id)
+        item = self.ops_items[ops_item_id]
+        item.related_items = [
+            ri for ri in item.related_items
+            if ri["AssociationId"] != association_id
+        ]
+
+    def delete_inventory(
+        self,
+        type_name: str,
+        schema_delete_option: Optional[str] = None,
+    ) -> dict[str, Any]:
+        deletion_id = str(random.uuid4())
+        return {
+            "DeletionId": deletion_id,
+            "TypeName": type_name,
+            "DeletionSummary": {
+                "TotalCount": 0,
+                "RemainingCount": 0,
+                "SummaryItems": [],
+            },
+        }
+
+    def list_inventory_entries(
+        self,
+        instance_id: str,
+        type_name: str,
+    ) -> dict[str, Any]:
+        entries = (
+            self.inventory_entries
+            .get(instance_id, {})
+            .get(type_name, [])
+        )
+        return {
+            "TypeName": type_name,
+            "InstanceId": instance_id,
+            "SchemaVersion": "1.0",
+            "CaptureTime": utcnow().isoformat(),
+            "Entries": entries,
+        }
+
+    def describe_instance_patches(
+        self,
+        instance_id: str,
+    ) -> list[dict[str, Any]]:
+        return []
+
+    def describe_maintenance_windows_for_target(
+        self,
+        targets: list[dict[str, Any]],
+        resource_type: str,
+    ) -> list[dict[str, Any]]:
+        results = []
+        for window in self.windows.values():
+            for target in window.targets.values():
+                if target.resource_type == resource_type:
+                    results.append({
+                        "WindowId": window.id,
+                        "Name": window.name,
+                    })
+                    break
+        return results
+
+    def list_association_versions(
+        self,
+        association_id: str,
+    ) -> list[dict[str, Any]]:
+        if association_id not in self.associations:
+            raise DoesNotExistException(association_id)
+        assoc = self.associations[association_id]
+        versions = []
+        for v in range(1, int(assoc.association_version) + 1):
+            versions.append({
+                "AssociationId": assoc.association_id,
+                "AssociationVersion": str(v),
+                "Name": assoc.name,
+                "DocumentVersion": assoc.document_version,
+                "Targets": assoc.targets,
+                "Parameters": assoc.parameters,
+                "CreatedDate": assoc.date.isoformat(),
+            })
+        return versions
+
+    def list_document_versions(
+        self,
+        name: str,
+    ) -> list[dict[str, Any]]:
+        documents = self._get_documents(name)
+        result = []
+        for version, doc in documents.versions.items():
+            entry: dict[str, Any] = {
+                "Name": doc.name,
+                "DocumentVersion": version,
+                "CreatedDate": doc.created_date.isoformat(),
+                "IsDefaultVersion": version == documents.default_version,
+                "DocumentFormat": doc.document_format,
+                "Status": doc.status,
+            }
+            if doc.version_name:
+                entry["VersionName"] = doc.version_name
+            result.append(entry)
+        return result
+
+    def list_document_metadata_history(
+        self,
+        name: str,
+        document_version: Optional[str] = None,
+    ) -> dict[str, Any]:
+        documents = self._get_documents(name)
+        if document_version:
+            doc = documents.find(document_version)
+        else:
+            doc = documents.get_default_version()
+        return {
+            "Name": doc.name,
+            "DocumentVersion": doc.document_version,
+            "Author": doc.owner,
+            "Metadata": [],
+        }
+
+    def update_association_status(
+        self,
+        name: str,
+        instance_id: str,
+        association_status: dict[str, Any],
+    ) -> dict[str, Any]:
+        for assoc in self.associations.values():
+            if assoc.name == name and assoc.instance_id == instance_id:
+                assoc.status = association_status.get("Name", "Success")
+                assoc.last_update_association_date = utcnow()
+                return assoc.describe()
+        raise DoesNotExistException(f"{name}-{instance_id}")
+
+    def update_maintenance_window_target(
+        self,
+        window_id: str,
+        window_target_id: str,
+        targets: Optional[list[dict[str, Any]]] = None,
+        owner_information: Optional[str] = None,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        replace: bool = False,
+    ) -> dict[str, Any]:
+        if window_id not in self.windows:
+            raise DoesNotExistException(window_id)
+        window = self.windows[window_id]
+        if window_target_id not in window.targets:
+            raise DoesNotExistException(window_target_id)
+        target = window.targets[window_target_id]
+        if targets is not None:
+            target.targets = targets
+        if owner_information is not None:
+            target.owner_information = owner_information
+        if name is not None:
+            target.name = name
+        if description is not None:
+            target.description = description
+        return target.to_json()
+
+    def update_maintenance_window_task(
+        self,
+        window_id: str,
+        window_task_id: str,
+        targets: Optional[list[dict[str, Any]]] = None,
+        task_arn: Optional[str] = None,
+        service_role_arn: Optional[str] = None,
+        task_parameters: Optional[dict[str, Any]] = None,
+        task_invocation_parameters: Optional[dict[str, Any]] = None,
+        priority: Optional[int] = None,
+        max_concurrency: Optional[str] = None,
+        max_errors: Optional[str] = None,
+        logging_info: Optional[dict[str, Any]] = None,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        replace: bool = False,
+        cutoff_behavior: Optional[str] = None,
+        alarm_configurations: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any]:
+        if window_id not in self.windows:
+            raise DoesNotExistException(window_id)
+        window = self.windows[window_id]
+        task = None
+        for t in window.tasks.values():
+            if t.window_task_id == window_task_id:
+                task = t
+                break
+        if task is None:
+            raise DoesNotExistException(window_task_id)
+        if targets is not None:
+            task.targets = targets
+        if task_arn is not None:
+            task.task_arn = task_arn
+        if service_role_arn is not None:
+            task.service_role_arn = service_role_arn
+        if task_parameters is not None:
+            task.task_parameters = task_parameters
+        if task_invocation_parameters is not None:
+            task.task_invocation_parameters = task_invocation_parameters
+        if priority is not None:
+            task.priority = priority
+        if max_concurrency is not None:
+            task.max_concurrency = max_concurrency
+        if max_errors is not None:
+            task.max_errors = max_errors
+        if logging_info is not None:
+            task.logging_info = logging_info
+        if name is not None:
+            task.name = name
+        if description is not None:
+            task.description = description
+        if cutoff_behavior is not None:
+            task.cutoff_behavior = cutoff_behavior
+        if alarm_configurations is not None:
+            task.alarm_configurations = alarm_configurations
+        return task.to_json()
+
+    def update_managed_instance_role(
+        self,
+        instance_id: str,
+        iam_role: str,
+    ) -> None:
+        pass
+
+    def delete_resource_policy(
+        self,
+        resource_arn: str,
+        policy_id: str,
+        policy_hash: str,
+    ) -> None:
+        if resource_arn in self.resource_policies:
+            policy = self.resource_policies[resource_arn]
+            if policy.get("PolicyId") == policy_id:
+                del self.resource_policies[resource_arn]
+                return
+        raise DoesNotExistException(resource_arn)
+
+    def get_resource_policies(
+        self,
+        resource_arn: str,
+    ) -> list[dict[str, Any]]:
+        if resource_arn in self.resource_policies:
+            return [self.resource_policies[resource_arn]]
+        return []
+
+    def put_resource_policy(
+        self,
+        resource_arn: str,
+        policy: str,
+        policy_id: Optional[str] = None,
+        policy_hash: Optional[str] = None,
+    ) -> dict[str, str]:
+        new_policy_id = policy_id or str(random.uuid4())
+        new_policy_hash = hashlib.sha256(policy.encode("utf-8")).hexdigest()
+        self.resource_policies[resource_arn] = {
+            "PolicyId": new_policy_id,
+            "PolicyHash": new_policy_hash,
+            "Policy": policy,
+        }
+        return {"PolicyId": new_policy_id, "PolicyHash": new_policy_hash}
+
+    def start_change_request_execution(
+        self,
+        document_name: str,
+        document_version: Optional[str] = None,
+        parameters: Optional[dict[str, list[str]]] = None,
+        change_request_name: Optional[str] = None,
+        runbooks: Optional[list[dict[str, Any]]] = None,
+    ) -> str:
+        execution = FakeAutomationExecution(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            partition=self.partition,
+            document_name=document_name,
+            document_version=document_version,
+            parameters=parameters,
+        )
+        execution.automation_execution_status = "Pending"
+        self.automation_executions[execution.automation_execution_id] = execution
+        return execution.automation_execution_id
+
+    def get_patch_baseline(
+        self, baseline_id: str
+    ) -> dict[str, Any]:
+        if baseline_id not in self.baselines:
+            raise BaselineDoesNotExistException()
+        baseline = self.baselines[baseline_id]
+        result = baseline.to_json()
+        result["Name"] = result.pop("BaselineName", baseline.name)
+        result["Description"] = result.pop("BaselineDescription", baseline.description)
+        result["CreatedDate"] = utcnow().isoformat()
+        result["ModifiedDate"] = utcnow().isoformat()
+        result["PatchGroups"] = [
+            pg_name
+            for pg_name, pg in self.patch_groups.items()
+            if baseline_id in pg.associations.values()
+        ]
+        return result
+
+    def put_compliance_items(
+        self,
+        resource_id: str,
+        resource_type: str,
+        compliance_type: str,
+        execution_summary: dict[str, Any],
+        items: list[dict[str, Any]],
+        item_content_hash: Optional[str] = None,
+        upload_type: Optional[str] = None,
+    ) -> dict[str, Any]:
+        if not hasattr(self, "_compliance_items"):
+            self._compliance_items: dict[str, list[dict[str, Any]]] = {}
+        key = f"{resource_type}:{resource_id}"
+        stored_items = []
+        for item in items:
+            stored_item = {
+                "ComplianceType": compliance_type,
+                "ResourceType": resource_type,
+                "ResourceId": resource_id,
+                "Id": item.get("Id", ""),
+                "Title": item.get("Title", ""),
+                "Status": item.get("Status", "COMPLIANT"),
+                "Severity": item.get("Severity", "UNSPECIFIED"),
+                "ExecutionSummary": execution_summary,
+                "Details": item.get("Details", {}),
+            }
+            stored_items.append(stored_item)
+        if upload_type == "COMPLETE":
+            self._compliance_items[key] = stored_items
+        else:
+            existing = self._compliance_items.get(key, [])
+            existing.extend(stored_items)
+            self._compliance_items[key] = existing
+        return {}
+
+    def reset_service_setting(self, setting_id: str) -> dict[str, Any]:
+        return {
+            "ServiceSetting": {
+                "SettingId": setting_id,
+                "SettingValue": "",
+                "LastModifiedDate": 0,
+                "LastModifiedUser": "",
+                "ARN": (
+                    f"arn:{self.partition}:ssm:{self.region_name}"
+                    f":{self.account_id}:servicesetting/{setting_id}"
+                ),
+                "Status": "Default",
+            }
+        }
+
+    def update_service_setting(
+        self, setting_id: str, setting_value: str
+    ) -> dict[str, Any]:
+        return {}
+
+    def update_resource_data_sync(
+        self,
+        sync_name: str,
+        sync_type: str,
+        sync_source: dict[str, Any],
+    ) -> None:
+        if sync_name not in self.resource_data_syncs:
+            raise DoesNotExistException(sync_name)
+        sync = self.resource_data_syncs[sync_name]
+        sync.sync_source = sync_source
+        sync.sync_last_modified_time = utcnow()
+
+    def update_document_metadata(
+        self,
+        name: str,
+        document_version: Optional[str] = None,
+        document_reviews: Optional[dict[str, Any]] = None,
+    ) -> None:
+        if name not in self._documents:
+            raise InvalidDocument(name)
+
+    def start_session(
+        self,
+        target: str,
+        document_name: Optional[str] = None,
+        parameters: Optional[dict[str, list[str]]] = None,
+        reason: Optional[str] = None,
+    ) -> dict[str, Any]:
+        session_id = f"{self.account_id}-{random.uuid4()}"
+        return {
+            "SessionId": session_id,
+            "TokenValue": str(random.uuid4()),
+            "StreamUrl": (
+                f"wss://ssmmessages.{self.region_name}.amazonaws.com"
+                f"/v1/data-channel/{session_id}"
+            ),
+        }
+
+    def resume_session(self, session_id: str) -> dict[str, Any]:
+        return {
+            "SessionId": session_id,
+            "TokenValue": str(random.uuid4()),
+            "StreamUrl": (
+                f"wss://ssmmessages.{self.region_name}.amazonaws.com"
+                f"/v1/data-channel/{session_id}"
+            ),
+        }
+
+    def terminate_session(self, session_id: str) -> dict[str, Any]:
+        return {"SessionId": session_id}
+
+    def start_execution_preview(
+        self,
+        document_name: str,
+        document_version: Optional[str] = None,
+        execution_inputs: Optional[dict[str, Any]] = None,
+    ) -> dict[str, str]:
+        return {"ExecutionPreviewId": str(random.uuid4())}
+
+    def get_access_token(
+        self,
+        access_request_id: Optional[str] = None,
+    ) -> dict[str, Any]:
+        return {
+            "AccessRequestStatus": "Approved",
+            "Credentials": {
+                "AccessKeyId": "AKIAIOSFODNN7EXAMPLE",
+                "SecretAccessKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+                "SessionToken": str(random.uuid4()),
+                "ExpirationTime": utcnow().isoformat(),
+            },
+        }
+
+    def start_access_request(
+        self,
+        targets: Optional[list[dict[str, Any]]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> dict[str, str]:
+        return {"AccessRequestId": str(random.uuid4())}
 
 
 ssm_backends = BackendDict(SimpleSystemManagerBackend, "ssm")

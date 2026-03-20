@@ -1,4 +1,7 @@
+from typing import Any
+
 from moto.core.parse import XFormedDict
+
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult, PaginatedResult
 from moto.ec2.models import ec2_backends
 
@@ -491,6 +494,12 @@ class RDSResponse(BaseResponse):
         result = {"EventSubscriptionsList": subscriptions}
         return ActionResult(result)
 
+    def modify_event_subscription(self) -> ActionResult:
+        kwargs = self.params
+        subscription = self.backend.modify_event_subscription(kwargs)
+        result = {"EventSubscription": subscription}
+        return ActionResult(result)
+
     def describe_orderable_db_instance_options(self) -> ActionResult:
         engine = self.params.get("Engine")
         engine_version = self.params.get("EngineVersion")
@@ -526,6 +535,18 @@ class RDSResponse(BaseResponse):
         result = {"GlobalCluster": cluster}
         return ActionResult(result)
 
+    def modify_global_cluster(self) -> ActionResult:
+        params = self.params
+        cluster = self.global_backend.modify_global_cluster(
+            global_cluster_identifier=params["GlobalClusterIdentifier"],
+            new_global_cluster_identifier=params.get("NewGlobalClusterIdentifier"),
+            deletion_protection=params.get("DeletionProtection"),
+            engine_version=params.get("EngineVersion"),
+            allow_major_version_upgrade=params.get("AllowMajorVersionUpgrade"),
+        )
+        result = {"GlobalCluster": cluster}
+        return ActionResult(result)
+
     def remove_from_global_cluster(self) -> ActionResult:
         params = self.params
         global_cluster = self.backend.remove_from_global_cluster(
@@ -533,6 +554,104 @@ class RDSResponse(BaseResponse):
             db_cluster_identifier=params["DbClusterIdentifier"],
         )
         result = {"GlobalCluster": global_cluster}
+        return ActionResult(result)
+
+    def failover_global_cluster(self) -> ActionResult:
+        params = self.params
+        global_cluster = self.global_backend.failover_global_cluster(
+            global_cluster_identifier=params["GlobalClusterIdentifier"],
+            target_db_cluster_identifier=params["TargetDbClusterIdentifier"],
+        )
+        result = {"GlobalCluster": global_cluster}
+        return ActionResult(result)
+
+    def switchover_global_cluster(self) -> ActionResult:
+        params = self.params
+        global_cluster = self.global_backend.switchover_global_cluster(
+            global_cluster_identifier=params["GlobalClusterIdentifier"],
+            target_db_cluster_identifier=params["TargetDbClusterIdentifier"],
+        )
+        result = {"GlobalCluster": global_cluster}
+        return ActionResult(result)
+
+    def describe_db_engine_versions(self) -> ActionResult:
+        engine = self.params.get("Engine")
+        engine_version = self.params.get("EngineVersion")
+        versions = self.backend.describe_db_engine_versions(
+            engine=engine,
+            engine_version=engine_version,
+        )
+        result = {"DBEngineVersions": versions}
+        return PaginatedResult(result)
+
+    def describe_event_categories(self) -> ActionResult:
+        source_type = self.params.get("SourceType")
+        categories = self.backend.describe_event_categories(source_type=source_type)
+        result = {"EventCategoriesMapList": categories}
+        return ActionResult(result)
+
+    def add_source_identifier_to_subscription(self) -> ActionResult:
+        subscription_name = self.params.get("SubscriptionName")
+        source_identifier = self.params.get("SourceIdentifier")
+        subscription = self.backend.add_source_identifier_to_subscription(
+            subscription_name=subscription_name,
+            source_identifier=source_identifier,
+        )
+        result = {"EventSubscription": subscription}
+        return ActionResult(result)
+
+    def remove_source_identifier_from_subscription(self) -> ActionResult:
+        subscription_name = self.params.get("SubscriptionName")
+        source_identifier = self.params.get("SourceIdentifier")
+        subscription = self.backend.remove_source_identifier_from_subscription(
+            subscription_name=subscription_name,
+            source_identifier=source_identifier,
+        )
+        result = {"EventSubscription": subscription}
+        return ActionResult(result)
+
+    def apply_pending_maintenance_action(self) -> ActionResult:
+        resource_identifier = self.params.get("ResourceIdentifier")
+        apply_action = self.params.get("ApplyAction")
+        opt_in_type = self.params.get("OptInType")
+        result_data = self.backend.apply_pending_maintenance_action(
+            resource_identifier=resource_identifier,
+            apply_action=apply_action,
+            opt_in_type=opt_in_type,
+        )
+        result = {"ResourcePendingMaintenanceActions": result_data}
+        return ActionResult(result)
+
+    def describe_pending_maintenance_actions(self) -> ActionResult:
+        resource_identifier = self.params.get("ResourceIdentifier")
+        actions = self.backend.describe_pending_maintenance_actions(
+            resource_identifier=resource_identifier,
+        )
+        result = {"PendingMaintenanceActions": actions}
+        return PaginatedResult(result)
+
+    def describe_engine_default_cluster_parameters(self) -> ActionResult:
+        db_parameter_group_family = self.params.get("DBParameterGroupFamily")
+        result_data = self.backend.describe_engine_default_cluster_parameters(
+            db_parameter_group_family=db_parameter_group_family,
+        )
+        result = {"EngineDefaults": result_data}
+        return ActionResult(result)
+
+    def describe_engine_default_parameters(self) -> ActionResult:
+        db_parameter_group_family = self.params.get("DBParameterGroupFamily")
+        result_data = self.backend.describe_engine_default_parameters(
+            db_parameter_group_family=db_parameter_group_family,
+        )
+        result = {"EngineDefaults": result_data}
+        return ActionResult(result)
+
+    def describe_valid_db_instance_modifications(self) -> ActionResult:
+        db_instance_identifier = self.params.get("DBInstanceIdentifier")
+        result_data = self.backend.describe_valid_db_instance_modifications(
+            db_instance_identifier=db_instance_identifier,
+        )
+        result = {"ValidDBInstanceModificationsMessage": result_data}
         return ActionResult(result)
 
     def create_db_cluster_parameter_group(self) -> ActionResult:
@@ -805,6 +924,119 @@ class RDSResponse(BaseResponse):
         result = {"BlueGreenDeployment": bg_deployment}
         return ActionResult(result)
 
+    def describe_account_attributes(self) -> ActionResult:
+        quotas = self.backend.describe_account_attributes()
+        result = {"AccountQuotas": quotas}
+        return ActionResult(result)
+
+    def describe_certificates(self) -> ActionResult:
+        certificate_identifier = self.params.get("CertificateIdentifier")
+        certs = self.backend.describe_certificates(
+            certificate_identifier=certificate_identifier,
+        )
+        result = {
+            "Certificates": certs,
+            "DefaultCertificateForNewLaunches": "rds-ca-rsa2048-g1",
+        }
+        return ActionResult(result)
+
+    def create_db_cluster_endpoint(self) -> ActionResult:
+        params = self.params
+        endpoint = self.backend.create_db_cluster_endpoint(
+            db_cluster_identifier=params["DBClusterIdentifier"],
+            db_cluster_endpoint_identifier=params["DBClusterEndpointIdentifier"],
+            endpoint_type=params.get("EndpointType", "CUSTOM"),
+            static_members=params.get("StaticMembers"),
+            excluded_members=params.get("ExcludedMembers"),
+            tags=params.get("Tags", []),
+        )
+        return ActionResult(endpoint)
+
+    def describe_db_cluster_endpoints(self) -> ActionResult:
+        params = self.params
+        filters = params.get("Filters", [])
+        filter_dict = {f["Name"]: f["Values"] for f in filters}
+        endpoints = self.backend.describe_db_cluster_endpoints(
+            db_cluster_identifier=params.get("DBClusterIdentifier"),
+            db_cluster_endpoint_identifier=params.get("DBClusterEndpointIdentifier"),
+            filters=filter_dict,
+        )
+        result = {"DBClusterEndpoints": endpoints}
+        return ActionResult(result)
+
+    def modify_db_cluster_endpoint(self) -> ActionResult:
+        params = self.params
+        endpoint = self.backend.modify_db_cluster_endpoint(
+            db_cluster_endpoint_identifier=params["DBClusterEndpointIdentifier"],
+            endpoint_type=params.get("EndpointType"),
+            static_members=params.get("StaticMembers"),
+            excluded_members=params.get("ExcludedMembers"),
+        )
+        return ActionResult(endpoint)
+
+    def delete_db_cluster_endpoint(self) -> ActionResult:
+        endpoint = self.backend.delete_db_cluster_endpoint(
+            db_cluster_endpoint_identifier=self.params["DBClusterEndpointIdentifier"],
+        )
+        return ActionResult(endpoint)
+
+    def create_db_proxy_endpoint(self) -> ActionResult:
+        params = self.params
+        endpoint = self.backend.create_db_proxy_endpoint(
+            db_proxy_name=params["DBProxyName"],
+            db_proxy_endpoint_name=params["DBProxyEndpointName"],
+            vpc_subnet_ids=params["VpcSubnetIds"],
+            vpc_security_group_ids=params.get("VpcSecurityGroupIds"),
+            target_role=params.get("TargetRole", "READ_WRITE"),
+            tags=params.get("Tags", []),
+        )
+        result = {"DBProxyEndpoint": endpoint}
+        return ActionResult(result)
+
+    def describe_db_proxy_endpoints(self) -> ActionResult:
+        params = self.params
+        endpoints = self.backend.describe_db_proxy_endpoints(
+            db_proxy_name=params.get("DBProxyName"),
+            db_proxy_endpoint_name=params.get("DBProxyEndpointName"),
+        )
+        result = {"DBProxyEndpoints": endpoints}
+        return ActionResult(result)
+
+    def delete_db_proxy_endpoint(self) -> ActionResult:
+        endpoint = self.backend.delete_db_proxy_endpoint(
+            db_proxy_endpoint_name=self.params["DBProxyEndpointName"],
+        )
+        result = {"DBProxyEndpoint": endpoint}
+        return ActionResult(result)
+
+    def delete_db_instance_automated_backup(self) -> ActionResult:
+        backup = self.backend.delete_db_instance_automated_backup(
+            dbi_resource_id=self.params.get("DbiResourceId"),
+            db_instance_automated_backups_arn=self.params.get(
+                "DBInstanceAutomatedBackupsArn"
+            ),
+        )
+        result = {"DBInstanceAutomatedBackup": backup}
+        return ActionResult(result)
+
+    def describe_db_cluster_automated_backups(self) -> ActionResult:
+        backups = self.backend.describe_db_cluster_automated_backups(
+            db_cluster_identifier=self.params.get("DBClusterIdentifier"),
+        )
+        result = {"DBClusterAutomatedBackups": backups}
+        return ActionResult(result)
+
+    def copy_option_group(self) -> ActionResult:
+        params = self.params
+        option_group = self.backend.copy_option_group(
+            source_option_group_identifier=params["SourceOptionGroupIdentifier"],
+            target_option_group_identifier=params["TargetOptionGroupIdentifier"],
+            target_option_group_description=params["TargetOptionGroupDescription"],
+            tags=params.get("Tags", []),
+        )
+        result = {"OptionGroup": option_group}
+        return ActionResult(result)
+
     def add_role_to_db_instance(self) -> ActionResult:
         db_instance_identifier = self.params.get("DBInstanceIdentifier")
         role_arn = self.params.get("RoleArn")
@@ -826,3 +1058,385 @@ class RDSResponse(BaseResponse):
             feature_name=feature_name,
         )
         return EmptyResult()
+
+    # ---- CustomDBEngineVersion ----
+
+    def create_custom_db_engine_version(self) -> ActionResult:
+        cev = self.backend.create_custom_db_engine_version(self.params)
+        return ActionResult(
+            {
+                "Engine": cev.engine,
+                "EngineVersion": cev.engine_version,
+                "DBEngineDescription": cev.db_engine_description,
+                "DBEngineVersionDescription": cev.db_engine_version_description,
+                "DBEngineVersionArn": cev.db_engine_version_arn,
+                "Status": cev.status,
+                "CreateTime": cev.create_time.isoformat(),
+                "DatabaseInstallationFilesS3BucketName": cev.database_installation_files_s3_bucket_name,
+                "DatabaseInstallationFilesS3Prefix": cev.database_installation_files_s3_prefix,
+                "KMSKeyId": cev.kms_key_id,
+                "MajorEngineVersion": cev.major_engine_version,
+                "SupportedEngineModes": cev.supported_engine_modes,
+                "SupportsParallelQuery": cev.supports_parallel_query,
+                "SupportsGlobalDatabases": cev.supports_global_databases,
+                "Tags": cev.tags,
+            }
+        )
+
+    def delete_custom_db_engine_version(self) -> ActionResult:
+        engine = self.params["Engine"]
+        engine_version = self.params["EngineVersion"]
+        cev = self.backend.delete_custom_db_engine_version(engine, engine_version)
+        return ActionResult(
+            {
+                "Engine": cev.engine,
+                "EngineVersion": cev.engine_version,
+                "DBEngineDescription": cev.db_engine_description,
+                "DBEngineVersionDescription": cev.db_engine_version_description,
+                "DBEngineVersionArn": cev.db_engine_version_arn,
+                "Status": cev.status,
+                "CreateTime": cev.create_time.isoformat(),
+                "MajorEngineVersion": cev.major_engine_version,
+                "Tags": cev.tags,
+            }
+        )
+
+    def modify_custom_db_engine_version(self) -> ActionResult:
+        engine = self.params["Engine"]
+        engine_version = self.params["EngineVersion"]
+        description = self.params.get("Description")
+        status = self.params.get("Status")
+        cev = self.backend.modify_custom_db_engine_version(
+            engine, engine_version, description=description, status=status
+        )
+        return ActionResult(
+            {
+                "Engine": cev.engine,
+                "EngineVersion": cev.engine_version,
+                "DBEngineDescription": cev.db_engine_description,
+                "DBEngineVersionDescription": cev.db_engine_version_description,
+                "DBEngineVersionArn": cev.db_engine_version_arn,
+                "Status": cev.status,
+                "CreateTime": cev.create_time.isoformat(),
+                "MajorEngineVersion": cev.major_engine_version,
+                "Tags": cev.tags,
+            }
+        )
+
+    # ---- Integration (zero-ETL) ----
+
+    def create_integration(self) -> ActionResult:
+        integration = self.backend.create_integration(self.params)
+        return ActionResult(
+            {
+                "IntegrationArn": integration.integration_arn,
+                "IntegrationName": integration.integration_name,
+                "SourceArn": integration.source_arn,
+                "TargetArn": integration.target_arn,
+                "KMSKeyId": integration.kms_key_id,
+                "AdditionalEncryptionContext": integration.additional_encryption_context,
+                "Description": integration.description,
+                "DataFilter": integration.data_filter,
+                "Status": integration.status,
+                "CreateTime": integration.create_time.isoformat(),
+                "Errors": integration.errors,
+                "Tags": integration.tags,
+            }
+        )
+
+    def delete_integration(self) -> ActionResult:
+        integration_identifier = self.params["IntegrationIdentifier"]
+        integration = self.backend.delete_integration(integration_identifier)
+        return ActionResult(
+            {
+                "IntegrationArn": integration.integration_arn,
+                "IntegrationName": integration.integration_name,
+                "SourceArn": integration.source_arn,
+                "TargetArn": integration.target_arn,
+                "Status": integration.status,
+                "CreateTime": integration.create_time.isoformat(),
+                "Tags": integration.tags,
+            }
+        )
+
+    def describe_integrations(self) -> ActionResult:
+        integration_identifier = self.params.get("IntegrationIdentifier")
+        integration_name = self.params.get("IntegrationName")
+        integrations = self.backend.describe_integrations(
+            integration_identifier=integration_identifier,
+            integration_name=integration_name,
+        )
+        results = []
+        for i in integrations:
+            results.append(
+                {
+                    "IntegrationArn": i.integration_arn,
+                    "IntegrationName": i.integration_name,
+                    "SourceArn": i.source_arn,
+                    "TargetArn": i.target_arn,
+                    "KMSKeyId": i.kms_key_id,
+                    "AdditionalEncryptionContext": i.additional_encryption_context,
+                    "Description": i.description,
+                    "DataFilter": i.data_filter,
+                    "Status": i.status,
+                    "CreateTime": i.create_time.isoformat(),
+                    "Errors": i.errors,
+                    "Tags": i.tags,
+                }
+            )
+        return ActionResult({"Integrations": results})
+
+    def modify_integration(self) -> ActionResult:
+        integration_identifier = self.params["IntegrationIdentifier"]
+        integration_name = self.params.get("IntegrationName")
+        description = self.params.get("Description")
+        data_filter = self.params.get("DataFilter")
+        integration = self.backend.modify_integration(
+            integration_identifier,
+            integration_name=integration_name,
+            description=description,
+            data_filter=data_filter,
+        )
+        return ActionResult(
+            {
+                "IntegrationArn": integration.integration_arn,
+                "IntegrationName": integration.integration_name,
+                "SourceArn": integration.source_arn,
+                "TargetArn": integration.target_arn,
+                "KMSKeyId": integration.kms_key_id,
+                "Description": integration.description,
+                "DataFilter": integration.data_filter,
+                "Status": integration.status,
+                "CreateTime": integration.create_time.isoformat(),
+                "Tags": integration.tags,
+            }
+        )
+
+    # ---- TenantDatabase ----
+
+    def create_tenant_database(self) -> ActionResult:
+        tenant_db = self.backend.create_tenant_database(self.params)
+        return ActionResult({"TenantDatabase": _tenant_db_dict(tenant_db)})
+
+    def delete_tenant_database(self) -> ActionResult:
+        db_instance_identifier = self.params["DBInstanceIdentifier"]
+        tenant_db_name = self.params["TenantDBName"]
+        final_snapshot = self.params.get("FinalDBSnapshotIdentifier")
+        tenant_db = self.backend.delete_tenant_database(
+            db_instance_identifier, tenant_db_name, final_snapshot
+        )
+        return ActionResult({"TenantDatabase": _tenant_db_dict(tenant_db)})
+
+    def describe_tenant_databases(self) -> ActionResult:
+        db_instance_identifier = self.params.get("DBInstanceIdentifier")
+        tenant_db_name = self.params.get("TenantDBName")
+        tenant_dbs = self.backend.describe_tenant_databases(
+            db_instance_identifier=db_instance_identifier,
+            tenant_db_name=tenant_db_name,
+        )
+        result = {"TenantDatabases": [_tenant_db_dict(t) for t in tenant_dbs]}
+        return PaginatedResult(result)
+
+    def modify_tenant_database(self) -> ActionResult:
+        db_instance_identifier = self.params["DBInstanceIdentifier"]
+        tenant_db_name = self.params["TenantDBName"]
+        master_user_password = self.params.get("MasterUserPassword")
+        new_tenant_db_name = self.params.get("NewTenantDBName")
+        tenant_db = self.backend.modify_tenant_database(
+            db_instance_identifier,
+            tenant_db_name,
+            master_user_password=master_user_password,
+            new_tenant_db_name=new_tenant_db_name,
+        )
+        return ActionResult({"TenantDatabase": _tenant_db_dict(tenant_db)})
+
+    def describe_db_snapshot_tenant_databases(self) -> ActionResult:
+        db_snapshot_identifier = self.params.get("DBSnapshotIdentifier")
+        db_instance_identifier = self.params.get("DBInstanceIdentifier")
+        dbi_resource_id = self.params.get("DbiResourceId")
+        snapshot_type = self.params.get("SnapshotType")
+        results = self.backend.describe_db_snapshot_tenant_databases(
+            db_snapshot_identifier=db_snapshot_identifier,
+            db_instance_identifier=db_instance_identifier,
+            dbi_resource_id=dbi_resource_id,
+            snapshot_type=snapshot_type,
+        )
+        return ActionResult({"DBSnapshotTenantDatabases": results})
+
+    # ---- ActivityStream ----
+
+    def start_activity_stream(self) -> ActionResult:
+        resource_arn = self.params["ResourceArn"]
+        mode = self.params.get("Mode")
+        kms_key_id = self.params.get("KmsKeyId")
+        apply_immediately = self.params.get("ApplyImmediately", True)
+        engine_native = self.params.get("EngineNativeAuditFieldsIncluded", False)
+        result = self.backend.start_activity_stream(
+            resource_arn,
+            mode=mode,
+            kms_key_id=kms_key_id,
+            apply_immediately=apply_immediately,
+            engine_native_audit_fields_included=engine_native,
+        )
+        return ActionResult(result)
+
+    def stop_activity_stream(self) -> ActionResult:
+        resource_arn = self.params["ResourceArn"]
+        apply_immediately = self.params.get("ApplyImmediately", True)
+        result = self.backend.stop_activity_stream(
+            resource_arn, apply_immediately=apply_immediately
+        )
+        return ActionResult(result)
+
+    def modify_activity_stream(self) -> ActionResult:
+        resource_arn = self.params.get("ResourceArn")
+        audit_policy_state = self.params.get("AuditPolicyState")
+        result = self.backend.modify_activity_stream(
+            resource_arn=resource_arn,
+            audit_policy_state=audit_policy_state,
+        )
+        return ActionResult(result)
+
+    # ---- DBShardGroup (delete/modify/reboot) ----
+
+    def delete_db_shard_group(self) -> ActionResult:
+        db_shard_group_identifier = self.params["DBShardGroupIdentifier"]
+        shard_group = self.backend.delete_db_shard_group(db_shard_group_identifier)
+        return ActionResult(shard_group)
+
+    def modify_db_shard_group(self) -> ActionResult:
+        db_shard_group_identifier = self.params["DBShardGroupIdentifier"]
+        max_acu = self.params.get("MaxACU")
+        min_acu = self.params.get("MinACU")
+        compute_redundancy = self.params.get("ComputeRedundancy")
+        shard_group = self.backend.modify_db_shard_group(
+            db_shard_group_identifier,
+            max_acu=max_acu,
+            min_acu=min_acu,
+            compute_redundancy=compute_redundancy,
+        )
+        return ActionResult(shard_group)
+
+    def reboot_db_shard_group(self) -> ActionResult:
+        db_shard_group_identifier = self.params["DBShardGroupIdentifier"]
+        shard_group = self.backend.reboot_db_shard_group(db_shard_group_identifier)
+        return ActionResult(shard_group)
+
+    # ---- ReservedDBInstances ----
+
+    def describe_reserved_db_instances_offerings(self) -> ActionResult:
+        offering_id = self.params.get("ReservedDBInstancesOfferingId")
+        db_instance_class = self.params.get("DBInstanceClass")
+        duration = self.params.get("Duration")
+        product_description = self.params.get("ProductDescription")
+        offering_type = self.params.get("OfferingType")
+        multi_az = self.params.get("MultiAZ")
+        offerings = self.backend.describe_reserved_db_instances_offerings(
+            reserved_db_instances_offering_id=offering_id,
+            db_instance_class=db_instance_class,
+            duration=duration,
+            product_description=product_description,
+            offering_type=offering_type,
+            multi_az=multi_az,
+        )
+        results = []
+        for o in offerings:
+            results.append(
+                {
+                    "ReservedDBInstancesOfferingId": o.reserved_db_instances_offering_id,
+                    "DBInstanceClass": o.db_instance_class,
+                    "Duration": o.duration,
+                    "FixedPrice": o.fixed_price,
+                    "UsagePrice": o.usage_price,
+                    "CurrencyCode": o.currency_code,
+                    "ProductDescription": o.product_description,
+                    "OfferingType": o.offering_type,
+                    "MultiAZ": o.multi_az,
+                    "RecurringCharges": o.recurring_charges,
+                }
+            )
+        return ActionResult({"ReservedDBInstancesOfferings": results})
+
+    def purchase_reserved_db_instances_offering(self) -> ActionResult:
+        offering_id = self.params["ReservedDBInstancesOfferingId"]
+        reserved_id = self.params.get("ReservedDBInstanceId")
+        count = self.params.get("DBInstanceCount", 1)
+        tags = self.params.get("Tags", [])
+        reserved = self.backend.purchase_reserved_db_instances_offering(
+            reserved_db_instances_offering_id=offering_id,
+            reserved_db_instance_id=reserved_id,
+            db_instance_count=count,
+            tags=tags,
+        )
+        return ActionResult({"ReservedDBInstance": _reserved_db_dict(reserved)})
+
+    def describe_reserved_db_instances(self) -> ActionResult:
+        reserved_id = self.params.get("ReservedDBInstanceId")
+        offering_id = self.params.get("ReservedDBInstancesOfferingId")
+        db_instance_class = self.params.get("DBInstanceClass")
+        duration = self.params.get("Duration")
+        product_description = self.params.get("ProductDescription")
+        offering_type = self.params.get("OfferingType")
+        multi_az = self.params.get("MultiAZ")
+        results = self.backend.describe_reserved_db_instances(
+            reserved_db_instance_id=reserved_id,
+            reserved_db_instances_offering_id=offering_id,
+            db_instance_class=db_instance_class,
+            duration=duration,
+            product_description=product_description,
+            offering_type=offering_type,
+            multi_az=multi_az,
+        )
+        return ActionResult(
+            {
+                "ReservedDBInstances": [_reserved_db_dict(r) for r in results],
+            }
+        )
+
+    # ---- DBRecommendation ----
+
+    def describe_db_recommendations(self) -> ActionResult:
+        last_updated_after = self.params.get("LastUpdatedAfter")
+        last_updated_before = self.params.get("LastUpdatedBefore")
+        locale = self.params.get("Locale")
+        recommendations = self.backend.describe_db_recommendations(
+            last_updated_after=last_updated_after,
+            last_updated_before=last_updated_before,
+            locale=locale,
+        )
+        return ActionResult({"DBRecommendations": recommendations})
+
+
+def _tenant_db_dict(tenant_db: Any) -> dict:
+    return {
+        "DBInstanceIdentifier": tenant_db.db_instance_identifier,
+        "TenantDBName": tenant_db.tenant_db_name,
+        "MasterUsername": tenant_db.master_username,
+        "CharacterSetName": tenant_db.character_set_name,
+        "NcharCharacterSetName": tenant_db.nchar_character_set_name,
+        "Status": tenant_db.status,
+        "TenantDatabaseCreateTime": tenant_db.create_time.isoformat(),
+        "TenantDatabaseResourceId": tenant_db.tenant_database_resource_id,
+        "TenantDatabaseARN": tenant_db.tenant_database_arn,
+        "DbiResourceId": tenant_db.dbi_resource_id,
+    }
+
+
+def _reserved_db_dict(reserved: Any) -> dict:
+    return {
+        "ReservedDBInstanceId": reserved.reserved_db_instance_id,
+        "ReservedDBInstancesOfferingId": reserved.reserved_db_instances_offering_id,
+        "DBInstanceClass": reserved.db_instance_class,
+        "Duration": reserved.duration,
+        "FixedPrice": reserved.fixed_price,
+        "UsagePrice": reserved.usage_price,
+        "CurrencyCode": reserved.currency_code,
+        "ProductDescription": reserved.product_description,
+        "OfferingType": reserved.offering_type,
+        "MultiAZ": reserved.multi_az,
+        "RecurringCharges": reserved.recurring_charges,
+        "DBInstanceCount": reserved.db_instance_count,
+        "State": reserved.state,
+        "StartTime": reserved.start_time.isoformat(),
+        "ReservedDBInstanceArn": reserved.reserved_db_instance_arn,
+    }

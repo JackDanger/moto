@@ -278,6 +278,12 @@ class EmailResponse(BaseResponse):
         self.backend.update_receipt_rule(rule_set_name, rule)
         return EmptyResult()
 
+    def delete_receipt_rule(self) -> ActionResult:
+        rule_set_name = self._get_param("RuleSetName")
+        rule_name = self._get_param("RuleName")
+        self.backend.delete_receipt_rule(rule_set_name, rule_name)
+        return EmptyResult()
+
     def set_identity_mail_from_domain(self) -> ActionResult:
         identity = self._get_param("Identity")
         mail_from_domain = self._get_param("MailFromDomain")
@@ -333,3 +339,81 @@ class EmailResponse(BaseResponse):
         dkim_attributes = self.backend.get_identity_dkim_attributes(identities)
         result = {"DkimAttributes": dkim_attributes}
         return ActionResult(result)
+
+    def create_receipt_filter(self) -> ActionResult:
+        name = self._get_param("Filter.Name")
+        policy = self._get_param("Filter.IpFilter.Policy")
+        cidr = self._get_param("Filter.IpFilter.Cidr")
+        self.backend.create_receipt_filter(name=name, policy=policy, cidr=cidr)
+        return EmptyResult()
+
+    def list_receipt_filters(self) -> ActionResult:
+        filters = self.backend.list_receipt_filters()
+        result = {"Filters": [f.to_dict() for f in filters]}
+        return ActionResult(result)
+
+    def delete_receipt_filter(self) -> ActionResult:
+        name = self._get_param("FilterName")
+        self.backend.delete_receipt_filter(name=name)
+        return EmptyResult()
+
+    def create_custom_verification_email_template(self) -> ActionResult:
+        template_name = self._get_param("TemplateName")
+        from_email = self._get_param("FromEmailAddress")
+        subject = self._get_param("TemplateSubject")
+        content = self._get_param("TemplateContent")
+        success_url = self._get_param("SuccessRedirectionURL")
+        failure_url = self._get_param("FailureRedirectionURL")
+        self.backend.create_custom_verification_email_template(
+            template_name=template_name,
+            from_email_address=from_email,
+            template_subject=subject,
+            template_content=content,
+            success_redirection_url=success_url,
+            failure_redirection_url=failure_url,
+        )
+        return EmptyResult()
+
+    def get_custom_verification_email_template(self) -> ActionResult:
+        template_name = self._get_param("TemplateName")
+        tmpl = self.backend.get_custom_verification_email_template(template_name)
+        return ActionResult(tmpl.to_dict())
+
+    def list_custom_verification_email_templates(self) -> ActionResult:
+        templates = self.backend.list_custom_verification_email_templates()
+        result = {"CustomVerificationEmailTemplates": [t.to_dict() for t in templates]}
+        return ActionResult(result)
+
+    def update_custom_verification_email_template(self) -> ActionResult:
+        template_name = self._get_param("TemplateName")
+        from_email = self._get_param("FromEmailAddress")
+        subject = self._get_param("TemplateSubject")
+        content = self._get_param("TemplateContent")
+        success_url = self._get_param("SuccessRedirectionURL")
+        failure_url = self._get_param("FailureRedirectionURL")
+        self.backend.update_custom_verification_email_template(
+            template_name=template_name,
+            from_email_address=from_email,
+            template_subject=subject,
+            template_content=content,
+            success_redirection_url=success_url,
+            failure_redirection_url=failure_url,
+        )
+        return EmptyResult()
+
+    def delete_custom_verification_email_template(self) -> ActionResult:
+        template_name = self._get_param("TemplateName")
+        self.backend.delete_custom_verification_email_template(template_name)
+        return EmptyResult()
+
+    def send_custom_verification_email(self) -> ActionResult:
+        email_address = self._get_param("EmailAddress")
+        template_name = self._get_param("TemplateName")
+        message_id = self.backend.send_custom_verification_email(
+            email_address=email_address, template_name=template_name
+        )
+        result = {"MessageId": message_id}
+        return ActionResult(result)
+
+    def update_account_sending_enabled(self) -> ActionResult:
+        return EmptyResult()

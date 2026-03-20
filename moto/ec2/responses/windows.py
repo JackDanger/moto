@@ -12,9 +12,8 @@ class Windows(EC2BaseResponse):
         raise NotImplementedError("Windows.cancel_bundle_task is not yet implemented")
 
     def describe_bundle_tasks(self) -> str:
-        raise NotImplementedError(
-            "Windows.describe_bundle_tasks is not yet implemented"
-        )
+        template = self.response_template(DESCRIBE_BUNDLE_TASKS_TEMPLATE)
+        return template.render()
 
     def get_password_data(self) -> ActionResult:
         instance_id = self._get_param("InstanceId")
@@ -25,3 +24,9 @@ class Windows(EC2BaseResponse):
             "PasswordData": password_data,
         }
         return ActionResult(result)
+
+
+DESCRIBE_BUNDLE_TASKS_TEMPLATE = """<DescribeBundleTasksResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <bundleInstanceTasksSet/>
+</DescribeBundleTasksResponse>"""

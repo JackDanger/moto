@@ -126,6 +126,8 @@ backend_url_patterns = [
     ),
     ("kms", re.compile("https?://kms\\.(.+)\\.amazonaws\\.com")),
     ("lakeformation", re.compile("https?://lakeformation\\.(.+)\\.amazonaws\\.com")),
+    ("lakeformation", re.compile("https?://query-lakeformation\\.(.+)\\.amazonaws\\.com")),
+    ("lakeformation", re.compile("https?://data-lakeformation\\.(.+)\\.amazonaws\\.com")),
     ("lexv2models", re.compile("https?://lex\\.(.+)\\.amazonaws\\.com")),
     ("lexv2models", re.compile("https?://models-v2-lex\\.(.+)\\.amazonaws\\.com")),
     ("logs", re.compile("https?://logs\\.(.+)\\.amazonaws\\.com")),

@@ -248,3 +248,85 @@ def test_list_origin_endpoint_succeeds():
     assert endpoint["Description"] == origin_endpoint_config["Description"]
     assert endpoint["HlsPackage"] == origin_endpoint_config["HlsPackage"]
     assert endpoint["Origination"] == "ALLOW"
+
+
+@mock_aws
+def test_create_harvest_job_succeeds():
+    client = boto3.client("mediapackage", region_name=region)
+    client.create_channel(**_create_channel_config())
+    client.create_origin_endpoint(**_create_origin_endpoint_config())
+    job = client.create_harvest_job(
+        Id="harvest-job-1",
+        OriginEndpointId="origin-endpoint-id",
+        StartTime="2024-01-01T00:00:00Z",
+        EndTime="2024-01-01T01:00:00Z",
+        S3Destination={
+            "BucketName": "my-bucket",
+            "ManifestKey": "manifests/hj1",
+            "RoleArn": "arn:aws:iam::123456789012:role/mediapackage-role",
+        },
+    )
+    assert job["Id"] == "harvest-job-1"
+    assert job["Status"] == "IN_PROGRESS"
+    assert job["ChannelId"] == "channel-id"
+    assert job["S3Destination"]["BucketName"] == "my-bucket"
+
+
+@mock_aws
+def test_describe_harvest_job_succeeds():
+    client = boto3.client("mediapackage", region_name=region)
+    client.create_channel(**_create_channel_config())
+    client.create_origin_endpoint(**_create_origin_endpoint_config())
+    client.create_harvest_job(
+        Id="harvest-job-1",
+        OriginEndpointId="origin-endpoint-id",
+        StartTime="2024-01-01T00:00:00Z",
+        EndTime="2024-01-01T01:00:00Z",
+        S3Destination={
+            "BucketName": "my-bucket",
+            "ManifestKey": "manifests/hj1",
+            "RoleArn": "arn:aws:iam::123456789012:role/mediapackage-role",
+        },
+    )
+    job = client.describe_harvest_job(Id="harvest-job-1")
+    assert job["Id"] == "harvest-job-1"
+    assert "Arn" in job
+
+
+@mock_aws
+def test_describe_unknown_harvest_job_throws_error():
+    client = boto3.client("mediapackage", region_name=region)
+    with pytest.raises(ClientError) as err:
+        client.describe_harvest_job(Id="unknown-harvest-job")
+    err = err.value.response["Error"]
+    assert err["Code"] == "NotFoundException"
+
+
+@mock_aws
+def test_list_harvest_jobs_succeeds():
+    client = boto3.client("mediapackage", region_name=region)
+    client.create_channel(**_create_channel_config())
+    client.create_origin_endpoint(**_create_origin_endpoint_config())
+    client.create_harvest_job(
+        Id="harvest-job-1",
+        OriginEndpointId="origin-endpoint-id",
+        StartTime="2024-01-01T00:00:00Z",
+        EndTime="2024-01-01T01:00:00Z",
+        S3Destination={
+            "BucketName": "my-bucket",
+            "ManifestKey": "manifests/hj1",
+            "RoleArn": "arn:aws:iam::123456789012:role/mediapackage-role",
+        },
+    )
+    lst = client.list_harvest_jobs()
+    assert len(lst["HarvestJobs"]) == 1
+    assert lst["HarvestJobs"][0]["Id"] == "harvest-job-1"
+
+
+@mock_aws
+def test_update_channel_succeeds():
+    client = boto3.client("mediapackage", region_name=region)
+    client.create_channel(**_create_channel_config())
+    channel = client.update_channel(Id="channel-id", Description="Updated description")
+    assert channel["Description"] == "Updated description"
+    assert channel["Id"] == "channel-id"

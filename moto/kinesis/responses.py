@@ -349,3 +349,59 @@ class KinesisResponse(BaseResponse):
     def describe_limits(self) -> ActionResult:
         limits = self.kinesis_backend.describe_limits()
         return ActionResult(limits)
+
+    def describe_account_settings(self) -> ActionResult:
+        return ActionResult(
+            {
+                "AccountSettings": {
+                    "OpenShardCount": 0,
+                    "StreamCount": len(self.kinesis_backend.streams),
+                }
+            }
+        )
+
+    def list_tags_for_resource(self) -> ActionResult:
+        resource_arn = self._get_param("ResourceARN")
+        tags = self.kinesis_backend.list_tags_for_resource(resource_arn)
+        return ActionResult({"Tags": tags})
+
+    def tag_resource(self) -> ActionResult:
+        resource_arn = self._get_param("ResourceARN")
+        tags = self._get_param("Tags")
+        self.kinesis_backend.tag_resource(resource_arn, tags)
+        return EmptyResult()
+
+    def untag_resource(self) -> ActionResult:
+        resource_arn = self._get_param("ResourceARN")
+        tag_keys = self._get_param("TagKeys")
+        self.kinesis_backend.untag_resource(resource_arn, tag_keys)
+        return EmptyResult()
+
+    def subscribe_to_shard(self) -> ActionResult:
+        consumer_arn = self._get_param("ConsumerARN")
+        shard_id = self._get_param("ShardId")
+        starting_position = self._get_param("StartingPosition")
+        result = self.kinesis_backend.subscribe_to_shard(
+            consumer_arn, shard_id, starting_position
+        )
+        return ActionResult(result)
+
+    def update_account_settings(self) -> ActionResult:
+        commitment = self._get_param("MinimumThroughputBillingCommitment")
+        result = self.kinesis_backend.update_account_settings(commitment)
+        return ActionResult(result)
+
+    def update_max_record_size(self) -> ActionResult:
+        stream_arn = self._get_param("StreamARN")
+        max_record_size_in_kib = self._get_param("MaxRecordSizeInKiB")
+        self.kinesis_backend.update_max_record_size(stream_arn, max_record_size_in_kib)
+        return EmptyResult()
+
+    def update_stream_warm_throughput(self) -> ActionResult:
+        stream_arn = self._get_param("StreamARN")
+        stream_name = self._get_param("StreamName")
+        warm_throughput_mibps = self._get_param("WarmThroughputMiBps")
+        result = self.kinesis_backend.update_stream_warm_throughput(
+            stream_arn, stream_name, warm_throughput_mibps
+        )
+        return ActionResult(result)

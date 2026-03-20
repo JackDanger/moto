@@ -227,3 +227,112 @@ class MemoryDBResponse(BaseResponse):
             subnet_group_name=subnet_group_name,
         )
         return ActionResult({"SubnetGroup": subnet_group.to_dict()})
+
+    # ACL operations
+    def create_acl(self) -> ActionResult:
+        params = json.loads(self.body)
+        acl = self.memorydb_backend.create_acl(
+            acl_name=params.get("ACLName"),
+            user_names=params.get("UserNames", []),
+            tags=params.get("Tags", []),
+        )
+        return ActionResult({"ACL": acl.to_dict()})
+
+    def describe_ac_ls(self) -> ActionResult:
+        params = json.loads(self.body)
+        acls = self.memorydb_backend.describe_acls(acl_name=params.get("ACLName"))
+        return ActionResult({"ACLs": [acl.to_dict() for acl in acls]})
+
+    def delete_acl(self) -> ActionResult:
+        params = json.loads(self.body)
+        acl = self.memorydb_backend.delete_acl(acl_name=params.get("ACLName"))
+        return ActionResult({"ACL": acl.to_dict()})
+
+    def update_acl(self) -> ActionResult:
+        params = json.loads(self.body)
+        acl = self.memorydb_backend.update_acl(
+            acl_name=params.get("ACLName"),
+            user_names_to_add=params.get("UserNamesToAdd"),
+            user_names_to_remove=params.get("UserNamesToRemove"),
+        )
+        return ActionResult({"ACL": acl.to_dict()})
+
+    # User operations
+    def create_user(self) -> ActionResult:
+        params = json.loads(self.body)
+        user = self.memorydb_backend.create_user(
+            user_name=params.get("UserName"),
+            access_string=params.get("AccessString", ""),
+            authentication_mode=params.get("AuthenticationMode"),
+            tags=params.get("Tags", []),
+        )
+        return ActionResult({"User": user.to_dict()})
+
+    def describe_users(self) -> ActionResult:
+        params = json.loads(self.body)
+        users = self.memorydb_backend.describe_users(user_name=params.get("UserName"))
+        return ActionResult({"Users": [user.to_dict() for user in users]})
+
+    def delete_user(self) -> ActionResult:
+        params = json.loads(self.body)
+        user = self.memorydb_backend.delete_user(user_name=params.get("UserName"))
+        return ActionResult({"User": user.to_dict()})
+
+    def update_user(self) -> ActionResult:
+        params = json.loads(self.body)
+        user = self.memorydb_backend.update_user(
+            user_name=params.get("UserName"),
+            access_string=params.get("AccessString"),
+            authentication_mode=params.get("AuthenticationMode"),
+        )
+        return ActionResult({"User": user.to_dict()})
+
+    # Parameter Group operations
+    def create_parameter_group(self) -> ActionResult:
+        params = json.loads(self.body)
+        pg = self.memorydb_backend.create_parameter_group(
+            name=params.get("ParameterGroupName"),
+            family=params.get("Family", "memorydb_redis7"),
+            description=params.get("Description", ""),
+            tags=params.get("Tags", []),
+        )
+        return ActionResult({"ParameterGroup": pg.to_dict()})
+
+    def describe_parameter_groups(self) -> ActionResult:
+        params = json.loads(self.body)
+        pgs = self.memorydb_backend.describe_parameter_groups(name=params.get("ParameterGroupName"))
+        return ActionResult({"ParameterGroups": [pg.to_dict() for pg in pgs]})
+
+    def delete_parameter_group(self) -> ActionResult:
+        params = json.loads(self.body)
+        pg = self.memorydb_backend.delete_parameter_group(name=params.get("ParameterGroupName"))
+        return ActionResult({"ParameterGroup": pg.to_dict()})
+
+    def update_parameter_group(self) -> ActionResult:
+        params = json.loads(self.body)
+        pg = self.memorydb_backend.update_parameter_group(
+            name=params.get("ParameterGroupName"),
+            parameter_name_values=params.get("ParameterNameValues", []),
+        )
+        return ActionResult({"ParameterGroup": pg.to_dict()})
+
+    # Other list operations
+    def describe_service_updates(self) -> ActionResult:
+        updates = self.memorydb_backend.describe_service_updates()
+        return ActionResult({"ServiceUpdates": updates})
+
+    def describe_events(self) -> ActionResult:
+        events = self.memorydb_backend.describe_events()
+        return ActionResult({"Events": events})
+
+    def describe_engine_versions(self) -> ActionResult:
+        versions = self.memorydb_backend.describe_engine_versions()
+        return ActionResult({"EngineVersions": versions})
+
+    def describe_reserved_nodes(self) -> ActionResult:
+        nodes = self.memorydb_backend.describe_reserved_nodes()
+        return ActionResult({"ReservedNodes": nodes})
+
+    def describe_reserved_nodes_offerings(self) -> ActionResult:
+        offerings = self.memorydb_backend.describe_reserved_nodes_offerings()
+        return ActionResult({"ReservedNodesOfferings": offerings})

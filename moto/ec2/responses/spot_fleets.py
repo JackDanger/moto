@@ -45,7 +45,7 @@ class SpotFleets(EC2BaseResponse):
         spot_price = spot_config.get("SpotPrice")
         target_capacity = spot_config["TargetCapacity"]
         iam_fleet_role = spot_config["IamFleetRole"]
-        allocation_strategy = spot_config["AllocationStrategy"]
+        allocation_strategy = spot_config.get("AllocationStrategy", "lowestPrice")
         instance_interruption_behaviour = spot_config.get(
             "InstanceInterruptionBehavior"
         )

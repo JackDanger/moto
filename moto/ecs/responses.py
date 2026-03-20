@@ -342,6 +342,25 @@ class EC2ContainerServiceResponse(BaseResponse):
         }
         return ActionResult(result)
 
+    def describe_service_deployments(self) -> ActionResult:
+        arns = self._get_param("serviceDeploymentArns", [])
+        result = self.ecs_backend.describe_service_deployments(arns)
+        return ActionResult(result)
+
+    def list_service_deployments(self) -> ActionResult:
+        service = self._get_param("service")
+        cluster = self._get_param("cluster") or "default"
+        status_filter = self._get_param("status")
+        result = self.ecs_backend.list_service_deployments(
+            service, cluster, status_filter
+        )
+        return ActionResult(result)
+
+    def describe_service_revisions(self) -> ActionResult:
+        arns = self._get_param("serviceRevisionArns", [])
+        result = self.ecs_backend.describe_service_revisions(arns)
+        return ActionResult(result)
+
     def update_service(self) -> ActionResult:
         service_properties = self._get_params()
         parsed_props = {}
@@ -569,6 +588,96 @@ class EC2ContainerServiceResponse(BaseResponse):
         name = self._get_param("name")
         self.ecs_backend.delete_account_setting(name)
         return EmptyResult()
+
+    def put_account_setting_default(self) -> ActionResult:
+        name = self._get_param("name")
+        value = self._get_param("value")
+        account_setting = self.ecs_backend.put_account_setting_default(name, value)
+        return ActionResult({"setting": account_setting})
+
+    def get_task_protection(self) -> ActionResult:
+        cluster = self._get_param("cluster")
+        tasks = self._get_param("tasks", [])
+        protected_tasks, failures = self.ecs_backend.get_task_protection(
+            cluster, tasks or None
+        )
+        return ActionResult({"protectedTasks": protected_tasks, "failures": failures})
+
+    def update_task_protection(self) -> ActionResult:
+        cluster = self._get_param("cluster")
+        tasks = self._get_param("tasks")
+        protection_enabled = self._get_param("protectionEnabled")
+        expires_in_minutes = self._get_param("expiresInMinutes")
+        protected_tasks, failures = self.ecs_backend.update_task_protection(
+            cluster, tasks, protection_enabled, expires_in_minutes
+        )
+        return ActionResult({"protectedTasks": protected_tasks, "failures": failures})
+
+    def execute_command(self) -> ActionResult:
+        cluster = self._get_param("cluster", "default")
+        task = self._get_param("task")
+        container = self._get_param("container")
+        command = self._get_param("command", "/bin/sh")
+        interactive = self._get_param("interactive", False)
+        result = self.ecs_backend.execute_command(
+            cluster, task, container, command, interactive
+        )
+        return ActionResult(result)
+
+    def list_services_by_namespace(self) -> ActionResult:
+        namespace = self._get_param("namespace")
+        service_arns = self.ecs_backend.list_services_by_namespace(namespace)
+        return ActionResult({"serviceArns": service_arns})
+
+    def update_cluster_settings(self) -> ActionResult:
+        cluster_name = self._get_param("cluster")
+        settings = self._get_param("settings")
+        cluster = self.ecs_backend.update_cluster_settings(cluster_name, settings)
+        return ActionResult({"cluster": cluster})
+
+    def update_container_agent(self) -> ActionResult:
+        cluster = self._get_param("cluster", "default")
+        container_instance = self._get_param("containerInstance")
+        ci = self.ecs_backend.update_container_agent(cluster, container_instance)
+        return ActionResult({"containerInstance": ci})
+
+    def submit_container_state_change(self) -> ActionResult:
+        cluster = self._get_param("cluster", "default")
+        task = self._get_param("task", "")
+        container_name = self._get_param("containerName")
+        status = self._get_param("status")
+        runtime_id = self._get_param("runtimeId")
+        reason = self._get_param("reason")
+        network_bindings = self._get_param("networkBindings")
+        result = self.ecs_backend.submit_container_state_change(
+            cluster, task, container_name, status, runtime_id, reason, network_bindings
+        )
+        return ActionResult(result)
+
+    def submit_task_state_change(self) -> ActionResult:
+        cluster = self._get_param("cluster", "default")
+        task = self._get_param("task", "")
+        status = self._get_param("status")
+        reason = self._get_param("reason")
+        containers = self._get_param("containers")
+        attachments = self._get_param("attachments")
+        managed_agents = self._get_param("managedAgents")
+        pull_started_at = self._get_param("pullStartedAt")
+        pull_stopped_at = self._get_param("pullStoppedAt")
+        execution_stopped_at = self._get_param("executionStoppedAt")
+        result = self.ecs_backend.submit_task_state_change(
+            cluster,
+            task,
+            status,
+            reason,
+            containers,
+            attachments,
+            managed_agents,
+            pull_started_at,
+            pull_stopped_at,
+            execution_stopped_at,
+        )
+        return ActionResult(result)
 
     def delete_task_definitions(self) -> ActionResult:
         task_definitions = self._get_param("taskDefinitions")

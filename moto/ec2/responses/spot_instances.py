@@ -12,25 +12,6 @@ class SpotInstances(EC2BaseResponse):
         template = self.response_template(CANCEL_SPOT_INSTANCES_TEMPLATE)
         return template.render(requests=requests)
 
-    def create_spot_datafeed_subscription(self) -> None:
-        self.error_on_dryrun()
-
-        raise NotImplementedError(
-            "SpotInstances.create_spot_datafeed_subscription is not yet implemented"
-        )
-
-    def delete_spot_datafeed_subscription(self) -> None:
-        self.error_on_dryrun()
-
-        raise NotImplementedError(
-            "SpotInstances.delete_spot_datafeed_subscription is not yet implemented"
-        )
-
-    def describe_spot_datafeed_subscription(self) -> None:
-        raise NotImplementedError(
-            "SpotInstances.describe_spot_datafeed_subscription is not yet implemented"
-        )
-
     def describe_spot_instance_requests(self) -> str:
         spot_instance_ids = self._get_param("SpotInstanceRequestIds", [])
         filters = self._filters_from_querystring()

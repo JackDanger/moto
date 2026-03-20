@@ -141,3 +141,134 @@ class InvalidClusterSnapshotStateFaultError(RedshiftClientError):
             "InvalidClusterSnapshotState",
             f"Cannot delete the snapshot {snapshot_identifier} because only manual snapshots may be deleted",
         )
+
+
+class ScheduledActionAlreadyExistsError(RedshiftClientError):
+    def __init__(self, action_name: str):
+        super().__init__(
+            "ScheduledActionAlreadyExists",
+            f"Scheduled Action {action_name} already exists.",
+        )
+
+
+class ScheduledActionNotFoundError(RedshiftClientError):
+    def __init__(self, action_name: str):
+        super().__init__(
+            "ScheduledActionNotFoundFault",
+            f"Scheduled Action {action_name} not found.",
+        )
+
+
+class AuthenticationProfileAlreadyExistsError(RedshiftClientError):
+    def __init__(self, profile_name: str):
+        super().__init__(
+            "AuthenticationProfileAlreadyExistsFault",
+            f"Authentication profile {profile_name} already exists.",
+        )
+
+
+class AuthenticationProfileNotFoundError(RedshiftClientError):
+    def __init__(self, profile_name: str):
+        super().__init__(
+            "AuthenticationProfileNotFoundFault",
+            f"Authentication profile {profile_name} not found.",
+        )
+
+
+class UsageLimitNotFoundError(RedshiftClientError):
+    def __init__(self, usage_limit_id: str):
+        super().__init__(
+            "UsageLimitNotFound",
+            f"Usage limit {usage_limit_id} not found.",
+        )
+
+
+class EndpointAuthorizationAlreadyExistsError(RedshiftClientError):
+    def __init__(self, cluster_identifier: str, account: str):
+        super().__init__(
+            "EndpointAuthorizationAlreadyExists",
+            f"Endpoint authorization already exists for cluster {cluster_identifier} "
+            f"and account {account}.",
+        )
+
+
+class EndpointAuthorizationNotFoundError(RedshiftClientError):
+    def __init__(self, cluster_identifier: str, account: str):
+        super().__init__(
+            "EndpointAuthorizationNotFound",
+            f"Endpoint authorization not found for cluster {cluster_identifier} "
+            f"and account {account}.",
+        )
+
+
+class SubscriptionNotFoundError(RedshiftClientError):
+    def __init__(self, subscription_name: str):
+        super().__init__(
+            "SubscriptionNotFound",
+            f"Subscription {subscription_name} not found.",
+        )
+
+
+class SubscriptionAlreadyExistError(RedshiftClientError):
+    def __init__(self, subscription_name: str):
+        super().__init__(
+            "SubscriptionAlreadyExist",
+            f"Subscription {subscription_name} already exists.",
+        )
+
+
+class HsmClientCertificateNotFoundError(RedshiftClientError):
+    def __init__(self, certificate_identifier: str):
+        super().__init__(
+            "HsmClientCertificateNotFoundFault",
+            f"HSM client certificate {certificate_identifier} not found.",
+        )
+
+
+class HsmClientCertificateAlreadyExistsError(RedshiftClientError):
+    def __init__(self, certificate_identifier: str):
+        super().__init__(
+            "HsmClientCertificateAlreadyExistsFault",
+            f"HSM client certificate {certificate_identifier} already exists.",
+        )
+
+
+class HsmConfigurationNotFoundError(RedshiftClientError):
+    def __init__(self, configuration_identifier: str):
+        super().__init__(
+            "HsmConfigurationNotFoundFault",
+            f"HSM configuration {configuration_identifier} not found.",
+        )
+
+
+class HsmConfigurationAlreadyExistsError(RedshiftClientError):
+    def __init__(self, configuration_identifier: str):
+        super().__init__(
+            "HsmConfigurationAlreadyExistsFault",
+            f"HSM configuration {configuration_identifier} already exists.",
+        )
+
+
+class EndpointNotFoundError(RedshiftClientError):
+    def __init__(self, endpoint_name: str):
+        super().__init__(
+            "EndpointNotFound",
+            f"Endpoint {endpoint_name} not found.",
+        )
+
+
+class EndpointAlreadyExistsError(RedshiftClientError):
+    def __init__(self, endpoint_name: str):
+        super().__init__(
+            "EndpointAlreadyExists",
+            f"Endpoint {endpoint_name} already exists.",
+        )
+
+
+class PartnerNotFoundError(RedshiftClientError):
+    def __init__(self, partner_name: str):
+        super().__init__(
+            "PartnerNotFound",
+            f"Partner {partner_name} not found.",
+        )
+

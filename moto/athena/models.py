@@ -2,7 +2,7 @@ import time
 from datetime import datetime
 from typing import Any, Optional
 
-from moto.athena.exceptions import InvalidArgumentException, QueryStillRunning
+from moto.athena.exceptions import AthenaClientError, InvalidArgumentException, QueryStillRunning
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random
@@ -201,6 +201,41 @@ class PreparedStatement(BaseModel):
         self.last_modified_time = datetime.now()
 
 
+class Database(BaseModel):
+    def __init__(
+        self,
+        catalog_name: str,
+        database_name: str,
+        description: str,
+        parameters: Optional[dict[str, str]] = None,
+    ):
+        self.catalog_name = catalog_name
+        self.name = database_name
+        self.description = description
+        self.parameters = parameters or {}
+
+
+class TableMetadata(BaseModel):
+    def __init__(
+        self,
+        catalog_name: str,
+        database_name: str,
+        table_name: str,
+        table_type: str = "EXTERNAL_TABLE",
+        columns: Optional[list[dict[str, str]]] = None,
+        partition_keys: Optional[list[dict[str, str]]] = None,
+        parameters: Optional[dict[str, str]] = None,
+    ):
+        self.catalog_name = catalog_name
+        self.database_name = database_name
+        self.name = table_name
+        self.table_type = table_type
+        self.columns = columns or []
+        self.partition_keys = partition_keys or []
+        self.parameters = parameters or {}
+        self.create_time = time.time()
+
+
 class AthenaBackend(BaseBackend):
     PAGINATION_MODEL = {
         "list_named_queries": {
@@ -221,6 +256,15 @@ class AthenaBackend(BaseBackend):
         self.query_results: dict[str, QueryResults] = {}
         self.query_results_queue: list[QueryResults] = []
         self.prepared_statements: dict[str, PreparedStatement] = {}
+        self.databases: dict[
+            str, dict[str, Database]
+        ] = {}  # catalog_name -> {db_name -> Database}
+        self.tables: dict[
+            str, dict[str, dict[str, TableMetadata]]
+        ] = {}  # catalog -> db -> {table -> TableMetadata}
+        self.sessions: dict[str, dict[str, Any]] = {}
+        self.notebooks: dict[str, dict[str, Any]] = {}
+        self.calculation_executions: dict[str, dict[str, Any]] = {}
         self.tagger = TaggingService()
 
         # Initialise with the primary workgroup
@@ -270,6 +314,26 @@ class AthenaBackend(BaseBackend):
             "Description": wg.description,
             "CreationTime": time.time(),
         }
+
+    def update_work_group(
+        self,
+        name: str,
+        description: Optional[str] = None,
+        configuration_updates: Optional[dict[str, Any]] = None,
+        state: Optional[str] = None,
+    ) -> bool:
+        if name not in self.work_groups:
+            return False
+        wg = self.work_groups[name]
+        if description is not None:
+            wg.description = description
+        if state is not None:
+            wg.state = state
+        if configuration_updates:
+            # Merge configuration updates into existing config
+            for key, value in configuration_updates.items():
+                wg.configuration[key] = value
+        return True
 
     def delete_work_group(self, name: str) -> None:
         self.work_groups.pop(name, None)
@@ -454,6 +518,48 @@ class AthenaBackend(BaseBackend):
     def get_named_query(self, query_id: str) -> Optional[NamedQuery]:
         return self.named_queries[query_id] if query_id in self.named_queries else None
 
+    def delete_named_query(self, query_id: str) -> None:
+        self.named_queries.pop(query_id, None)
+
+    def batch_get_named_query(
+        self, named_query_ids: list[str]
+    ) -> tuple[list[NamedQuery], list[dict[str, str]]]:
+        named_queries = []
+        unprocessed = []
+        for query_id in named_query_ids:
+            nq = self.named_queries.get(query_id)
+            if nq:
+                named_queries.append(nq)
+            else:
+                unprocessed.append(
+                    {
+                        "NamedQueryId": query_id,
+                        "ErrorCode": "INVALID_INPUT",
+                        "ErrorMessage": "INVALID_INPUT",
+                    }
+                )
+        return named_queries, unprocessed
+
+    def batch_get_query_execution(
+        self, query_execution_ids: list[str]
+    ) -> tuple[list[Execution], list[dict[str, str]]]:
+        executions = []
+        unprocessed = []
+        for exec_id in query_execution_ids:
+            execution = self.executions.get(exec_id)
+            if execution:
+                execution.advance()
+                executions.append(execution)
+            else:
+                unprocessed.append(
+                    {
+                        "QueryExecutionId": exec_id,
+                        "ErrorCode": "INVALID_INPUT",
+                        "ErrorMessage": "INVALID_INPUT",
+                    }
+                )
+        return executions, unprocessed
+
     def list_data_catalogs(self) -> list[dict[str, str]]:
         return [
             {"CatalogName": dc.name, "Type": dc.type}
@@ -488,12 +594,31 @@ class AthenaBackend(BaseBackend):
         self.tagger.tag_resource(data_catalog.arn, tags)
         return data_catalog
 
+    def delete_data_catalog(self, name: str) -> None:
+        if name not in self.data_catalogs:
+            raise InvalidArgumentException(f"DataCatalog {name} is not found")
+        dc = self.data_catalogs.pop(name)
+        self.tagger.delete_all_tags_for_resource(dc.arn)
+
+    def update_data_catalog(
+        self,
+        name: str,
+        catalog_type: str,
+        description: str,
+        parameters: str,
+    ) -> None:
+        if name not in self.data_catalogs:
+            raise InvalidArgumentException(f"DataCatalog {name} is not found")
+        dc = self.data_catalogs[name]
+        dc.type = catalog_type
+        dc.description = description
+        dc.parameters = parameters
+
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_named_queries(self, work_group: str) -> list[str]:
-        named_query_ids = [
-            q.id for q in self.named_queries.values() if q.workgroup.name == work_group
+    def list_named_queries(self, work_group: str) -> list[NamedQuery]:
+        return [
+            q for q in self.named_queries.values() if q.workgroup.name == work_group
         ]
-        return named_query_ids
 
     def create_prepared_statement(
         self,
@@ -513,12 +638,79 @@ class AthenaBackend(BaseBackend):
 
     def get_prepared_statement(
         self, statement_name: str, work_group: WorkGroup
-    ) -> Optional[PreparedStatement]:
+    ) -> PreparedStatement:
         if statement_name in self.prepared_statements:
             ps = self.prepared_statements[statement_name]
             if ps.workgroup == work_group:
                 return ps
-        return None
+        raise AthenaClientError(
+            "ResourceNotFoundException",
+            f"PreparedStatement {statement_name} was not found in {work_group}",
+        )
+
+    def delete_prepared_statement(self, statement_name: str, work_group: str) -> None:
+        if statement_name in self.prepared_statements:
+            ps = self.prepared_statements[statement_name]
+            if ps.workgroup == work_group:
+                del self.prepared_statements[statement_name]
+                return
+        raise InvalidArgumentException(
+            f"PreparedStatement {statement_name} was not found"
+        )
+
+    def update_prepared_statement(
+        self,
+        statement_name: str,
+        work_group: str,
+        query_statement: str,
+        description: Optional[str] = None,
+    ) -> None:
+        if statement_name in self.prepared_statements:
+            ps = self.prepared_statements[statement_name]
+            if ps.workgroup == work_group:
+                ps.query_statement = query_statement
+                if description is not None:
+                    ps.description = description
+                ps.last_modified_time = datetime.now()
+                return
+        raise InvalidArgumentException(
+            f"PreparedStatement {statement_name} was not found"
+        )
+
+    def list_prepared_statements(self, work_group: str) -> list[PreparedStatement]:
+        return [
+            ps for ps in self.prepared_statements.values() if ps.workgroup == work_group
+        ]
+
+    def batch_get_prepared_statement(
+        self, prepared_statement_names: list[str], work_group: str
+    ) -> tuple[list[PreparedStatement], list[dict[str, str]]]:
+        prepared_statements = []
+        unprocessed = []
+        for name in prepared_statement_names:
+            ps = self.prepared_statements.get(name)
+            if ps and ps.workgroup == work_group:
+                prepared_statements.append(ps)
+            else:
+                unprocessed.append(
+                    {
+                        "StatementName": name,
+                        "ErrorCode": "INVALID_INPUT",
+                        "ErrorMessage": "INVALID_INPUT",
+                    }
+                )
+        return prepared_statements, unprocessed
+
+    def cancel_capacity_reservation(self, name: str) -> None:
+        if name not in self.capacity_reservations:
+            raise InvalidArgumentException("Capacity Reservation does not exist")
+        self.capacity_reservations[name].target_dpus = 0
+
+    def delete_capacity_reservation(self, name: str) -> None:
+        if name not in self.capacity_reservations:
+            raise InvalidArgumentException("Capacity Reservation does not exist")
+        cr = self.capacity_reservations.pop(name)
+        self.tagger.delete_all_tags_for_resource(cr.arn)
 
     def get_query_runtime_statistics(
         self, query_execution_id: str
@@ -541,6 +733,433 @@ class AthenaBackend(BaseBackend):
     def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> dict[str, Any]:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
         return {}
+
+    # --- Database operations ---
+
+    def create_database(
+        self,
+        catalog_name: str,
+        database_name: str,
+        description: str = "",
+        parameters: Optional[dict[str, str]] = None,
+    ) -> Database:
+        if catalog_name not in self.databases:
+            self.databases[catalog_name] = {}
+        db = Database(catalog_name, database_name, description, parameters)
+        self.databases[catalog_name][database_name] = db
+        return db
+
+    def get_database(self, catalog_name: str, database_name: str) -> Optional[Database]:
+        catalog_dbs = self.databases.get(catalog_name, {})
+        return catalog_dbs.get(database_name)
+
+    def list_databases(self, catalog_name: str) -> list[Database]:
+        return list(self.databases.get(catalog_name, {}).values())
+
+    # --- Table metadata operations ---
+
+    def create_table_metadata(
+        self,
+        catalog_name: str,
+        database_name: str,
+        table_name: str,
+        table_type: str = "EXTERNAL_TABLE",
+        columns: Optional[list[dict[str, str]]] = None,
+        partition_keys: Optional[list[dict[str, str]]] = None,
+        parameters: Optional[dict[str, str]] = None,
+    ) -> TableMetadata:
+        key = f"{catalog_name}.{database_name}"
+        if key not in self.tables:
+            self.tables[key] = {}
+        tm = TableMetadata(
+            catalog_name,
+            database_name,
+            table_name,
+            table_type,
+            columns,
+            partition_keys,
+            parameters,
+        )
+        self.tables[key][table_name] = tm
+        return tm
+
+    def get_table_metadata(
+        self, catalog_name: str, database_name: str, table_name: str
+    ) -> Optional[TableMetadata]:
+        key = f"{catalog_name}.{database_name}"
+        return self.tables.get(key, {}).get(table_name)
+
+    # --- Engine versions ---
+
+    @staticmethod
+    def list_engine_versions() -> list[dict[str, str]]:
+        return [
+            {
+                "SelectedEngineVersion": "AUTO",
+                "EffectiveEngineVersion": "Athena engine version 3",
+            },
+            {
+                "SelectedEngineVersion": "Athena engine version 2",
+                "EffectiveEngineVersion": "Athena engine version 2",
+            },
+            {
+                "SelectedEngineVersion": "Athena engine version 3",
+                "EffectiveEngineVersion": "Athena engine version 3",
+            },
+            {
+                "SelectedEngineVersion": "PySpark engine version 3",
+                "EffectiveEngineVersion": "PySpark engine version 3",
+            },
+        ]
+
+    # --- Application DPU sizes ---
+
+    @staticmethod
+    def list_application_dpu_sizes() -> list[dict[str, Any]]:
+        return [
+            {
+                "ApplicationDPUSizeType": "NOTEBOOK",
+                "SupportedDPUSizes": [4, 8, 16, 32, 48],
+            },
+            {
+                "ApplicationDPUSizeType": "SPARK",
+                "SupportedDPUSizes": [4, 8, 16, 32, 48, 64],
+            },
+        ]
+
+    # --- Capacity assignment configuration ---
+
+    def get_capacity_assignment_configuration(
+        self, capacity_reservation_name: str
+    ) -> dict[str, Any]:
+        return {
+            "CapacityAssignmentConfiguration": {
+                "CapacityReservationName": capacity_reservation_name,
+                "CapacityAssignments": [],
+            }
+        }
+
+    # --- Session operations ---
+
+    def start_session(
+        self,
+        work_group: str,
+        engine_configuration: Optional[dict[str, Any]] = None,
+        notebook_version: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> dict[str, Any]:
+        session_id = str(mock_random.uuid4())
+        session = {
+            "SessionId": session_id,
+            "WorkGroup": work_group,
+            "EngineConfiguration": engine_configuration or {},
+            "NotebookVersion": notebook_version or "",
+            "Description": description or "",
+            "Status": {"State": "IDLE", "StartDateTime": time.time()},
+        }
+        self.sessions[session_id] = session
+        return {"SessionId": session_id, "State": "IDLE"}
+
+    def get_session(self, session_id: str) -> Optional[dict[str, Any]]:
+        if session_id in self.sessions:
+            return self.sessions[session_id]
+        return None
+
+    def get_session_status(self, session_id: str) -> Optional[dict[str, Any]]:
+        if session_id in self.sessions:
+            return {
+                "SessionId": session_id,
+                "Status": self.sessions[session_id]["Status"],
+            }
+        return None
+
+    def terminate_session(self, session_id: str) -> Optional[dict[str, str]]:
+        if session_id in self.sessions:
+            self.sessions[session_id]["Status"]["State"] = "TERMINATED"
+            self.sessions[session_id]["Status"]["EndDateTime"] = time.time()
+            return {"State": "TERMINATING"}
+        return None
+
+    def list_sessions(self, work_group: str) -> list[dict[str, Any]]:
+        return [
+            {
+                "SessionId": s["SessionId"],
+                "Description": s.get("Description", ""),
+                "EngineVersion": "PySpark engine version 3",
+                "NotebookVersion": s.get("NotebookVersion", ""),
+                "Status": s["Status"],
+            }
+            for s in self.sessions.values()
+            if s.get("WorkGroup") == work_group
+        ]
+
+    def create_presigned_notebook_url(
+        self, session_id: str
+    ) -> Optional[dict[str, Any]]:
+        if session_id in self.sessions:
+            return {
+                "NotebookUrl": f"https://athena-notebooks.amazonaws.com/{session_id}",
+                "AuthToken": f"mock-auth-token-{session_id}",
+                "AuthTokenExpirationTime": time.time() + 3600,
+            }
+        return None
+
+    # --- Notebook operations ---
+
+    def create_notebook(
+        self,
+        work_group: str,
+        name: str,
+        client_request_token: Optional[str] = None,
+    ) -> str:
+        notebook_id = str(mock_random.uuid4())
+        notebook = {
+            "NotebookId": notebook_id,
+            "Name": name,
+            "WorkGroup": work_group,
+            "Type": "IPYNB",
+            "Status": "ACTIVE",
+            "CreationTime": time.time(),
+            "LastModifiedTime": time.time(),
+            "Content": "",
+        }
+        self.notebooks[notebook_id] = notebook
+        return notebook_id
+
+    def delete_notebook(self, notebook_id: str) -> None:
+        self.notebooks.pop(notebook_id, None)
+
+    def update_notebook(
+        self,
+        notebook_id: str,
+        payload: Optional[str] = None,
+        type_: Optional[str] = None,
+        session_id: Optional[str] = None,
+        client_request_token: Optional[str] = None,
+    ) -> None:
+        if notebook_id in self.notebooks:
+            if payload is not None:
+                self.notebooks[notebook_id]["Content"] = payload
+            if type_ is not None:
+                self.notebooks[notebook_id]["Type"] = type_
+            self.notebooks[notebook_id]["LastModifiedTime"] = time.time()
+
+    def update_notebook_metadata(
+        self,
+        notebook_id: str,
+        name: Optional[str] = None,
+        client_request_token: Optional[str] = None,
+    ) -> None:
+        if notebook_id in self.notebooks:
+            if name is not None:
+                self.notebooks[notebook_id]["Name"] = name
+            self.notebooks[notebook_id]["LastModifiedTime"] = time.time()
+
+    def export_notebook(self, notebook_id: str) -> Optional[dict[str, Any]]:
+        if notebook_id in self.notebooks:
+            nb = self.notebooks[notebook_id]
+            return {
+                "NotebookMetadata": {
+                    "NotebookId": notebook_id,
+                    "Name": nb["Name"],
+                    "WorkGroup": nb["WorkGroup"],
+                    "CreationTime": nb["CreationTime"],
+                    "Type": nb["Type"],
+                    "LastModifiedTime": nb["LastModifiedTime"],
+                },
+                "Payload": nb.get("Content", ""),
+            }
+        return None
+
+    def import_notebook(
+        self,
+        work_group: str,
+        name: str,
+        payload: Optional[str] = None,
+        notebook_s3_location_uri: Optional[str] = None,
+        type_: str = "IPYNB",
+        client_request_token: Optional[str] = None,
+    ) -> str:
+        notebook_id = str(mock_random.uuid4())
+        notebook = {
+            "NotebookId": notebook_id,
+            "Name": name,
+            "WorkGroup": work_group,
+            "Type": type_,
+            "Status": "ACTIVE",
+            "CreationTime": time.time(),
+            "LastModifiedTime": time.time(),
+            "Content": payload or "",
+        }
+        self.notebooks[notebook_id] = notebook
+        return notebook_id
+
+    def get_notebook_metadata(self, notebook_id: str) -> Optional[dict[str, Any]]:
+        if notebook_id in self.notebooks:
+            nb = self.notebooks[notebook_id]
+            return {
+                "NotebookMetadata": {
+                    "NotebookId": notebook_id,
+                    "Name": nb["Name"],
+                    "WorkGroup": nb["WorkGroup"],
+                    "CreationTime": nb["CreationTime"],
+                    "Type": nb["Type"],
+                    "LastModifiedTime": nb["LastModifiedTime"],
+                }
+            }
+        return None
+
+    def list_notebook_metadata(self, work_group: str) -> list[dict[str, Any]]:
+        return [
+            {
+                "NotebookId": nb["NotebookId"],
+                "Name": nb["Name"],
+                "WorkGroup": nb["WorkGroup"],
+                "CreationTime": nb["CreationTime"],
+                "Type": nb["Type"],
+                "LastModifiedTime": nb["LastModifiedTime"],
+            }
+            for nb in self.notebooks.values()
+            if nb.get("WorkGroup") == work_group
+        ]
+
+    def list_notebook_sessions(self, notebook_id: str) -> list[dict[str, Any]]:
+        return []
+
+    # --- Named query update ---
+
+    def update_named_query(
+        self,
+        named_query_id: str,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        query_string: Optional[str] = None,
+    ) -> None:
+        if named_query_id in self.named_queries:
+            nq = self.named_queries[named_query_id]
+            if name is not None:
+                nq.name = name
+            if description is not None:
+                nq.description = description
+            if query_string is not None:
+                nq.query_string = query_string
+
+    # --- Capacity assignment configuration (put) ---
+
+    def put_capacity_assignment_configuration(
+        self,
+        capacity_reservation_name: str,
+        capacity_assignments: list[dict[str, Any]],
+    ) -> None:
+        if capacity_reservation_name not in self.capacity_reservations:
+            raise InvalidArgumentException("Capacity Reservation does not exist")
+        # Store on the reservation object
+        cr = self.capacity_reservations[capacity_reservation_name]
+        cr._capacity_assignments = capacity_assignments  # type: ignore[attr-defined]
+
+    # --- Calculation execution operations ---
+
+    def start_calculation_execution(
+        self,
+        session_id: str,
+        description: Optional[str] = None,
+        code_block: Optional[str] = None,
+    ) -> dict[str, Any]:
+        calc_id = str(mock_random.uuid4())
+        calc = {
+            "CalculationExecutionId": calc_id,
+            "SessionId": session_id,
+            "Description": description or "",
+            "CodeBlock": code_block or "",
+            "Status": {"State": "RUNNING", "SubmissionDateTime": time.time()},
+        }
+        self.calculation_executions[calc_id] = calc
+        return {"CalculationExecutionId": calc_id, "State": "RUNNING"}
+
+    def stop_calculation_execution(
+        self, calculation_execution_id: str
+    ) -> Optional[str]:
+        if calculation_execution_id in self.calculation_executions:
+            calc = self.calculation_executions[calculation_execution_id]
+            calc["Status"]["State"] = "CANCELED"
+            calc["Status"]["CompletionDateTime"] = time.time()
+            return "CANCELED"
+        return None
+
+    def get_calculation_execution(
+        self, calculation_execution_id: str
+    ) -> Optional[dict[str, Any]]:
+        return self.calculation_executions.get(calculation_execution_id)
+
+    def get_calculation_execution_code(
+        self, calculation_execution_id: str
+    ) -> Optional[dict[str, Any]]:
+        if calculation_execution_id in self.calculation_executions:
+            calc = self.calculation_executions[calculation_execution_id]
+            return {"CodeBlock": calc.get("CodeBlock", "")}
+        return None
+
+    def get_calculation_execution_status(
+        self, calculation_execution_id: str
+    ) -> Optional[dict[str, Any]]:
+        if calculation_execution_id in self.calculation_executions:
+            calc = self.calculation_executions[calculation_execution_id]
+            return {
+                "Status": calc["Status"],
+                "Statistics": {
+                    "DpuExecutionInMillis": 1000,
+                    "Progress": "100%",
+                },
+            }
+        return None
+
+    def list_calculation_executions(self, session_id: str) -> list[dict[str, Any]]:
+        return [
+            {
+                "CalculationExecutionId": calc["CalculationExecutionId"],
+                "Description": calc.get("Description", ""),
+                "Status": calc["Status"],
+            }
+            for calc in self.calculation_executions.values()
+            if calc.get("SessionId") == session_id
+        ]
+
+    # --- Session endpoint ---
+
+    def get_session_endpoint(self, session_id: str) -> Optional[dict[str, Any]]:
+        if session_id in self.sessions:
+            return {
+                "SessionId": session_id,
+                "Endpoint": f"https://athena-sessions.amazonaws.com/{session_id}",
+            }
+        return None
+
+    # --- Executors ---
+
+    def list_executors(self, session_id: str) -> dict[str, Any]:
+        return {
+            "SessionId": session_id,
+            "ExecutorsSummary": [],
+        }
+
+    # --- Table metadata listing ---
+
+    def list_table_metadata(
+        self, catalog_name: str, database_name: str
+    ) -> list[TableMetadata]:
+        key = f"{catalog_name}.{database_name}"
+        return list(self.tables.get(key, {}).values())
+
+    # --- Resource dashboard ---
+
+    def get_resource_dashboard(self, resource_arn: str) -> dict[str, Any]:
+        return {
+            "ResourceDashboard": {
+                "ResourceArn": resource_arn,
+                "QueryCount": len(self.executions),
+                "NamedQueryCount": len(self.named_queries),
+            }
+        }
 
 
 athena_backends = BackendDict(AthenaBackend, "athena")

@@ -74,3 +74,12 @@ class ResourceGroupsTaggingAPIResponse(BaseResponse):
         )
 
         return json.dumps({"FailedResourcesMap": failed_resources})
+
+    def describe_report_creation(self) -> str:
+        return json.dumps({"Status": "", "ErrorMessage": ""})
+
+    def get_compliance_summary(self) -> str:
+        return json.dumps({"SummaryList": [], "PaginationToken": ""})
+
+    def list_required_tags(self) -> str:
+        return json.dumps({"RequiredTagsList": [], "PaginationToken": ""})

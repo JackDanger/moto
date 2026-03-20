@@ -36,6 +36,8 @@ from moto.utilities.utils import ARN_PARTITION_REGEX, CaseInsensitiveDict, load_
 from .exceptions import (
     BlueGreenDeploymentAlreadyExistsFault,
     BlueGreenDeploymentNotFoundFault,
+    CustomDBEngineVersionAlreadyExistsFault,
+    CustomDBEngineVersionNotFoundFault,
     DBClusterNotFoundError,
     DBClusterParameterGroupNotFoundError,
     DBClusterRoleAlreadyExists,
@@ -58,6 +60,9 @@ from .exceptions import (
     DBSubnetGroupNotFoundError,
     ExportTaskAlreadyExistsError,
     ExportTaskNotFoundError,
+    GlobalClusterNotFoundError,
+    IntegrationAlreadyExistsFault,
+    IntegrationNotFoundFault,
     InvalidBlueGreenDeploymentStateFault,
     InvalidDBClusterSnapshotStateFault,
     InvalidDBClusterStateFault,
@@ -75,12 +80,17 @@ from .exceptions import (
     KMSKeyNotAccessibleFault,
     OptionGroupNotFoundFaultError,
     RDSClientError,  # TODO: Refactor into specific exceptions
+    ReservedDBInstanceAlreadyExistsFault,
+    ReservedDBInstanceNotFoundFault,
+    ReservedDBInstancesOfferingNotFoundFault,
     SharedSnapshotQuotaExceeded,
     SnapshotQuotaExceededFault,
     SourceClusterNotSupportedFault,
     SourceDatabaseNotSupportedFault,
     SubscriptionAlreadyExistError,
     SubscriptionNotFoundError,
+    TenantDatabaseAlreadyExistsFault,
+    TenantDatabaseNotFoundFault,
 )
 from .utils import (
     ClusterEngine,
@@ -2265,6 +2275,84 @@ class DBProxy(RDSBaseModel):
         return self.unique_id
 
 
+class DBClusterEndpoint(RDSBaseModel):
+    resource_type = "cluster-endpoint"
+
+    def __init__(
+        self,
+        backend: RDSBackend,
+        db_cluster_identifier: str,
+        db_cluster_endpoint_identifier: str,
+        endpoint_type: str = "CUSTOM",
+        static_members: Optional[list[str]] = None,
+        excluded_members: Optional[list[str]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+    ):
+        super().__init__(backend)
+        self.db_cluster_identifier = db_cluster_identifier
+        self.db_cluster_endpoint_identifier = db_cluster_endpoint_identifier
+        self.endpoint_type = endpoint_type
+        self.custom_endpoint_type = endpoint_type
+        self.static_members = static_members or []
+        self.excluded_members = excluded_members or []
+        self.tags = tags or []
+        self.status = "available"
+        self.db_cluster_endpoint_resource_identifier = (
+            f"cluster-endpoint-{random.get_random_string(26, lower_case=True)}"
+        )
+        url_id = "".join(
+            random.choice(string.ascii_lowercase + string.digits) for _ in range(12)
+        )
+        self.endpoint = (
+            f"{db_cluster_endpoint_identifier}.cluster-custom-{url_id}"
+            f".{self.region}.rds.amazonaws.com"
+        )
+
+    @property
+    def resource_id(self) -> str:
+        return self.db_cluster_endpoint_identifier
+
+
+class DBProxyEndpoint(RDSBaseModel):
+    resource_type = "db-proxy-endpoint"
+
+    def __init__(
+        self,
+        backend: RDSBackend,
+        db_proxy_name: str,
+        db_proxy_endpoint_name: str,
+        vpc_subnet_ids: list[str],
+        vpc_security_group_ids: Optional[list[str]] = None,
+        target_role: str = "READ_WRITE",
+        tags: Optional[list[dict[str, str]]] = None,
+    ):
+        super().__init__(backend)
+        self.db_proxy_name = db_proxy_name
+        self.db_proxy_endpoint_name = db_proxy_endpoint_name
+        self.vpc_subnet_ids = vpc_subnet_ids
+        self.vpc_security_group_ids = vpc_security_group_ids or []
+        self.target_role = target_role
+        self.tags = tags or []
+        self.status = "available"
+        self.is_default = False
+        self.created_date = utcnow()
+        url_id = "".join(
+            random.choice(string.ascii_lowercase + string.digits) for _ in range(12)
+        )
+        self.endpoint = (
+            f"{db_proxy_endpoint_name}.endpoint-{url_id}"
+            f".{self.region}.rds.amazonaws.com"
+        )
+        # Derive VPC ID from subnets
+        ec2_backend = ec2_backends[self.account_id][self.region]
+        subnets = ec2_backend.describe_subnets(subnet_ids=self.vpc_subnet_ids)
+        self.vpc_id = subnets[0].vpc_id if subnets else ""
+
+    @property
+    def resource_id(self) -> str:
+        return self.db_proxy_endpoint_name
+
+
 class DBInstanceAutomatedBackup:
     def __init__(
         self,
@@ -2282,6 +2370,201 @@ class DBInstanceAutomatedBackup:
         if self.db_instance_identifier not in self.backend.databases:
             status = "retained"
         return status
+
+
+class CustomDBEngineVersion(RDSBaseModel):
+    resource_type = "custom-engine-version"
+
+    def __init__(
+        self,
+        backend: RDSBackend,
+        engine: str,
+        engine_version: str,
+        database_installation_files_s3_bucket_name: Optional[str] = None,
+        database_installation_files_s3_prefix: Optional[str] = None,
+        kms_key_id: Optional[str] = None,
+        description: Optional[str] = None,
+        manifest: Optional[str] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+        image_id: Optional[str] = None,
+        source_custom_db_engine_version_identifier: Optional[str] = None,
+        use_aws_provided_latest_image: Optional[bool] = None,
+    ):
+        super().__init__(backend)
+        self.engine = engine
+        self.engine_version = engine_version
+        self.database_installation_files_s3_bucket_name = (
+            database_installation_files_s3_bucket_name
+        )
+        self.database_installation_files_s3_prefix = (
+            database_installation_files_s3_prefix
+        )
+        self.kms_key_id = kms_key_id
+        self.description = description
+        self.manifest = manifest
+        self.image_id = image_id
+        self.source_custom_db_engine_version_identifier = (
+            source_custom_db_engine_version_identifier
+        )
+        self.use_aws_provided_latest_image = use_aws_provided_latest_image
+        self.status = "available"
+        self.create_time = utcnow()
+        self.db_engine_version_arn = (
+            f"arn:{self.partition}:rds:{self.region}:{self.account_id}"
+            f":cev:{self.engine}/{self.engine_version}"
+        )
+        self.tags = tags or []
+        self.db_engine_description = f"Custom {engine}"
+        self.db_engine_version_description = (
+            description or f"Custom {engine} {engine_version}"
+        )
+        self.supported_engine_modes = ["provisioned"]
+        self.supports_parallel_query = False
+        self.supports_global_databases = False
+        self.major_engine_version = (
+            engine_version.split(".")[0] if "." in engine_version else engine_version
+        )
+
+    @property
+    def key(self) -> str:
+        return f"{self.engine}:{self.engine_version}"
+
+
+class Integration(RDSBaseModel):
+    resource_type = "integration"
+
+    def __init__(
+        self,
+        backend: RDSBackend,
+        integration_name: str,
+        source_arn: str,
+        target_arn: str,
+        kms_key_id: Optional[str] = None,
+        additional_encryption_context: Optional[dict[str, str]] = None,
+        description: Optional[str] = None,
+        data_filter: Optional[str] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+    ):
+        super().__init__(backend)
+        self.integration_name = integration_name
+        self.source_arn = source_arn
+        self.target_arn = target_arn
+        self.kms_key_id = kms_key_id
+        self.additional_encryption_context = additional_encryption_context or {}
+        self.description = description
+        self.data_filter = data_filter
+        self.status = "active"
+        self.create_time = utcnow()
+        self.integration_arn = (
+            f"arn:{self.partition}:rds:{self.region}:{self.account_id}"
+            f":integration:{uuid.uuid4().hex[:8]}"
+        )
+        self.tags = tags or []
+        self.errors: list[dict[str, str]] = []
+
+
+class TenantDatabase(RDSBaseModel):
+    resource_type = "tenant-database"
+
+    def __init__(
+        self,
+        backend: RDSBackend,
+        db_instance_identifier: str,
+        tenant_db_name: str,
+        master_username: str,
+        master_user_password: Optional[str] = None,
+        character_set_name: Optional[str] = None,
+        nchar_character_set_name: Optional[str] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+    ):
+        super().__init__(backend)
+        self.db_instance_identifier = db_instance_identifier
+        self.tenant_db_name = tenant_db_name
+        self.master_username = master_username
+        self.character_set_name = character_set_name or "AL32UTF8"
+        self.nchar_character_set_name = nchar_character_set_name or "AL16UTF16"
+        self.status = "available"
+        self.create_time = utcnow()
+        self.tenant_database_resource_id = f"tdb-{uuid.uuid4().hex[:8]}"
+        self.tenant_database_arn = (
+            f"arn:{self.partition}:rds:{self.region}:{self.account_id}"
+            f":tenant-db:{self.db_instance_identifier}/{self.tenant_db_name}"
+        )
+        self.tags = tags or []
+        # Look up the DB instance for its ARN
+        db_instance = backend.databases.get(db_instance_identifier)
+        self.dbi_resource_id = (
+            db_instance.dbi_resource_id if db_instance else "db-unknown"
+        )
+
+    @property
+    def key(self) -> str:
+        return f"{self.db_instance_identifier}:{self.tenant_db_name}"
+
+
+class ReservedDBInstancesOffering(RDSBaseModel):
+    resource_type = "ri-offering"
+
+    def __init__(
+        self,
+        backend: RDSBackend,
+        offering_id: str,
+        db_instance_class: str,
+        duration: int,
+        fixed_price: float,
+        usage_price: float,
+        currency_code: str,
+        product_description: str,
+        offering_type: str,
+        multi_az: bool,
+        recurring_charges: Optional[list[dict[str, Any]]] = None,
+    ):
+        super().__init__(backend)
+        self.reserved_db_instances_offering_id = offering_id
+        self.db_instance_class = db_instance_class
+        self.duration = duration
+        self.fixed_price = fixed_price
+        self.usage_price = usage_price
+        self.currency_code = currency_code
+        self.product_description = product_description
+        self.offering_type = offering_type
+        self.multi_az = multi_az
+        self.recurring_charges = recurring_charges or []
+
+
+class ReservedDBInstance(RDSBaseModel):
+    resource_type = "ri"
+
+    def __init__(
+        self,
+        backend: RDSBackend,
+        reserved_db_instance_id: str,
+        offering: ReservedDBInstancesOffering,
+        db_instance_count: int = 1,
+        tags: Optional[list[dict[str, str]]] = None,
+    ):
+        super().__init__(backend)
+        self.reserved_db_instance_id = reserved_db_instance_id
+        self.reserved_db_instances_offering_id = (
+            offering.reserved_db_instances_offering_id
+        )
+        self.db_instance_class = offering.db_instance_class
+        self.duration = offering.duration
+        self.fixed_price = offering.fixed_price
+        self.usage_price = offering.usage_price
+        self.currency_code = offering.currency_code
+        self.product_description = offering.product_description
+        self.offering_type = offering.offering_type
+        self.multi_az = offering.multi_az
+        self.recurring_charges = offering.recurring_charges
+        self.db_instance_count = db_instance_count
+        self.state = "active"
+        self.start_time = utcnow()
+        self.reserved_db_instance_arn = (
+            f"arn:{self.partition}:rds:{self.region}:{self.account_id}"
+            f":ri:{self.reserved_db_instance_id}"
+        )
+        self.tags = tags or []
 
 
 class DBShardGroup(RDSBaseModel):
@@ -2357,6 +2640,8 @@ class RDSBackend(BaseBackend):
         self.subnet_groups: MutableMapping[str, DBSubnetGroup] = CaseInsensitiveDict()
         self._db_cluster_options: Optional[list[dict[str, Any]]] = None
         self.db_proxies: dict[str, DBProxy] = OrderedDict()
+        self.db_cluster_endpoints: dict[str, DBClusterEndpoint] = OrderedDict()
+        self.db_proxy_endpoints: dict[str, DBProxyEndpoint] = OrderedDict()
         self.events: list[Event] = []
         self.resource_map = {
             DBCluster: self.clusters,
@@ -2377,6 +2662,14 @@ class RDSBackend(BaseBackend):
         self.blue_green_deployments: MutableMapping[str, BlueGreenDeployment] = (
             CaseInsensitiveDict()
         )
+        self.custom_db_engine_versions: dict[str, CustomDBEngineVersion] = {}
+        self.integrations: dict[str, Integration] = {}
+        self.tenant_databases: dict[str, TenantDatabase] = {}
+        self.reserved_db_instances: dict[str, ReservedDBInstance] = {}
+        self.reserved_db_instances_offerings: dict[
+            str, ReservedDBInstancesOffering
+        ] = {}
+        self._init_reserved_offerings()
 
     @property
     def kms(self) -> KmsBackend:
@@ -2635,6 +2928,8 @@ class RDSBackend(BaseBackend):
 
     def promote_read_replica(self, db_kwargs: dict[str, Any]) -> DBInstance:
         database_id = db_kwargs["db_instance_identifier"]
+        if database_id not in self.databases:
+            raise DBInstanceNotFoundError(database_id)
         database = self.databases[database_id]
         if database.is_replica:
             database.is_replica = False
@@ -2762,6 +3057,8 @@ class RDSBackend(BaseBackend):
     def restore_db_instance_from_db_snapshot(
         self, from_snapshot_id: str, overrides: dict[str, Any]
     ) -> DBInstance:
+        if not from_snapshot_id:
+            raise DBSnapshotNotFoundFault("")
         if from_snapshot_id.startswith("arn:aws:rds:"):
             from_snapshot_id = self.extract_snapshot_name_from_arn(from_snapshot_id)
 
@@ -2769,6 +3066,10 @@ class RDSBackend(BaseBackend):
             db_instance_identifier=None, db_snapshot_identifier=from_snapshot_id
         )[0]
         original_database = snapshot.database
+        if original_database is None:
+            raise InvalidParameterValue(
+                f"The source snapshot {from_snapshot_id} is missing the original database information."
+            )
 
         if overrides["db_instance_identifier"] in self.databases:
             raise DBInstanceAlreadyExists()
@@ -2807,6 +3108,8 @@ class RDSBackend(BaseBackend):
         target_db_identifier: str,
         overrides: dict[str, Any],
     ) -> DBInstance:
+        if not source_db_identifier:
+            raise DBInstanceNotFoundError(source_db_identifier or "")
         db_instance = self.describe_db_instances(
             db_instance_identifier=source_db_identifier
         )[0]
@@ -3074,6 +3377,11 @@ class RDSBackend(BaseBackend):
         subnets: list[Any],
         tags: list[dict[str, str]],
     ) -> DBSubnetGroup:
+        if not subnets:
+            raise InvalidParameterValue(
+                "The DB subnet group doesn't meet Availability Zone (AZ) coverage requirement. "
+                "Add subnets to cover at least 2 Availability Zones."
+            )
         subnet_group = DBSubnetGroup(self, subnet_name, description, subnets, tags)
         self.subnet_groups[subnet_name] = subnet_group
         return subnet_group
@@ -3089,9 +3397,9 @@ class RDSBackend(BaseBackend):
     def modify_db_subnet_group(
         self, subnet_name: str, description: str, subnets: list[Subnet]
     ) -> DBSubnetGroup:
-        subnet_group = self.subnet_groups.pop(subnet_name)
-        if not subnet_group:
+        if subnet_name not in self.subnet_groups:
             raise DBSubnetGroupNotFoundError(subnet_name)
+        subnet_group = self.subnet_groups.pop(subnet_name)
         subnet_group.name = subnet_name
         subnet_group.subnets = subnets  # type: ignore[assignment]
         if description is not None:
@@ -3181,12 +3489,12 @@ class RDSBackend(BaseBackend):
     def describe_option_groups(
         self, option_group_kwargs: dict[str, Any]
     ) -> list[OptionGroup]:
+        option_group_name = option_group_kwargs.get(
+            "option_group_name"
+        ) or option_group_kwargs.get("OptionGroupName")
         option_group_list = []
         for option_group in self.option_groups.values():
-            if (
-                option_group_kwargs["option_group_name"]
-                and option_group.name != option_group_kwargs["option_group_name"]
-            ):
+            if option_group_name and option_group.name != option_group_name:
                 continue
             elif option_group_kwargs.get(
                 "engine_name"
@@ -3200,10 +3508,8 @@ class RDSBackend(BaseBackend):
                 continue
             else:
                 option_group_list.append(option_group)
-        if not len(option_group_list):
-            raise OptionGroupNotFoundFaultError(
-                option_group_kwargs["option_group_name"]
-            )
+        if not len(option_group_list) and option_group_name:
+            raise OptionGroupNotFoundFaultError(option_group_name)
         return option_group_list
 
     @staticmethod
@@ -3455,6 +3761,8 @@ class RDSBackend(BaseBackend):
     def modify_db_cluster(self, kwargs: dict[str, Any]) -> DBCluster:
         cluster_id = kwargs["db_cluster_identifier"]
 
+        if cluster_id not in self.clusters:
+            raise DBClusterNotFoundError(cluster_id)
         cluster = self.clusters[cluster_id]
         del self.clusters[cluster_id]
 
@@ -3508,6 +3816,8 @@ class RDSBackend(BaseBackend):
         return initial_state
 
     def promote_read_replica_db_cluster(self, db_cluster_identifier: str) -> DBCluster:
+        if db_cluster_identifier not in self.clusters:
+            raise DBClusterNotFoundError(db_cluster_identifier)
         cluster = self.clusters[db_cluster_identifier]
         source_cluster = find_cluster(cluster.replication_source_identifier)  # type: ignore
         source_cluster.read_replica_identifiers.remove(cluster.db_cluster_arn)
@@ -3705,13 +4015,16 @@ class RDSBackend(BaseBackend):
 
         if export_task_id in self.export_tasks:
             raise ExportTaskAlreadyExistsError(export_task_id)
-        if snapshot_type == "snapshot" and snapshot_id not in self.database_snapshots:
-            raise DBSnapshotNotFoundFault(snapshot_id)
-        elif (
-            snapshot_type == "cluster-snapshot"
-            and snapshot_id not in self.cluster_snapshots
-        ):
-            raise DBClusterSnapshotNotFoundError(snapshot_id)
+        if snapshot_type == "snapshot":
+            if snapshot_id not in self.database_snapshots:
+                raise DBSnapshotNotFoundFault(snapshot_id)
+        elif snapshot_type == "cluster-snapshot":
+            if snapshot_id not in self.cluster_snapshots:
+                raise DBClusterSnapshotNotFoundError(snapshot_id)
+        else:
+            raise InvalidParameterValue(
+                f"Invalid source ARN: {source_arn}. ARN must refer to a snapshot or cluster-snapshot."
+            )
 
         if snapshot_type == "snapshot":
             snapshot: Union[DBSnapshot, DBClusterSnapshot] = self.database_snapshots[
@@ -3771,6 +4084,21 @@ class RDSBackend(BaseBackend):
             else:
                 raise SubscriptionNotFoundError(subscription_name)
         return self.event_subscriptions.values()
+
+    def modify_event_subscription(self, kwargs: Any) -> EventSubscription:
+        subscription_name = kwargs["subscription_name"]
+        if subscription_name not in self.event_subscriptions:
+            raise SubscriptionNotFoundError(subscription_name)
+        subscription = self.event_subscriptions[subscription_name]
+        if "sns_topic_arn" in kwargs and kwargs["sns_topic_arn"] is not None:
+            subscription.sns_topic_arn = kwargs["sns_topic_arn"]
+        if "source_type" in kwargs and kwargs["source_type"] is not None:
+            subscription.source_type = kwargs["source_type"]
+        if "event_categories" in kwargs and kwargs["event_categories"] is not None:
+            subscription.event_categories = kwargs["event_categories"]
+        if "enabled" in kwargs and kwargs["enabled"] is not None:
+            subscription.enabled = kwargs["enabled"]
+        return subscription
 
     def _find_resource(self, resource_type: str, resource_name: str) -> Any:
         for resource_class, resources in self.resource_map.items():
@@ -3970,7 +4298,32 @@ class RDSBackend(BaseBackend):
     def describe_global_clusters(self) -> list[GlobalCluster]:
         return list(self.global_clusters.values())
 
+    def modify_global_cluster(
+        self,
+        global_cluster_identifier: str,
+        new_global_cluster_identifier: Optional[str],
+        deletion_protection: Optional[bool],
+        engine_version: Optional[str],
+        allow_major_version_upgrade: Optional[bool],
+    ) -> GlobalCluster:
+        if global_cluster_identifier not in self.global_clusters:
+            raise GlobalClusterNotFoundError(global_cluster_identifier)
+        global_cluster = self.global_clusters[global_cluster_identifier]
+        if deletion_protection is not None:
+            global_cluster.deletion_protection = deletion_protection
+        if engine_version is not None:
+            global_cluster.engine_version = engine_version
+        if new_global_cluster_identifier is not None:
+            del self.global_clusters[global_cluster_identifier]
+            global_cluster._global_cluster_identifier = (
+                new_global_cluster_identifier.lower()
+            )
+            self.global_clusters[new_global_cluster_identifier] = global_cluster
+        return global_cluster
+
     def delete_global_cluster(self, global_cluster_identifier: str) -> GlobalCluster:
+        if global_cluster_identifier not in self.global_clusters:
+            raise GlobalClusterNotFoundError(global_cluster_identifier)
         global_cluster = self.global_clusters[global_cluster_identifier]
         if global_cluster.members:
             raise InvalidGlobalClusterStateFault(global_cluster.global_cluster_arn)
@@ -3989,6 +4342,190 @@ class RDSBackend(BaseBackend):
         except:  # noqa: E722 Do not use bare except
             pass
         return None
+
+    def failover_global_cluster(
+        self, global_cluster_identifier: str, target_db_cluster_identifier: str
+    ) -> GlobalCluster:
+        if global_cluster_identifier not in self.global_clusters:
+            raise GlobalClusterNotFoundError(global_cluster_identifier)
+        global_cluster = self.global_clusters[global_cluster_identifier]
+        global_cluster.status = "failing-over"
+        # In a real failover, the target becomes the writer. For mock, just
+        # swap the writer flag.
+        for member in global_cluster.members:
+            if member.db_cluster_arn == target_db_cluster_identifier:
+                member.is_writer = True
+            else:
+                member.is_writer = False
+        global_cluster.status = "available"
+        return global_cluster
+
+    def switchover_global_cluster(
+        self, global_cluster_identifier: str, target_db_cluster_identifier: str
+    ) -> GlobalCluster:
+        # Switchover is similar to failover but planned
+        return self.failover_global_cluster(
+            global_cluster_identifier, target_db_cluster_identifier
+        )
+
+    def describe_db_engine_versions(
+        self,
+        engine: Optional[str] = None,
+        engine_version: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        versions: list[dict[str, Any]] = []
+        engine_data: dict[str, list[str]] = {
+            "neptune": ["1.2.0.0", "1.2.0.1", "1.2.0.2", "1.2.1.0", "1.3.0.0"],
+            "aurora-mysql": ["5.7.mysql_aurora.2.11.2", "8.0.mysql_aurora.3.04.0"],
+            "aurora-postgresql": ["14.6", "15.4"],
+            "mysql": ["8.0.32", "8.0.33"],
+            "postgres": ["14.9", "15.4"],
+        }
+        if engine:
+            engines_to_check = {engine: engine_data.get(engine, ["1.0.0"])}
+        else:
+            engines_to_check = engine_data
+
+        for eng, vers in engines_to_check.items():
+            for ver in vers:
+                if engine_version and ver != engine_version:
+                    continue
+                versions.append(
+                    {
+                        "Engine": eng,
+                        "EngineVersion": ver,
+                        "DBParameterGroupFamily": f"{eng}{ver.split('.')[0]}",
+                        "DBEngineDescription": f"{eng} database engine",
+                        "DBEngineVersionDescription": f"{eng} {ver}",
+                        "ValidUpgradeTarget": [],
+                        "ExportableLogTypes": [],
+                        "SupportsLogExportsToCloudwatchLogs": False,
+                        "SupportsReadReplica": False,
+                        "SupportedEngineModes": [],
+                        "SupportedFeatureNames": [],
+                        "SupportsGlobalDatabases": eng
+                        in ("neptune", "aurora-mysql", "aurora-postgresql"),
+                    }
+                )
+        # Include custom engine versions
+        versions.extend(
+            self._describe_custom_engine_versions(
+                engine=engine, engine_version=engine_version
+            )
+        )
+        return versions
+
+    def describe_event_categories(
+        self,
+        source_type: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        all_categories: dict[str, list[str]] = {
+            "db-instance": [
+                "availability",
+                "backup",
+                "configuration change",
+                "creation",
+                "deletion",
+                "failover",
+                "failure",
+                "low storage",
+                "maintenance",
+                "notification",
+                "read replica",
+                "recovery",
+                "restoration",
+            ],
+            "db-cluster": [
+                "failover",
+                "failure",
+                "maintenance",
+                "notification",
+                "global-failover",
+            ],
+            "db-parameter-group": ["configuration change"],
+            "db-security-group": ["configuration change", "failure"],
+            "db-snapshot": ["creation", "deletion", "notification", "restoration"],
+            "db-cluster-snapshot": ["backup", "notification"],
+        }
+        result = []
+        for stype, cats in all_categories.items():
+            if source_type and stype != source_type:
+                continue
+            result.append(
+                {
+                    "SourceType": stype,
+                    "EventCategories": cats,
+                }
+            )
+        return result
+
+    def add_source_identifier_to_subscription(
+        self,
+        subscription_name: str,
+        source_identifier: str,
+    ) -> EventSubscription:
+        if subscription_name not in self.event_subscriptions:
+            raise SubscriptionNotFoundError(subscription_name)
+        subscription = self.event_subscriptions[subscription_name]
+        if source_identifier not in subscription.source_ids:
+            subscription.source_ids.append(source_identifier)
+        return subscription
+
+    def remove_source_identifier_from_subscription(
+        self,
+        subscription_name: str,
+        source_identifier: str,
+    ) -> EventSubscription:
+        if subscription_name not in self.event_subscriptions:
+            raise SubscriptionNotFoundError(subscription_name)
+        subscription = self.event_subscriptions[subscription_name]
+        if source_identifier in subscription.source_ids:
+            subscription.source_ids.remove(source_identifier)
+        return subscription
+
+    def apply_pending_maintenance_action(
+        self,
+        resource_identifier: str,
+        apply_action: str,
+        opt_in_type: str,
+    ) -> dict[str, Any]:
+        return {
+            "ResourceIdentifier": resource_identifier,
+            "PendingMaintenanceActionDetails": [
+                {
+                    "Action": apply_action,
+                    "OptInStatus": opt_in_type,
+                    "CurrentApplyDate": utcnow().isoformat(),
+                    "Description": f"Pending {apply_action}",
+                }
+            ],
+        }
+
+    def describe_pending_maintenance_actions(
+        self,
+        resource_identifier: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        return []
+
+    def describe_engine_default_cluster_parameters(
+        self,
+        db_parameter_group_family: str,
+    ) -> dict[str, Any]:
+        return {
+            "DBParameterGroupFamily": db_parameter_group_family,
+            "Marker": None,
+            "Parameters": [],
+        }
+
+    def describe_engine_default_parameters(
+        self,
+        db_parameter_group_family: str,
+    ) -> dict[str, Any]:
+        return {
+            "DBParameterGroupFamily": db_parameter_group_family,
+            "Marker": None,
+            "Parameters": [],
+        }
 
     def describe_db_snapshot_attributes(
         self, db_snapshot_identifier: str
@@ -4138,9 +4675,13 @@ class RDSBackend(BaseBackend):
         return new_targets
 
     def delete_db_proxy(self, proxy_name: str) -> DBProxy:
+        if proxy_name not in self.db_proxies:
+            raise DBProxyNotFoundFault(proxy_name)
         return self.db_proxies.pop(proxy_name)
 
     def describe_db_proxy_targets(self, proxy_name: str) -> list[DBProxyTarget]:
+        if proxy_name not in self.db_proxies:
+            raise DBProxyNotFoundFault(proxy_name)
         proxy = self.db_proxies[proxy_name]
         target_group = proxy.proxy_target_groups["default"]
         return target_group.targets
@@ -4148,6 +4689,8 @@ class RDSBackend(BaseBackend):
     def describe_db_proxy_target_groups(
         self, proxy_name: str
     ) -> list[DBProxyTargetGroup]:
+        if proxy_name not in self.db_proxies:
+            raise DBProxyNotFoundFault(proxy_name)
         proxy = self.db_proxies[proxy_name]
         return list(proxy.proxy_target_groups.values())
 
@@ -4190,6 +4733,356 @@ class RDSBackend(BaseBackend):
         return [
             DBInstanceAutomatedBackup(self, k, v) for k, v in snapshots_grouped.items()
         ]
+
+    def delete_db_instance_automated_backup(
+        self,
+        dbi_resource_id: Optional[str] = None,
+        db_instance_automated_backups_arn: Optional[str] = None,
+        **_: Any,
+    ) -> DBInstanceAutomatedBackup:
+        """Delete a DB instance automated backup by resource ID or ARN."""
+        automated_backups = self.describe_db_instance_automated_backups()
+        for backup in automated_backups:
+            if dbi_resource_id and backup.db_instance_identifier == dbi_resource_id:
+                # Remove all automated snapshots for this instance
+                to_remove = [
+                    k
+                    for k, v in self.database_snapshots.items()
+                    if v.db_instance_identifier == dbi_resource_id
+                    and v.snapshot_type == "automated"
+                ]
+                for k in to_remove:
+                    self.database_snapshots.pop(k)
+                return backup
+        # If not found, return an empty placeholder
+        return DBInstanceAutomatedBackup(self, dbi_resource_id or "unknown", [])
+
+    def describe_db_cluster_automated_backups(
+        self,
+        db_cluster_identifier: Optional[str] = None,
+        **_: Any,
+    ) -> list[dict[str, Any]]:
+        """Return automated backups for DB clusters (stub - returns empty list)."""
+        # Real AWS returns automated backups for Aurora clusters
+        # We return an empty list since Moto doesn't track cluster automated backups
+        return []
+
+    def describe_account_attributes(self) -> list[dict[str, Any]]:
+        """Return mock RDS account quotas."""
+        num_instances = len(self.databases)
+        num_clusters = len(self.clusters)
+        num_snapshots = len(
+            [
+                s
+                for s in self.database_snapshots.values()
+                if s.snapshot_type != "automated"
+            ]
+        )
+        num_cluster_snapshots = len(self.cluster_snapshots)
+        num_param_groups = len(self.db_parameter_groups)
+        num_cluster_param_groups = len(self.db_cluster_parameter_groups)
+        num_option_groups = len(self.option_groups)
+        num_subnet_groups = len(self.subnet_groups)
+        num_event_subs = len(self.event_subscriptions)
+        num_security_groups = len(self.security_groups)
+
+        quotas = [
+            {"AccountQuotaName": "DBInstances", "Used": num_instances, "Max": 40},
+            {"AccountQuotaName": "ReservedDBInstances", "Used": 0, "Max": 40},
+            {"AccountQuotaName": "AllocatedStorage", "Used": 0, "Max": 100000},
+            {
+                "AccountQuotaName": "DBSecurityGroups",
+                "Used": num_security_groups,
+                "Max": 25,
+            },
+            {
+                "AccountQuotaName": "AuthorizationsPerDBSecurityGroup",
+                "Used": 0,
+                "Max": 20,
+            },
+            {
+                "AccountQuotaName": "DBParameterGroups",
+                "Used": num_param_groups,
+                "Max": 50,
+            },
+            {"AccountQuotaName": "ManualSnapshots", "Used": num_snapshots, "Max": 100},
+            {
+                "AccountQuotaName": "EventSubscriptions",
+                "Used": num_event_subs,
+                "Max": 20,
+            },
+            {
+                "AccountQuotaName": "DBSubnetGroups",
+                "Used": num_subnet_groups,
+                "Max": 50,
+            },
+            {"AccountQuotaName": "OptionGroups", "Used": num_option_groups, "Max": 20},
+            {
+                "AccountQuotaName": "SubnetsPerDBSubnetGroup",
+                "Used": 0,
+                "Max": 20,
+            },
+            {
+                "AccountQuotaName": "ReadReplicasPerMaster",
+                "Used": 0,
+                "Max": 15,
+            },
+            {"AccountQuotaName": "DBClusters", "Used": num_clusters, "Max": 40},
+            {
+                "AccountQuotaName": "DBClusterParameterGroups",
+                "Used": num_cluster_param_groups,
+                "Max": 50,
+            },
+            {
+                "AccountQuotaName": "DBClusterRoles",
+                "Used": 0,
+                "Max": 5,
+            },
+            {
+                "AccountQuotaName": "ManualClusterSnapshots",
+                "Used": num_cluster_snapshots,
+                "Max": 100,
+            },
+            {
+                "AccountQuotaName": "CustomEndpointsPerDBCluster",
+                "Used": 0,
+                "Max": 5,
+            },
+            {
+                "AccountQuotaName": "DBInstanceRoles",
+                "Used": 0,
+                "Max": 5,
+            },
+        ]
+        return quotas
+
+    def describe_certificates(
+        self,
+        certificate_identifier: Optional[str] = None,
+        **_: Any,
+    ) -> list[dict[str, Any]]:
+        """Return mock RDS certificates."""
+        certs = [
+            {
+                "CertificateIdentifier": "rds-ca-2019",
+                "CertificateType": "CA",
+                "Thumbprint": "d4ec8b4f0c0aeb7894f47694b4e3b2c0f8b8c9a0",
+                "ValidFrom": "2019-09-19T18:16:53Z",
+                "ValidTill": "2024-08-22T17:08:50Z",
+                "CertificateArn": (
+                    f"arn:{self.partition}:rds:{self.region_name}:{self.account_id}"
+                    ":cert:rds-ca-2019"
+                ),
+                "CustomerOverride": False,
+            },
+            {
+                "CertificateIdentifier": "rds-ca-rsa2048-g1",
+                "CertificateType": "CA",
+                "Thumbprint": "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2",
+                "ValidFrom": "2021-05-25T00:00:00Z",
+                "ValidTill": "2061-05-25T00:00:00Z",
+                "CertificateArn": (
+                    f"arn:{self.partition}:rds:{self.region_name}:{self.account_id}"
+                    ":cert:rds-ca-rsa2048-g1"
+                ),
+                "CustomerOverride": False,
+            },
+            {
+                "CertificateIdentifier": "rds-ca-ecc384-g1",
+                "CertificateType": "CA",
+                "Thumbprint": "b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3",
+                "ValidFrom": "2021-05-25T00:00:00Z",
+                "ValidTill": "2121-05-25T00:00:00Z",
+                "CertificateArn": (
+                    f"arn:{self.partition}:rds:{self.region_name}:{self.account_id}"
+                    ":cert:rds-ca-ecc384-g1"
+                ),
+                "CustomerOverride": False,
+            },
+        ]
+        if certificate_identifier:
+            certs = [
+                c for c in certs if c["CertificateIdentifier"] == certificate_identifier
+            ]
+        return certs
+
+    def create_db_cluster_endpoint(
+        self,
+        db_cluster_identifier: str,
+        db_cluster_endpoint_identifier: str,
+        endpoint_type: str,
+        static_members: Optional[list[str]] = None,
+        excluded_members: Optional[list[str]] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> DBClusterEndpoint:
+        if db_cluster_identifier not in self.clusters:
+            raise DBClusterNotFoundError(db_cluster_identifier)
+        if db_cluster_endpoint_identifier in self.db_cluster_endpoints:
+            raise RDSClientError(
+                "DBClusterEndpointAlreadyExistsFault",
+                f"The specified custom endpoint {db_cluster_endpoint_identifier} already exists.",
+            )
+        endpoint = DBClusterEndpoint(
+            self,
+            db_cluster_identifier=db_cluster_identifier,
+            db_cluster_endpoint_identifier=db_cluster_endpoint_identifier,
+            endpoint_type=endpoint_type,
+            static_members=static_members,
+            excluded_members=excluded_members,
+            tags=tags,
+        )
+        self.db_cluster_endpoints[db_cluster_endpoint_identifier] = endpoint
+        return endpoint
+
+    def describe_db_cluster_endpoints(
+        self,
+        db_cluster_identifier: Optional[str] = None,
+        db_cluster_endpoint_identifier: Optional[str] = None,
+        filters: Optional[dict[str, list[str]]] = None,
+    ) -> list[DBClusterEndpoint]:
+        endpoints = list(self.db_cluster_endpoints.values())
+        if db_cluster_identifier:
+            endpoints = [
+                e for e in endpoints if e.db_cluster_identifier == db_cluster_identifier
+            ]
+        if db_cluster_endpoint_identifier:
+            endpoints = [
+                e
+                for e in endpoints
+                if e.db_cluster_endpoint_identifier == db_cluster_endpoint_identifier
+            ]
+        return endpoints
+
+    def modify_db_cluster_endpoint(
+        self,
+        db_cluster_endpoint_identifier: str,
+        endpoint_type: Optional[str] = None,
+        static_members: Optional[list[str]] = None,
+        excluded_members: Optional[list[str]] = None,
+    ) -> DBClusterEndpoint:
+        if db_cluster_endpoint_identifier not in self.db_cluster_endpoints:
+            raise RDSClientError(
+                "DBClusterEndpointNotFoundFault",
+                f"The specified custom endpoint {db_cluster_endpoint_identifier} was not found.",
+            )
+        endpoint = self.db_cluster_endpoints[db_cluster_endpoint_identifier]
+        if endpoint_type is not None:
+            endpoint.endpoint_type = endpoint_type
+            endpoint.custom_endpoint_type = endpoint_type
+        if static_members is not None:
+            endpoint.static_members = static_members
+        if excluded_members is not None:
+            endpoint.excluded_members = excluded_members
+        return endpoint
+
+    def delete_db_cluster_endpoint(
+        self, db_cluster_endpoint_identifier: str
+    ) -> DBClusterEndpoint:
+        if db_cluster_endpoint_identifier not in self.db_cluster_endpoints:
+            raise RDSClientError(
+                "DBClusterEndpointNotFoundFault",
+                f"The specified custom endpoint {db_cluster_endpoint_identifier} was not found.",
+            )
+        endpoint = self.db_cluster_endpoints.pop(db_cluster_endpoint_identifier)
+        endpoint.status = "deleting"
+        return endpoint
+
+    def create_db_proxy_endpoint(
+        self,
+        db_proxy_name: str,
+        db_proxy_endpoint_name: str,
+        vpc_subnet_ids: list[str],
+        vpc_security_group_ids: Optional[list[str]] = None,
+        target_role: str = "READ_WRITE",
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> DBProxyEndpoint:
+        if db_proxy_name not in self.db_proxies:
+            raise DBProxyNotFoundFault(db_proxy_name)
+        if db_proxy_endpoint_name in self.db_proxy_endpoints:
+            raise RDSClientError(
+                "DBProxyEndpointAlreadyExistsFault",
+                (
+                    f"The specified DB proxy endpoint {db_proxy_endpoint_name} already exists."
+                ),
+            )
+        endpoint = DBProxyEndpoint(
+            self,
+            db_proxy_name=db_proxy_name,
+            db_proxy_endpoint_name=db_proxy_endpoint_name,
+            vpc_subnet_ids=vpc_subnet_ids,
+            vpc_security_group_ids=vpc_security_group_ids,
+            target_role=target_role,
+            tags=tags,
+        )
+        self.db_proxy_endpoints[db_proxy_endpoint_name] = endpoint
+        return endpoint
+
+    def describe_db_proxy_endpoints(
+        self,
+        db_proxy_name: Optional[str] = None,
+        db_proxy_endpoint_name: Optional[str] = None,
+    ) -> list[DBProxyEndpoint]:
+        endpoints = list(self.db_proxy_endpoints.values())
+        if db_proxy_name:
+            if db_proxy_name not in self.db_proxies:
+                raise DBProxyNotFoundFault(db_proxy_name)
+            endpoints = [e for e in endpoints if e.db_proxy_name == db_proxy_name]
+        if db_proxy_endpoint_name:
+            endpoints = [
+                e
+                for e in endpoints
+                if e.db_proxy_endpoint_name == db_proxy_endpoint_name
+            ]
+            if not endpoints:
+                raise RDSClientError(
+                    "DBProxyEndpointNotFoundFault",
+                    (
+                        f"The specified DB proxy endpoint"
+                        f" {db_proxy_endpoint_name} was not found."
+                    ),
+                )
+        return endpoints
+
+    def delete_db_proxy_endpoint(self, db_proxy_endpoint_name: str) -> DBProxyEndpoint:
+        if db_proxy_endpoint_name not in self.db_proxy_endpoints:
+            raise RDSClientError(
+                "DBProxyEndpointNotFoundFault",
+                (
+                    f"The specified DB proxy endpoint"
+                    f" {db_proxy_endpoint_name} was not found."
+                ),
+            )
+        endpoint = self.db_proxy_endpoints.pop(db_proxy_endpoint_name)
+        endpoint.status = "deleting"
+        return endpoint
+
+    def copy_option_group(
+        self,
+        source_option_group_identifier: str,
+        target_option_group_identifier: str,
+        target_option_group_description: str,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> OptionGroup:
+        source = self.option_groups.get(source_option_group_identifier)
+        if source is None:
+            raise OptionGroupNotFoundFaultError(source_option_group_identifier)
+        if target_option_group_identifier in self.option_groups:
+            raise RDSClientError(
+                "OptionGroupAlreadyExistsFault",
+                f"An option group named {target_option_group_identifier} already exists.",
+            )
+        new_group = OptionGroup(
+            self,
+            option_group_name=target_option_group_identifier,
+            engine_name=source.engine_name,
+            major_engine_version=source.major_engine_version,
+            option_group_description=target_option_group_description,
+            tags=tags,
+        )
+        # Copy options from source
+        new_group._options = copy.deepcopy(source._options)
+        self.option_groups[target_option_group_identifier] = new_group
+        return new_group
 
     def add_event(self, event_type: str, resource: ResourceWithEvents) -> None:
         event = Event(event_type, resource)
@@ -4358,6 +5251,545 @@ class RDSBackend(BaseBackend):
         if db_shard_group_identifier and not shard_groups:
             raise DBShardGroupNotFoundFault(db_shard_group_identifier)
         return list(shard_groups.values())
+
+    # ---- CustomDBEngineVersion ----
+
+    def create_custom_db_engine_version(
+        self, kwargs: dict[str, Any]
+    ) -> CustomDBEngineVersion:
+        engine = kwargs["engine"]
+        engine_version = kwargs["engine_version"]
+        key = f"{engine}:{engine_version}"
+        if key in self.custom_db_engine_versions:
+            raise CustomDBEngineVersionAlreadyExistsFault(engine, engine_version)
+        cev = CustomDBEngineVersion(self, **kwargs)
+        self.custom_db_engine_versions[key] = cev
+        return cev
+
+    def delete_custom_db_engine_version(
+        self, engine: str, engine_version: str
+    ) -> CustomDBEngineVersion:
+        key = f"{engine}:{engine_version}"
+        if key not in self.custom_db_engine_versions:
+            raise CustomDBEngineVersionNotFoundFault(engine, engine_version)
+        cev = self.custom_db_engine_versions.pop(key)
+        cev.status = "deleting"
+        return cev
+
+    def modify_custom_db_engine_version(
+        self,
+        engine: str,
+        engine_version: str,
+        description: Optional[str] = None,
+        status: Optional[str] = None,
+    ) -> CustomDBEngineVersion:
+        key = f"{engine}:{engine_version}"
+        if key not in self.custom_db_engine_versions:
+            raise CustomDBEngineVersionNotFoundFault(engine, engine_version)
+        cev = self.custom_db_engine_versions[key]
+        if description is not None:
+            cev.description = description
+            cev.db_engine_version_description = description
+        if status is not None:
+            cev.status = status
+        return cev
+
+    def _describe_custom_engine_versions(
+        self,
+        engine: Optional[str] = None,
+        engine_version: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        """Return custom engine versions for describe_db_engine_versions."""
+        results: list[dict[str, Any]] = []
+        for cev in self.custom_db_engine_versions.values():
+            if engine and cev.engine != engine:
+                continue
+            if engine_version and cev.engine_version != engine_version:
+                continue
+            results.append(
+                {
+                    "Engine": cev.engine,
+                    "EngineVersion": cev.engine_version,
+                    "DBParameterGroupFamily": f"{cev.engine}{cev.major_engine_version}",
+                    "DBEngineDescription": cev.db_engine_description,
+                    "DBEngineVersionDescription": cev.db_engine_version_description,
+                    "DBEngineVersionArn": cev.db_engine_version_arn,
+                    "Status": cev.status,
+                    "CreateTime": cev.create_time.isoformat(),
+                    "SupportedEngineModes": cev.supported_engine_modes,
+                    "SupportsParallelQuery": cev.supports_parallel_query,
+                    "SupportsGlobalDatabases": cev.supports_global_databases,
+                    "MajorEngineVersion": cev.major_engine_version,
+                    "DatabaseInstallationFilesS3BucketName": cev.database_installation_files_s3_bucket_name,
+                    "DatabaseInstallationFilesS3Prefix": cev.database_installation_files_s3_prefix,
+                    "KMSKeyId": cev.kms_key_id,
+                    "Image": {"ImageId": cev.image_id} if cev.image_id else None,
+                    "Tags": cev.tags,
+                }
+            )
+        return results
+
+    # ---- Integration (zero-ETL) ----
+
+    def create_integration(self, kwargs: dict[str, Any]) -> Integration:
+        integration_name = kwargs["integration_name"]
+        for existing in self.integrations.values():
+            if existing.integration_name == integration_name:
+                raise IntegrationAlreadyExistsFault(integration_name)
+        integration = Integration(self, **kwargs)
+        self.integrations[integration.integration_arn] = integration
+        return integration
+
+    def delete_integration(self, integration_identifier: str) -> Integration:
+        if integration_identifier not in self.integrations:
+            raise IntegrationNotFoundFault(integration_identifier)
+        integration = self.integrations.pop(integration_identifier)
+        integration.status = "deleting"
+        return integration
+
+    def describe_integrations(
+        self,
+        integration_identifier: Optional[str] = None,
+        integration_name: Optional[str] = None,
+    ) -> list[Integration]:
+        integrations = list(self.integrations.values())
+        if integration_identifier:
+            integrations = [
+                i for i in integrations if i.integration_arn == integration_identifier
+            ]
+            if not integrations:
+                raise IntegrationNotFoundFault(integration_identifier)
+        if integration_name:
+            integrations = [
+                i for i in integrations if i.integration_name == integration_name
+            ]
+        return integrations
+
+    def modify_integration(
+        self,
+        integration_identifier: str,
+        integration_name: Optional[str] = None,
+        description: Optional[str] = None,
+        data_filter: Optional[str] = None,
+    ) -> Integration:
+        if integration_identifier not in self.integrations:
+            raise IntegrationNotFoundFault(integration_identifier)
+        integration = self.integrations[integration_identifier]
+        if integration_name is not None:
+            integration.integration_name = integration_name
+        if description is not None:
+            integration.description = description
+        if data_filter is not None:
+            integration.data_filter = data_filter
+        return integration
+
+    # ---- TenantDatabase ----
+
+    def create_tenant_database(self, kwargs: dict[str, Any]) -> TenantDatabase:
+        db_instance_identifier = kwargs["db_instance_identifier"]
+        tenant_db_name = kwargs["tenant_db_name"]
+        if db_instance_identifier not in self.databases:
+            raise DBInstanceNotFoundError(db_instance_identifier)
+        key = f"{db_instance_identifier}:{tenant_db_name}"
+        if key in self.tenant_databases:
+            raise TenantDatabaseAlreadyExistsFault(
+                db_instance_identifier, tenant_db_name
+            )
+        tenant_db = TenantDatabase(self, **kwargs)
+        self.tenant_databases[key] = tenant_db
+        return tenant_db
+
+    def delete_tenant_database(
+        self,
+        db_instance_identifier: str,
+        tenant_db_name: str,
+        final_db_snapshot_identifier: Optional[str] = None,
+    ) -> TenantDatabase:
+        key = f"{db_instance_identifier}:{tenant_db_name}"
+        if key not in self.tenant_databases:
+            raise TenantDatabaseNotFoundFault(tenant_db_name)
+        tenant_db = self.tenant_databases.pop(key)
+        tenant_db.status = "deleting"
+        return tenant_db
+
+    def describe_tenant_databases(
+        self,
+        db_instance_identifier: Optional[str] = None,
+        tenant_db_name: Optional[str] = None,
+    ) -> list[TenantDatabase]:
+        results = list(self.tenant_databases.values())
+        if db_instance_identifier:
+            results = [
+                t for t in results if t.db_instance_identifier == db_instance_identifier
+            ]
+        if tenant_db_name:
+            results = [t for t in results if t.tenant_db_name == tenant_db_name]
+        return results
+
+    def modify_tenant_database(
+        self,
+        db_instance_identifier: str,
+        tenant_db_name: str,
+        master_user_password: Optional[str] = None,
+        new_tenant_db_name: Optional[str] = None,
+    ) -> TenantDatabase:
+        key = f"{db_instance_identifier}:{tenant_db_name}"
+        if key not in self.tenant_databases:
+            raise TenantDatabaseNotFoundFault(tenant_db_name)
+        tenant_db = self.tenant_databases[key]
+        if master_user_password is not None:
+            pass  # password updated (no-op in mock)
+        if new_tenant_db_name is not None:
+            old_key = key
+            tenant_db.tenant_db_name = new_tenant_db_name
+            new_key = f"{db_instance_identifier}:{new_tenant_db_name}"
+            self.tenant_databases[new_key] = tenant_db
+            del self.tenant_databases[old_key]
+        return tenant_db
+
+    def describe_db_snapshot_tenant_databases(
+        self,
+        db_snapshot_identifier: Optional[str] = None,
+        db_instance_identifier: Optional[str] = None,
+        dbi_resource_id: Optional[str] = None,
+        snapshot_type: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        """Return empty list or mock snapshot tenant databases."""
+        # In a real implementation this would enumerate tenant DBs within snapshots.
+        # For mock purposes, return an empty list since snapshots are point-in-time.
+        return []
+
+    # ---- ActivityStream ----
+
+    def start_activity_stream(
+        self,
+        resource_arn: str,
+        mode: Optional[str] = None,
+        kms_key_id: Optional[str] = None,
+        apply_immediately: bool = True,
+        engine_native_audit_fields_included: bool = False,
+    ) -> dict[str, Any]:
+        # Check if it's a cluster or instance
+        db_resource = None
+        for cluster in self.clusters.values():
+            if cluster.db_cluster_arn == resource_arn:
+                db_resource = cluster
+                break
+        if db_resource is None:
+            for db in self.databases.values():
+                if db.db_instance_arn == resource_arn:
+                    db_resource = db
+                    break
+        if db_resource is None:
+            raise DBClusterNotFoundError(resource_arn)
+
+        kinesis_stream_name = f"aws-rds-das-{resource_arn.split(':')[-1]}"
+        return {
+            "KmsKeyId": kms_key_id
+            or f"arn:{self.partition}:kms:{self.region_name}:{self.account_id}:key/default",
+            "KinesisStreamName": kinesis_stream_name,
+            "Status": "starting",
+            "Mode": mode or "async",
+            "ApplyImmediately": apply_immediately,
+            "EngineNativeAuditFieldsIncluded": engine_native_audit_fields_included,
+        }
+
+    def stop_activity_stream(
+        self,
+        resource_arn: str,
+        apply_immediately: bool = True,
+    ) -> dict[str, Any]:
+        db_resource = None
+        for cluster in self.clusters.values():
+            if cluster.db_cluster_arn == resource_arn:
+                db_resource = cluster
+                break
+        if db_resource is None:
+            for db in self.databases.values():
+                if db.db_instance_arn == resource_arn:
+                    db_resource = db
+                    break
+        if db_resource is None:
+            raise DBClusterNotFoundError(resource_arn)
+
+        kinesis_stream_name = f"aws-rds-das-{resource_arn.split(':')[-1]}"
+        return {
+            "KmsKeyId": f"arn:{self.partition}:kms:{self.region_name}:{self.account_id}:key/default",
+            "KinesisStreamName": kinesis_stream_name,
+            "Status": "stopping",
+        }
+
+    def modify_activity_stream(
+        self,
+        resource_arn: Optional[str] = None,
+        audit_policy_state: Optional[str] = None,
+    ) -> dict[str, Any]:
+        return {
+            "KmsKeyId": f"arn:{self.partition}:kms:{self.region_name}:{self.account_id}:key/default",
+            "KinesisStreamName": f"aws-rds-das-{resource_arn.split(':')[-1]}"
+            if resource_arn
+            else None,
+            "Status": "started",
+            "Mode": "async",
+            "EngineNativeAuditFieldsIncluded": False,
+            "PolicyStatus": audit_policy_state or "locked",
+        }
+
+    # ---- DBShardGroup (delete/modify/reboot) ----
+
+    def delete_db_shard_group(self, db_shard_group_identifier: str) -> DBShardGroup:
+        if db_shard_group_identifier not in self.shard_groups:
+            raise DBShardGroupNotFoundFault(db_shard_group_identifier)
+        shard_group = self.shard_groups.pop(db_shard_group_identifier)
+        shard_group.status = "deleting"
+        return shard_group
+
+    def modify_db_shard_group(
+        self,
+        db_shard_group_identifier: str,
+        max_acu: Optional[float] = None,
+        min_acu: Optional[float] = None,
+        compute_redundancy: Optional[int] = None,
+    ) -> DBShardGroup:
+        if db_shard_group_identifier not in self.shard_groups:
+            raise DBShardGroupNotFoundFault(db_shard_group_identifier)
+        shard_group = self.shard_groups[db_shard_group_identifier]
+        if max_acu is not None:
+            shard_group.max_acu = max_acu
+        if min_acu is not None:
+            shard_group.min_acu = min_acu
+        if compute_redundancy is not None:
+            if compute_redundancy not in (0, 1, 2):
+                raise InvalidParameterValue(
+                    f"Invalid ComputeRedundancy value: '{compute_redundancy}'. "
+                    "Valid values are 0 (no standby), 1 (1 standby AZ), 2 (2 standby AZs)."
+                )
+            shard_group.compute_redundancy = compute_redundancy
+        return shard_group
+
+    def reboot_db_shard_group(self, db_shard_group_identifier: str) -> DBShardGroup:
+        if db_shard_group_identifier not in self.shard_groups:
+            raise DBShardGroupNotFoundFault(db_shard_group_identifier)
+        shard_group = self.shard_groups[db_shard_group_identifier]
+        shard_group.status = "available"
+        return shard_group
+
+    # ---- ReservedDBInstances ----
+
+    def _init_reserved_offerings(self) -> None:
+        """Populate default reserved DB instance offerings."""
+        offering_specs = [
+            ("db.m5.large", 31536000, 200.0, 0.04, "mysql", "Partial Upfront", False),
+            ("db.m5.xlarge", 31536000, 400.0, 0.08, "mysql", "Partial Upfront", False),
+            ("db.m5.2xlarge", 31536000, 800.0, 0.16, "mysql", "Partial Upfront", False),
+            ("db.r5.large", 31536000, 250.0, 0.05, "mysql", "Partial Upfront", False),
+            ("db.r5.xlarge", 31536000, 500.0, 0.10, "mysql", "Partial Upfront", False),
+            (
+                "db.m5.large",
+                31536000,
+                200.0,
+                0.04,
+                "postgresql",
+                "Partial Upfront",
+                False,
+            ),
+            (
+                "db.m5.xlarge",
+                31536000,
+                400.0,
+                0.08,
+                "postgresql",
+                "Partial Upfront",
+                False,
+            ),
+            ("db.m5.large", 94608000, 500.0, 0.03, "mysql", "Partial Upfront", False),
+            ("db.m5.large", 31536000, 0.0, 0.06, "mysql", "No Upfront", False),
+            ("db.m5.large", 31536000, 350.0, 0.0, "mysql", "All Upfront", False),
+            ("db.m5.large", 31536000, 300.0, 0.06, "mysql", "Partial Upfront", True),
+        ]
+        for idx, (cls, dur, fixed, usage, desc, otype, maz) in enumerate(
+            offering_specs
+        ):
+            oid = f"{uuid.uuid5(uuid.NAMESPACE_DNS, f'rds-offering-{idx}').hex[:8]}"
+            offering = ReservedDBInstancesOffering(
+                backend=self,
+                offering_id=oid,
+                db_instance_class=cls,
+                duration=dur,
+                fixed_price=fixed,
+                usage_price=usage,
+                currency_code="USD",
+                product_description=desc,
+                offering_type=otype,
+                multi_az=maz,
+                recurring_charges=[
+                    {
+                        "RecurringChargeAmount": usage,
+                        "RecurringChargeFrequency": "Hourly",
+                    }
+                ]
+                if usage > 0
+                else [],
+            )
+            self.reserved_db_instances_offerings[oid] = offering
+
+    def describe_reserved_db_instances_offerings(
+        self,
+        reserved_db_instances_offering_id: Optional[str] = None,
+        db_instance_class: Optional[str] = None,
+        duration: Optional[str] = None,
+        product_description: Optional[str] = None,
+        offering_type: Optional[str] = None,
+        multi_az: Optional[bool] = None,
+    ) -> list[ReservedDBInstancesOffering]:
+        results = list(self.reserved_db_instances_offerings.values())
+        if reserved_db_instances_offering_id:
+            results = [
+                o
+                for o in results
+                if o.reserved_db_instances_offering_id
+                == reserved_db_instances_offering_id
+            ]
+            if not results:
+                raise ReservedDBInstancesOfferingNotFoundFault(
+                    reserved_db_instances_offering_id
+                )
+        if db_instance_class:
+            results = [o for o in results if o.db_instance_class == db_instance_class]
+        if product_description:
+            results = [
+                o for o in results if o.product_description == product_description
+            ]
+        if offering_type:
+            results = [o for o in results if o.offering_type == offering_type]
+        if multi_az is not None:
+            results = [o for o in results if o.multi_az == multi_az]
+        return results
+
+    def purchase_reserved_db_instances_offering(
+        self,
+        reserved_db_instances_offering_id: str,
+        reserved_db_instance_id: Optional[str] = None,
+        db_instance_count: int = 1,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> ReservedDBInstance:
+        if (
+            reserved_db_instances_offering_id
+            not in self.reserved_db_instances_offerings
+        ):
+            raise ReservedDBInstancesOfferingNotFoundFault(
+                reserved_db_instances_offering_id
+            )
+        offering = self.reserved_db_instances_offerings[
+            reserved_db_instances_offering_id
+        ]
+        rid = reserved_db_instance_id or f"ri-{uuid.uuid4().hex[:12]}"
+        if rid in self.reserved_db_instances:
+            raise ReservedDBInstanceAlreadyExistsFault(rid)
+        reserved = ReservedDBInstance(
+            backend=self,
+            reserved_db_instance_id=rid,
+            offering=offering,
+            db_instance_count=db_instance_count,
+            tags=tags,
+        )
+        self.reserved_db_instances[rid] = reserved
+        return reserved
+
+    def describe_reserved_db_instances(
+        self,
+        reserved_db_instance_id: Optional[str] = None,
+        reserved_db_instances_offering_id: Optional[str] = None,
+        db_instance_class: Optional[str] = None,
+        duration: Optional[str] = None,
+        product_description: Optional[str] = None,
+        offering_type: Optional[str] = None,
+        multi_az: Optional[bool] = None,
+    ) -> list[ReservedDBInstance]:
+        results = list(self.reserved_db_instances.values())
+        if reserved_db_instance_id:
+            results = [
+                r
+                for r in results
+                if r.reserved_db_instance_id == reserved_db_instance_id
+            ]
+            if not results:
+                raise ReservedDBInstanceNotFoundFault(reserved_db_instance_id)
+        if reserved_db_instances_offering_id:
+            results = [
+                r
+                for r in results
+                if r.reserved_db_instances_offering_id
+                == reserved_db_instances_offering_id
+            ]
+        if db_instance_class:
+            results = [r for r in results if r.db_instance_class == db_instance_class]
+        if product_description:
+            results = [
+                r for r in results if r.product_description == product_description
+            ]
+        if offering_type:
+            results = [r for r in results if r.offering_type == offering_type]
+        if multi_az is not None:
+            results = [r for r in results if r.multi_az == multi_az]
+        return results
+
+    # ---- DBRecommendation ----
+
+    def describe_db_recommendations(
+        self,
+        last_updated_after: Optional[str] = None,
+        last_updated_before: Optional[str] = None,
+        locale: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        """Return empty list of recommendations (mock)."""
+        return []
+
+    # ---- ValidDBInstanceModifications ----
+
+    def describe_valid_db_instance_modifications(
+        self,
+        db_instance_identifier: str,
+    ) -> dict[str, Any]:
+        if db_instance_identifier not in self.databases:
+            raise DBInstanceNotFoundError(db_instance_identifier)
+        self.databases[db_instance_identifier]
+        return {
+            "Storage": [
+                {
+                    "StorageType": "gp2",
+                    "StorageSize": [
+                        {"From": 20, "To": 65536, "Step": 1},
+                    ],
+                    "ProvisionedIops": [],
+                    "ProvisionedStorageThroughput": [],
+                },
+                {
+                    "StorageType": "gp3",
+                    "StorageSize": [
+                        {"From": 20, "To": 65536, "Step": 1},
+                    ],
+                    "ProvisionedIops": [
+                        {"From": 3000, "To": 64000, "Step": 1},
+                    ],
+                    "ProvisionedStorageThroughput": [
+                        {"From": 125, "To": 4000, "Step": 1},
+                    ],
+                },
+                {
+                    "StorageType": "io1",
+                    "StorageSize": [
+                        {"From": 100, "To": 65536, "Step": 1},
+                    ],
+                    "ProvisionedIops": [
+                        {"From": 1000, "To": 64000, "Step": 1},
+                    ],
+                    "ProvisionedStorageThroughput": [],
+                },
+            ],
+            "ValidProcessorFeatures": [],
+            "SupportsDedicatedLogVolume": True,
+        }
 
     def _is_cluster(self, arn: str) -> bool:
         return arn.split(":")[-2] == "cluster"

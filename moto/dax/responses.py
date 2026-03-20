@@ -62,6 +62,27 @@ class DAXResponse(BaseResponse):
             {"Clusters": [c.to_json() for c in clusters], "NextToken": next_token}
         )
 
+    def update_cluster(self) -> str:
+        params = json.loads(self.body)
+        cluster = self.dax_backend.update_cluster(
+            cluster_name=params["ClusterName"],
+            description=params.get("Description"),
+            preferred_maintenance_window=params.get("PreferredMaintenanceWindow"),
+            notification_topic_arn=params.get("NotificationTopicArn"),
+            notification_topic_status=params.get("NotificationTopicStatus"),
+            parameter_group_name=params.get("ParameterGroupName"),
+            security_group_ids=params.get("SecurityGroupIds"),
+        )
+        return json.dumps({"Cluster": cluster.to_json()})
+
+    def reboot_node(self) -> str:
+        params = json.loads(self.body)
+        cluster = self.dax_backend.reboot_node(
+            cluster_name=params["ClusterName"],
+            node_id=params["NodeId"],
+        )
+        return json.dumps({"Cluster": cluster.to_json()})
+
     def _validate_arn(self, arn: str) -> None:
         if not arn.startswith("arn:"):
             raise InvalidParameterValueException(f"ARNs must start with 'arn:': {arn}")
@@ -94,6 +115,22 @@ class DAXResponse(BaseResponse):
         tags = self.dax_backend.list_tags(resource_name=resource_name)
         return json.dumps(tags)
 
+    def tag_resource(self) -> str:
+        params = json.loads(self.body)
+        tags = self.dax_backend.tag_resource(
+            resource_name=params["ResourceName"],
+            tags=params["Tags"],
+        )
+        return json.dumps({"Tags": tags})
+
+    def untag_resource(self) -> str:
+        params = json.loads(self.body)
+        tags = self.dax_backend.untag_resource(
+            resource_name=params["ResourceName"],
+            tag_keys=params["TagKeys"],
+        )
+        return json.dumps({"Tags": tags})
+
     def increase_replication_factor(self) -> str:
         params = json.loads(self.body)
         cluster_name = params.get("ClusterName")
@@ -115,22 +152,95 @@ class DAXResponse(BaseResponse):
         )
         return json.dumps({"Cluster": cluster.to_json()})
 
-    def tag_resource(self) -> str:
-        params = json.loads(self.body)
-        resource_name = params.get("ResourceName")
-        tags = params.get("Tags")
-        self.dax_backend.tag_resource(
-            resource_name=resource_name,
-            tags=tags,
-        )
-        return "{}"
+    # Parameter Group operations
 
-    def untag_resource(self) -> str:
+    def create_parameter_group(self) -> str:
         params = json.loads(self.body)
-        resource_name = params.get("ResourceName")
-        tag_keys = params.get("TagKeys")
-        self.dax_backend.untag_resource(
-            resource_name=resource_name,
-            tag_keys=tag_keys,
+        pg = self.dax_backend.create_parameter_group(
+            parameter_group_name=params["ParameterGroupName"],
+            description=params.get("Description", ""),
         )
-        return "{}"
+        return json.dumps({"ParameterGroup": pg.to_describe_json()})
+
+    def delete_parameter_group(self) -> str:
+        params = json.loads(self.body)
+        message = self.dax_backend.delete_parameter_group(
+            parameter_group_name=params["ParameterGroupName"],
+        )
+        return json.dumps({"DeletionMessage": message})
+
+    def describe_parameter_groups(self) -> str:
+        params = json.loads(self.body)
+        groups = self.dax_backend.describe_parameter_groups(
+            parameter_group_names=params.get("ParameterGroupNames", []),
+        )
+        return json.dumps(
+            {"ParameterGroups": [g.to_describe_json() for g in groups]}
+        )
+
+    def describe_parameters(self) -> str:
+        params = json.loads(self.body)
+        parameters = self.dax_backend.describe_parameters(
+            parameter_group_name=params["ParameterGroupName"],
+            source=params.get("Source"),
+        )
+        return json.dumps({"Parameters": parameters})
+
+    def update_parameter_group(self) -> str:
+        params = json.loads(self.body)
+        pg = self.dax_backend.update_parameter_group(
+            parameter_group_name=params["ParameterGroupName"],
+            parameter_name_values=params["ParameterNameValues"],
+        )
+        return json.dumps({"ParameterGroup": pg.to_describe_json()})
+
+    def describe_default_parameters(self) -> str:
+        parameters = self.dax_backend.describe_default_parameters()
+        return json.dumps({"Parameters": parameters})
+
+    # Subnet Group operations
+
+    def create_subnet_group(self) -> str:
+        params = json.loads(self.body)
+        sg = self.dax_backend.create_subnet_group(
+            subnet_group_name=params["SubnetGroupName"],
+            description=params.get("Description", ""),
+            subnet_ids=params["SubnetIds"],
+        )
+        return json.dumps({"SubnetGroup": sg.to_json()})
+
+    def delete_subnet_group(self) -> str:
+        params = json.loads(self.body)
+        message = self.dax_backend.delete_subnet_group(
+            subnet_group_name=params["SubnetGroupName"],
+        )
+        return json.dumps({"DeletionMessage": message})
+
+    def describe_subnet_groups(self) -> str:
+        params = json.loads(self.body)
+        groups = self.dax_backend.describe_subnet_groups(
+            subnet_group_names=params.get("SubnetGroupNames", []),
+        )
+        return json.dumps(
+            {"SubnetGroups": [g.to_json() for g in groups]}
+        )
+
+    def update_subnet_group(self) -> str:
+        params = json.loads(self.body)
+        sg = self.dax_backend.update_subnet_group(
+            subnet_group_name=params["SubnetGroupName"],
+            description=params.get("Description"),
+            subnet_ids=params.get("SubnetIds"),
+        )
+        return json.dumps({"SubnetGroup": sg.to_json()})
+
+    # Events
+
+    def describe_events(self) -> str:
+        params = json.loads(self.body)
+        events = self.dax_backend.describe_events(
+            source_name=params.get("SourceName"),
+            source_type=params.get("SourceType"),
+        )
+        return json.dumps({"Events": events})
+

@@ -252,6 +252,37 @@ class IdentityStoreResponse(BaseResponse):
         )
         return json.dumps({})
 
+    def update_group(self) -> str:
+        identity_store_id = self._get_param("IdentityStoreId")
+        group_id = self._get_param("GroupId")
+        operations = self._get_param("Operations")
+        self.identitystore_backend.update_group(
+            identity_store_id=identity_store_id,
+            group_id=group_id,
+            operations=operations,
+        )
+        return json.dumps({})
+
+    def update_user(self) -> str:
+        identity_store_id = self._get_param("IdentityStoreId")
+        user_id = self._get_param("UserId")
+        operations = self._get_param("Operations")
+        self.identitystore_backend.update_user(
+            identity_store_id=identity_store_id,
+            user_id=user_id,
+            operations=operations,
+        )
+        return json.dumps({})
+
+    def describe_group_membership(self) -> str:
+        identity_store_id = self._get_param("IdentityStoreId")
+        membership_id = self._get_param("MembershipId")
+        membership = self.identitystore_backend.describe_group_membership(
+            identity_store_id=identity_store_id,
+            membership_id=membership_id,
+        )
+        return json.dumps(membership)
+
     def named_tuple_to_dict(
         self, value: Optional[NamedTuple]
     ) -> Optional[dict[str, Any]]:

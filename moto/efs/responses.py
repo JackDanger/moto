@@ -198,6 +198,25 @@ class EFSResponse(BaseResponse):
         self.efs_backend.untag_resource(resource_id, tag_keys)
         return "{}", {"Content-Type": "application/json"}
 
+    def describe_account_preferences(self) -> TYPE_RESPONSE:
+        result = self.efs_backend.describe_account_preferences()
+        return json.dumps(result), {"Content-Type": "application/json"}
+
+    def describe_replication_configurations(self) -> TYPE_RESPONSE:
+        file_system_id = self._get_param("FileSystemId")
+        replications = self.efs_backend.describe_replication_configurations(
+            file_system_id=file_system_id,
+        )
+        return json.dumps({"Replications": replications}), {
+            "Content-Type": "application/json"
+        }
+
+    def describe_tags(self) -> TYPE_RESPONSE:
+        file_system_id = self._get_param("FileSystemId")
+        tags = self.efs_backend.describe_tags(file_system_id)
+        resp: dict[str, Any] = {"Tags": tags}
+        return json.dumps(resp), {"Content-Type": "application/json"}
+
     def describe_file_system_policy(self) -> TYPE_RESPONSE:
         file_system_id = self._get_param("FileSystemId")
         policy = self.efs_backend.describe_file_system_policy(
@@ -223,3 +242,70 @@ class EFSResponse(BaseResponse):
             json.dumps({"FileSystemId": file_system_id, "Policy": policy}),
             {"Content-Type": "application/json"},
         )
+
+    def delete_file_system_policy(self) -> TYPE_RESPONSE:
+        file_system_id = self._get_param("FileSystemId")
+        self.efs_backend.delete_file_system_policy(file_system_id)
+        return json.dumps({}), {"status": 200, "Content-Type": "application/json"}
+
+    def put_backup_policy(self) -> TYPE_RESPONSE:
+        file_system_id = self._get_param("FileSystemId")
+        backup_policy = self._get_param("BackupPolicy")
+        result = self.efs_backend.put_backup_policy(file_system_id, backup_policy)
+        return json.dumps({"BackupPolicy": result}), {
+            "Content-Type": "application/json"
+        }
+
+    def put_account_preferences(self) -> TYPE_RESPONSE:
+        resource_id_type = self._get_param("ResourceIdType")
+        result = self.efs_backend.put_account_preferences(resource_id_type)
+        return json.dumps(result), {"Content-Type": "application/json"}
+
+    def update_file_system(self) -> TYPE_RESPONSE:
+        file_system_id = self._get_param("FileSystemId")
+        throughput_mode = self._get_param("ThroughputMode")
+        provisioned_throughput_in_mibps = self._get_param(
+            "ProvisionedThroughputInMibps"
+        )
+        fs = self.efs_backend.update_file_system(
+            file_system_id=file_system_id,
+            throughput_mode=throughput_mode,
+            provisioned_throughput_in_mibps=provisioned_throughput_in_mibps,
+        )
+        return json.dumps(fs.info_json()), {"Content-Type": "application/json"}
+    def create_replication_configuration(self) -> TYPE_RESPONSE:
+        source_file_system_id = self._get_param("SourceFileSystemId")
+        destinations = self._get_param("Destinations")
+        result = self.efs_backend.create_replication_configuration(
+            source_file_system_id=source_file_system_id,
+            destinations=destinations,
+        )
+        return json.dumps(result), {"Content-Type": "application/json"}
+
+    def delete_replication_configuration(self) -> TYPE_RESPONSE:
+        source_file_system_id = self._get_param("SourceFileSystemId")
+        self.efs_backend.delete_replication_configuration(source_file_system_id)
+        return json.dumps({}), {"status": 204, "Content-Type": "application/json"}
+
+    def create_tags(self) -> TYPE_RESPONSE:
+        file_system_id = self._get_param("FileSystemId")
+        tags = self._get_param("Tags")
+        self.efs_backend.create_tags(file_system_id, tags)
+        return json.dumps({}), {"status": 204, "Content-Type": "application/json"}
+
+    def delete_tags(self) -> TYPE_RESPONSE:
+        file_system_id = self._get_param("FileSystemId")
+        tag_keys = self._get_param("TagKeys")
+        self.efs_backend.delete_tags(file_system_id, tag_keys)
+        return json.dumps({}), {"status": 204, "Content-Type": "application/json"}
+
+    def update_file_system_protection(self) -> TYPE_RESPONSE:
+        file_system_id = self._get_param("FileSystemId")
+        replication_overwrite_protection = self._get_param(
+            "ReplicationOverwriteProtection"
+        )
+        result = self.efs_backend.update_file_system_protection(
+            file_system_id=file_system_id,
+            replication_overwrite_protection=replication_overwrite_protection,
+        )
+        return json.dumps(result), {"Content-Type": "application/json"}

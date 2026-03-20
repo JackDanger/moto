@@ -14,6 +14,7 @@ from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import ARN_PARTITION_REGEX, PARTITION_NAMES
 
 from .exceptions import (
+    WAFInvalidParameterException,
     WAFNonexistentItemException,
     WAFOptimisticLockException,
     WAFV2DuplicateItemException,
@@ -467,6 +468,7 @@ class WAFV2Backend(BaseBackend):
         self.rule_groups: dict[str, FakeRuleGroup] = OrderedDict()
         self.regex_pattern_sets: dict[str, FakeRegexPatternSet] = OrderedDict()
         self.tagging_service = TaggingService()
+        self.permission_policies: dict[str, str] = {}
         # TODO: self.load_balancers = OrderedDict()
 
     def associate_web_acl(self, web_acl_arn: str, resource_arn: str) -> None:
@@ -992,6 +994,306 @@ class WAFV2Backend(BaseBackend):
             for pattern_set in self.regex_pattern_sets.values()
             if pattern_set.scope == scope
         ]
+
+    def put_permission_policy(self, resource_arn: str, policy: str) -> None:
+        # Validate the ARN refers to a rule group
+        if "/rulegroup/" not in resource_arn:
+            raise WAFInvalidParameterException(
+                "The ARN isn't valid. A valid ARN starts with arn: "
+                "and includes other information separated by colons or slashes."
+            )
+        if resource_arn not in self.rule_groups:
+            raise WAFNonexistentItemException()
+        self.permission_policies[resource_arn] = policy
+
+    def get_permission_policy(self, resource_arn: str) -> str:
+        if resource_arn not in self.permission_policies:
+            raise WAFNonexistentItemException()
+        return self.permission_policies[resource_arn]
+
+    def delete_permission_policy(self, resource_arn: str) -> None:
+        if resource_arn not in self.permission_policies:
+            raise WAFNonexistentItemException()
+        del self.permission_policies[resource_arn]
+
+    def check_capacity(self, scope: str, rules: list[dict[str, Any]]) -> int:
+        return len(rules)
+
+    def describe_managed_rule_group(
+        self, vendor_name: str, name: str, scope: str
+    ) -> dict[str, Any]:
+        return {
+            "Capacity": 700,
+            "Rules": [
+                {
+                    "Name": "NoUserAgent_HEADER",
+                    "Action": {"Block": {}},
+                },
+            ],
+            "AvailableLabels": [
+                {"Name": f"awswaf:managed:{vendor_name.lower()}:{name.lower()}:NoUserAgent_HEADER"},
+            ],
+            "ConsumedLabels": [],
+            "LabelNamespace": f"awswaf:managed:{vendor_name.lower()}:{name.lower()}:",
+            "VersionName": "Version_1.0",
+            "SnsTopicArn": f"arn:aws:sns:us-east-1:123456789012:managed-rule-group-{name}",
+        }
+
+    def list_available_managed_rule_groups(
+        self, scope: str
+    ) -> list[dict[str, Any]]:
+        """Return a static list of well-known AWS managed rule groups."""
+        return [
+            {
+                "VendorName": "AWS",
+                "Name": "AWSManagedRulesCommonRuleSet",
+                "Description": "Contains rules that are generally applicable to web applications.",
+            },
+            {
+                "VendorName": "AWS",
+                "Name": "AWSManagedRulesAdminProtectionRuleSet",
+                "Description": "Contains rules that allow you to block external access to exposed admin pages.",
+            },
+            {
+                "VendorName": "AWS",
+                "Name": "AWSManagedRulesKnownBadInputsRuleSet",
+                "Description": "Contains rules to block request patterns that are known to be invalid.",
+            },
+            {
+                "VendorName": "AWS",
+                "Name": "AWSManagedRulesSQLiRuleSet",
+                "Description": "Contains rules that allow you to block request patterns associated with SQL injection.",
+            },
+            {
+                "VendorName": "AWS",
+                "Name": "AWSManagedRulesLinuxRuleSet",
+                "Description": "Contains rules that block request patterns associated with exploitation of vulnerabilities specific to Linux.",
+            },
+            {
+                "VendorName": "AWS",
+                "Name": "AWSManagedRulesUnixRuleSet",
+                "Description": "Contains rules that block request patterns associated with POSIX/POSIX-like OS.",
+            },
+            {
+                "VendorName": "AWS",
+                "Name": "AWSManagedRulesWindowsRuleSet",
+                "Description": "Contains rules that block request patterns associated with exploitation of vulnerabilities specific to Windows.",
+            },
+            {
+                "VendorName": "AWS",
+                "Name": "AWSManagedRulesPHPRuleSet",
+                "Description": "Contains rules that block request patterns associated with PHP.",
+            },
+            {
+                "VendorName": "AWS",
+                "Name": "AWSManagedRulesWordPressRuleSet",
+                "Description": "Contains rules that block request patterns associated with WordPress.",
+            },
+            {
+                "VendorName": "AWS",
+                "Name": "AWSManagedRulesAmazonIpReputationList",
+                "Description": "This group contains rules that are based on Amazon internal threat intelligence.",
+            },
+            {
+                "VendorName": "AWS",
+                "Name": "AWSManagedRulesAnonymousIpList",
+                "Description": "This group contains rules to block requests from services that allow obfuscation of viewer identity.",
+            },
+            {
+                "VendorName": "AWS",
+                "Name": "AWSManagedRulesBotControlRuleSet",
+                "Description": "Contains rules for managing bot traffic.",
+            },
+            {
+                "VendorName": "AWS",
+                "Name": "AWSManagedRulesATPRuleSet",
+                "Description": "Contains rules for managing account takeover prevention.",
+            },
+        ]
+
+    def list_available_managed_rule_group_versions(
+        self, vendor_name: str, name: str, scope: str
+    ) -> list[dict[str, Any]]:
+        """Return a static list of versions for a managed rule group."""
+        return [
+            {"Name": "Version_1.0", "LastUpdateTimestamp": "2021-03-01T00:00:00Z"},
+            {"Name": "Version_1.1", "LastUpdateTimestamp": "2021-06-01T00:00:00Z"},
+            {"Name": "Version_2.0", "LastUpdateTimestamp": "2022-01-01T00:00:00Z"},
+        ]
+
+    # region: API Key operations
+    def create_api_key(
+        self, scope: str, token_domains: list[str]
+    ) -> tuple[str, str]:
+        """Create an API key. Returns (api_key, api_key_id)."""
+        api_key = str(mock_random.uuid4()).replace("-", "")
+        created = iso_8601_datetime_with_milliseconds()
+        if not hasattr(self, "_api_keys"):
+            self._api_keys: dict[str, dict[str, Any]] = {}
+        self._api_keys[api_key] = {
+            "APIKey": api_key,
+            "TokenDomains": token_domains,
+            "CreationTimestamp": created,
+            "Version": 1,
+        }
+        return api_key, created
+
+    def delete_api_key(self, scope: str, api_key: str) -> None:
+        if not hasattr(self, "_api_keys"):
+            self._api_keys = {}
+        self._api_keys.pop(api_key, None)
+
+    def list_api_keys(self, scope: str) -> list[dict[str, Any]]:
+        if not hasattr(self, "_api_keys"):
+            self._api_keys = {}
+        return list(self._api_keys.values())
+
+    def get_decrypted_api_key(
+        self, scope: str, api_key: str
+    ) -> list[str]:
+        """Return the token domains for a decrypted API key."""
+        if not hasattr(self, "_api_keys"):
+            self._api_keys = {}
+        key_data = self._api_keys.get(api_key)
+        if key_data:
+            return key_data.get("TokenDomains", [])
+        return []
+
+    # endregion
+
+    # region: Mobile SDK stubs
+    def get_mobile_sdk_release(
+        self, platform: str, release_version: str
+    ) -> dict[str, Any]:
+        return {
+            "MobileSdkRelease": {
+                "ReleaseVersion": release_version,
+                "Timestamp": "2023-01-01T00:00:00Z",
+                "ReleaseNotes": "Mock release",
+                "Tags": [],
+            }
+        }
+
+    def list_mobile_sdk_releases(
+        self, platform: str
+    ) -> list[dict[str, Any]]:
+        return []
+
+    def generate_mobile_sdk_release_url(
+        self, platform: str, release_version: str
+    ) -> str:
+        return f"https://sdk.amazonaws.com/wafv2/{platform}/{release_version}/sdk.zip"
+
+    # endregion
+
+    # region: Managed rule set stubs
+    def get_managed_rule_set(
+        self, name: str, scope: str, _id: str
+    ) -> dict[str, Any]:
+        return {
+            "ManagedRuleSet": {
+                "Name": name,
+                "Id": _id,
+                "ARN": f"arn:aws:wafv2:{self.region_name}:{self.account_id}:managed-rule-set/{name}/{_id}",
+                "Description": "",
+                "PublishedVersions": {},
+                "RecommendedVersion": "Version_1.0",
+                "LabelNamespace": f"awswaf:managed:{name.lower()}:",
+            },
+            "LockToken": str(mock_random.uuid4()),
+        }
+
+    def list_managed_rule_sets(
+        self, scope: str
+    ) -> list[dict[str, Any]]:
+        return []
+
+    def put_managed_rule_set_versions(
+        self, name: str, scope: str, _id: str, lock_token: str,
+        versions_to_publish: Optional[dict[str, Any]] = None,
+    ) -> str:
+        return str(mock_random.uuid4())
+
+    def update_managed_rule_set_version_expiry_date(
+        self, name: str, scope: str, _id: str, lock_token: str,
+        version_to_expire: str, expiry_timestamp: str,
+    ) -> tuple[str, str, str]:
+        return version_to_expire, expiry_timestamp, str(mock_random.uuid4())
+
+    # endregion
+
+    # region: Describe managed products
+    def describe_all_managed_products(
+        self, scope: str
+    ) -> list[dict[str, Any]]:
+        """Return a static list of managed product descriptions."""
+        return [
+            {
+                "VendorName": "AWS",
+                "ManagedRuleSetName": "AWSManagedRulesCommonRuleSet",
+                "ProductId": "aws-common-rules",
+                "ProductTitle": "AWS Managed Rules Common Rule Set",
+                "ProductDescription": "Contains rules that are generally applicable to web applications.",
+                "SnsTopicArn": f"arn:aws:sns:{self.region_name}:{self.account_id}:managed-product-common",
+                "IsVersioningSupported": True,
+                "IsAdvancedManagedRuleSet": False,
+            },
+        ]
+
+    def describe_managed_products_by_vendor(
+        self, vendor_name: str, scope: str
+    ) -> list[dict[str, Any]]:
+        products = self.describe_all_managed_products(scope)
+        return [p for p in products if p["VendorName"] == vendor_name]
+
+    # endregion
+
+    # region: Firewall Manager, Rate-based, Sampled requests, Resources for WebACL
+    def delete_firewall_manager_rule_groups(
+        self, web_acl_arn: str, web_acl_lock_token: str
+    ) -> str:
+        """Remove Firewall Manager rule groups from a WebACL. Returns new lock token."""
+        return str(mock_random.uuid4())
+
+    def get_rate_based_statement_managed_keys(
+        self, scope: str, web_acl_name: str, web_acl_id: str,
+        rule_name: str, rule_group_rule_name: Optional[str] = None,
+    ) -> dict[str, Any]:
+        return {
+            "ManagedKeysIPV4": {
+                "IPAddressVersion": "IPV4",
+                "Addresses": [],
+            },
+            "ManagedKeysIPV6": {
+                "IPAddressVersion": "IPV6",
+                "Addresses": [],
+            },
+        }
+
+    def get_sampled_requests(
+        self, web_acl_arn: str, rule_metric_name: str, scope: str,
+        time_window: dict[str, str], max_items: int,
+    ) -> dict[str, Any]:
+        return {
+            "SampledRequests": [],
+            "PopulationSize": 0,
+            "TimeWindow": time_window,
+        }
+
+    def list_resources_for_web_acl(
+        self, web_acl_arn: str, resource_type: Optional[str] = None
+    ) -> list[str]:
+        wacl = self.wacls.get(web_acl_arn)
+        if not wacl:
+            raise WAFNonexistentItemException
+        if resource_type:
+            return [
+                r for r in wacl.associated_resources
+                if resource_type.lower() in r.lower()
+            ]
+        return list(wacl.associated_resources)
+
+    # endregion
 
 
 wafv2_backends = BackendDict(WAFV2Backend, "wafv2", additional_regions=PARTITION_NAMES)

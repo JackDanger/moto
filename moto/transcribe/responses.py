@@ -182,3 +182,87 @@ class TranscribeResponse(BaseResponse):
             vocabulary_name=vocabulary_name
         )
         return EmptyResult()
+
+    def list_call_analytics_categories(self) -> ActionResult:
+        return ActionResult({"Categories": [], "NextToken": None})
+
+    def list_call_analytics_jobs(self) -> ActionResult:
+        return ActionResult({"CallAnalyticsJobSummaries": [], "NextToken": None})
+
+    def list_medical_scribe_jobs(self) -> ActionResult:
+        return ActionResult({"MedicalScribeJobSummaries": [], "NextToken": None})
+
+    # --- VocabularyFilter CRUD ---
+
+    def create_vocabulary_filter(self) -> ActionResult:
+        response = self.transcribe_backend.create_vocabulary_filter(
+            vocabulary_filter_name=self._get_param("VocabularyFilterName"),
+            language_code=self._get_param("LanguageCode"),
+            words=self._get_param("Words"),
+            vocabulary_filter_file_uri=self._get_param("VocabularyFilterFileUri"),
+            tags=self._get_param("Tags"),
+            data_access_role_arn=self._get_param("DataAccessRoleArn"),
+        )
+        return ActionResult(response)
+
+    def get_vocabulary_filter(self) -> ActionResult:
+        response = self.transcribe_backend.get_vocabulary_filter(
+            vocabulary_filter_name=self._get_param("VocabularyFilterName"),
+        )
+        return ActionResult(response)
+
+    def delete_vocabulary_filter(self) -> ActionResult:
+        self.transcribe_backend.delete_vocabulary_filter(
+            vocabulary_filter_name=self._get_param("VocabularyFilterName"),
+        )
+        return EmptyResult()
+
+    def update_vocabulary_filter(self) -> ActionResult:
+        response = self.transcribe_backend.update_vocabulary_filter(
+            vocabulary_filter_name=self._get_param("VocabularyFilterName"),
+            words=self._get_param("Words"),
+            vocabulary_filter_file_uri=self._get_param("VocabularyFilterFileUri"),
+            data_access_role_arn=self._get_param("DataAccessRoleArn"),
+        )
+        return ActionResult(response)
+
+    def list_vocabulary_filters(self) -> ActionResult:
+        response = self.transcribe_backend.list_vocabulary_filters(
+            name_contains=self._get_param("NameContains"),
+            next_token=self._get_param("NextToken"),
+            max_results=self._get_param("MaxResults"),
+        )
+        return ActionResult(response)
+
+    # --- LanguageModel CRUD ---
+
+    def create_language_model(self) -> ActionResult:
+        response = self.transcribe_backend.create_language_model(
+            language_code=self._get_param("LanguageCode"),
+            base_model_name=self._get_param("BaseModelName"),
+            model_name=self._get_param("ModelName"),
+            input_data_config=self._get_param("InputDataConfig"),
+            tags=self._get_param("Tags"),
+        )
+        return ActionResult(response)
+
+    def describe_language_model(self) -> ActionResult:
+        response = self.transcribe_backend.describe_language_model(
+            model_name=self._get_param("ModelName"),
+        )
+        return ActionResult(response)
+
+    def delete_language_model(self) -> ActionResult:
+        self.transcribe_backend.delete_language_model(
+            model_name=self._get_param("ModelName"),
+        )
+        return EmptyResult()
+
+    def list_language_models(self) -> ActionResult:
+        response = self.transcribe_backend.list_language_models(
+            status_equals=self._get_param("StatusEquals"),
+            name_contains=self._get_param("NameContains"),
+            next_token=self._get_param("NextToken"),
+            max_results=self._get_param("MaxResults"),
+        )
+        return ActionResult(response)

@@ -252,11 +252,15 @@ class CloudWatchResponse(BaseResponse):
         result = {"MetricAlarms": filtered_alarms}
         return ActionResult(result)
 
-    def disable_alarm_actions(self) -> str:
-        raise NotImplementedError()
+    def disable_alarm_actions(self) -> ActionResult:
+        alarm_names = self._get_param("AlarmNames", [])
+        self.cloudwatch_backend.disable_alarm_actions(alarm_names)
+        return EmptyResult()
 
-    def enable_alarm_actions(self) -> str:
-        raise NotImplementedError()
+    def enable_alarm_actions(self) -> ActionResult:
+        alarm_names = self._get_param("AlarmNames", [])
+        self.cloudwatch_backend.enable_alarm_actions(alarm_names)
+        return EmptyResult()
 
     def get_dashboard(self) -> ActionResult:
         dashboard_name = self._get_param("DashboardName")
@@ -345,3 +349,183 @@ class CloudWatchResponse(BaseResponse):
         failures = self.cloudwatch_backend.enable_insight_rules(rule_names=names)
         result = {"Failures": failures}
         return ActionResult(result)
+
+    def put_anomaly_detector(self) -> ActionResult:
+        namespace = self._get_param("Namespace")
+        metric_name = self._get_param("MetricName")
+        dimensions = self._get_param("Dimensions", [])
+        stat = self._get_param("Stat")
+        configuration = self._get_param("Configuration")
+        metric_math_anomaly_detector = self._get_param("MetricMathAnomalyDetector")
+        single_metric_anomaly_detector = self._get_param("SingleMetricAnomalyDetector")
+        self.cloudwatch_backend.put_anomaly_detector(
+            namespace=namespace,
+            metric_name=metric_name,
+            dimensions=dimensions,
+            stat=stat,
+            configuration=configuration,
+            metric_math_anomaly_detector=metric_math_anomaly_detector,
+            single_metric_anomaly_detector=single_metric_anomaly_detector,
+        )
+        return EmptyResult()
+
+    def describe_anomaly_detectors(self) -> ActionResult:
+        namespace = self._get_param("Namespace")
+        metric_name = self._get_param("MetricName")
+        detectors = self.cloudwatch_backend.describe_anomaly_detectors(
+            namespace=namespace,
+            metric_name=metric_name,
+        )
+        result = {"AnomalyDetectors": detectors}
+        return ActionResult(result)
+
+    def delete_anomaly_detector(self) -> ActionResult:
+        namespace = self._get_param("Namespace")
+        metric_name = self._get_param("MetricName")
+        stat = self._get_param("Stat")
+        single_metric_anomaly_detector = self._get_param("SingleMetricAnomalyDetector")
+        self.cloudwatch_backend.delete_anomaly_detector(
+            namespace=namespace,
+            metric_name=metric_name,
+            stat=stat,
+            single_metric_anomaly_detector=single_metric_anomaly_detector,
+        )
+        return EmptyResult()
+
+    def put_metric_stream(self) -> ActionResult:
+        name = self._get_param("Name")
+        firehose_arn = self._get_param("FirehoseArn")
+        role_arn = self._get_param("RoleArn")
+        output_format = self._get_param("OutputFormat")
+        include_filters = self._get_param("IncludeFilters", [])
+        exclude_filters = self._get_param("ExcludeFilters", [])
+        statistics_configurations = self._get_param("StatisticsConfigurations", [])
+        include_linked = self._get_param("IncludeLinkedAccountsMetrics", False)
+        tags = self._get_param("Tags", [])
+        stream = self.cloudwatch_backend.put_metric_stream(
+            name=name,
+            firehose_arn=firehose_arn,
+            role_arn=role_arn,
+            output_format=output_format,
+            include_filters=include_filters,
+            exclude_filters=exclude_filters,
+            statistics_configurations=statistics_configurations,
+            include_linked_accounts_metrics=include_linked,
+            tags=tags,
+        )
+        result = {"Arn": stream.arn}
+        return ActionResult(result)
+
+    def get_metric_stream(self) -> ActionResult:
+        name = self._get_param("Name")
+        stream = self.cloudwatch_backend.get_metric_stream(name)
+        result = {
+            "Arn": stream.arn,
+            "Name": stream.name,
+            "FirehoseArn": stream.firehose_arn,
+            "RoleArn": stream.role_arn,
+            "OutputFormat": stream.output_format,
+            "IncludeFilters": stream.include_filters,
+            "ExcludeFilters": stream.exclude_filters,
+            "StatisticsConfigurations": stream.statistics_configurations,
+            "State": stream.state,
+            "CreationDate": stream.creation_date,
+            "LastUpdateDate": stream.last_update_date,
+            "IncludeLinkedAccountsMetrics": stream.include_linked_accounts_metrics,
+        }
+        return ActionResult(result)
+
+    def delete_metric_stream(self) -> ActionResult:
+        name = self._get_param("Name")
+        self.cloudwatch_backend.delete_metric_stream(name)
+        return EmptyResult()
+
+    def start_metric_streams(self) -> ActionResult:
+        names = self._get_param("Names", [])
+        self.cloudwatch_backend.start_metric_streams(names)
+        return EmptyResult()
+
+    def stop_metric_streams(self) -> ActionResult:
+        names = self._get_param("Names", [])
+        self.cloudwatch_backend.stop_metric_streams(names)
+        return EmptyResult()
+
+    def list_metric_streams(self) -> ActionResult:
+        streams = self.cloudwatch_backend.list_metric_streams()
+        entries = []
+        for s in streams:
+            entries.append(
+                {
+                    "Arn": s.arn,
+                    "Name": s.name,
+                    "FirehoseArn": s.firehose_arn,
+                    "State": s.state,
+                    "OutputFormat": s.output_format,
+                    "CreationDate": s.creation_date,
+                    "LastUpdateDate": s.last_update_date,
+                }
+            )
+        result = {"Entries": entries}
+        return ActionResult(result)
+
+    def list_managed_insight_rules(self) -> ActionResult:
+        resource_arn = self._get_param("ResourceARN")
+        rules = self.cloudwatch_backend.list_managed_insight_rules(
+            resource_arn=resource_arn,
+        )
+        result = {"ManagedRules": rules}
+        return ActionResult(result)
+
+    def put_managed_insight_rules(self) -> ActionResult:
+        managed_rules = self._get_param("ManagedRules", [])
+        failures = self.cloudwatch_backend.put_managed_insight_rules(
+            managed_rules=managed_rules,
+        )
+        result = {"Failures": failures}
+        return ActionResult(result)
+
+    def get_insight_rule_report(self) -> ActionResult:
+        rule_name = self._get_param("RuleName")
+        start_time = self._get_param("StartTime")
+        end_time = self._get_param("EndTime")
+        period = self._get_int_param("Period")
+        max_contributor_count = self._get_param("MaxContributorCount")
+        metrics = self._get_param("Metrics", [])
+        order_by = self._get_param("OrderBy")
+        report = self.cloudwatch_backend.get_insight_rule_report(
+            rule_name=rule_name,
+            start_time=start_time,
+            end_time=end_time,
+            period=period,
+            max_contributor_count=max_contributor_count,
+            metrics=metrics,
+            order_by=order_by,
+        )
+        return ActionResult(report)
+
+    def get_metric_widget_image(self) -> ActionResult:
+        metric_widget = self._get_param("MetricWidget")
+        output_format = self._get_param("OutputFormat", "png")
+        image_data = self.cloudwatch_backend.get_metric_widget_image(
+            metric_widget=metric_widget,
+            output_format=output_format,
+        )
+        import base64
+
+        result = {"MetricWidgetImage": base64.b64encode(image_data).decode("utf-8")}
+        return ActionResult(result)
+
+    def list_alarm_mute_rules(self) -> ActionResult:
+        alarm_name = self._get_param("AlarmName")
+        mute_rules = self.cloudwatch_backend.list_alarm_mute_rules(
+            alarm_name=alarm_name,
+        )
+        result = {"MuteRules": mute_rules}
+        return ActionResult(result)
+
+    def describe_alarm_contributors(self) -> ActionResult:
+        alarm_name = self._get_param("AlarmName")
+        report = self.cloudwatch_backend.describe_alarm_contributors(
+            alarm_name=alarm_name,
+        )
+        return ActionResult(report)

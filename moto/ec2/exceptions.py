@@ -949,3 +949,124 @@ class InvalidCidrReservationNotFound(EC2ClientError):
             "InvalidSubnetCidrReservationID.NotFound",
             f"The subnet-cidr-reservation ID '{reservation_id}' does not exist",
         )
+
+
+class InvalidIpamIdError(EC2ClientError):
+    def __init__(self, ipam_id: str):
+        super().__init__(
+            "InvalidIpamId.NotFound",
+            f"The IPAM ID '{ipam_id}' does not exist",
+        )
+
+
+
+
+class InvalidIpamScopeIdError(EC2ClientError):
+    def __init__(self, ipam_scope_id: str):
+        super().__init__(
+            "InvalidIpamScopeId.NotFound",
+            f"The IPAM scope ID '{ipam_scope_id}' does not exist",
+        )
+
+
+class InvalidCapacityReservationIdError(EC2ClientError):
+    def __init__(self, capacity_reservation_id: str):
+        super().__init__(
+            "InvalidCapacityReservationId.NotFound",
+            f"The capacity reservation ID '{capacity_reservation_id}' does not exist",
+        )
+
+
+class InvalidCapacityReservationFleetIdError(EC2ClientError):
+    def __init__(self, capacity_reservation_fleet_id: str):
+        super().__init__(
+            "InvalidCapacityReservationFleetId.NotFound",
+            f"The capacity reservation fleet ID '{capacity_reservation_fleet_id}' does not exist",
+        )
+
+
+class InvalidTrafficMirrorFilterIdError(EC2ClientError):
+    def __init__(self, traffic_mirror_filter_id: str):
+        super().__init__(
+            "InvalidTrafficMirrorFilterId.NotFound",
+            f"The traffic mirror filter ID '{traffic_mirror_filter_id}' does not exist",
+        )
+
+
+class InvalidTrafficMirrorTargetIdError(EC2ClientError):
+    def __init__(self, traffic_mirror_target_id: str):
+        super().__init__(
+            "InvalidTrafficMirrorTargetId.NotFound",
+            f"The traffic mirror target ID '{traffic_mirror_target_id}' does not exist",
+        )
+
+
+class InvalidTrafficMirrorSessionIdError(EC2ClientError):
+    def __init__(self, traffic_mirror_session_id: str):
+        super().__init__(
+            "InvalidTrafficMirrorSessionId.NotFound",
+            f"The traffic mirror session ID '{traffic_mirror_session_id}' does not exist",
+        )
+
+
+class InvalidTrafficMirrorFilterRuleIdError(EC2ClientError):
+    def __init__(self, traffic_mirror_filter_rule_id: str):
+        super().__init__(
+            "InvalidTrafficMirrorFilterRuleId.NotFound",
+            f"The traffic mirror filter rule ID '{traffic_mirror_filter_rule_id}' does not exist",
+        )
+
+
+class InvalidLocalGatewayRouteTableIdError(EC2ClientError):
+    def __init__(self, local_gateway_route_table_id: str):
+        super().__init__(
+            "InvalidLocalGatewayRouteTableId.NotFound",
+            f"The local gateway route table ID '{local_gateway_route_table_id}' does not exist",
+        )
+
+
+class InvalidFleetIdError(EC2ClientError):
+    def __init__(self, fleet_id: str):
+        super().__init__(
+            "InvalidFleetId.NotFound",
+            f"The fleet ID '{fleet_id}' does not exist",
+        )
+
+class InvalidClientVpnEndpointIdError(EC2ClientError):
+    def __init__(self, client_vpn_endpoint_id: str):
+        super().__init__(
+            "InvalidClientVpnEndpointId.NotFound",
+            f"The Client VPN endpoint ID '{client_vpn_endpoint_id}' does not exist",
+        )
+
+
+class InvalidNatGatewayIdError(EC2ClientError):
+    def __init__(self, nat_gateway_id: str):
+        super().__init__(
+            "NatGatewayNotFound",
+            f"The natGateway ID '{nat_gateway_id}' does not exist",
+        )
+
+
+class InvalidManagedPrefixListIdError(EC2ClientError):
+    def __init__(self, prefix_list_id: str):
+        super().__init__(
+            "InvalidPrefixListID.NotFound",
+            f"The prefix list ID '{prefix_list_id}' does not exist",
+        )
+
+
+class InvalidTransitGatewayAttachmentIdError(EC2ClientError):
+    def __init__(self, attachment_id: str):
+        super().__init__(
+            "InvalidTransitGatewayAttachmentID.NotFound",
+            f"The transitGatewayAttachment ID '{attachment_id}' does not exist",
+        )
+
+
+class InvalidSpotFleetRequestIdError(EC2ClientError):
+    def __init__(self, spot_fleet_request_id: str):
+        super().__init__(
+            "InvalidSpotFleetRequestId.NotFound",
+            f"Spot fleet request ID '{spot_fleet_request_id}' does not exist",
+        )

@@ -440,6 +440,7 @@ class CognitoIdpUserPool(BaseModel):
         self.groups: dict[str, CognitoIdpGroup] = OrderedDict()
         self.users: dict[str, CognitoIdpUser] = OrderedDict()
         self.resource_servers: dict[str, CognitoResourceServer] = OrderedDict()
+        self.terms: dict[str, FakeTerms] = OrderedDict()
         self.refresh_tokens: dict[str, Optional[tuple[str, str, str]]] = {}
         self.access_tokens: dict[str, tuple[str, str]] = {}
         self.id_tokens: dict[str, tuple[str, str]] = {}
@@ -937,6 +938,43 @@ class CognitoIdpUser(BaseModel):
         self.attribute_lookup = flat_attributes
         self.attributes = expand_attrs(flat_attributes)
         self.last_modified_date = utcnow()
+
+
+class FakeTerms(BaseModel):
+    """Terms of service/use resource scoped to a user pool and client."""
+
+    def __init__(
+        self,
+        user_pool_id: str,
+        client_id: str,
+        terms_name: str,
+        terms_source: str,
+        enforcement: str,
+    ):
+        self.terms_id = str(random.uuid4())
+        self.user_pool_id = user_pool_id
+        self.client_id = client_id
+        self.terms_name = terms_name
+        self.terms_source = terms_source
+        self.enforcement = enforcement
+        self.terms_version = 1
+        self.creation_date = utcnow()
+        self.last_modified_date = utcnow()
+        self.status = "ACTIVE"
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "TermsId": self.terms_id,
+            "TermsName": self.terms_name,
+            "UserPoolId": self.user_pool_id,
+            "ClientId": self.client_id,
+            "TermsSource": self.terms_source,
+            "TermsVersion": self.terms_version,
+            "Enforcement": self.enforcement,
+            "CreationDate": self.creation_date,
+            "LastModifiedDate": self.last_modified_date,
+            "Status": self.status,
+        }
 
 
 class CognitoResourceServer(BaseModel):
@@ -2393,6 +2431,66 @@ class CognitoIdpBackend(BaseBackend):
         for user in user_pool.users.values():
             if user.attribute_lookup.get("email", "") == email:
                 raise AliasExistsException
+
+    # ---- Terms ----
+
+    def create_terms(
+        self,
+        user_pool_id: str,
+        client_id: str,
+        terms_name: str,
+        terms_source: str,
+        enforcement: str,
+    ) -> "FakeTerms":
+        user_pool = self.describe_user_pool(user_pool_id)
+        terms = FakeTerms(
+            user_pool_id=user_pool_id,
+            client_id=client_id,
+            terms_name=terms_name,
+            terms_source=terms_source,
+            enforcement=enforcement,
+        )
+        user_pool.terms[terms.terms_id] = terms
+        return terms
+
+    def describe_terms(self, user_pool_id: str, terms_id: str) -> "FakeTerms":
+        user_pool = self.describe_user_pool(user_pool_id)
+        terms = user_pool.terms.get(terms_id)
+        if not terms:
+            raise ResourceNotFoundError(f"Terms {terms_id} does not exist.")
+        return terms
+
+    def list_terms(
+        self,
+        user_pool_id: str,
+        max_results: int | None = None,
+        next_token: str | None = None,
+    ) -> tuple[list["FakeTerms"], str | None]:
+        user_pool = self.describe_user_pool(user_pool_id)
+        all_terms = list(user_pool.terms.values())
+        return all_terms, None
+
+    def update_terms(
+        self,
+        user_pool_id: str,
+        terms_id: str,
+        terms_source: str | None = None,
+        enforcement: str | None = None,
+    ) -> "FakeTerms":
+        terms = self.describe_terms(user_pool_id, terms_id)
+        if terms_source is not None:
+            terms.terms_source = terms_source
+        if enforcement is not None:
+            terms.enforcement = enforcement
+        terms.terms_version += 1
+        terms.last_modified_date = utcnow()
+        return terms
+
+    def delete_terms(self, user_pool_id: str, terms_id: str) -> None:
+        user_pool = self.describe_user_pool(user_pool_id)
+        if terms_id not in user_pool.terms:
+            raise ResourceNotFoundError(f"Terms {terms_id} does not exist.")
+        del user_pool.terms[terms_id]
 
 
 class RegionAgnosticBackend:

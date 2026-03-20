@@ -12,6 +12,7 @@ from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
 from moto.moto_api._internal import mock_random as random
 from moto.route53.exceptions import (
+    CidrCollectionAlreadyExistsException,
     ConflictingDomainExists,
     DnsNameInvalidForZone,
     HostedZoneNotEmpty,
@@ -19,6 +20,8 @@ from moto.route53.exceptions import (
     InvalidCloudWatchArn,
     InvalidInput,
     LastVPCAssociation,
+    NoSuchCidrCollectionException,
+    NoSuchCidrLocationException,
     NoSuchCloudWatchLogsLogGroup,
     NoSuchDelegationSet,
     NoSuchHealthCheck,
@@ -531,6 +534,27 @@ class QueryLoggingConfig(BaseModel):
         )
 
 
+class CidrCollection(BaseModel):
+    def __init__(self, name: str, caller_reference: str):
+        self.id = str(random.uuid4())
+        self.name = name
+        self.caller_reference = caller_reference
+        self.version = 1
+        self.arn = ""  # set by backend after account_id is available
+        self.locations: dict[str, list[str]] = {}  # location_name -> list of CIDR blocks
+
+    def to_xml(self) -> str:
+        template = Template(
+            """<CidrCollection>
+            <Arn>{{ collection.arn }}</Arn>
+            <Id>{{ collection.id }}</Id>
+            <Name>{{ collection.name }}</Name>
+            <Version>{{ collection.version }}</Version>
+        </CidrCollection>"""
+        )
+        return template.render(collection=self)
+
+
 class Route53Backend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -539,6 +563,8 @@ class Route53Backend(BaseBackend):
         self.resource_tags: dict[str, Any] = defaultdict(dict)
         self.query_logging_configs: dict[str, QueryLoggingConfig] = {}
         self.delegation_sets: dict[str, DelegationSet] = {}
+        self.cidr_collections: dict[str, CidrCollection] = {}
+        self.vpc_association_authorizations: dict[str, list[dict[str, str]]] = defaultdict(list)
 
     def _has_prev_conflicting_domain(
         self, name: str, delegation_set_id: Optional[str]
@@ -965,9 +991,10 @@ class Route53Backend(BaseBackend):
         """Return a list of query logging configs."""
         if hosted_zone_id:
             # Does the hosted_zone_id exist?
+            clean_id = hosted_zone_id.replace("/hostedzone/", "")
             zones = list(self.zones.values())
             for zone in zones:
-                if zone.id == hosted_zone_id:
+                if zone.resource_id == clean_id:
                     break
             else:
                 raise NoSuchHostedZone(hosted_zone_id)
@@ -1003,6 +1030,156 @@ class Route53Backend(BaseBackend):
         if delegation_set_id not in self.delegation_sets:
             raise NoSuchDelegationSet(delegation_set_id)
         return self.delegation_sets[delegation_set_id]
+
+    def get_account_limit(self, limit_type: str) -> int:
+        """Return mock account limits."""
+        limits = {
+            "MAX_HEALTH_CHECKS_BY_OWNER": 200,
+            "MAX_HOSTED_ZONES_BY_OWNER": 500,
+            "MAX_REUSABLE_DELEGATION_SETS_BY_OWNER": 200,
+            "MAX_TRAFFIC_POLICIES_BY_OWNER": 200,
+            "MAX_TRAFFIC_POLICY_INSTANCES_BY_OWNER": 5,
+        }
+        return limits.get(limit_type, 100)
+
+    def get_hosted_zone_limit(self, zone_id: str, limit_type: str) -> int:
+        """Return mock hosted zone limits."""
+        self.get_hosted_zone(zone_id)
+        limits = {
+            "MAX_RRSETS_BY_ZONE": 10000,
+            "MAX_VPCS_ASSOCIATED_BY_ZONE": 100,
+        }
+        return limits.get(limit_type, 100)
+
+    def get_reusable_delegation_set_limit(
+        self, delegation_set_id: str, limit_type: str
+    ) -> int:
+        """Return mock reusable delegation set limits."""
+        self.get_reusable_delegation_set(delegation_set_id)
+        limits = {
+            "MAX_ZONES_BY_REUSABLE_DELEGATION_SET": 1000,
+        }
+        return limits.get(limit_type, 100)
+
+    def get_health_check_last_failure_reason(
+        self, health_check_id: str
+    ) -> list[Any]:
+        """Return empty list of failure reasons (mock always healthy)."""
+        self.get_health_check(health_check_id)
+        return []
+
+    def create_cidr_collection(
+        self, name: str, caller_reference: str
+    ) -> CidrCollection:
+        """Create a CIDR collection."""
+        for collection in self.cidr_collections.values():
+            if collection.name == name:
+                raise CidrCollectionAlreadyExistsException(name)
+        collection = CidrCollection(name, caller_reference)
+        collection.arn = f"arn:aws:route53:::cidrcollection/{collection.id}"
+        self.cidr_collections[collection.id] = collection
+        return collection
+
+    def delete_cidr_collection(self, collection_id: str) -> None:
+        """Delete a CIDR collection."""
+        if collection_id not in self.cidr_collections:
+            raise NoSuchCidrCollectionException(collection_id)
+        self.cidr_collections.pop(collection_id)
+
+    def list_cidr_collections(self) -> list[CidrCollection]:
+        """List all CIDR collections."""
+        return list(self.cidr_collections.values())
+
+    def change_cidr_collection(
+        self, collection_id: str, changes: list[dict[str, Any]]
+    ) -> int:
+        """Apply changes to a CIDR collection."""
+        if collection_id not in self.cidr_collections:
+            raise NoSuchCidrCollectionException(collection_id)
+        collection = self.cidr_collections[collection_id]
+        for change in changes:
+            action = change["Action"]
+            location_name = change["LocationName"]
+            cidr_list_raw = change["CidrList"]
+            if isinstance(cidr_list_raw, dict):
+                cidrs = cidr_list_raw.get("Cidr", [])
+                if isinstance(cidrs, str):
+                    cidrs = [cidrs]
+            elif isinstance(cidr_list_raw, list):
+                cidrs = cidr_list_raw
+            else:
+                cidrs = [cidr_list_raw]
+
+            if action == "PUT":
+                if location_name not in collection.locations:
+                    collection.locations[location_name] = []
+                for cidr in cidrs:
+                    if cidr not in collection.locations[location_name]:
+                        collection.locations[location_name].append(cidr)
+            elif action == "DELETE_IF_EXISTS":
+                if location_name in collection.locations:
+                    for cidr in cidrs:
+                        if cidr in collection.locations[location_name]:
+                            collection.locations[location_name].remove(cidr)
+                    if not collection.locations[location_name]:
+                        del collection.locations[location_name]
+        collection.version += 1
+        return collection.version
+
+    def list_cidr_blocks(
+        self, collection_id: str, location_name: Optional[str] = None
+    ) -> list[dict[str, str]]:
+        """List CIDR blocks in a collection."""
+        if collection_id not in self.cidr_collections:
+            raise NoSuchCidrCollectionException(collection_id)
+        collection = self.cidr_collections[collection_id]
+        blocks: list[dict[str, str]] = []
+        if location_name:
+            if location_name not in collection.locations:
+                raise NoSuchCidrLocationException(location_name)
+            for cidr in collection.locations[location_name]:
+                blocks.append({"CidrBlock": cidr, "LocationName": location_name})
+        else:
+            for loc_name, cidrs in collection.locations.items():
+                for cidr in cidrs:
+                    blocks.append({"CidrBlock": cidr, "LocationName": loc_name})
+        return blocks
+
+    def list_cidr_locations(
+        self, collection_id: str
+    ) -> list[dict[str, str]]:
+        """List CIDR locations in a collection."""
+        if collection_id not in self.cidr_collections:
+            raise NoSuchCidrCollectionException(collection_id)
+        collection = self.cidr_collections[collection_id]
+        return [{"LocationName": name} for name in collection.locations]
+
+    def create_vpc_association_authorization(
+        self, zone_id: str, vpc_id: str, vpc_region: str
+    ) -> dict[str, str]:
+        """Create a VPC association authorization."""
+        self.get_hosted_zone(zone_id)
+        auth = {"VPCId": vpc_id, "VPCRegion": vpc_region}
+        self.vpc_association_authorizations[zone_id].append(auth)
+        return auth
+
+    def delete_vpc_association_authorization(
+        self, zone_id: str, vpc_id: str, vpc_region: str
+    ) -> None:
+        """Delete a VPC association authorization."""
+        self.get_hosted_zone(zone_id)
+        self.vpc_association_authorizations[zone_id] = [
+            a
+            for a in self.vpc_association_authorizations[zone_id]
+            if not (a["VPCId"] == vpc_id and a["VPCRegion"] == vpc_region)
+        ]
+
+    def list_vpc_association_authorizations(
+        self, zone_id: str
+    ) -> list[dict[str, str]]:
+        """List VPC association authorizations for a hosted zone."""
+        self.get_hosted_zone(zone_id)
+        return self.vpc_association_authorizations.get(zone_id, [])
 
 
 route53_backends = BackendDict(

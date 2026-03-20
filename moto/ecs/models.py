@@ -347,6 +347,9 @@ class Task(ManagedState, BaseModel):
         self.stopped_reason = ""
         self.resource_requirements = resource_requirements
         self.region_name = cluster.region_name
+        self.enable_execute_command = False
+        self.protection_enabled = False
+        self.protection_expiration_date: Optional[str] = None
         self._account_id = backend.account_id
         self._backend = backend
         self.attachments = []
@@ -1649,6 +1652,128 @@ class EC2ContainerServiceBackend(BaseBackend):
 
         return result, failures
 
+    def describe_service_deployments(
+        self, service_deployment_arns: list[str]
+    ) -> dict[str, Any]:
+        """Look up deployments by their ARNs."""
+        results = []
+        failures = []
+        for dep_arn in service_deployment_arns:
+            found = False
+            for _, svc in self.services.items():
+                cluster = self.clusters.get(svc.cluster_name)
+                if not cluster:
+                    continue
+                for dep in svc.deployments:
+                    dep_id = dep.get("id", "")
+                    expected_arn = (
+                        f"arn:{get_partition(self.region_name)}:ecs:"
+                        f"{self.region_name}:{self.account_id}:"
+                        f"service-deployment/{cluster.name}/{svc.name}/{dep_id}"
+                    )
+                    if expected_arn == dep_arn or dep_id == dep_arn:
+                        dep_result = {
+                            "serviceDeploymentArn": expected_arn,
+                            "serviceArn": svc.arn,
+                            "clusterArn": cluster.arn,
+                            "status": dep.get("status", "PRIMARY"),
+                            "taskDefinition": dep.get("taskDefinition", ""),
+                            "desiredCount": dep.get("desiredCount", 0),
+                            "runningCount": dep.get("runningCount", 0),
+                            "createdAt": dep.get("createdAt"),
+                            "updatedAt": dep.get("updatedAt", dep.get("createdAt")),
+                        }
+                        results.append(dep_result)
+                        found = True
+                        break
+                if found:
+                    break
+            if not found:
+                failures.append(
+                    {"arn": dep_arn, "reason": "SERVICE_DEPLOYMENT_NOT_FOUND"}
+                )
+        return {"serviceDeployments": results, "failures": failures}
+
+    def list_service_deployments(
+        self,
+        service_name: str,
+        cluster_name: str = "default",
+        status: Optional[str] = None,
+    ) -> dict[str, Any]:
+        """List deployments for a service."""
+        cluster = self._get_cluster(cluster_name)
+        svc = self._get_service(cluster_name, service_name)
+        deployments = []
+        for dep in svc.deployments:
+            dep_id = dep.get("id", "")
+            dep_entry = {
+                "serviceDeploymentArn": (
+                    f"arn:{get_partition(self.region_name)}:ecs:"
+                    f"{self.region_name}:{self.account_id}:"
+                    f"service-deployment/{cluster.name}/{svc.name}/{dep_id}"
+                ),
+                "serviceArn": svc.arn,
+                "clusterArn": cluster.arn,
+                "status": dep.get("status", "PRIMARY"),
+                "createdAt": dep.get("createdAt"),
+                "targetServiceRevisionArn": (
+                    f"arn:{get_partition(self.region_name)}:ecs:"
+                    f"{self.region_name}:{self.account_id}:"
+                    f"service-revision/{cluster.name}/{svc.name}:1"
+                ),
+            }
+            if status is None or dep_entry["status"] == status:
+                deployments.append(dep_entry)
+        return {"serviceDeployments": deployments}
+
+    def describe_service_revisions(
+        self, service_revision_arns: list[str]
+    ) -> dict[str, Any]:
+        """Describe service revisions by ARN."""
+        results = []
+        failures = []
+        for rev_arn in service_revision_arns:
+            try:
+                # Parse arn:aws:ecs:region:account:service-revision/cluster/service:revision
+                parts = rev_arn.split(":")
+                if len(parts) < 6:
+                    raise ValueError("Invalid ARN format")
+                resource = parts[5]
+                path_parts = resource.split("/")
+                if len(path_parts) < 3:
+                    raise ValueError("Invalid ARN resource format")
+                cluster_name = path_parts[1]
+                service_part = path_parts[2]
+                if ":" in service_part:
+                    service_name = service_part.rsplit(":", 1)[0]
+                else:
+                    service_name = service_part
+                cluster = self._get_cluster(cluster_name)
+                svc = self._get_service(cluster_name, service_name)
+                created_at = None
+                if svc.deployments:
+                    created_at = svc.deployments[0].get("createdAt")
+                rev = {
+                    "serviceRevisionArn": rev_arn,
+                    "serviceArn": svc.arn,
+                    "clusterArn": cluster.arn,
+                    "taskDefinition": svc.task_definition or "",
+                    "desiredCount": svc.desired_count,
+                    "runningCount": svc.running_count,
+                    "createdAt": created_at,
+                }
+                results.append(rev)
+            except (
+                IndexError,
+                ValueError,
+                ServiceNotFoundException,
+                ClusterNotFoundException,
+            ):
+                failures.append(
+                    {"arn": rev_arn, "reason": "SERVICE_REVISION_NOT_FOUND"}
+                )
+        return {"serviceRevisions": results, "failures": failures}
+
     def update_service(self, service_properties: dict[str, Any]) -> Service:
         cluster_str = service_properties.pop("cluster", "default")
         task_definition_str = service_properties.pop("task_definition", None)
@@ -2298,6 +2423,25 @@ class EC2ContainerServiceBackend(BaseBackend):
         self.account_settings[name] = account_setting
         return account_setting
 
+    def put_account_setting_default(self, name: str, value: str) -> AccountSetting:
+        expected_names = [
+            "serviceLongArnFormat",
+            "taskLongArnFormat",
+            "containerInstanceLongArnFormat",
+            "containerLongArnFormat",
+            "awsvpcTrunking",
+            "containerInsights",
+            "dualStackIPv6",
+        ]
+        if name not in expected_names:
+            raise UnknownAccountSettingException()
+        account_setting = AccountSetting(name, value)
+        self.account_settings[f"default:{name}"] = account_setting
+        # Also set it as the effective setting if not already set per-user
+        if name not in self.account_settings:
+            self.account_settings[name] = account_setting
+        return account_setting
+
     def delete_account_setting(self, name: str) -> None:
         self.account_settings.pop(name, None)
 
@@ -2306,6 +2450,230 @@ class EC2ContainerServiceBackend(BaseBackend):
         if account and account.value == "disabled":
             return False
         return settings.ecs_new_arn_format()
+
+    def get_task_protection(
+        self, cluster_str: str, tasks: Optional[list[str]] = None
+    ) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
+        cluster = self._get_cluster(cluster_str)
+        cluster_name = cluster.name
+
+        protected_tasks = []
+        failures = []
+
+        if cluster_name not in self.tasks:
+            if tasks:
+                for task_id in tasks:
+                    failures.append(
+                        {
+                            "arn": task_id,
+                            "reason": "TASK_NOT_FOUND",
+                            "detail": f"The referenced task was not found: {task_id}",
+                        }
+                    )
+            return protected_tasks, failures
+
+        if tasks:
+            for task_id in tasks:
+                task_id_short = task_id.split("/")[-1]
+                found = False
+                for task in self.tasks[cluster_name].values():
+                    if task.id == task_id_short or task.task_arn == task_id:
+                        protection: dict[str, Any] = {
+                            "taskArn": task.task_arn,
+                            "protectionEnabled": task.protection_enabled,
+                        }
+                        if task.protection_expiration_date:
+                            protection["expirationDate"] = (
+                                task.protection_expiration_date
+                            )
+                        protected_tasks.append(protection)
+                        found = True
+                        break
+                if not found:
+                    failures.append(
+                        {
+                            "arn": task_id,
+                            "reason": "TASK_NOT_FOUND",
+                            "detail": f"The referenced task was not found: {task_id}",
+                        }
+                    )
+        else:
+            for task in self.tasks[cluster_name].values():
+                protection = {
+                    "taskArn": task.task_arn,
+                    "protectionEnabled": task.protection_enabled,
+                }
+                if task.protection_expiration_date:
+                    protection["expirationDate"] = task.protection_expiration_date
+                protected_tasks.append(protection)
+
+        return protected_tasks, failures
+
+    def update_task_protection(
+        self,
+        cluster_str: str,
+        tasks: list[str],
+        protection_enabled: bool,
+        expires_in_minutes: Optional[int] = None,
+    ) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
+        cluster = self._get_cluster(cluster_str)
+        cluster_name = cluster.name
+
+        protected_tasks = []
+        failures = []
+
+        for task_id in tasks:
+            task_id_short = task_id.split("/")[-1]
+            found = False
+            if cluster_name in self.tasks:
+                for task in self.tasks[cluster_name].values():
+                    if task.id == task_id_short or task.task_arn == task_id:
+                        task.protection_enabled = protection_enabled
+                        if protection_enabled and expires_in_minutes:
+                            from datetime import timedelta
+
+                            expiration = utcnow() + timedelta(
+                                minutes=expires_in_minutes
+                            )
+                            task.protection_expiration_date = expiration.isoformat()
+                        elif not protection_enabled:
+                            task.protection_expiration_date = None
+                        protection_info: dict[str, Any] = {
+                            "taskArn": task.task_arn,
+                            "protectionEnabled": task.protection_enabled,
+                        }
+                        if task.protection_expiration_date:
+                            protection_info["expirationDate"] = (
+                                task.protection_expiration_date
+                            )
+                        protected_tasks.append(protection_info)
+                        found = True
+                        break
+            if not found:
+                failures.append(
+                    {
+                        "arn": task_id,
+                        "reason": "TASK_NOT_FOUND",
+                        "detail": f"The referenced task was not found: {task_id}",
+                    }
+                )
+
+        return protected_tasks, failures
+
+    def execute_command(
+        self,
+        cluster_str: str,
+        task_id: str,
+        container: Optional[str] = None,
+        command: str = "/bin/sh",
+        interactive: bool = False,
+    ) -> dict[str, Any]:
+        cluster = self._get_cluster(cluster_str)
+        cluster_name = cluster.name
+
+        # Find the task
+        task_obj = None
+        if cluster_name in self.tasks:
+            task_id_short = task_id.split("/")[-1]
+            for task in self.tasks[cluster_name].values():
+                if task.id == task_id_short or task.task_arn == task_id:
+                    task_obj = task
+                    break
+
+        if not task_obj:
+            raise InvalidParameterException(f"The task was not found: {task_id}")
+
+        # Return a stub session response
+        return {
+            "clusterArn": cluster.arn,
+            "containerArn": (
+                f"arn:{get_partition(self.region_name)}:ecs:{self.region_name}:"
+                f"{self.account_id}:container/{str(mock_random.uuid4())}"
+            ),
+            "containerName": container or task_obj.containers[0].name,
+            "interactive": interactive,
+            "session": {
+                "sessionId": str(mock_random.uuid4()),
+                "streamUrl": f"wss://ssmmessages.{self.region_name}.amazonaws.com/v1/data-channel/{str(mock_random.uuid4())}",
+                "tokenValue": str(mock_random.uuid4()),
+            },
+            "taskArn": task_obj.task_arn,
+        }
+
+    def list_services_by_namespace(self, namespace: str) -> list[str]:
+        """List service ARNs that belong to a given Cloud Map namespace."""
+        # Services can have serviceConnectConfiguration with a namespace
+        # or use serviceRegistries. We check both.
+        result = []
+        for service in self.services.values():
+            # Check service registries for namespace match
+            if service.service_registries:
+                for registry in service.service_registries:
+                    registry_arn = registry.get("registryArn", "")
+                    if namespace in registry_arn:
+                        result.append(service.arn)
+                        break
+        return sorted(result)
+
+    def update_cluster_settings(
+        self,
+        cluster_name: str,
+        settings: list[dict[str, str]],
+    ) -> Cluster:
+        cluster = self._get_cluster(cluster_name)
+        cluster.settings = settings
+        return cluster
+
+    def update_container_agent(
+        self,
+        cluster_str: str,
+        container_instance: str,
+    ) -> Any:
+        cluster = self._get_cluster(cluster_str)
+        cluster_name = cluster.name
+
+        if cluster_name not in self.container_instances:
+            raise InvalidParameterException(
+                "The referenced container instance is not found."
+            )
+
+        ci_short = container_instance.split("/")[-1]
+        ci = self.container_instances[cluster_name].get(ci_short)
+        if not ci:
+            raise InvalidParameterException(
+                "The referenced container instance is not found."
+            )
+
+        return ci
+
+    def submit_container_state_change(
+        self,
+        cluster_str: str,
+        task_id: str,
+        container_name: Optional[str] = None,
+        status: Optional[str] = None,
+        runtime_id: Optional[str] = None,
+        reason: Optional[str] = None,
+        network_bindings: Optional[list[dict[str, Any]]] = None,
+    ) -> dict[str, str]:
+        # This is used by the ECS agent, just acknowledge it
+        return {"acknowledgment": "ACCEPT"}
+
+    def submit_task_state_change(
+        self,
+        cluster_str: str,
+        task_id: str,
+        status: Optional[str] = None,
+        reason: Optional[str] = None,
+        containers: Optional[list[dict[str, Any]]] = None,
+        attachments: Optional[list[dict[str, Any]]] = None,
+        managed_agents: Optional[list[dict[str, Any]]] = None,
+        pull_started_at: Optional[str] = None,
+        pull_stopped_at: Optional[str] = None,
+        execution_stopped_at: Optional[str] = None,
+    ) -> dict[str, str]:
+        # This is used by the ECS agent, just acknowledge it
+        return {"acknowledgment": "ACCEPT"}
 
     def delete_task_definitions(
         self, task_definitions: list[str]

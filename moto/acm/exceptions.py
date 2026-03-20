@@ -18,3 +18,11 @@ class CertificateNotFound(AWSResourceNotFoundException):
 
 class AWSTooManyTagsException(AWSError):
     TYPE = "TooManyTagsException"
+
+
+class InvalidStateException(AWSError):
+    TYPE = "InvalidStateException"
+
+
+class InvalidArnException(AWSError):
+    TYPE = "InvalidArnException"

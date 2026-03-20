@@ -24,6 +24,7 @@ from .exceptions import (
     DatabaseNotFoundException,
     EntityNotFoundException,
     IllegalSessionStateException,
+    InvalidInputException,
     JobNotFoundException,
     JobRunNotFoundException,
     JsonRESTError,
@@ -225,6 +226,36 @@ class GlueBackend(BaseBackend):
             "limit_default": 100,
             "unique_attribute": "workflow_run_id",
         },
+        "list_data_quality_rulesets": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "name",
+        },
+        "list_blueprints": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "name",
+        },
+        "list_ml_transforms": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "transform_id",
+        },
+        "list_classifiers": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "name",
+        },
+        "list_usage_profiles": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "name",
+        },
     }
 
     def __init__(self, region_name: str, account_id: str):
@@ -250,6 +281,29 @@ class GlueBackend(BaseBackend):
         self.data_catalog_encryption_settings: dict[str, dict[str, Any]] = {}
         self.resource_policies: dict[str, dict[str, Any]] = {}
         self.default_catalog_arn = f"arn:{get_partition(self.region_name)}:glue:{self.region_name}:{self.account_id}:catalog"
+        self.data_quality_recommendation_runs: dict[str, dict[str, Any]] = {}
+        self.data_quality_evaluation_runs: dict[str, dict[str, Any]] = {}
+        self.blueprint_runs: dict[str, dict[str, Any]] = {}
+        self.column_statistics_task_runs: dict[str, dict[str, Any]] = {}
+        self.catalogs: dict[str, FakeCatalog] = OrderedDict()
+        self.data_quality_rulesets: dict[str, FakeDataQualityRuleset] = OrderedDict()
+        self.blueprints: dict[str, FakeBlueprint] = OrderedDict()
+        self.ml_transforms: dict[str, FakeMLTransform] = OrderedDict()
+        self.classifiers: dict[str, FakeClassifier] = OrderedDict()
+        self.usage_profiles: dict[str, FakeUsageProfile] = OrderedDict()
+        self.custom_entity_types: dict[str, FakeCustomEntityType] = OrderedDict()
+        self.integrations: dict[str, FakeIntegration] = OrderedDict()
+        self.integration_resource_properties: dict[str, dict[str, Any]] = OrderedDict()
+        self.integration_table_properties: dict[str, dict[str, Any]] = OrderedDict()
+        self.column_statistics_task_settings: dict[str, dict[str, Any]] = OrderedDict()
+        self.table_optimizers: dict[tuple[str, str, str, str], FakeTableOptimizer] = {}
+        self.connection_types: dict[str, FakeConnectionType] = {}
+        self.glue_identity_center_config: Optional[
+            FakeGlueIdentityCenterConfiguration
+        ] = None
+        self.materialized_view_refresh_task_runs: dict[
+            str, FakeMaterializedViewRefreshTaskRun
+        ] = {}
 
     def create_database(
         self,
@@ -475,6 +529,63 @@ class GlueBackend(BaseBackend):
         crawler = self.get_crawler(name)
         crawler.stop_crawler()
 
+    def update_crawler(
+        self,
+        name: str,
+        role: Optional[str] = None,
+        database_name: Optional[str] = None,
+        description: Optional[str] = None,
+        targets: Optional[dict[str, Any]] = None,
+        schedule: Optional[str] = None,
+        classifiers: Optional[list[str]] = None,
+        table_prefix: Optional[str] = None,
+        schema_change_policy: Optional[dict[str, str]] = None,
+        recrawl_policy: Optional[dict[str, str]] = None,
+        lineage_configuration: Optional[dict[str, str]] = None,
+        configuration: Optional[str] = None,
+        crawler_security_configuration: Optional[str] = None,
+    ) -> None:
+        crawler = self.get_crawler(name)
+        if role is not None:
+            crawler.role = role
+        if database_name is not None:
+            crawler.database_name = database_name
+        if description is not None:
+            crawler.description = description
+        if targets is not None:
+            crawler.targets = targets
+        if schedule is not None:
+            crawler.schedule = schedule
+        if classifiers is not None:
+            crawler.classifiers = classifiers
+        if table_prefix is not None:
+            crawler.table_prefix = table_prefix
+        if schema_change_policy is not None:
+            crawler.schema_change_policy = schema_change_policy
+        if recrawl_policy is not None:
+            crawler.recrawl_policy = recrawl_policy
+        if lineage_configuration is not None:
+            crawler.lineage_configuration = lineage_configuration
+        if configuration is not None:
+            crawler.configuration = configuration
+        if crawler_security_configuration is not None:
+            crawler.crawler_security_configuration = crawler_security_configuration
+        crawler.last_updated = utcnow()
+        crawler.version += 1
+
+    def update_crawler_schedule(
+        self, crawler_name: str, schedule: Optional[str]
+    ) -> None:
+        crawler = self.get_crawler(crawler_name)
+        crawler.schedule = schedule or ""
+        crawler.last_updated = utcnow()
+
+    def start_crawler_schedule(self, crawler_name: str) -> None:
+        self.get_crawler(crawler_name)
+
+    def stop_crawler_schedule(self, crawler_name: str) -> None:
+        self.get_crawler(crawler_name)
+
     def delete_crawler(self, name: str) -> None:
         try:
             del self.crawlers[name]
@@ -652,6 +763,107 @@ class GlueBackend(BaseBackend):
     def list_jobs(self) -> list["FakeJob"]:
         return [job for _, job in self.jobs.items()]
 
+    def update_job(self, name: str, job_update: dict[str, Any]) -> str:
+        job = self.get_job(name)
+        for attr, key in [
+            ("role", "Role"),
+            ("description", "Description"),
+            ("log_uri", "LogUri"),
+            ("command", "Command"),
+            ("default_arguments", "DefaultArguments"),
+            ("non_overridable_arguments", "NonOverridableArguments"),
+            ("connections", "Connections"),
+            ("max_retries", "MaxRetries"),
+            ("allocated_capacity", "AllocatedCapacity"),
+            ("timeout", "Timeout"),
+            ("max_capacity", "MaxCapacity"),
+            ("security_configuration", "SecurityConfiguration"),
+            ("notification_property", "NotificationProperty"),
+            ("glue_version", "GlueVersion"),
+            ("number_of_workers", "NumberOfWorkers"),
+            ("worker_type", "WorkerType"),
+            ("execution_property", "ExecutionProperty"),
+            ("execution_class", "ExecutionClass"),
+            ("code_gen_configuration_nodes", "CodeGenConfigurationNodes"),
+            ("source_control_details", "SourceControlDetails"),
+        ]:
+            if key in job_update:
+                setattr(job, attr, job_update[key])
+        job.last_modified_on = utcnow()
+        return name
+
+    def batch_stop_job_run(
+        self, job_name: str, job_run_ids: list[str]
+    ) -> tuple[list[dict[str, str]], list[dict[str, Any]]]:
+        successful: list[dict[str, str]] = []
+        errors: list[dict[str, Any]] = []
+        job = self.get_job(job_name)
+        for run_id in job_run_ids:
+            found = None
+            for jr in job.job_runs:
+                if jr.job_run_id == run_id:
+                    found = jr
+                    break
+            if found is None:
+                errors.append(
+                    {
+                        "JobName": job_name,
+                        "JobRunId": run_id,
+                        "ErrorDetail": {
+                            "ErrorCode": "EntityNotFoundException",
+                            "ErrorMessage": f"Job run {run_id} not found",
+                        },
+                    }
+                )
+            elif found.status in [
+                "STARTING",
+                "RUNNING",
+                "SUCCEEDED",
+                "FAILED",
+            ]:
+                found.status = "STOPPED"
+                successful.append({"JobName": job_name, "JobRunId": run_id})
+            else:
+                errors.append(
+                    {
+                        "JobName": job_name,
+                        "JobRunId": run_id,
+                        "ErrorDetail": {
+                            "ErrorCode": "InvalidInputException",
+                            "ErrorMessage": (
+                                f"Job run {run_id} not in stoppable state"
+                            ),
+                        },
+                    }
+                )
+        return successful, errors
+
+    def get_job_bookmark(
+        self, job_name: str, run_id: Optional[str] = None
+    ) -> dict[str, Any]:
+        self.get_job(job_name)
+        return {
+            "JobBookmarkEntry": {
+                "JobName": job_name,
+                "Version": 0,
+                "Run": 0,
+                "Attempt": 0,
+                "JobBookmark": "",
+            }
+        }
+
+    def reset_job_bookmark(self, job_name: str) -> dict[str, Any]:
+        self.get_job(job_name)
+        return {
+            "JobBookmarkEntry": {
+                "JobName": job_name,
+                "Version": 0,
+                "Run": 0,
+                "Attempt": 0,
+                "JobBookmark": "",
+            }
+        }
+
     def delete_job(self, name: str) -> None:
         if name in self.jobs:
             del self.jobs[name]
@@ -691,10 +903,26 @@ class GlueBackend(BaseBackend):
 
     def get_registry(self, registry_id: dict[str, Any]) -> dict[str, Any]:
         registry_name = validate_registry_id(registry_id, self.registries)
+        if registry_name not in self.registries:
+            raise EntityNotFoundException(
+                f"Registry is not found. RegistryName: {registry_name}"
+            )
         return self.registries[registry_name].as_dict()
 
     def list_registries(self) -> list[dict[str, Any]]:
         return [reg.as_dict() for reg in self.registries.values()]
+
+    def update_registry(
+        self, registry_id: dict[str, Any], description: str
+    ) -> dict[str, Any]:
+        registry_name = validate_registry_id(registry_id, self.registries)
+        registry = self.registries[registry_name]
+        registry.description = description
+        registry.updated_time = utcnow()
+        return {
+            "RegistryArn": registry.registry_arn,
+            "RegistryName": registry.name,
+        }
 
     def create_schema(
         self,
@@ -1138,6 +1366,38 @@ class GlueBackend(BaseBackend):
 
         return list(self.triggers.values())
 
+    def update_trigger(
+        self,
+        name: str,
+        trigger_update: dict[str, Any],
+    ) -> "FakeTrigger":
+        trigger = self.get_trigger(name)
+        if "Description" in trigger_update:
+            trigger.description = trigger_update["Description"]
+        if "Schedule" in trigger_update:
+            trigger.schedule = trigger_update["Schedule"]
+        if "Actions" in trigger_update:
+            trigger.actions = [
+                Action(
+                    job_name=a.get("JobName"),
+                    crawler_name=a.get("CrawlerName"),
+                    arguments=a.get("Arguments"),
+                    timeout=a.get("Timeout"),
+                    security_configuration=a.get("SecurityConfiguration"),
+                    notification_property=a.get("NotificationProperty"),
+                )
+                for a in trigger_update["Actions"]
+            ]
+        if "Predicate" in trigger_update:
+            pred = trigger_update["Predicate"]
+            trigger.predicate = Predicate(
+                logical=pred.get("Logical", "AND"),
+                conditions=pred.get("Conditions", []),
+            )
+        if "EventBatchingCondition" in trigger_update:
+            trigger.event_batching_condition = trigger_update["EventBatchingCondition"]
+        return trigger
+
     def delete_trigger(self, name: str) -> None:
         if name in self.triggers:
             del self.triggers[name]
@@ -1322,11 +1582,57 @@ class GlueBackend(BaseBackend):
         except KeyError:
             raise EntityNotFoundException(f"DevEndpoint {endpoint_name} not found")
 
+    def update_dev_endpoint(
+        self,
+        endpoint_name: str,
+        public_key: Optional[str] = None,
+        custom_libraries: Optional[dict[str, Any]] = None,
+        update_etl_libraries: bool = False,
+        add_public_keys: Optional[list[str]] = None,
+        delete_public_keys: Optional[list[str]] = None,
+        add_arguments: Optional[dict[str, str]] = None,
+        delete_arguments: Optional[list[str]] = None,
+    ) -> None:
+        endpoint = self.get_dev_endpoint(endpoint_name)
+        if public_key is not None:
+            endpoint.public_key = public_key
+        if custom_libraries:
+            if "ExtraPythonLibsS3Path" in custom_libraries:
+                endpoint.extra_python_libs_s3_path = custom_libraries[
+                    "ExtraPythonLibsS3Path"
+                ]
+            if "ExtraJarsS3Path" in custom_libraries:
+                endpoint.extra_jars_s3_path = custom_libraries["ExtraJarsS3Path"]
+        if add_public_keys:
+            endpoint.public_keys.extend(add_public_keys)
+        if delete_public_keys:
+            endpoint.public_keys = [
+                k for k in endpoint.public_keys if k not in delete_public_keys
+            ]
+        if add_arguments:
+            endpoint.arguments.update(add_arguments)
+        if delete_arguments:
+            for key in delete_arguments:
+                endpoint.arguments.pop(key, None)
+        endpoint.last_modified_timestamp = utcnow()
+
     def delete_dev_endpoint(self, endpoint_name: str) -> None:
         try:
             del self.dev_endpoints[endpoint_name]
         except KeyError:
             raise EntityNotFoundException(f"DevEndpoint {endpoint_name} not found")
+
+    def batch_get_dev_endpoints(
+        self, endpoint_names: list[str]
+    ) -> tuple[list[dict[str, Any]], list[str]]:
+        endpoints = []
+        not_found = []
+        for name in endpoint_names:
+            if name in self.dev_endpoints:
+                endpoints.append(self.dev_endpoints[name].as_dict())
+            else:
+                not_found.append(name)
+        return endpoints, not_found
 
     def create_connection(
         self,
@@ -1360,6 +1666,45 @@ class GlueBackend(BaseBackend):
     ) -> list["FakeConnection"]:
         # TODO: Implement filtering
         return list(self.connections.values())
+
+    def update_connection(
+        self,
+        catalog_id: str,
+        name: str,
+        connection_input: dict[str, Any],
+    ) -> None:
+        connection = self.connections.get(name)
+        if not connection:
+            raise EntityNotFoundException(f"Connection {name} not found")
+        connection.connection_input = connection_input
+        connection.description = connection_input.get(
+            "Description", connection.description
+        )
+        connection.connection_properties = connection_input.get(
+            "ConnectionProperties", connection.connection_properties
+        )
+        connection.updated_time = utcnow()
+
+    def delete_connection(self, catalog_id: str, name: str) -> None:
+        if name not in self.connections:
+            raise EntityNotFoundException(f"Connection {name} not found")
+        del self.connections[name]
+
+    def batch_delete_connection(
+        self, catalog_id: str, connection_names: list[str]
+    ) -> tuple[list[str], dict[str, Any]]:
+        succeeded = []
+        errors: dict[str, Any] = {}
+        for name in connection_names:
+            if name in self.connections:
+                del self.connections[name]
+                succeeded.append(name)
+            else:
+                errors[name] = {
+                    "ErrorCode": "EntityNotFoundException",
+                    "ErrorMessage": f"Connection {name} not found",
+                }
+        return succeeded, errors
 
     def put_data_catalog_encryption_settings(
         self,
@@ -1461,7 +1806,7 @@ class GlueBackend(BaseBackend):
             resource_arn = self.default_catalog_arn
 
         if resource_arn not in self.resource_policies:
-            return {}
+            raise EntityNotFoundException("Policy does not exist")
 
         policy = self.resource_policies[resource_arn]
 
@@ -1638,6 +1983,1896 @@ class GlueBackend(BaseBackend):
     def get_security_configurations(self) -> list["FakeSecurityConfiguration"]:
         """Pagination is not yet implemented"""
         return list(self.security_configurations.values())
+
+    # --- Catalogs ---
+
+    def create_catalog(
+        self,
+        name: str,
+        catalog_input: dict[str, Any],
+        tags: Optional[dict[str, str]] = None,
+    ) -> "FakeCatalog":
+        if name in self.catalogs:
+            raise AlreadyExistsException("Catalog")
+        catalog = FakeCatalog(self, name, catalog_input)
+        self.catalogs[name] = catalog
+        if tags:
+            self.tag_resource(catalog.arn, tags)
+        return catalog
+
+    def get_catalog(self, name: str) -> "FakeCatalog":
+        if name not in self.catalogs:
+            raise EntityNotFoundException(f"Catalog {name} not found.")
+        return self.catalogs[name]
+
+    def update_catalog(self, name: str, catalog_input: dict[str, Any]) -> None:
+        if name not in self.catalogs:
+            raise EntityNotFoundException(f"Catalog {name} not found.")
+        self.catalogs[name].update_from_input(catalog_input)
+
+    def delete_catalog(self, name: str) -> None:
+        if name not in self.catalogs:
+            raise EntityNotFoundException(f"Catalog {name} not found.")
+        del self.catalogs[name]
+
+    def get_catalogs(self) -> list["FakeCatalog"]:
+        return list(self.catalogs.values())
+
+    # --- Data Quality Rulesets ---
+
+    def create_data_quality_ruleset(
+        self,
+        name: str,
+        ruleset: str,
+        description: Optional[str] = None,
+        target_table: Optional[dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
+    ) -> "FakeDataQualityRuleset":
+        if name in self.data_quality_rulesets:
+            raise AlreadyExistsException("DataQualityRuleset")
+        dq = FakeDataQualityRuleset(self, name, ruleset, description, target_table)
+        self.data_quality_rulesets[name] = dq
+        if tags:
+            self.tag_resource(dq.arn, tags)
+        return dq
+
+    def get_data_quality_ruleset(self, name: str) -> "FakeDataQualityRuleset":
+        if name not in self.data_quality_rulesets:
+            raise EntityNotFoundException(f"DataQualityRuleset {name} not found.")
+        return self.data_quality_rulesets[name]
+
+    def update_data_quality_ruleset(
+        self,
+        name: str,
+        ruleset: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> None:
+        if name not in self.data_quality_rulesets:
+            raise EntityNotFoundException(f"DataQualityRuleset {name} not found.")
+        dq = self.data_quality_rulesets[name]
+        if ruleset is not None:
+            dq.ruleset = ruleset
+        if description is not None:
+            dq.description = description
+        dq.last_modified_on = utcnow()
+
+    def delete_data_quality_ruleset(self, name: str) -> None:
+        if name not in self.data_quality_rulesets:
+            raise EntityNotFoundException(f"DataQualityRuleset {name} not found.")
+        del self.data_quality_rulesets[name]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_data_quality_rulesets(self) -> list["FakeDataQualityRuleset"]:
+        return list(self.data_quality_rulesets.values())
+
+    # --- Blueprints ---
+
+    def create_blueprint(
+        self,
+        name: str,
+        blueprint_location: str,
+        description: Optional[str] = None,
+        tags: Optional[dict[str, str]] = None,
+    ) -> "FakeBlueprint":
+        if name in self.blueprints:
+            raise AlreadyExistsException("Blueprint")
+        bp = FakeBlueprint(self, name, blueprint_location, description)
+        self.blueprints[name] = bp
+        if tags:
+            self.tag_resource(bp.arn, tags)
+        return bp
+
+    def get_blueprint(self, name: str) -> "FakeBlueprint":
+        if name not in self.blueprints:
+            raise EntityNotFoundException(f"Blueprint {name} not found.")
+        return self.blueprints[name]
+
+    def update_blueprint(
+        self,
+        name: str,
+        blueprint_location: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> None:
+        if name not in self.blueprints:
+            raise EntityNotFoundException(f"Blueprint {name} not found.")
+        bp = self.blueprints[name]
+        if blueprint_location is not None:
+            bp.blueprint_location = blueprint_location
+        if description is not None:
+            bp.description = description
+        bp.last_modified_on = utcnow()
+
+    def delete_blueprint(self, name: str) -> None:
+        if name not in self.blueprints:
+            raise EntityNotFoundException(f"Blueprint {name} not found.")
+        del self.blueprints[name]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_blueprints(self) -> list["FakeBlueprint"]:
+        return list(self.blueprints.values())
+
+    # --- ML Transforms ---
+
+    def create_ml_transform(
+        self,
+        name: str,
+        input_record_tables: list[dict[str, str]],
+        parameters: dict[str, Any],
+        role: str,
+        description: Optional[str] = None,
+        glue_version: Optional[str] = None,
+        max_capacity: Optional[float] = None,
+        worker_type: Optional[str] = None,
+        number_of_workers: Optional[int] = None,
+        timeout: Optional[int] = None,
+        max_retries: Optional[int] = None,
+        tags: Optional[dict[str, str]] = None,
+    ) -> "FakeMLTransform":
+        transform = FakeMLTransform(
+            self,
+            name,
+            input_record_tables,
+            parameters,
+            role,
+            description,
+            glue_version,
+            max_capacity,
+            worker_type,
+            number_of_workers,
+            timeout,
+            max_retries,
+        )
+        self.ml_transforms[transform.transform_id] = transform
+        if tags:
+            self.tag_resource(transform.arn, tags)
+        return transform
+
+    def get_ml_transform(self, transform_id: str) -> "FakeMLTransform":
+        if transform_id not in self.ml_transforms:
+            raise EntityNotFoundException(f"MLTransform {transform_id} not found.")
+        return self.ml_transforms[transform_id]
+
+    def update_ml_transform(
+        self,
+        transform_id: str,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        parameters: Optional[dict[str, Any]] = None,
+        role: Optional[str] = None,
+        glue_version: Optional[str] = None,
+        max_capacity: Optional[float] = None,
+        worker_type: Optional[str] = None,
+        number_of_workers: Optional[int] = None,
+        timeout: Optional[int] = None,
+        max_retries: Optional[int] = None,
+    ) -> None:
+        if transform_id not in self.ml_transforms:
+            raise EntityNotFoundException(f"MLTransform {transform_id} not found.")
+        t = self.ml_transforms[transform_id]
+        if name is not None:
+            t.name = name
+        if description is not None:
+            t.description = description
+        if parameters is not None:
+            t.parameters = parameters
+        if role is not None:
+            t.role = role
+        if glue_version is not None:
+            t.glue_version = glue_version
+        if max_capacity is not None:
+            t.max_capacity = max_capacity
+        if worker_type is not None:
+            t.worker_type = worker_type
+        if number_of_workers is not None:
+            t.number_of_workers = number_of_workers
+        if timeout is not None:
+            t.timeout = timeout
+        if max_retries is not None:
+            t.max_retries = max_retries
+        t.last_modified_on = utcnow()
+
+    def delete_ml_transform(self, transform_id: str) -> None:
+        if transform_id not in self.ml_transforms:
+            raise EntityNotFoundException(f"MLTransform {transform_id} not found.")
+        del self.ml_transforms[transform_id]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_ml_transforms(self) -> list["FakeMLTransform"]:
+        return list(self.ml_transforms.values())
+
+    def list_schemas(
+        self, registry_id: Optional[dict[str, Any]] = None
+    ) -> list[dict[str, Any]]:
+        """List schemas, optionally filtered by registry."""
+        schemas = []
+        if registry_id:
+            registry_name = validate_registry_id(registry_id, self.registries)
+            registry = self.registries[registry_name]
+            for schema in registry.schemas.values():
+                schemas.append(schema.as_dict())
+        else:
+            for registry in self.registries.values():
+                for schema in registry.schemas.values():
+                    schemas.append(schema.as_dict())
+        return schemas
+
+    def list_schema_versions(self, schema_id: dict[str, str]) -> list[dict[str, Any]]:
+        """List versions of a schema."""
+        registry_name, schema_name, _ = validate_schema_id(schema_id, self.registries)
+        schema = self.registries[registry_name].schemas[schema_name]
+        return [sv.as_dict() for sv in schema.schema_versions.values()]
+
+    def list_dev_endpoints(self) -> list["FakeDevEndpoint"]:
+        return list(self.dev_endpoints.values())
+
+    def batch_get_blueprints(
+        self, names: list[str]
+    ) -> tuple[list[dict[str, Any]], list[str]]:
+        blueprints = []
+        missing = []
+        for name in names:
+            if name in self.blueprints:
+                blueprints.append(self.blueprints[name].as_dict())
+            else:
+                missing.append(name)
+        return blueprints, missing
+
+    def batch_get_custom_entity_types(
+        self, names: list[str]
+    ) -> tuple[list[dict[str, Any]], list[str]]:
+        entities = []
+        missing = []
+        for name in names:
+            if name in self.custom_entity_types:
+                entities.append(self.custom_entity_types[name].as_dict())
+            else:
+                missing.append(name)
+        return entities, missing
+
+    def resume_workflow_run(
+        self, name: str, run_id: str, node_ids: list[str]
+    ) -> dict[str, Any]:
+        workflow = self.workflows.get(name)
+        if not workflow:
+            raise EntityNotFoundException("Entity not found")
+        run = workflow.get_run(run_id)
+        new_run_id = workflow.start_run(run.properties)
+        return {"RunId": new_run_id, "NodeIds": node_ids}
+
+    def run_statement(
+        self, session_id: str, code: str, request_origin: Optional[str] = None
+    ) -> dict[str, Any]:
+        session = self.get_session(session_id)
+        stmt_id = session._next_statement_id
+        session._next_statement_id += 1
+        session.statements[stmt_id] = {
+            "Id": stmt_id,
+            "Code": code,
+            "State": "RUNNING",
+            "Output": {},
+            "Progress": 0.0,
+        }
+        return {"Id": stmt_id}
+
+    def cancel_statement(
+        self, session_id: str, statement_id: int, request_origin: Optional[str] = None
+    ) -> None:
+        self.get_session(session_id)
+
+    def import_catalog_to_glue(self, catalog_id: Optional[str] = None) -> None:
+        pass
+
+    def batch_delete_table_version(
+        self, database_name: str, table_name: str, version_ids: list[str]
+    ) -> list[dict[str, Any]]:
+        table = self.get_table(database_name, table_name)
+        errors = []
+        for ver_id in version_ids:
+            try:
+                table.delete_version(ver_id)
+            except VersionNotFoundException:
+                errors.append(
+                    {
+                        "TableName": table_name,
+                        "VersionId": ver_id,
+                        "ErrorDetail": {
+                            "ErrorCode": "EntityNotFoundException",
+                            "ErrorMessage": f"Version {ver_id} not found",
+                        },
+                    }
+                )
+        return errors
+
+    def create_partition_index(
+        self,
+        database_name: str,
+        table_name: str,
+        partition_index: dict[str, Any],
+    ) -> None:
+        self.get_table(database_name, table_name)
+
+    def delete_partition_index(
+        self,
+        database_name: str,
+        table_name: str,
+        index_name: str,
+    ) -> None:
+        self.get_table(database_name, table_name)
+
+    def create_user_defined_function(
+        self,
+        database_name: str,
+        function_input: dict[str, Any],
+    ) -> None:
+        database = self.get_database(database_name)
+        function_name = function_input.get("FunctionName", "")
+        if not hasattr(database, "user_defined_functions"):
+            database.user_defined_functions = OrderedDict()
+        if function_name in database.user_defined_functions:
+            raise AlreadyExistsException("UserDefinedFunction")
+        function_input["CreateTime"] = utcnow()
+        database.user_defined_functions[function_name] = function_input
+
+    def get_user_defined_function(
+        self, database_name: str, function_name: str
+    ) -> dict[str, Any]:
+        database = self.get_database(database_name)
+        udfs = getattr(database, "user_defined_functions", {})
+        if function_name not in udfs:
+            raise EntityNotFoundException(f"Function {function_name} not found")
+        return udfs[function_name]
+
+    def get_user_defined_functions(
+        self, database_name: str, pattern: str
+    ) -> list[dict[str, Any]]:
+        database = self.get_database(database_name)
+        udfs = getattr(database, "user_defined_functions", {})
+        if pattern and pattern != "*":
+            import fnmatch
+
+            return [v for k, v in udfs.items() if fnmatch.fnmatch(k, pattern)]
+        return list(udfs.values())
+
+    def update_user_defined_function(
+        self,
+        database_name: str,
+        function_name: str,
+        function_input: dict[str, Any],
+    ) -> None:
+        database = self.get_database(database_name)
+        udfs = getattr(database, "user_defined_functions", {})
+        if function_name not in udfs:
+            raise EntityNotFoundException(f"Function {function_name} not found")
+        function_input["CreateTime"] = udfs[function_name].get("CreateTime", utcnow())
+        udfs[function_name] = function_input
+
+    def delete_user_defined_function(
+        self, database_name: str, function_name: str
+    ) -> None:
+        database = self.get_database(database_name)
+        udfs = getattr(database, "user_defined_functions", {})
+        if function_name not in udfs:
+            raise EntityNotFoundException(f"Function {function_name} not found")
+        del udfs[function_name]
+
+    def check_schema_version_validity(
+        self, data_format: str, schema_definition: str
+    ) -> dict[str, Any]:
+        valid = True
+        error = ""
+        if data_format == "JSON":
+            try:
+                import json as json_mod
+
+                json_mod.loads(schema_definition)
+            except (json_mod.JSONDecodeError, ValueError) as exc:
+                valid = False
+                error = str(exc)
+        return {"Valid": valid, "Error": error}
+
+    def delete_schema_versions(
+        self,
+        schema_id: dict[str, str],
+        versions: str,
+    ) -> list[dict[str, Any]]:
+        return [
+            {"VersionNumber": int(v.strip()), "Status": "SUCCESS"}
+            for v in versions.split(",")
+            if v.strip().isdigit()
+        ]
+
+    def start_blueprint_run(
+        self, name: str, role_arn: str, parameters: Optional[str] = None
+    ) -> str:
+        if name not in self.blueprints:
+            raise EntityNotFoundException(f"Blueprint {name} not found.")
+        run_id = f"bp_{mock_random.get_random_hex(32)}"
+        self.blueprint_runs[run_id] = {
+            "BlueprintName": name,
+            "RunId": run_id,
+            "State": "RUNNING",
+            "StartedOn": utcnow().isoformat(),
+            "RoleArn": role_arn,
+        }
+        return run_id
+
+    def search_tables(
+        self,
+        catalog_id: Optional[str],
+        search_text: Optional[str],
+        filters: Optional[list[dict[str, Any]]],
+        max_results: Optional[int],
+        next_token: Optional[str],
+    ) -> tuple[list["FakeTable"], Optional[str]]:
+        """Search tables across all databases."""
+        all_tables: list[FakeTable] = []
+        for database in self.databases.values():
+            for table in database.tables.values():
+                if search_text:
+                    # Simple text search in table name
+                    if search_text.lower() in table.name.lower():
+                        all_tables.append(table)
+                else:
+                    all_tables.append(table)
+
+        # Apply filters if provided
+        if filters:
+            for f in filters:
+                key = f.get("Key", "")
+                value = f.get("Value", "")
+                if key == "DatabaseName" and value:
+                    all_tables = [t for t in all_tables if t.database_name == value]
+
+        # Pagination
+        max_results = max_results or 100
+        start = 0
+        if next_token:
+            try:
+                start = int(next_token)
+            except (ValueError, TypeError):
+                start = 0
+        end = start + max_results
+        page = all_tables[start:end]
+        new_token = str(end) if end < len(all_tables) else None
+        return page, new_token
+
+    def list_statements(self, session_id: str) -> list[dict[str, Any]]:
+        """Return empty statements list (interactive sessions statements not yet implemented)."""
+        # Validate session exists
+        self.get_session(session_id)
+        return []
+
+    def create_custom_entity_type(
+        self,
+        name: str,
+        regex_string: str,
+        context_words: Optional[list[str]] = None,
+        tags: Optional[dict[str, str]] = None,
+    ) -> "FakeCustomEntityType":
+        if name in self.custom_entity_types:
+            raise AlreadyExistsException("CustomEntityType")
+        entity = FakeCustomEntityType(name, regex_string, context_words)
+        self.custom_entity_types[name] = entity
+        return entity
+
+    def get_custom_entity_type(self, name: str) -> "FakeCustomEntityType":
+        if name not in self.custom_entity_types:
+            raise EntityNotFoundException(f"CustomEntityType {name} not found.")
+        return self.custom_entity_types[name]
+
+    def delete_custom_entity_type(self, name: str) -> str:
+        if name not in self.custom_entity_types:
+            raise EntityNotFoundException(f"CustomEntityType {name} not found.")
+        del self.custom_entity_types[name]
+        return name
+
+    def list_custom_entity_types(
+        self,
+        max_results: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Return custom entity types list."""
+        entities = list(self.custom_entity_types.values())
+        result = [e.as_dict() for e in entities]
+        return {"CustomEntityTypes": result, "NextToken": None}
+
+    def list_column_statistics_task_runs(
+        self,
+        max_results: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Return empty column statistics task run IDs list (not yet implemented)."""
+        return {"ColumnStatisticsTaskRunIds": [], "NextToken": None}
+
+    def list_data_quality_results(
+        self,
+        max_results: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Return empty data quality results list (not yet implemented)."""
+        return {"Results": [], "NextToken": None}
+
+    def list_data_quality_rule_recommendation_runs(
+        self,
+        max_results: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Return empty data quality rule recommendation runs list."""
+        return {"Runs": [], "NextToken": None}
+
+    def list_data_quality_ruleset_evaluation_runs(
+        self,
+        max_results: Optional[int],
+        next_token: Optional[str],
+    ) -> dict[str, Any]:
+        """Return empty data quality ruleset evaluation runs list."""
+        return {"Runs": [], "NextToken": None}
+
+    # --- Classifiers ---
+
+    def create_classifier(
+        self,
+        grok_classifier: Optional[dict[str, Any]] = None,
+        xml_classifier: Optional[dict[str, Any]] = None,
+        json_classifier: Optional[dict[str, Any]] = None,
+        csv_classifier: Optional[dict[str, Any]] = None,
+    ) -> "FakeClassifier":
+        classifier = FakeClassifier(
+            grok_classifier, xml_classifier, json_classifier, csv_classifier
+        )
+        if classifier.name in self.classifiers:
+            raise AlreadyExistsException("Classifier")
+        self.classifiers[classifier.name] = classifier
+        return classifier
+
+    def get_classifier(self, name: str) -> "FakeClassifier":
+        if name not in self.classifiers:
+            raise EntityNotFoundException(f"Classifier {name} not found.")
+        return self.classifiers[name]
+
+    def update_classifier(
+        self,
+        grok_classifier: Optional[dict[str, Any]] = None,
+        xml_classifier: Optional[dict[str, Any]] = None,
+        json_classifier: Optional[dict[str, Any]] = None,
+        csv_classifier: Optional[dict[str, Any]] = None,
+    ) -> None:
+        # Determine which classifier type is being updated
+        if grok_classifier:
+            name = grok_classifier.get("Name", "")
+        elif xml_classifier:
+            name = xml_classifier.get("Name", "")
+        elif json_classifier:
+            name = json_classifier.get("Name", "")
+        elif csv_classifier:
+            name = csv_classifier.get("Name", "")
+        else:
+            raise InvalidInputException("UpdateClassifier", "No classifier provided")
+        if name not in self.classifiers:
+            raise EntityNotFoundException(f"Classifier {name} not found.")
+        c = self.classifiers[name]
+        c.update(grok_classifier, xml_classifier, json_classifier, csv_classifier)
+
+    def delete_classifier(self, name: str) -> None:
+        if name not in self.classifiers:
+            raise EntityNotFoundException(f"Classifier {name} not found.")
+        del self.classifiers[name]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_classifiers(self) -> list["FakeClassifier"]:
+        return list(self.classifiers.values())
+
+    # --- Connection Types ---
+
+    def create_connection_type(
+        self,
+        connection_type: str,
+        integration_type: str,
+        connection_properties: Optional[dict[str, str]] = None,
+        connector_authentication_configuration: Optional[dict[str, Any]] = None,
+        rest_configuration: Optional[dict[str, Any]] = None,
+        description: Optional[str] = None,
+        capabilities: Optional[list[str]] = None,
+    ) -> "FakeConnectionType":
+        if connection_type in self.connection_types:
+            raise AlreadyExistsException("ConnectionType")
+        ct = FakeConnectionType(
+            backend=self,
+            connection_type=connection_type,
+            integration_type=integration_type,
+            connection_properties=connection_properties,
+            connector_authentication_configuration=connector_authentication_configuration,
+            rest_configuration=rest_configuration,
+            description=description,
+            capabilities=capabilities,
+        )
+        self.connection_types[connection_type] = ct
+        return ct
+
+    def get_connection_type(self, connection_type: str) -> "FakeConnectionType":
+        if connection_type not in self.connection_types:
+            raise EntityNotFoundException(
+                f"Connection type {connection_type} not found."
+            )
+        return self.connection_types[connection_type]
+
+    def list_connection_types(self) -> list["FakeConnectionType"]:
+        return list(self.connection_types.values())
+
+    def delete_connection_type(self, connection_type: str) -> None:
+        if connection_type not in self.connection_types:
+            raise EntityNotFoundException(
+                f"Connection type {connection_type} not found."
+            )
+        del self.connection_types[connection_type]
+
+    # --- Glue Identity Center Configuration (singleton) ---
+
+    def create_glue_identity_center_configuration(
+        self,
+        instance_arn: str,
+        application_arn: Optional[str] = None,
+        scopes: Optional[list[str]] = None,
+        user_background_sessions_enabled: bool = False,
+    ) -> "FakeGlueIdentityCenterConfiguration":
+        if self.glue_identity_center_config is not None:
+            raise AlreadyExistsException("GlueIdentityCenterConfiguration")
+        config = FakeGlueIdentityCenterConfiguration(
+            backend=self,
+            instance_arn=instance_arn,
+            application_arn=application_arn,
+            scopes=scopes,
+            user_background_sessions_enabled=user_background_sessions_enabled,
+        )
+        self.glue_identity_center_config = config
+        return config
+
+    def get_glue_identity_center_configuration(
+        self,
+    ) -> "FakeGlueIdentityCenterConfiguration":
+        if self.glue_identity_center_config is None:
+            raise EntityNotFoundException(
+                "Glue Identity Center configuration not found."
+            )
+        return self.glue_identity_center_config
+
+    def update_glue_identity_center_configuration(
+        self,
+        instance_arn: Optional[str] = None,
+        application_arn: Optional[str] = None,
+        scopes: Optional[list[str]] = None,
+        user_background_sessions_enabled: Optional[bool] = None,
+    ) -> "FakeGlueIdentityCenterConfiguration":
+        if self.glue_identity_center_config is None:
+            raise EntityNotFoundException(
+                "Glue Identity Center configuration not found."
+            )
+        config = self.glue_identity_center_config
+        if instance_arn is not None:
+            config.instance_arn = instance_arn
+        if application_arn is not None:
+            config.application_arn = application_arn
+        if scopes is not None:
+            config.scopes = scopes
+        if user_background_sessions_enabled is not None:
+            config.user_background_sessions_enabled = user_background_sessions_enabled
+        return config
+
+    def delete_glue_identity_center_configuration(self) -> None:
+        if self.glue_identity_center_config is None:
+            raise EntityNotFoundException(
+                "Glue Identity Center configuration not found."
+            )
+        self.glue_identity_center_config = None
+
+    # --- Materialized View Refresh Task Runs ---
+
+    def start_materialized_view_refresh_task_run(
+        self,
+        catalog_id: str,
+        database_name: str,
+        table_name: str,
+    ) -> "FakeMaterializedViewRefreshTaskRun":
+        self.get_table(database_name, table_name)
+        task_run_id = str(mock_random.uuid4())
+        task = FakeMaterializedViewRefreshTaskRun(
+            task_run_id=task_run_id,
+            catalog_id=catalog_id or self.account_id,
+            database_name=database_name,
+            table_name=table_name,
+        )
+        self.materialized_view_refresh_task_runs[task_run_id] = task
+        return task
+
+    def get_materialized_view_refresh_task_run(
+        self, task_run_id: str
+    ) -> "FakeMaterializedViewRefreshTaskRun":
+        if task_run_id not in self.materialized_view_refresh_task_runs:
+            raise EntityNotFoundException(
+                f"Materialized view refresh task run {task_run_id} not found."
+            )
+        return self.materialized_view_refresh_task_runs[task_run_id]
+
+    def list_materialized_view_refresh_task_runs(
+        self,
+        catalog_id: Optional[str] = None,
+        database_name: Optional[str] = None,
+        table_name: Optional[str] = None,
+        task_run_id: Optional[str] = None,
+    ) -> list["FakeMaterializedViewRefreshTaskRun"]:
+        tasks = list(self.materialized_view_refresh_task_runs.values())
+        if catalog_id is not None:
+            tasks = [t for t in tasks if t.catalog_id == catalog_id]
+        if database_name is not None:
+            tasks = [t for t in tasks if t.database_name == database_name]
+        if table_name is not None:
+            tasks = [t for t in tasks if t.table_name == table_name]
+        if task_run_id is not None:
+            tasks = [t for t in tasks if t.task_run_id == task_run_id]
+        return tasks
+
+    def stop_materialized_view_refresh_task_run(self, task_run_id: str) -> None:
+        if task_run_id not in self.materialized_view_refresh_task_runs:
+            raise EntityNotFoundException(
+                f"Materialized view refresh task run {task_run_id} not found."
+            )
+        del self.materialized_view_refresh_task_runs[task_run_id]
+
+    def stop_materialized_view_refresh_task_run_by_table(
+        self, database_name: str, table_name: str
+    ) -> None:
+        """Stop and remove task runs for a database/table pair."""
+        to_delete = [
+            k
+            for k, v in self.materialized_view_refresh_task_runs.items()
+            if v.database_name == database_name and v.table_name == table_name
+        ]
+        for k in to_delete:
+            del self.materialized_view_refresh_task_runs[k]
+
+    # --- Resource Policies (batch) ---
+
+    def get_resource_policies(self) -> list[dict[str, Any]]:
+        """Return all resource policies."""
+        result = []
+        for _arn, policy in self.resource_policies.items():
+            result.append(
+                {
+                    "PolicyInJson": policy["PolicyInJson"],
+                    "PolicyHash": policy["PolicyHash"],
+                    "CreateTime": policy["CreateTime"],
+                    "UpdateTime": policy["UpdateTime"],
+                }
+            )
+        return result
+
+    # --- Catalog Import Status ---
+
+    def get_catalog_import_status(self) -> dict[str, Any]:
+        """Return default catalog import status (always imported)."""
+        return {
+            "ImportCompleted": True,
+            "ImportTime": utcnow(),
+            "ImportedBy": "AWS",
+        }
+
+    # --- Column Statistics ---
+
+    def get_column_statistics_for_table(
+        self,
+        database_name: str,
+        table_name: str,
+        column_names: list[str],
+    ) -> dict[str, Any]:
+        # Verify the table exists
+        table = self.get_table(database_name, table_name)
+        stats = []
+        if hasattr(table, "_column_statistics"):
+            for col_name in column_names:
+                if col_name in table._column_statistics:
+                    stats.append(table._column_statistics[col_name])
+        return {
+            "ColumnStatisticsList": stats,
+            "Errors": [],
+        }
+
+    def get_column_statistics_for_partition(
+        self,
+        database_name: str,
+        table_name: str,
+        partition_values: list[str],
+        column_names: list[str],
+    ) -> dict[str, Any]:
+        # Verify the table exists
+        self.get_table(database_name, table_name)
+        # We don't store column stats, so return empty
+        return {
+            "ColumnStatisticsList": [],
+            "Errors": [],
+        }
+
+    # --- Column Statistics Task Runs ---
+
+    def get_column_statistics_task_run(
+        self,
+        column_statistics_task_run_id: str,
+    ) -> dict[str, Any]:
+        if column_statistics_task_run_id not in self.column_statistics_task_runs:
+            raise EntityNotFoundException(
+                f"ColumnStatisticsTaskRun {column_statistics_task_run_id} not found."
+            )
+        return self.column_statistics_task_runs[column_statistics_task_run_id]
+
+    def get_column_statistics_task_runs(
+        self,
+        database_name: str,
+        table_name: str,
+    ) -> list[Any]:
+        return []
+
+    # --- Crawler Metrics ---
+
+    def get_crawler_metrics(
+        self, crawler_names: Optional[list[str]] = None
+    ) -> list[dict[str, Any]]:
+        metrics = []
+        crawlers = self.crawlers
+        if crawler_names:
+            crawlers = {k: v for k, v in crawlers.items() if k in crawler_names}
+        for name, _crawler in crawlers.items():
+            metrics.append(
+                {
+                    "CrawlerName": name,
+                    "TimeLeftSeconds": 0.0,
+                    "StillEstimating": False,
+                    "LastRuntimeSeconds": 0.0,
+                    "MedianRuntimeSeconds": 0.0,
+                    "TablesCreated": 0,
+                    "TablesUpdated": 0,
+                    "TablesDeleted": 0,
+                }
+            )
+        return metrics
+
+    # --- Data Quality Results / Runs ---
+
+    def get_data_quality_result(self, result_id: str) -> None:
+        raise EntityNotFoundException(f"DataQualityResult {result_id} not found.")
+
+    def get_data_quality_rule_recommendation_run(self, run_id: str) -> dict[str, Any]:
+        if run_id not in self.data_quality_recommendation_runs:
+            raise EntityNotFoundException(
+                f"DataQualityRuleRecommendationRun {run_id} not found."
+            )
+        return self.data_quality_recommendation_runs[run_id]
+
+    def get_data_quality_ruleset_evaluation_run(self, run_id: str) -> dict[str, Any]:
+        if run_id not in self.data_quality_evaluation_runs:
+            raise EntityNotFoundException(
+                f"DataQualityRulesetEvaluationRun {run_id} not found."
+            )
+        return self.data_quality_evaluation_runs[run_id]
+
+    def get_data_quality_model(
+        self, profile_id: str, statistic_id: Optional[str] = None
+    ) -> None:
+        raise EntityNotFoundException(
+            f"DataQualityModel for profile {profile_id} not found."
+        )
+
+    # --- Column Statistics Update ---
+
+    def update_column_statistics_for_table(
+        self,
+        database_name: str,
+        table_name: str,
+        column_statistics_list: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        # Verify the table exists
+        table = self.get_table(database_name, table_name)
+        # Store column statistics on the table object
+        if not hasattr(table, "_column_statistics"):
+            table._column_statistics = {}  # type: ignore[attr-defined]
+        for stat in column_statistics_list:
+            col_name = stat.get("ColumnName", "")
+            table._column_statistics[col_name] = stat  # type: ignore[attr-defined]
+        return {"Errors": []}
+
+    def update_column_statistics_for_partition(
+        self,
+        database_name: str,
+        table_name: str,
+        partition_values: list[str],
+        column_statistics_list: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        # Verify the table exists
+        self.get_table(database_name, table_name)
+        # We accept the stats but don't persist per-partition stats in detail
+        return {"Errors": []}
+
+    # --- Column Statistics Delete ---
+
+    def delete_column_statistics_for_table(
+        self,
+        database_name: str,
+        table_name: str,
+        column_name: str,
+    ) -> None:
+        # Verify the table exists
+        self.get_table(database_name, table_name)
+        # We don't store column stats, so this is a no-op (matching Get behavior)
+
+    def delete_column_statistics_for_partition(
+        self,
+        database_name: str,
+        table_name: str,
+        partition_values: list[str],
+        column_name: str,
+    ) -> None:
+        # Verify the table exists
+        self.get_table(database_name, table_name)
+        # We don't store column stats, so this is a no-op (matching Get behavior)
+
+    # --- Blueprint Runs ---
+
+    def get_blueprint_run(self, blueprint_name: str, run_id: str) -> dict[str, Any]:
+        # Verify the blueprint exists
+        self.get_blueprint(blueprint_name)
+        if run_id not in self.blueprint_runs:
+            raise EntityNotFoundException(f"BlueprintRun {run_id} not found.")
+        return self.blueprint_runs[run_id]
+
+    def get_blueprint_runs(self, blueprint_name: str) -> list[Any]:
+        # Verify the blueprint exists
+        self.get_blueprint(blueprint_name)
+        return []
+
+    # --- ML Task Runs ---
+
+    def get_ml_task_run(self, transform_id: str, task_run_id: str) -> None:
+        # Verify the transform exists
+        self.get_ml_transform(transform_id)
+        raise EntityNotFoundException(f"MLTaskRun {task_run_id} not found.")
+
+    def get_ml_task_runs(self, transform_id: str) -> list[Any]:
+        # Verify the transform exists
+        self.get_ml_transform(transform_id)
+        return []
+
+    def cancel_ml_task_run(self, transform_id: str, task_run_id: str) -> dict[str, str]:
+        # Verify the transform exists
+        self.get_ml_transform(transform_id)
+        # In a real implementation, this would cancel a running task run.
+        # We stub it to return the transform and task run IDs.
+        return {
+            "TransformId": transform_id,
+            "TaskRunId": task_run_id,
+            "Status": "STOPPING",
+        }
+
+    def start_ml_evaluation_task_run(self, transform_id: str) -> str:
+        self.get_ml_transform(transform_id)
+        return f"tr_{mock_random.get_random_hex(32)}"
+
+    def start_ml_labeling_set_generation_task_run(
+        self, transform_id: str, output_s3_path: str
+    ) -> str:
+        self.get_ml_transform(transform_id)
+        return f"tr_{mock_random.get_random_hex(32)}"
+
+    def start_export_labels_task_run(
+        self, transform_id: str, output_s3_path: str
+    ) -> str:
+        self.get_ml_transform(transform_id)
+        return f"tr_{mock_random.get_random_hex(32)}"
+
+    def start_import_labels_task_run(
+        self, transform_id: str, input_s3_path: str, replace_all_labels: bool = False
+    ) -> str:
+        self.get_ml_transform(transform_id)
+        return f"tr_{mock_random.get_random_hex(32)}"
+
+    # --- Schema Version Ops ---
+
+    def get_schema_versions_diff(
+        self,
+        schema_id: dict[str, str],
+        first_schema_version_number: dict[str, Any],
+        second_schema_version_number: dict[str, Any],
+        schema_diff_type: str,
+    ) -> dict[str, Any]:
+        # Get both schema versions
+        first_version = self.get_schema_version(
+            schema_id=schema_id,
+            schema_version_number=first_schema_version_number,
+        )
+        second_version = self.get_schema_version(
+            schema_id=schema_id,
+            schema_version_number=second_schema_version_number,
+        )
+        # Return a diff string (simplified - real AWS does actual schema diff)
+        return {
+            "Diff": f"--- version {first_schema_version_number}\n+++ version {second_schema_version_number}\n"
+            f"-{first_version.get('SchemaDefinition', '')}\n+{second_version.get('SchemaDefinition', '')}",
+        }
+
+    def query_schema_version_metadata(
+        self,
+        schema_id: Optional[dict[str, str]] = None,
+        schema_version_number: Optional[dict[str, Any]] = None,
+        schema_version_id: Optional[str] = None,
+        metadata_list: Optional[list[dict[str, str]]] = None,
+    ) -> dict[str, Any]:
+        # Find the schema version
+        (
+            resolved_schema_version_id,
+            registry_name,
+            schema_name,
+            schema_arn,
+            version_number,
+            latest_version,
+        ) = validate_schema_version_params(
+            self.registries, schema_id, schema_version_id, schema_version_number
+        )
+
+        # Find the actual schema version object
+        schema_version_obj = None
+        if resolved_schema_version_id:
+            for registry in self.registries.values():
+                for schema in registry.schemas.values():
+                    if resolved_schema_version_id in schema.schema_versions:
+                        schema_version_obj = schema.schema_versions[
+                            resolved_schema_version_id
+                        ]
+                        break
+        else:
+            schema = self.registries[registry_name].schemas[schema_name]  # type: ignore
+            for sv in schema.schema_versions.values():
+                if version_number == sv.version_number:  # type: ignore
+                    schema_version_obj = sv
+                    break
+
+        if schema_version_obj is None:
+            raise EntityNotFoundException("Schema version not found.")
+
+        # Build metadata entries
+        result_metadata: dict[str, Any] = {}
+        for key, values in schema_version_obj.metadata.items():
+            for val in values:
+                entry_key = f"{key}={val}"
+                result_metadata[entry_key] = {"MetadataValue": val, "MetadataKey": key}
+
+        return {
+            "MetadataInfoMap": result_metadata,
+            "SchemaVersionId": schema_version_obj.schema_version_id,
+        }
+
+    def remove_schema_version_metadata(
+        self,
+        schema_id: Optional[dict[str, str]] = None,
+        schema_version_number: Optional[dict[str, Any]] = None,
+        schema_version_id: Optional[str] = None,
+        metadata_key_value: Optional[dict[str, str]] = None,
+    ) -> dict[str, Any]:
+        if not metadata_key_value:
+            raise InvalidInputException(
+                "RemoveSchemaVersionMetadata", "MetadataKeyValue is required."
+            )
+
+        metadata_key = metadata_key_value.get("MetadataKey", "")
+        metadata_value = metadata_key_value.get("MetadataValue", "")
+
+        (
+            resolved_schema_version_id,
+            registry_name,
+            schema_name,
+            schema_arn,
+            version_number,
+            latest_version,
+        ) = validate_schema_version_params(
+            self.registries, schema_id, schema_version_id, schema_version_number
+        )
+
+        schema_version_obj = None
+        if resolved_schema_version_id:
+            for registry in self.registries.values():
+                for schema in registry.schemas.values():
+                    if resolved_schema_version_id in schema.schema_versions:
+                        schema_version_obj = schema.schema_versions[
+                            resolved_schema_version_id
+                        ]
+                        break
+        else:
+            schema = self.registries[registry_name].schemas[schema_name]  # type: ignore
+            for sv in schema.schema_versions.values():
+                if version_number == sv.version_number:  # type: ignore
+                    schema_version_obj = sv
+                    break
+
+        if schema_version_obj is None:
+            raise EntityNotFoundException("Schema version not found.")
+
+        if metadata_key in schema_version_obj.metadata:
+            if metadata_value in schema_version_obj.metadata[metadata_key]:
+                schema_version_obj.metadata[metadata_key].remove(metadata_value)
+                if not schema_version_obj.metadata[metadata_key]:
+                    del schema_version_obj.metadata[metadata_key]
+
+        return {
+            "SchemaVersionId": schema_version_obj.schema_version_id,
+            "MetadataKey": metadata_key,
+            "MetadataValue": metadata_value,
+            "RegistryName": registry_name or "",
+            "SchemaName": schema_name or "",
+        }
+
+    # --- Stub operations ---
+
+    def create_script(
+        self,
+        dag_nodes: Optional[list[dict[str, Any]]] = None,
+        dag_edges: Optional[list[dict[str, Any]]] = None,
+        language: str = "PYTHON",
+    ) -> dict[str, str]:
+        # Returns a generated script stub
+        if language == "SCALA":
+            script = "// Auto-generated Scala ETL script\nimport com.amazonaws.services.glue.GlueContext\n"
+        else:
+            script = "# Auto-generated Python ETL script\nimport sys\nfrom awsglue.context import GlueContext\n"
+        return (
+            {"PythonScript": script} if language != "SCALA" else {"ScalaCode": script}
+        )
+
+    def get_dataflow_graph(
+        self,
+        python_script: Optional[str] = None,
+    ) -> dict[str, Any]:
+        return {"DagNodes": [], "DagEdges": []}
+
+    def get_plan(
+        self,
+        mapping: list[dict[str, str]],
+        source: dict[str, str],
+        sinks: Optional[list[dict[str, str]]] = None,
+        location: Optional[dict[str, Any]] = None,
+        language: str = "PYTHON",
+    ) -> dict[str, str]:
+        script = "# Auto-generated ETL plan\nimport sys\nfrom awsglue.context import GlueContext\n"
+        return {"PythonScript": script}
+
+    def get_unfiltered_partition_metadata(
+        self,
+        catalog_id: str,
+        database_name: str,
+        table_name: str,
+        partition_values: list[str],
+        supported_permission_types: list[str],
+    ) -> dict[str, Any]:
+        self.get_table(database_name, table_name)  # Validate table exists
+        partition = self.get_partition(database_name, table_name, partition_values)
+        return {
+            "Partition": partition.as_dict()
+            if hasattr(partition, "as_dict")
+            else partition,
+            "AuthorizedColumns": [],
+            "IsRegisteredWithLakeFormation": False,
+        }
+
+    def get_unfiltered_partitions_metadata(
+        self,
+        catalog_id: str,
+        database_name: str,
+        table_name: str,
+        supported_permission_types: list[str],
+    ) -> dict[str, Any]:
+        partitions = self.get_partitions(database_name, table_name, expression="")
+        return {
+            "UnfilteredPartitions": [
+                {
+                    "Partition": p.as_dict() if hasattr(p, "as_dict") else p,
+                    "AuthorizedColumns": [],
+                    "IsRegisteredWithLakeFormation": False,
+                }
+                for p in partitions
+            ],
+        }
+
+    def get_unfiltered_table_metadata(
+        self,
+        catalog_id: str,
+        database_name: str,
+        table_name: str,
+        supported_permission_types: list[str],
+    ) -> dict[str, Any]:
+        table = self.get_table(database_name, table_name)
+        return {
+            "Table": table.as_dict(),
+            "AuthorizedColumns": [],
+            "IsRegisteredWithLakeFormation": False,
+        }
+
+    def test_connection(
+        self,
+        connection_name: Optional[str] = None,
+        connection_type: Optional[str] = None,
+    ) -> None:
+        if connection_name and connection_name not in self.connections:
+            raise EntityNotFoundException(f"Connection {connection_name} not found.")
+        # In emulation, connections always succeed
+        return None
+
+    def update_job_from_source_control(
+        self,
+        job_name: Optional[str] = None,
+        provider: Optional[str] = None,
+        repository_name: Optional[str] = None,
+        repository_owner: Optional[str] = None,
+        branch_name: Optional[str] = None,
+        folder: Optional[str] = None,
+        commit_id: Optional[str] = None,
+        auth_strategy: Optional[str] = None,
+        auth_token: Optional[str] = None,
+    ) -> dict[str, str]:
+        if job_name:
+            if job_name not in self.jobs:
+                raise EntityNotFoundException(f"Job {job_name} not found.")
+        return {"JobName": job_name or ""}
+
+    def update_source_control_from_job(
+        self,
+        job_name: Optional[str] = None,
+        provider: Optional[str] = None,
+        repository_name: Optional[str] = None,
+        repository_owner: Optional[str] = None,
+        branch_name: Optional[str] = None,
+        folder: Optional[str] = None,
+        commit_id: Optional[str] = None,
+        auth_strategy: Optional[str] = None,
+        auth_token: Optional[str] = None,
+    ) -> dict[str, str]:
+        if job_name:
+            if job_name not in self.jobs:
+                raise EntityNotFoundException(f"Job {job_name} not found.")
+        return {"JobName": job_name or ""}
+
+    def describe_entity(
+        self,
+        connection_name: str,
+        entity_name: str,
+        catalog_id: Optional[str] = None,
+        data_store_api_version: Optional[str] = None,
+    ) -> dict[str, Any]:
+        if connection_name not in self.connections:
+            raise EntityNotFoundException(f"Connection {connection_name} not found.")
+        return {
+            "Fields": [],
+        }
+
+    def list_entities(
+        self,
+        connection_name: str,
+        catalog_id: Optional[str] = None,
+        parent_entity_name: Optional[str] = None,
+        data_store_api_version: Optional[str] = None,
+    ) -> dict[str, Any]:
+        if connection_name not in self.connections:
+            raise EntityNotFoundException(f"Connection {connection_name} not found.")
+        return {
+            "Entities": [],
+        }
+
+    # --- GetMapping ---
+
+    def get_mapping(
+        self,
+        source: dict[str, Any],
+    ) -> list[dict[str, Any]]:
+        return []
+
+    # --- GetEntityRecords ---
+
+    def get_entity_records(
+        self,
+        entity_name: str,
+    ) -> list[Any]:
+        return []
+
+    # --- GetStatement (Interactive Sessions) ---
+
+    def get_statement(self, session_id: str, statement_id: int) -> dict[str, Any]:
+        # Verify session exists
+        if session_id not in self.sessions:
+            raise SessionNotFoundException(session_id)
+        session = self.sessions[session_id]
+        if statement_id not in session.statements:
+            raise EntityNotFoundException(f"Statement {statement_id} not found.")
+        return session.statements[statement_id]
+
+    # --- Usage Profiles ---
+
+    def create_usage_profile(
+        self,
+        name: str,
+        description: Optional[str] = None,
+        configuration: Optional[dict[str, Any]] = None,
+        tags: Optional[dict[str, str]] = None,
+    ) -> "FakeUsageProfile":
+        if name in self.usage_profiles:
+            raise AlreadyExistsException("UsageProfile")
+        profile = FakeUsageProfile(self, name, description, configuration)
+        self.usage_profiles[name] = profile
+        if tags:
+            self.tag_resource(profile.arn, tags)
+        return profile
+
+    def get_usage_profile(self, name: str) -> "FakeUsageProfile":
+        if name not in self.usage_profiles:
+            raise EntityNotFoundException(f"UsageProfile {name} not found.")
+        return self.usage_profiles[name]
+
+    def update_usage_profile(
+        self,
+        name: str,
+        description: Optional[str] = None,
+        configuration: Optional[dict[str, Any]] = None,
+    ) -> None:
+        if name not in self.usage_profiles:
+            raise EntityNotFoundException(f"UsageProfile {name} not found.")
+        profile = self.usage_profiles[name]
+        if description is not None:
+            profile.description = description
+        if configuration is not None:
+            profile.configuration = configuration
+        profile.last_modified_on = utcnow()
+
+    def delete_usage_profile(self, name: str) -> None:
+        if name not in self.usage_profiles:
+            raise EntityNotFoundException(f"UsageProfile {name} not found.")
+        del self.usage_profiles[name]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_usage_profiles(self) -> list["FakeUsageProfile"]:
+        return list(self.usage_profiles.values())
+
+    # --- Integrations ---
+
+    def create_integration(
+        self,
+        integration_name: str,
+        source_arn: str,
+        target_arn: str,
+        description: Optional[str] = None,
+        kms_key_id: Optional[str] = None,
+        additional_encryption_context: Optional[dict[str, str]] = None,
+        tags: Optional[dict[str, str]] = None,
+    ) -> "FakeIntegration":
+        if integration_name in self.integrations:
+            raise AlreadyExistsException("Integration")
+        integration = FakeIntegration(
+            self,
+            integration_name,
+            source_arn,
+            target_arn,
+            description=description,
+            kms_key_id=kms_key_id,
+            additional_encryption_context=additional_encryption_context,
+        )
+        self.integrations[integration_name] = integration
+        if tags:
+            self.tag_resource(integration.arn, tags)
+        return integration
+
+    def delete_integration(self, integration_arn: str) -> dict[str, Any]:
+        for name, integ in self.integrations.items():
+            if integ.arn == integration_arn:
+                del self.integrations[name]
+                return integ.as_dict()
+        raise EntityNotFoundException(f"Integration {integration_arn} not found.")
+
+    def describe_integrations(
+        self,
+        integration_identifier: Optional[str] = None,
+    ) -> list["FakeIntegration"]:
+        if integration_identifier:
+            for integ in self.integrations.values():
+                if (
+                    integ.arn == integration_identifier
+                    or integ.name == integration_identifier
+                ):
+                    return [integ]
+            raise EntityNotFoundException(
+                f"Integration {integration_identifier} not found."
+            )
+        return list(self.integrations.values())
+
+    def modify_integration(
+        self,
+        integration_identifier: str,
+        description: Optional[str] = None,
+    ) -> "FakeIntegration":
+        for integ in self.integrations.values():
+            if (
+                integ.arn == integration_identifier
+                or integ.name == integration_identifier
+            ):
+                if description is not None:
+                    integ.description = description
+                integ.last_modified_on = utcnow()
+                return integ
+        raise EntityNotFoundException(
+            f"Integration {integration_identifier} not found."
+        )
+
+    # --- Integration Resource Properties ---
+
+    def create_integration_resource_property(
+        self,
+        resource_arn: str,
+        source_processing_properties: Optional[dict[str, Any]] = None,
+        target_processing_properties: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any]:
+        self.integration_resource_properties[resource_arn] = {
+            "ResourceArn": resource_arn,
+            "SourceProcessingProperties": source_processing_properties or {},
+            "TargetProcessingProperties": target_processing_properties or {},
+        }
+        return self.integration_resource_properties[resource_arn]
+
+    def get_integration_resource_property(self, resource_arn: str) -> dict[str, Any]:
+        if resource_arn not in self.integration_resource_properties:
+            raise EntityNotFoundException(
+                f"IntegrationResourceProperty for {resource_arn} not found."
+            )
+        return self.integration_resource_properties[resource_arn]
+
+    def update_integration_resource_property(
+        self,
+        resource_arn: str,
+        source_processing_properties: Optional[dict[str, Any]] = None,
+        target_processing_properties: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any]:
+        if resource_arn not in self.integration_resource_properties:
+            raise EntityNotFoundException(
+                f"IntegrationResourceProperty for {resource_arn} not found."
+            )
+        prop = self.integration_resource_properties[resource_arn]
+        if source_processing_properties is not None:
+            prop["SourceProcessingProperties"] = source_processing_properties
+        if target_processing_properties is not None:
+            prop["TargetProcessingProperties"] = target_processing_properties
+        return prop
+
+    def delete_integration_resource_property(self, resource_arn: str) -> None:
+        if resource_arn in self.integration_resource_properties:
+            del self.integration_resource_properties[resource_arn]
+
+    # --- Integration Table Properties ---
+
+    def create_integration_table_properties(
+        self,
+        resource_arn: str,
+        table_name: str,
+        source_table_config: Optional[dict[str, Any]] = None,
+        target_table_config: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any]:
+        key = f"{resource_arn}:{table_name}"
+        self.integration_table_properties[key] = {
+            "ResourceArn": resource_arn,
+            "TableName": table_name,
+            "SourceTableConfig": source_table_config or {},
+            "TargetTableConfig": target_table_config or {},
+        }
+        return self.integration_table_properties[key]
+
+    def get_integration_table_properties(
+        self, resource_arn: str, table_name: str
+    ) -> dict[str, Any]:
+        key = f"{resource_arn}:{table_name}"
+        if key not in self.integration_table_properties:
+            raise EntityNotFoundException(
+                f"IntegrationTableProperties for {resource_arn}/{table_name} not found."
+            )
+        return self.integration_table_properties[key]
+
+    def update_integration_table_properties(
+        self,
+        resource_arn: str,
+        table_name: str,
+        source_table_config: Optional[dict[str, Any]] = None,
+        target_table_config: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any]:
+        key = f"{resource_arn}:{table_name}"
+        if key not in self.integration_table_properties:
+            raise EntityNotFoundException(
+                f"IntegrationTableProperties for {resource_arn}/{table_name} not found."
+            )
+        prop = self.integration_table_properties[key]
+        if source_table_config is not None:
+            prop["SourceTableConfig"] = source_table_config
+        if target_table_config is not None:
+            prop["TargetTableConfig"] = target_table_config
+        return prop
+
+    def delete_integration_table_properties(
+        self, resource_arn: str, table_name: str
+    ) -> None:
+        key = f"{resource_arn}:{table_name}"
+        if key in self.integration_table_properties:
+            del self.integration_table_properties[key]
+
+    def list_integration_resource_properties(
+        self, resource_arn: str
+    ) -> list[dict[str, Any]]:
+        return [
+            v
+            for v in self.integration_resource_properties.values()
+            if v.get("ResourceArn") == resource_arn
+        ]
+
+    def describe_inbound_integrations(
+        self,
+        integration_arn: Optional[str] = None,
+        target_arn: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        results = []
+        for integ in self.integrations.values():
+            if integration_arn and integ.arn != integration_arn:
+                continue
+            if target_arn and integ.target_arn != target_arn:
+                continue
+            results.append(integ.as_dict())
+        return results
+
+    # --- Column Statistics Task Settings ---
+
+    def create_column_statistics_task_settings(
+        self,
+        database_name: str,
+        table_name: str,
+        role: str,
+        schedule: Optional[str] = None,
+        column_name_list: Optional[list[str]] = None,
+        sample_size: float = 0.0,
+        catalog_id: Optional[str] = None,
+        security_configuration: Optional[str] = None,
+    ) -> None:
+        # Verify the table exists
+        self.get_table(database_name, table_name)
+        key = f"{database_name}:{table_name}"
+        self.column_statistics_task_settings[key] = {
+            "DatabaseName": database_name,
+            "TableName": table_name,
+            "Role": role,
+            "Schedule": schedule,
+            "ColumnNameList": column_name_list or [],
+            "SampleSize": sample_size,
+            "CatalogID": catalog_id or self.account_id,
+            "SecurityConfiguration": security_configuration,
+        }
+
+    def get_column_statistics_task_settings(
+        self, database_name: str, table_name: str
+    ) -> dict[str, Any]:
+        key = f"{database_name}:{table_name}"
+        if key not in self.column_statistics_task_settings:
+            raise EntityNotFoundException(
+                f"ColumnStatisticsTaskSettings for {database_name}/{table_name} not found."
+            )
+        return self.column_statistics_task_settings[key]
+
+    def update_column_statistics_task_settings(
+        self,
+        database_name: str,
+        table_name: str,
+        role: Optional[str] = None,
+        schedule: Optional[str] = None,
+        column_name_list: Optional[list[str]] = None,
+        sample_size: Optional[float] = None,
+        security_configuration: Optional[str] = None,
+    ) -> None:
+        key = f"{database_name}:{table_name}"
+        if key not in self.column_statistics_task_settings:
+            raise EntityNotFoundException(
+                f"ColumnStatisticsTaskSettings for {database_name}/{table_name} not found."
+            )
+        settings = self.column_statistics_task_settings[key]
+        if role is not None:
+            settings["Role"] = role
+        if schedule is not None:
+            settings["Schedule"] = schedule
+        if column_name_list is not None:
+            settings["ColumnNameList"] = column_name_list
+        if sample_size is not None:
+            settings["SampleSize"] = sample_size
+        if security_configuration is not None:
+            settings["SecurityConfiguration"] = security_configuration
+
+    def delete_column_statistics_task_settings(
+        self, database_name: str, table_name: str
+    ) -> None:
+        key = f"{database_name}:{table_name}"
+        if key in self.column_statistics_task_settings:
+            del self.column_statistics_task_settings[key]
+
+    def start_column_statistics_task_run(
+        self, database_name: str, table_name: str
+    ) -> str:
+        self.get_table(database_name, table_name)
+        run_id = f"colstats_{mock_random.get_random_hex(32)}"
+        self.column_statistics_task_runs[run_id] = {
+            "ColumnStatisticsTaskRunId": run_id,
+            "DatabaseName": database_name,
+            "TableName": table_name,
+            "Status": "RUNNING",
+        }
+        return run_id
+
+    def stop_column_statistics_task_run(
+        self, database_name: str, table_name: str
+    ) -> None:
+        self.get_table(database_name, table_name)
+        # Remove any runs for this table
+        to_delete = [
+            k
+            for k, v in self.column_statistics_task_runs.items()
+            if v.get("DatabaseName") == database_name
+            and v.get("TableName") == table_name
+        ]
+        for k in to_delete:
+            del self.column_statistics_task_runs[k]
+
+    def start_column_statistics_task_run_schedule(
+        self, database_name: str, table_name: str
+    ) -> None:
+        self.get_table(database_name, table_name)
+
+    def stop_column_statistics_task_run_schedule(
+        self, database_name: str, table_name: str
+    ) -> None:
+        self.get_table(database_name, table_name)
+
+    # --- Data Quality Runs ---
+
+    def start_data_quality_rule_recommendation_run(
+        self,
+        data_source: dict[str, Any],
+        role: str,
+        number_of_workers: Optional[int] = None,
+        timeout: Optional[int] = None,
+        created_ruleset_name: Optional[str] = None,
+    ) -> str:
+        run_id = f"dqrec_{mock_random.get_random_hex(32)}"
+        self.data_quality_recommendation_runs[run_id] = {
+            "RunId": run_id,
+            "DataSource": data_source,
+            "Role": role,
+            "Status": "RUNNING",
+        }
+        return run_id
+
+    def start_data_quality_ruleset_evaluation_run(
+        self,
+        data_source: dict[str, Any],
+        role: str,
+        ruleset_names: list[str],
+        number_of_workers: Optional[int] = None,
+        timeout: Optional[int] = None,
+        additional_data_sources: Optional[dict[str, Any]] = None,
+    ) -> str:
+        run_id = f"dqeval_{mock_random.get_random_hex(32)}"
+        self.data_quality_evaluation_runs[run_id] = {
+            "RunId": run_id,
+            "DataSource": data_source,
+            "Role": role,
+            "RulesetNames": ruleset_names,
+            "Status": "RUNNING",
+            "AdditionalRunOptions": {},
+            "ResultIds": [],
+            "AdditionalDataSources": additional_data_sources or {},
+        }
+        return run_id
+
+    def cancel_data_quality_rule_recommendation_run(self, run_id: str) -> None:
+        pass  # No-op, matching AWS behavior for already-completed or non-existent runs
+
+    def cancel_data_quality_ruleset_evaluation_run(self, run_id: str) -> None:
+        pass  # No-op
+
+    # --- Data Quality Extras ---
+
+    def batch_get_data_quality_result(self, result_ids: list[str]) -> dict[str, Any]:
+        return {
+            "Results": [],
+            "ResultsNotFound": result_ids,
+        }
+
+    def get_data_quality_model_result(
+        self, profile_id: str, statistic_id: Optional[str] = None
+    ) -> None:
+        raise EntityNotFoundException(
+            f"DataQualityModelResult for profile {profile_id} not found."
+        )
+
+    def list_data_quality_statistics(
+        self,
+        statistic_id: Optional[str] = None,
+        profile_id: Optional[str] = None,
+    ) -> list[Any]:
+        return []
+
+    def list_data_quality_statistic_annotations(
+        self,
+        statistic_id: Optional[str] = None,
+        profile_id: Optional[str] = None,
+    ) -> list[Any]:
+        return []
+
+    def batch_put_data_quality_statistic_annotation(
+        self, inclusion_annotations: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        return {"FailedInclusionAnnotations": []}
+
+    def put_data_quality_profile_annotation(
+        self, profile_id: str, inclusion_annotation: str
+    ) -> None:
+        pass
+
+    def create_table_optimizer(
+        self,
+        catalog_id: str,
+        database_name: str,
+        table_name: str,
+        type_: str,
+        configuration: dict[str, Any],
+    ) -> None:
+        key = (catalog_id, database_name, table_name, type_)
+        if key in self.table_optimizers:
+            raise AlreadyExistsException("TableOptimizer")
+        self.table_optimizers[key] = FakeTableOptimizer(
+            catalog_id=catalog_id,
+            database_name=database_name,
+            table_name=table_name,
+            type_=type_,
+            configuration=configuration,
+        )
+
+    def get_table_optimizer(
+        self,
+        catalog_id: str,
+        database_name: str,
+        table_name: str,
+        type_: str,
+    ) -> "FakeTableOptimizer":
+        key = (catalog_id, database_name, table_name, type_)
+        if key not in self.table_optimizers:
+            raise EntityNotFoundException(
+                f"Table optimizer not found for CatalogId: {catalog_id}, "
+                f"DatabaseName: {database_name}, TableName: {table_name}, Type: {type_}"
+            )
+        return self.table_optimizers[key]
+
+    def update_table_optimizer(
+        self,
+        catalog_id: str,
+        database_name: str,
+        table_name: str,
+        type_: str,
+        configuration: dict[str, Any],
+    ) -> None:
+        optimizer = self.get_table_optimizer(
+            catalog_id, database_name, table_name, type_
+        )
+        optimizer.configuration = configuration
+
+    def delete_table_optimizer(
+        self,
+        catalog_id: str,
+        database_name: str,
+        table_name: str,
+        type_: str,
+    ) -> None:
+        key = (catalog_id, database_name, table_name, type_)
+        if key not in self.table_optimizers:
+            raise EntityNotFoundException(
+                f"Table optimizer not found for CatalogId: {catalog_id}, "
+                f"DatabaseName: {database_name}, TableName: {table_name}, Type: {type_}"
+            )
+        del self.table_optimizers[key]
+
+    def batch_get_table_optimizer(
+        self, entries: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        results = []
+        for entry in entries:
+            catalog_id = entry.get("CatalogId", "")
+            database_name = entry.get("DatabaseName", "")
+            table_name = entry.get("TableName", "")
+            type_ = entry.get("Type", "")
+            key = (catalog_id, database_name, table_name, type_)
+            optimizer = self.table_optimizers.get(key)
+            if optimizer:
+                results.append(
+                    {
+                        "CatalogId": catalog_id,
+                        "DatabaseName": database_name,
+                        "TableName": table_name,
+                        "TableOptimizer": optimizer.as_dict(),
+                    }
+                )
+        return results
+
+    def list_table_optimizer_runs(
+        self,
+        catalog_id: str,
+        database_name: str,
+        table_name: str,
+        type_: str,
+    ) -> list[dict[str, Any]]:
+        # Verify the optimizer exists
+        self.get_table_optimizer(catalog_id, database_name, table_name, type_)
+        # Runs are async; return empty list
+        return []
+
+
+class FakeIntegration(BaseModel):
+    def __init__(
+        self,
+        backend: GlueBackend,
+        name: str,
+        source_arn: str,
+        target_arn: str,
+        description: Optional[str] = None,
+        kms_key_id: Optional[str] = None,
+        additional_encryption_context: Optional[dict[str, str]] = None,
+    ) -> None:
+        self.name = name
+        self.source_arn = source_arn
+        self.target_arn = target_arn
+        self.description = description
+        self.kms_key_id = kms_key_id
+        self.additional_encryption_context = additional_encryption_context or {}
+        self.created_on = utcnow()
+        self.last_modified_on = self.created_on
+        self.status = "ACTIVE"
+        self.arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:integration/{name}"
+
+    def as_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "IntegrationName": self.name,
+            "IntegrationArn": self.arn,
+            "SourceArn": self.source_arn,
+            "TargetArn": self.target_arn,
+            "Status": self.status,
+            "CreateTime": self.created_on,
+            "LastModifiedTime": self.last_modified_on,
+        }
+        if self.description:
+            result["Description"] = self.description
+        if self.kms_key_id:
+            result["KmsKeyId"] = self.kms_key_id
+        if self.additional_encryption_context:
+            result["AdditionalEncryptionContext"] = self.additional_encryption_context
+        return result
 
 
 class FakeSecurityConfiguration(BaseModel):
@@ -2340,6 +4575,8 @@ class FakeSession(BaseModel):
         self.backend = backend
         self.backend.tag_resource(self.arn, tags)
         self.state = "READY"
+        self.statements: dict[int, dict[str, Any]] = {}
+        self._next_statement_id: int = 1
 
     def get_id(self) -> str:
         return self.session_id
@@ -2570,6 +4807,401 @@ class FakeWorkflow:
     def stop_run(self, run_id: str) -> None:
         if not self.runs.get(run_id):
             raise EntityNotFoundException("Entity not found")
+
+
+class FakeCatalog(BaseModel):
+    def __init__(
+        self,
+        backend: GlueBackend,
+        name: str,
+        catalog_input: dict[str, Any],
+    ) -> None:
+        self.name = name
+        self.catalog_input = catalog_input
+        self.description = catalog_input.get("Description")
+        self.parameters = catalog_input.get("Parameters", {})
+        self.created_time = utcnow()
+        self.updated_time = self.created_time
+        self.arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:catalog/{name}"
+        self.catalog_id = name
+        self.account_id = backend.account_id
+
+    def update_from_input(self, catalog_input: dict[str, Any]) -> None:
+        self.catalog_input = catalog_input
+        self.description = catalog_input.get("Description", self.description)
+        self.parameters = catalog_input.get("Parameters", self.parameters)
+        self.updated_time = utcnow()
+
+    def as_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "CatalogId": self.catalog_id,
+            "Name": self.name,
+            "ResourceArn": self.arn,
+            "CreateTime": self.created_time,
+            "UpdateTime": self.updated_time,
+        }
+        if self.description:
+            result["Description"] = self.description
+        if self.parameters:
+            result["Parameters"] = self.parameters
+        return result
+
+
+class FakeDataQualityRuleset(BaseModel):
+    def __init__(
+        self,
+        backend: GlueBackend,
+        name: str,
+        ruleset: str,
+        description: Optional[str] = None,
+        target_table: Optional[dict[str, str]] = None,
+    ) -> None:
+        self.name = name
+        self.ruleset = ruleset
+        self.description = description
+        self.target_table = target_table
+        self.created_on = utcnow()
+        self.last_modified_on = self.created_on
+        self.arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:dataQualityRuleset/{name}"
+
+    def as_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "Name": self.name,
+            "Ruleset": self.ruleset,
+            "CreatedOn": self.created_on,
+            "LastModifiedOn": self.last_modified_on,
+        }
+        if self.description:
+            result["Description"] = self.description
+        if self.target_table:
+            result["TargetTable"] = self.target_table
+        return result
+
+
+class FakeBlueprint(BaseModel):
+    def __init__(
+        self,
+        backend: GlueBackend,
+        name: str,
+        blueprint_location: str,
+        description: Optional[str] = None,
+    ) -> None:
+        self.name = name
+        self.blueprint_location = blueprint_location
+        self.description = description
+        self.created_on = utcnow()
+        self.last_modified_on = self.created_on
+        self.status = "ACTIVE"
+        self.arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:blueprint/{name}"
+
+    def as_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "Name": self.name,
+            "BlueprintLocation": self.blueprint_location,
+            "Status": self.status,
+            "CreatedOn": self.created_on,
+            "LastModifiedOn": self.last_modified_on,
+        }
+        if self.description:
+            result["Description"] = self.description
+        return result
+
+
+class FakeMLTransform(BaseModel):
+    def __init__(
+        self,
+        backend: GlueBackend,
+        name: str,
+        input_record_tables: list[dict[str, str]],
+        parameters: dict[str, Any],
+        role: str,
+        description: Optional[str] = None,
+        glue_version: Optional[str] = None,
+        max_capacity: Optional[float] = None,
+        worker_type: Optional[str] = None,
+        number_of_workers: Optional[int] = None,
+        timeout: Optional[int] = None,
+        max_retries: Optional[int] = None,
+    ) -> None:
+        self.transform_id = f"tfm_{mock_random.get_random_hex(32)}"
+        self.name = name
+        self.input_record_tables = input_record_tables
+        self.parameters = parameters
+        self.role = role
+        self.description = description
+        self.glue_version = glue_version
+        self.max_capacity = max_capacity
+        self.worker_type = worker_type
+        self.number_of_workers = number_of_workers
+        self.timeout = timeout
+        self.max_retries = max_retries
+        self.status = "NOT_READY"
+        self.created_on = utcnow()
+        self.last_modified_on = self.created_on
+        self.arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:mlTransform/{self.transform_id}"
+
+    def as_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "TransformId": self.transform_id,
+            "Name": self.name,
+            "InputRecordTables": self.input_record_tables,
+            "Parameters": self.parameters,
+            "Role": self.role,
+            "Status": self.status,
+            "CreatedOn": self.created_on,
+            "LastModifiedOn": self.last_modified_on,
+        }
+        if self.description:
+            result["Description"] = self.description
+        if self.glue_version:
+            result["GlueVersion"] = self.glue_version
+        if self.max_capacity is not None:
+            result["MaxCapacity"] = self.max_capacity
+        if self.worker_type:
+            result["WorkerType"] = self.worker_type
+        if self.number_of_workers is not None:
+            result["NumberOfWorkers"] = self.number_of_workers
+        if self.timeout is not None:
+            result["Timeout"] = self.timeout
+        if self.max_retries is not None:
+            result["MaxRetries"] = self.max_retries
+        return result
+
+
+class FakeClassifier(BaseModel):
+    def __init__(
+        self,
+        grok_classifier: Optional[dict[str, Any]] = None,
+        xml_classifier: Optional[dict[str, Any]] = None,
+        json_classifier: Optional[dict[str, Any]] = None,
+        csv_classifier: Optional[dict[str, Any]] = None,
+    ) -> None:
+        self.grok_classifier = grok_classifier
+        self.xml_classifier = xml_classifier
+        self.json_classifier = json_classifier
+        self.csv_classifier = csv_classifier
+        self.created_time = utcnow()
+        self.last_updated = self.created_time
+
+        # Determine the name from whichever classifier type is provided
+        if grok_classifier:
+            self.name = grok_classifier.get("Name", "")
+            self.classifier_type = "grok"
+        elif xml_classifier:
+            self.name = xml_classifier.get("Name", "")
+            self.classifier_type = "xml"
+        elif json_classifier:
+            self.name = json_classifier.get("Name", "")
+            self.classifier_type = "json"
+        elif csv_classifier:
+            self.name = csv_classifier.get("Name", "")
+            self.classifier_type = "csv"
+        else:
+            self.name = ""
+            self.classifier_type = "unknown"
+
+    def update(
+        self,
+        grok_classifier: Optional[dict[str, Any]] = None,
+        xml_classifier: Optional[dict[str, Any]] = None,
+        json_classifier: Optional[dict[str, Any]] = None,
+        csv_classifier: Optional[dict[str, Any]] = None,
+    ) -> None:
+        if grok_classifier:
+            self.grok_classifier = {**(self.grok_classifier or {}), **grok_classifier}
+        if xml_classifier:
+            self.xml_classifier = {**(self.xml_classifier or {}), **xml_classifier}
+        if json_classifier:
+            self.json_classifier = {**(self.json_classifier or {}), **json_classifier}
+        if csv_classifier:
+            self.csv_classifier = {**(self.csv_classifier or {}), **csv_classifier}
+        self.last_updated = utcnow()
+
+    def as_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {}
+        if self.grok_classifier:
+            clf = dict(self.grok_classifier)
+            clf["CreationTime"] = self.created_time
+            clf["LastUpdated"] = self.last_updated
+            result["GrokClassifier"] = clf
+        if self.xml_classifier:
+            clf = dict(self.xml_classifier)
+            clf["CreationTime"] = self.created_time
+            clf["LastUpdated"] = self.last_updated
+            result["XMLClassifier"] = clf
+        if self.json_classifier:
+            clf = dict(self.json_classifier)
+            clf["CreationTime"] = self.created_time
+            clf["LastUpdated"] = self.last_updated
+            result["JsonClassifier"] = clf
+        if self.csv_classifier:
+            clf = dict(self.csv_classifier)
+            clf["CreationTime"] = self.created_time
+            clf["LastUpdated"] = self.last_updated
+            result["CsvClassifier"] = clf
+        return result
+
+
+class FakeCustomEntityType(BaseModel):
+    def __init__(
+        self,
+        name: str,
+        regex_string: str,
+        context_words: Optional[list[str]] = None,
+    ) -> None:
+        self.name = name
+        self.regex_string = regex_string
+        self.context_words = context_words or []
+
+    def as_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "Name": self.name,
+            "RegexString": self.regex_string,
+        }
+        if self.context_words:
+            result["ContextWords"] = self.context_words
+        return result
+
+
+class FakeUsageProfile(BaseModel):
+    def __init__(
+        self,
+        backend: GlueBackend,
+        name: str,
+        description: Optional[str] = None,
+        configuration: Optional[dict[str, Any]] = None,
+    ) -> None:
+        self.name = name
+        self.description = description
+        self.configuration = configuration
+        self.created_on = utcnow()
+        self.last_modified_on = self.created_on
+        self.arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:usageProfile/{name}"
+
+    def as_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "Name": self.name,
+            "CreatedOn": self.created_on,
+            "LastModifiedOn": self.last_modified_on,
+        }
+        if self.description:
+            result["Description"] = self.description
+        if self.configuration:
+            result["Configuration"] = self.configuration
+        return result
+
+
+class FakeTableOptimizer(BaseModel):
+    def __init__(
+        self,
+        catalog_id: str,
+        database_name: str,
+        table_name: str,
+        type_: str,
+        configuration: dict[str, Any],
+    ) -> None:
+        self.catalog_id = catalog_id
+        self.database_name = database_name
+        self.table_name = table_name
+        self.type = type_
+        self.configuration = configuration
+        self.created_on = utcnow()
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "type": self.type,
+            "configuration": self.configuration,
+            "lastRun": {},
+        }
+
+
+class FakeConnectionType(BaseModel):
+    def __init__(
+        self,
+        backend: GlueBackend,
+        connection_type: str,
+        integration_type: str,
+        connection_properties: Optional[dict[str, str]] = None,
+        connector_authentication_configuration: Optional[dict[str, Any]] = None,
+        rest_configuration: Optional[dict[str, Any]] = None,
+        description: Optional[str] = None,
+        capabilities: Optional[list[str]] = None,
+    ) -> None:
+        self.connection_type = connection_type
+        self.integration_type = integration_type
+        self.connection_properties = connection_properties or {}
+        self.connector_authentication_configuration = (
+            connector_authentication_configuration or {}
+        )
+        self.rest_configuration = rest_configuration or {}
+        self.description = description
+        self.capabilities = capabilities or []
+        self.arn = f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:connectiontype/{connection_type}"
+
+    def as_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "ConnectionType": self.connection_type,
+            "ConnectionProperties": self.connection_properties,
+            "AuthenticationConfiguration": self.connector_authentication_configuration,
+            "RestConfiguration": self.rest_configuration,
+        }
+        if self.description is not None:
+            result["Description"] = self.description
+        if self.capabilities:
+            result["Capabilities"] = self.capabilities
+        return result
+
+
+class FakeGlueIdentityCenterConfiguration(BaseModel):
+    def __init__(
+        self,
+        backend: GlueBackend,
+        instance_arn: str,
+        application_arn: Optional[str] = None,
+        scopes: Optional[list[str]] = None,
+        user_background_sessions_enabled: bool = False,
+    ) -> None:
+        self.instance_arn = instance_arn
+        self.application_arn = (
+            application_arn
+            or f"arn:{get_partition(backend.region_name)}:glue:{backend.region_name}:{backend.account_id}:application/glue-identity-center"
+        )
+        self.scopes = scopes or []
+        self.user_background_sessions_enabled = user_background_sessions_enabled
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "ApplicationArn": self.application_arn,
+            "InstanceArn": self.instance_arn,
+            "Scopes": self.scopes,
+            "UserBackgroundSessionsEnabled": self.user_background_sessions_enabled,
+        }
+
+
+class FakeMaterializedViewRefreshTaskRun(BaseModel):
+    def __init__(
+        self,
+        task_run_id: str,
+        catalog_id: str,
+        database_name: str,
+        table_name: str,
+    ) -> None:
+        self.task_run_id = task_run_id
+        self.catalog_id = catalog_id
+        self.database_name = database_name
+        self.table_name = table_name
+        self.status = "COMPLETED"
+        self.started_on = utcnow()
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "MaterializedViewRefreshTaskRunId": self.task_run_id,
+            "CatalogId": self.catalog_id,
+            "DatabaseName": self.database_name,
+            "TableName": self.table_name,
+            "Status": self.status,
+            "StartedOn": self.started_on,
+        }
 
 
 glue_backends = BackendDict(GlueBackend, "glue")

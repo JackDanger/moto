@@ -490,5 +490,113 @@ class SWFBackend(BaseBackend):
         )
         wfe.signal(signal_name, workflow_input)  # type: ignore[union-attr]
 
+    def count_closed_workflow_executions(
+        self,
+        domain_name: str,
+        tag_filter: dict[str, str],
+        close_status_filter: dict[str, str],
+    ) -> int:
+        self._process_timeouts()
+        domain = self._get_domain(domain_name)
+        if domain.status == "DEPRECATED":
+            raise SWFDomainDeprecatedFault(domain_name)
+        closed_wfes = [
+            wfe
+            for wfe in domain.workflow_executions
+            if wfe.execution_status == "CLOSED"
+        ]
+        if tag_filter:
+            closed_wfes = [
+                wfe for wfe in closed_wfes if tag_filter["tag"] in wfe.tag_list
+            ]
+        if close_status_filter:
+            closed_wfes = [
+                wfe
+                for wfe in closed_wfes
+                if wfe.close_status == close_status_filter.get("status")
+            ]
+        return len(closed_wfes)
+
+    def count_open_workflow_executions(
+        self,
+        domain_name: str,
+        tag_filter: dict[str, str],
+    ) -> int:
+        self._process_timeouts()
+        domain = self._get_domain(domain_name)
+        if domain.status == "DEPRECATED":
+            raise SWFDomainDeprecatedFault(domain_name)
+        open_wfes = [
+            wfe for wfe in domain.workflow_executions if wfe.execution_status == "OPEN"
+        ]
+        if tag_filter:
+            open_wfes = [
+                wfe for wfe in open_wfes if tag_filter["tag"] in wfe.tag_list
+            ]
+        return len(open_wfes)
+
+    def request_cancel_workflow_execution(
+        self,
+        domain_name: str,
+        workflow_id: str,
+        run_id: Optional[str] = None,
+    ) -> None:
+        self._process_timeouts()
+        domain = self._get_domain(domain_name)
+        wfe = domain.get_workflow_execution(
+            workflow_id, run_id=run_id, raise_if_closed=True
+        )
+        wfe.request_cancel()  # type: ignore[union-attr]
+
+    def respond_activity_task_canceled(
+        self, task_token: str, details: Any = None
+    ) -> None:
+        self._process_timeouts()
+        activity_task = self._find_activity_task_from_token(task_token)
+        wfe = activity_task.workflow_execution
+        wfe.cancel_activity_task(activity_task.task_token, details=details)
+
+    def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
+        domain = self._find_domain_by_arn(resource_arn)
+        for tag in tags:
+            # Update existing tag or add new one
+            existing = [t for t in domain.tags if t["key"] == tag["key"]]
+            if existing:
+                existing[0]["value"] = tag["value"]
+            else:
+                domain.tags.append(tag)
+
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
+        domain = self._find_domain_by_arn(resource_arn)
+        domain.tags = [t for t in domain.tags if t["key"] not in tag_keys]
+
+    def list_tags_for_resource(self, resource_arn: str) -> list[dict[str, str]]:
+        domain = self._find_domain_by_arn(resource_arn)
+        return domain.tags
+
+    def _find_domain_by_arn(self, arn: str) -> Domain:
+        from moto.utilities.utils import get_partition
+
+        for domain in self.domains:
+            domain_arn = (
+                f"arn:{get_partition(self.region_name)}:swf:{self.region_name}"
+                f":{self.account_id}:/domain/{domain.name}"
+            )
+            if domain_arn == arn:
+                return domain
+        raise SWFUnknownResourceFault("domain", arn)
+
+    def delete_type(
+        self, kind: str, domain_name: str, name: str, version: str
+    ) -> None:
+        domain = self._get_domain(domain_name)
+        _type: GenericType = domain.get_type(kind, name, version)
+        if _type.status != "DEPRECATED":
+            raise SWFValidationException(
+                f"The {kind} type must be deprecated first: "
+                f"{kind.capitalize()}Type=[name={name}, version={version}]"
+            )
+        domain.delete_type(kind, name, version)
+
 
 swf_backends = BackendDict(SWFBackend, "swf")

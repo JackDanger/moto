@@ -867,4 +867,293 @@ class ComprehendBackend(BaseBackend):
         return self._list_jobs("TargetedSentimentDetection", filter)
 
 
+    def list_document_classifier_summaries(
+        self,
+    ) -> tuple[list[dict[str, Any]], None]:
+        """
+        Return summary info for all document classifiers.
+        Pagination is not yet implemented.
+        """
+        summaries = []
+        for classifier in self.classifiers.values():
+            summaries.append(
+                {
+                    "DocumentClassifierName": classifier.name,
+                    "NumberOfVersions": 1,
+                    "LatestVersionCreatedAt": None,
+                    "LatestVersionName": classifier.version_name,
+                    "LatestVersionStatus": classifier.status,
+                }
+            )
+        return summaries, None
+
+    def list_entity_recognizer_summaries(
+        self,
+    ) -> tuple[list[dict[str, Any]], None]:
+        """
+        Return summary info for all entity recognizers.
+        Pagination is not yet implemented.
+        """
+        summaries = []
+        for recognizer in self.recognizers.values():
+            summaries.append(
+                {
+                    "RecognizerName": recognizer.name,
+                    "NumberOfVersions": 1,
+                    "LatestVersionCreatedAt": None,
+                    "LatestVersionName": recognizer.version_name,
+                    "LatestVersionStatus": recognizer.status,
+                }
+            )
+        return summaries, None
+
+    def detect_dominant_language(self, text: str) -> list[dict[str, Any]]:
+        text_size = len(text)
+        if text_size > 100000:
+            raise TextSizeLimitExceededException(text_size)
+        return [{"LanguageCode": "en", "Score": 0.99}]
+
+    def detect_entities(self, text: str, language: str) -> dict[str, Any]:
+        if language not in self.detect_key_phrases_languages:
+            raise DetectPIIValidationException(
+                language, self.detect_key_phrases_languages
+            )
+        text_size = len(text)
+        if text_size > 100000:
+            raise TextSizeLimitExceededException(text_size)
+        return {"Entities": []}
+
+    def detect_syntax(self, text: str, language: str) -> list[dict[str, Any]]:
+        # DetectSyntax supports a smaller set of languages
+        supported = ["en", "es", "fr", "de", "it", "pt"]
+        if language not in supported:
+            raise DetectPIIValidationException(language, supported)
+        text_size = len(text)
+        if text_size > 5000:
+            raise TextSizeLimitExceededException(text_size)
+        return []
+
+    def detect_targeted_sentiment(self, text: str, language: str) -> dict[str, Any]:
+        if language not in self.detect_key_phrases_languages:
+            raise DetectPIIValidationException(
+                language, self.detect_key_phrases_languages
+            )
+        text_size = len(text)
+        if text_size > 5000:
+            raise TextSizeLimitExceededException(text_size)
+        return {"Entities": []}
+
+    def batch_detect_dominant_language(
+        self, text_list: list[str]
+    ) -> dict[str, Any]:
+        result_list = []
+        error_list: list[dict[str, Any]] = []
+        for index, text in enumerate(text_list):
+            result_list.append(
+                {
+                    "Index": index,
+                    "Languages": [{"LanguageCode": "en", "Score": 0.99}],
+                }
+            )
+        return {"ResultList": result_list, "ErrorList": error_list}
+
+    def batch_detect_entities(
+        self, text_list: list[str], language_code: str
+    ) -> dict[str, Any]:
+        result_list = []
+        error_list: list[dict[str, Any]] = []
+        for index, text in enumerate(text_list):
+            result_list.append({"Index": index, "Entities": []})
+        return {"ResultList": result_list, "ErrorList": error_list}
+
+    def batch_detect_key_phrases(
+        self, text_list: list[str], language_code: str
+    ) -> dict[str, Any]:
+        result_list = []
+        error_list: list[dict[str, Any]] = []
+        for index, text in enumerate(text_list):
+            result_list.append({"Index": index, "KeyPhrases": []})
+        return {"ResultList": result_list, "ErrorList": error_list}
+
+    def batch_detect_sentiment(
+        self, text_list: list[str], language_code: str
+    ) -> dict[str, Any]:
+        result_list = []
+        error_list: list[dict[str, Any]] = []
+        for index, text in enumerate(text_list):
+            result_list.append(
+                {
+                    "Index": index,
+                    "Sentiment": "NEUTRAL",
+                    "SentimentScore": {
+                        "Positive": 0.008101312443614006,
+                        "Negative": 0.0002824589901138097,
+                        "Neutral": 0.9916020035743713,
+                        "Mixed": 1.4156351426208857e-05,
+                    },
+                }
+            )
+        return {"ResultList": result_list, "ErrorList": error_list}
+
+    def batch_detect_syntax(
+        self, text_list: list[str], language_code: str
+    ) -> dict[str, Any]:
+        result_list = []
+        error_list: list[dict[str, Any]] = []
+        for index, text in enumerate(text_list):
+            result_list.append({"Index": index, "SyntaxTokens": []})
+        return {"ResultList": result_list, "ErrorList": error_list}
+
+    def batch_detect_targeted_sentiment(
+        self, text_list: list[str], language_code: str
+    ) -> dict[str, Any]:
+        result_list = []
+        error_list: list[dict[str, Any]] = []
+        for index, text in enumerate(text_list):
+            result_list.append({"Index": index, "Entities": []})
+        return {"ResultList": result_list, "ErrorList": error_list}
+
+    def detect_toxic_content(
+        self, text_segments: list[dict[str, str]], language_code: str
+    ) -> dict[str, Any]:
+        result_list = []
+        for segment in text_segments:
+            result_list.append(
+                {
+                    "Labels": [
+                        {"Name": "PROFANITY", "Score": 0.01},
+                        {"Name": "HATE_SPEECH", "Score": 0.01},
+                        {"Name": "INSULT", "Score": 0.01},
+                        {"Name": "GRAPHIC", "Score": 0.01},
+                        {"Name": "HARASSMENT_OR_ABUSE", "Score": 0.01},
+                        {"Name": "SEXUAL", "Score": 0.01},
+                        {"Name": "VIOLENCE_OR_THREAT", "Score": 0.01},
+                    ],
+                    "Toxicity": 0.01,
+                }
+            )
+        return {"ResultList": result_list}
+
+    def contains_pii_entities(self, text: str, language: str) -> list[dict[str, Any]]:
+        if language not in self.detect_pii_entities_languages:
+            raise DetectPIIValidationException(
+                language, self.detect_pii_entities_languages
+            )
+        text_size = len(text)
+        if text_size > 100000:
+            raise TextSizeLimitExceededException(text_size)
+        return []
+
+    def classify_document(
+        self, text: str, endpoint_arn: str
+    ) -> dict[str, Any]:
+        return {
+            "Classes": [{"Name": "POSITIVE", "Score": 0.5}],
+            "Labels": [],
+        }
+
+    def create_dataset(
+        self,
+        flywheel_arn: str,
+        dataset_name: str,
+        dataset_type: Optional[str],
+        description: Optional[str],
+        input_data_config: dict[str, Any],
+        client_request_token: Optional[str],
+        tags: Optional[list[dict[str, str]]],
+    ) -> str:
+        if flywheel_arn not in self.flywheels:
+            raise ResourceNotFound
+        partition = get_partition(self.region_name)
+        dataset_arn = f"arn:{partition}:comprehend:{self.region_name}:{self.account_id}:flywheel/{flywheel_arn.split('/')[-1]}/dataset/{dataset_name}"
+        dataset = {
+            "DatasetArn": dataset_arn,
+            "DatasetName": dataset_name,
+            "DatasetType": dataset_type or "TRAIN",
+            "Description": description or "",
+            "Status": "CREATING",
+            "InputDataConfig": input_data_config,
+        }
+        if not hasattr(self, "datasets"):
+            self.datasets: dict[str, dict[str, Any]] = {}
+        self.datasets[dataset_arn] = dataset
+        if tags:
+            self.tagger.tag_resource(dataset_arn, tags)
+        return dataset_arn
+
+    def update_flywheel(
+        self,
+        flywheel_arn: str,
+        active_model_arn: Optional[str],
+        data_access_role_arn: Optional[str],
+        data_security_config: Optional[dict[str, Any]],
+    ) -> dict[str, Any]:
+        if flywheel_arn not in self.flywheels:
+            raise ResourceNotFound
+        flywheel = self.flywheels[flywheel_arn]
+        if active_model_arn is not None:
+            flywheel.active_model_arn = active_model_arn
+        if data_access_role_arn is not None:
+            flywheel.data_access_role_arn = data_access_role_arn
+        if data_security_config is not None:
+            flywheel.data_security_config = data_security_config
+        return flywheel.to_dict()
+
+    def list_datasets(
+        self,
+        flywheel_arn: Optional[str] = None,
+        filter: Optional[dict[str, Any]] = None,
+        next_token: Optional[str] = None,
+        max_results: Optional[int] = None,
+    ) -> tuple[list[dict[str, Any]], None]:
+        """
+        Pagination is not yet implemented.
+        """
+        if flywheel_arn and flywheel_arn not in self.flywheels:
+            raise ResourceNotFound
+        if not hasattr(self, "datasets"):
+            return [], None
+        datasets = list(self.datasets.values())
+        if flywheel_arn:
+            datasets = [d for d in datasets if flywheel_arn in d["DatasetArn"]]
+        return datasets, None
+
+    def describe_dataset(self, dataset_arn: str) -> dict[str, Any]:
+        if not hasattr(self, "datasets") or dataset_arn not in self.datasets:
+            raise ResourceNotFound
+        return self.datasets[dataset_arn]
+
+    def describe_flywheel_iteration(
+        self, flywheel_arn: str, flywheel_iteration_id: str
+    ) -> dict[str, Any]:
+        """
+        Flywheel iterations are not fully modeled.
+        Returns a stub iteration description if the flywheel exists.
+        """
+        if flywheel_arn not in self.flywheels:
+            raise ResourceNotFound
+        return {
+            "FlywheelIterationProperties": {
+                "FlywheelArn": flywheel_arn,
+                "FlywheelIterationId": flywheel_iteration_id,
+                "Status": "COMPLETED",
+            }
+        }
+
+    def list_flywheel_iteration_history(
+        self,
+        flywheel_arn: str,
+        filter: Optional[dict[str, Any]] = None,
+        next_token: Optional[str] = None,
+        max_results: Optional[int] = None,
+    ) -> tuple[list[dict[str, Any]], None]:
+        """
+        Flywheel iterations are not fully modeled; returns empty list.
+        Pagination is not yet implemented.
+        """
+        if flywheel_arn not in self.flywheels:
+            raise ResourceNotFound
+        return [], None
+
+
 comprehend_backends = BackendDict(ComprehendBackend, "comprehend")

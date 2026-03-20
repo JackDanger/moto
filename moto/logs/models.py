@@ -401,6 +401,9 @@ class LogGroup(CloudFormationModel):
         # AWS defaults to Never Expire for log group retention
         self.retention_in_days = kwargs.get("RetentionInDays")
         self.subscription_filters: dict[str, SubscriptionFilter] = {}
+        self.data_protection_policy: Optional[dict[str, Any]] = None
+        self.transformer: Optional[dict[str, Any]] = None
+        self.deletion_protection: bool = False
 
         # The Amazon Resource Name (ARN) of the CMK to use when encrypting log data. It is optional.
         # Docs:
@@ -927,6 +930,154 @@ class Delivery(BaseModel):
         return dct_items
 
 
+class AccountPolicy(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        policy_name: str,
+        policy_document: str,
+        policy_type: str,
+        scope: Optional[str],
+        selection_criteria: Optional[str],
+    ):
+        self.account_id = account_id
+        self.policy_name = policy_name
+        self.policy_document = policy_document
+        self.policy_type = policy_type
+        self.scope = scope or "ALL"
+        self.selection_criteria = selection_criteria
+        self.last_updated_time = int(unix_time_millis())
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "accountId": self.account_id,
+            "policyName": self.policy_name,
+            "policyDocument": self.policy_document,
+            "policyType": self.policy_type,
+            "scope": self.scope,
+            "lastUpdatedTime": self.last_updated_time,
+        }
+        if self.selection_criteria:
+            result["selectionCriteria"] = self.selection_criteria
+        return result
+
+
+class LogAnomalyDetector(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region: str,
+        detector_name: str,
+        log_group_arn_list: list[str],
+        evaluation_frequency: Optional[str],
+        filter_pattern: Optional[str],
+        kms_key_id: Optional[str],
+        anomaly_visibility_time: Optional[int],
+        tags: Optional[dict[str, str]],
+    ):
+        self.detector_name = detector_name
+        self.anomaly_detector_arn = f"arn:{get_partition(region)}:logs:{region}:{account_id}:anomaly-detector:{mock_random.get_random_hex(8)}"
+        self.log_group_arn_list = log_group_arn_list
+        self.evaluation_frequency = evaluation_frequency or "FIVE_MIN"
+        self.filter_pattern = filter_pattern or ""
+        self.kms_key_id = kms_key_id
+        self.anomaly_visibility_time = anomaly_visibility_time or 7
+        self.tags = tags or {}
+        self.anomaly_detector_status = "TRAINING"
+        self.creation_time_stamp = int(unix_time_millis())
+        self.last_modified_time_stamp = int(unix_time_millis())
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "detectorName": self.detector_name,
+            "anomalyDetectorArn": self.anomaly_detector_arn,
+            "logGroupArnList": self.log_group_arn_list,
+            "evaluationFrequency": self.evaluation_frequency,
+            "filterPattern": self.filter_pattern,
+            "anomalyDetectorStatus": self.anomaly_detector_status,
+            "anomalyVisibilityTime": self.anomaly_visibility_time,
+            "creationTimeStamp": self.creation_time_stamp,
+            "lastModifiedTimeStamp": self.last_modified_time_stamp,
+        }
+        if self.kms_key_id:
+            result["kmsKeyId"] = self.kms_key_id
+        return result
+
+
+class IndexPolicy(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        log_group_identifier: str,
+        policy_document: str,
+        log_group_name: str,
+    ):
+        self.policy_name = "default"
+        self.policy_document = policy_document
+        self.log_group_identifier = log_group_identifier
+        self.source = account_id
+        self.last_update_time = int(unix_time_millis())
+        # Store the log group name for lookup
+        self.log_group_name = log_group_name
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "policyName": self.policy_name,
+            "policyDocument": self.policy_document,
+            "logGroupIdentifier": self.log_group_identifier,
+            "source": self.source,
+            "lastUpdateTime": self.last_update_time,
+        }
+
+
+class ScheduledQuery(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region: str,
+        name: str,
+        query_string: str,
+        log_group_names: list[str],
+        schedule_expression: str,
+        target_configuration: Optional[dict[str, Any]] = None,
+        query_language: str = "CWLI",
+    ):
+        self.name = name
+        self.scheduled_query_id = mock_random.get_random_hex(16)
+        self.arn = (
+            f"arn:{get_partition(region)}:logs:{region}:{account_id}"
+            f":scheduled-query:{self.scheduled_query_id}"
+        )
+        self.query_string = query_string
+        self.query_language = query_language
+        self.log_group_names = log_group_names
+        self.schedule_expression = schedule_expression
+        self.target_configuration = target_configuration or {}
+        self.status = "ACTIVE"
+        self.creation_time = int(unix_time_millis())
+        self.last_modified_time = int(unix_time_millis())
+        self.run_status: Optional[dict[str, Any]] = None
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "name": self.name,
+            "scheduledQueryId": self.scheduled_query_id,
+            "arn": self.arn,
+            "queryLanguage": self.query_language,
+            "queryString": self.query_string,
+            "logGroupIdentifiers": self.log_group_names,
+            "scheduleExpression": self.schedule_expression,
+            "status": self.status,
+            "creationTime": self.creation_time,
+            "lastModifiedTime": self.last_modified_time,
+        }
+        if self.target_configuration:
+            result["targetConfiguration"] = self.target_configuration
+        if self.run_status:
+            result["runStatus"] = self.run_status
+        return result
+
+
 class LogsBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -940,6 +1091,11 @@ class LogsBackend(BaseBackend):
         self.delivery_destinations: dict[str, DeliveryDestination] = {}
         self.delivery_sources: dict[str, DeliverySource] = {}
         self.deliveries: dict[str, Delivery] = {}
+        self.query_definitions: dict[str, dict[str, Any]] = {}
+        self.account_policies: dict[str, dict[str, AccountPolicy]] = {}
+        self.anomaly_detectors: dict[str, LogAnomalyDetector] = {}
+        self.index_policies: dict[str, IndexPolicy] = {}
+        self.scheduled_queries: dict[str, ScheduledQuery] = {}
 
     def create_log_group(
         self, log_group_name: str, tags: dict[str, str], **kwargs: Any
@@ -1775,6 +1931,669 @@ class LogsBackend(BaseBackend):
             )
         self.delivery_sources.pop(name)
         return
+
+    def put_query_definition(
+        self,
+        name: str,
+        query_string: str,
+        log_group_names: list[str],
+        query_definition_id: Optional[str] = None,
+    ) -> str:
+        if query_definition_id is None:
+            query_definition_id = str(mock_random.uuid4())
+        self.query_definitions[query_definition_id] = {
+            "queryDefinitionId": query_definition_id,
+            "name": name,
+            "queryString": query_string,
+            "logGroupNames": log_group_names,
+            "lastModified": int(unix_time_millis()),
+        }
+        return query_definition_id
+
+    def delete_query_definition(
+        self,
+        query_definition_id: str,
+    ) -> bool:
+        if query_definition_id not in self.query_definitions:
+            raise ResourceNotFoundException(
+                msg=f"Query definition with id [{query_definition_id}] does not exist."
+            )
+        del self.query_definitions[query_definition_id]
+        return True
+
+    def describe_query_definitions(
+        self,
+        query_definition_name_prefix: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        definitions = list(self.query_definitions.values())
+        if query_definition_name_prefix:
+            definitions = [
+                d
+                for d in definitions
+                if d["name"].startswith(query_definition_name_prefix)
+            ]
+        return definitions
+
+    def get_log_group_fields(
+        self,
+        log_group_name: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        # Return common default fields that CloudWatch Logs always includes
+        return [
+            {"name": "@timestamp", "percent": 100},
+            {"name": "@message", "percent": 100},
+            {"name": "@logStream", "percent": 100},
+        ]
+
+    def list_log_groups(
+        self,
+        log_group_name_prefix: Optional[str] = None,
+        log_group_name_pattern: Optional[str] = None,
+        limit: int = 50,
+        next_token: Optional[str] = None,
+    ) -> tuple[list[dict[str, Any]], Optional[str]]:
+        # Re-use existing describe_log_groups logic
+        groups, new_next_token = self.describe_log_groups(
+            limit=limit,
+            log_group_name_prefix=log_group_name_prefix,
+            next_token=next_token,
+        )
+        result = [g.to_describe_dict() for g in groups]
+        if log_group_name_pattern:
+            import re as _re
+
+            result = [
+                g for g in result if _re.search(log_group_name_pattern, g["logGroupName"])
+            ]
+        return result, new_next_token
+
+    def describe_configuration_templates(self) -> list[dict[str, Any]]:
+        # Configuration templates are not yet modeled; return empty list
+        return []
+
+    def describe_import_tasks(self) -> list[dict[str, Any]]:
+        # Import tasks are not yet modeled; return empty list
+        return []
+
+    def put_account_policy(
+        self,
+        policy_name: str,
+        policy_document: str,
+        policy_type: str,
+        scope: Optional[str],
+        selection_criteria: Optional[str],
+    ) -> AccountPolicy:
+        valid_types = [
+            "DATA_PROTECTION_POLICY",
+            "SUBSCRIPTION_FILTER_POLICY",
+        ]
+        if policy_type not in valid_types:
+            raise InvalidParameterException(
+                constraint=f"Member must satisfy enum value set: {valid_types}",
+                parameter="policyType",
+                value=policy_type,
+            )
+        if policy_type not in self.account_policies:
+            self.account_policies[policy_type] = {}
+        policy = AccountPolicy(
+            account_id=self.account_id,
+            policy_name=policy_name,
+            policy_document=policy_document,
+            policy_type=policy_type,
+            scope=scope,
+            selection_criteria=selection_criteria,
+        )
+        self.account_policies[policy_type][policy_name] = policy
+        return policy
+
+    def describe_account_policies(
+        self,
+        policy_type: str,
+        policy_name: Optional[str] = None,
+    ) -> list[AccountPolicy]:
+        valid_types = [
+            "DATA_PROTECTION_POLICY",
+            "SUBSCRIPTION_FILTER_POLICY",
+        ]
+        if policy_type not in valid_types:
+            raise InvalidParameterException(
+                constraint=f"Member must satisfy enum value set: {valid_types}",
+                parameter="policyType",
+                value=policy_type,
+            )
+        policies = list(self.account_policies.get(policy_type, {}).values())
+        if policy_name:
+            policies = [p for p in policies if p.policy_name == policy_name]
+        return policies
+
+    def delete_account_policy(
+        self,
+        policy_name: str,
+        policy_type: str,
+    ) -> None:
+        valid_types = [
+            "DATA_PROTECTION_POLICY",
+            "SUBSCRIPTION_FILTER_POLICY",
+        ]
+        if policy_type not in valid_types:
+            raise InvalidParameterException(
+                constraint=f"Member must satisfy enum value set: {valid_types}",
+                parameter="policyType",
+                value=policy_type,
+            )
+        policies = self.account_policies.get(policy_type, {})
+        if policy_name not in policies:
+            raise ResourceNotFoundException(
+                msg=f"Policy with name [{policy_name}] does not exist"
+            )
+        del policies[policy_name]
+
+    def create_log_anomaly_detector(
+        self,
+        log_group_arn_list: list[str],
+        detector_name: Optional[str],
+        evaluation_frequency: Optional[str],
+        filter_pattern: Optional[str],
+        kms_key_id: Optional[str],
+        anomaly_visibility_time: Optional[int],
+        tags: Optional[dict[str, str]],
+    ) -> str:
+        if evaluation_frequency and evaluation_frequency not in [
+            "ONE_MIN",
+            "FIVE_MIN",
+            "TEN_MIN",
+            "FIFTEEN_MIN",
+            "THIRTY_MIN",
+            "ONE_HOUR",
+        ]:
+            raise InvalidParameterException(
+                constraint="Member must satisfy enum value set: [ONE_MIN, FIVE_MIN, TEN_MIN, FIFTEEN_MIN, THIRTY_MIN, ONE_HOUR]",
+                parameter="evaluationFrequency",
+                value=evaluation_frequency,
+            )
+        detector = LogAnomalyDetector(
+            account_id=self.account_id,
+            region=self.region_name,
+            detector_name=detector_name or "",
+            log_group_arn_list=log_group_arn_list,
+            evaluation_frequency=evaluation_frequency,
+            filter_pattern=filter_pattern,
+            kms_key_id=kms_key_id,
+            anomaly_visibility_time=anomaly_visibility_time,
+            tags=tags,
+        )
+        self.anomaly_detectors[detector.anomaly_detector_arn] = detector
+        if tags:
+            self.tag_resource(detector.anomaly_detector_arn, tags)
+        return detector.anomaly_detector_arn
+
+    def get_log_anomaly_detector(self, anomaly_detector_arn: str) -> LogAnomalyDetector:
+        if anomaly_detector_arn not in self.anomaly_detectors:
+            raise ResourceNotFoundException(
+                msg="The specified anomaly detector does not exist."
+            )
+        return self.anomaly_detectors[anomaly_detector_arn]
+
+    def update_log_anomaly_detector(
+        self,
+        anomaly_detector_arn: str,
+        evaluation_frequency: Optional[str],
+        filter_pattern: Optional[str],
+        anomaly_visibility_time: Optional[int],
+        enabled: bool,
+    ) -> None:
+        if anomaly_detector_arn not in self.anomaly_detectors:
+            raise ResourceNotFoundException(
+                msg="The specified anomaly detector does not exist."
+            )
+        detector = self.anomaly_detectors[anomaly_detector_arn]
+        if evaluation_frequency is not None:
+            detector.evaluation_frequency = evaluation_frequency
+        if filter_pattern is not None:
+            detector.filter_pattern = filter_pattern
+        if anomaly_visibility_time is not None:
+            detector.anomaly_visibility_time = anomaly_visibility_time
+        if enabled:
+            detector.anomaly_detector_status = "TRAINING"
+        else:
+            detector.anomaly_detector_status = "PAUSED"
+        detector.last_modified_time_stamp = int(unix_time_millis())
+
+    def delete_log_anomaly_detector(self, anomaly_detector_arn: str) -> None:
+        if anomaly_detector_arn not in self.anomaly_detectors:
+            raise ResourceNotFoundException(
+                msg="The specified anomaly detector does not exist."
+            )
+        del self.anomaly_detectors[anomaly_detector_arn]
+
+    def list_anomalies(
+        self,
+        anomaly_detector_arn: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        # Anomalies are not yet modeled; return empty list
+        return []
+
+    def list_log_anomaly_detectors(
+        self,
+        filter_log_group_arn: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        detectors = list(self.anomaly_detectors.values())
+        if filter_log_group_arn:
+            detectors = [
+                d
+                for d in detectors
+                if filter_log_group_arn in d.log_group_arn_list
+            ]
+        return [d.to_dict() for d in detectors]
+
+    def put_index_policy(
+        self,
+        log_group_identifier: str,
+        policy_document: str,
+    ) -> IndexPolicy:
+        # log_group_identifier can be a name or ARN
+        log_group = None
+        for group in self.groups.values():
+            if group.name == log_group_identifier or group.arn == log_group_identifier:
+                log_group = group
+                break
+        if not log_group:
+            raise ResourceNotFoundException()
+        policy = IndexPolicy(
+            account_id=self.account_id,
+            log_group_identifier=log_group.arn,
+            policy_document=policy_document,
+            log_group_name=log_group.name,
+        )
+        self.index_policies[log_group.name] = policy
+        return policy
+
+    def describe_index_policies(
+        self,
+        log_group_identifiers: list[str],
+    ) -> list[IndexPolicy]:
+        results = []
+        for identifier in log_group_identifiers:
+            # Identifier can be name or ARN
+            for name, policy in self.index_policies.items():
+                if (
+                    name == identifier
+                    or policy.log_group_identifier == identifier
+                ):
+                    results.append(policy)
+        return results
+
+    def delete_index_policy(
+        self,
+        log_group_identifier: str,
+    ) -> None:
+        # Find the log group by name or ARN
+        log_group = None
+        for group in self.groups.values():
+            if group.name == log_group_identifier or group.arn == log_group_identifier:
+                log_group = group
+                break
+        if not log_group:
+            raise ResourceNotFoundException()
+        if log_group.name not in self.index_policies:
+            raise ResourceNotFoundException(
+                msg="No index policy found for the specified log group."
+            )
+        del self.index_policies[log_group.name]
+
+    def list_integrations(
+        self,
+        integration_name_prefix: Optional[str] = None,
+        integration_type: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        # Integrations are not yet modeled; return empty list
+        return []
+
+    def delete_integration(
+        self,
+        integration_name: str,
+    ) -> None:
+        # Integrations are not yet fully modeled, but we validate the name
+        raise ResourceNotFoundException(
+            msg=f"Integration with name [{integration_name}] does not exist."
+        )
+
+    def list_scheduled_queries(self) -> list[dict[str, Any]]:
+        return [sq.to_dict() for sq in self.scheduled_queries.values()]
+
+    def create_scheduled_query(
+        self,
+        name: str,
+        query_string: str,
+        log_group_names: list[str],
+        schedule_expression: str,
+        target_configuration: Optional[dict[str, Any]] = None,
+        query_language: str = "CWLI",
+    ) -> ScheduledQuery:
+        # Check for duplicate name
+        for sq in self.scheduled_queries.values():
+            if sq.name == name:
+                raise ConflictException(
+                    f"A scheduled query with name [{name}] already exists."
+                )
+        sq = ScheduledQuery(
+            account_id=self.account_id,
+            region=self.region_name,
+            name=name,
+            query_string=query_string,
+            log_group_names=log_group_names,
+            schedule_expression=schedule_expression,
+            target_configuration=target_configuration,
+            query_language=query_language,
+        )
+        self.scheduled_queries[sq.arn] = sq
+        return sq
+
+    def get_scheduled_query(self, arn: str) -> ScheduledQuery:
+        sq = self.scheduled_queries.get(arn)
+        if not sq:
+            raise ResourceNotFoundException(
+                msg=f"Scheduled query [{arn}] does not exist."
+            )
+        return sq
+
+    def update_scheduled_query(
+        self,
+        arn: str,
+        query_string: Optional[str] = None,
+        schedule_expression: Optional[str] = None,
+        log_group_names: Optional[list[str]] = None,
+        target_configuration: Optional[dict[str, Any]] = None,
+        enabled: Optional[bool] = None,
+    ) -> ScheduledQuery:
+        sq = self.get_scheduled_query(arn)
+        if query_string is not None:
+            sq.query_string = query_string
+        if schedule_expression is not None:
+            sq.schedule_expression = schedule_expression
+        if log_group_names is not None:
+            sq.log_group_names = log_group_names
+        if target_configuration is not None:
+            sq.target_configuration = target_configuration
+        if enabled is not None:
+            sq.status = "ACTIVE" if enabled else "DISABLED"
+        sq.last_modified_time = int(unix_time_millis())
+        return sq
+
+    def delete_scheduled_query(self, arn: str) -> None:
+        if arn not in self.scheduled_queries:
+            raise ResourceNotFoundException(
+                msg=f"Scheduled query [{arn}] does not exist."
+            )
+        del self.scheduled_queries[arn]
+
+    def get_scheduled_query_history(
+        self,
+        arn: str,
+    ) -> list[dict[str, Any]]:
+        # Validate the scheduled query exists
+        self.get_scheduled_query(arn)
+        # No actual runs in the emulator, return empty history
+        return []
+
+    def put_log_group_deletion_protection(
+        self,
+        log_group_name: str,
+        deletion_protection_enabled: bool,
+    ) -> None:
+        log_group = self._find_log_group(log_group_name=log_group_name)
+        log_group.deletion_protection = deletion_protection_enabled
+
+    def update_anomaly(
+        self,
+        anomaly_id: Optional[str] = None,
+        pattern_id: Optional[str] = None,
+        anomaly_detector_arn: Optional[str] = None,
+        suppression: Optional[dict[str, Any]] = None,
+        baseline: Optional[bool] = None,
+    ) -> None:
+        # Validate anomaly detector exists if provided
+        if anomaly_detector_arn:
+            if anomaly_detector_arn not in self.anomaly_detectors:
+                raise ResourceNotFoundException(
+                    msg=f"Anomaly detector [{anomaly_detector_arn}] does not exist."
+                )
+        # Stub: accept params and return success (anomalies are not modeled)
+
+    def update_delivery_configuration(
+        self,
+        delivery_id: str,
+        record_fields: Optional[list[str]] = None,
+        field_delimiter: Optional[str] = None,
+        s3_delivery_configuration: Optional[dict[str, Any]] = None,
+    ) -> None:
+        delivery = self.get_delivery(id=delivery_id)
+        if record_fields is not None:
+            delivery.record_fields = record_fields
+        if field_delimiter is not None:
+            delivery.field_delimiter = field_delimiter
+        if s3_delivery_configuration is not None:
+            delivery.s3_delivery_configuration = s3_delivery_configuration
+
+    def list_aggregate_log_group_summaries(
+        self,
+        log_group_name_pattern: Optional[str] = None,
+        group_by: Optional[str] = None,
+        limit: int = 50,
+        next_token: Optional[str] = None,
+    ) -> tuple[list[dict[str, Any]], Optional[str]]:
+        groups, new_next_token = self.describe_log_groups(
+            limit=limit,
+            next_token=next_token,
+        )
+        summaries = []
+        for group in groups:
+            if log_group_name_pattern:
+                import re as _re
+
+                if not _re.search(log_group_name_pattern, group.name):
+                    continue
+            summary: dict[str, Any] = {
+                "logGroupName": group.name,
+                "logGroupArn": group.arn,
+                "creationTime": group.creation_time,
+                "storedBytes": 0,
+                "logStreamCount": len(group.streams),
+            }
+            if group.retention_in_days:
+                summary["retentionInDays"] = group.retention_in_days
+            summaries.append(summary)
+        return summaries, new_next_token
+
+    def put_bearer_token_authentication(
+        self,
+        log_group_identifier: str,
+        enabled: bool,
+    ) -> None:
+        # Verify log group exists
+        self._find_log_group(log_group_name=log_group_identifier)
+
+    def _find_log_group(
+        self,
+        log_group_id: Optional[str] = None,
+        log_group_name: Optional[str] = None,
+    ) -> "LogGroup":
+        """Find a log group by name or ARN."""
+        identifier = log_group_name or log_group_id
+        if identifier:
+            for group in self.groups.values():
+                if group.name == identifier or group.arn == identifier:
+                    return group
+        raise ResourceNotFoundException()
+
+    def put_data_protection_policy(
+        self,
+        log_group_identifier: str,
+        policy_document: str,
+    ) -> dict[str, Any]:
+        log_group = self._find_log_group(log_group_name=log_group_identifier)
+        log_group.data_protection_policy = {
+            "logGroupIdentifier": log_group.name,
+            "policyDocument": policy_document,
+            "lastUpdatedTime": int(unix_time_millis()),
+        }
+        return log_group.data_protection_policy
+
+    def delete_data_protection_policy(
+        self,
+        log_group_identifier: str,
+    ) -> None:
+        log_group = self._find_log_group(log_group_name=log_group_identifier)
+        if log_group.data_protection_policy is None:
+            raise ResourceNotFoundException(
+                msg="The specified data protection policy does not exist."
+            )
+        log_group.data_protection_policy = None
+
+    def get_data_protection_policy(
+        self,
+        log_group_identifier: Optional[str] = None,
+    ) -> dict[str, Any]:
+        if not log_group_identifier:
+            return {}
+        log_group = self._find_log_group(log_group_name=log_group_identifier)
+        if log_group.data_protection_policy is None:
+            return {}
+        return log_group.data_protection_policy
+
+    def get_log_record(
+        self,
+        log_record_pointer: str,
+    ) -> dict[str, str]:
+        # logRecordPointer is an opaque string. In AWS it encodes the log group,
+        # stream and event offset. We scan all events looking for a match.
+        # The pointer format used by get_log_events/filter_log_events isn't
+        # formally specified; we use eventId as a rough equivalent.
+        for group in self.groups.values():
+            for stream in group.streams.values():
+                for event in stream.events:
+                    if str(event.event_id) == log_record_pointer:
+                        return {
+                            "@message": event.message,
+                            "@timestamp": str(event.timestamp),
+                            "@logStream": stream.log_stream_name,
+                            "@logGroup": group.name,
+                            "@ingestionTime": str(event.ingestion_time),
+                        }
+        raise ResourceNotFoundException(
+            msg="The specified log record does not exist."
+        )
+
+    def put_transformer(
+        self,
+        log_group_identifier: str,
+        transformer_config: list[dict[str, Any]],
+    ) -> None:
+        log_group = self._find_log_group(log_group_name=log_group_identifier)
+        now = int(unix_time_millis())
+        creation_time = now
+        if log_group.transformer is not None:
+            creation_time = log_group.transformer.get("creationTime", now)
+        log_group.transformer = {
+            "logGroupIdentifier": log_group.name,
+            "transformerConfig": transformer_config,
+            "creationTime": creation_time,
+            "lastModifiedTime": now,
+        }
+
+    def delete_transformer(
+        self,
+        log_group_identifier: str,
+    ) -> None:
+        log_group = self._find_log_group(log_group_name=log_group_identifier)
+        if log_group.transformer is None:
+            raise ResourceNotFoundException(
+                msg="No transformer found for the specified log group."
+            )
+        log_group.transformer = None
+
+    def get_transformer(
+        self,
+        log_group_identifier: Optional[str] = None,
+    ) -> dict[str, Any]:
+        if not log_group_identifier:
+            raise ResourceNotFoundException(
+                msg="No transformer found for the specified log group."
+            )
+        log_group = self._find_log_group(log_group_name=log_group_identifier)
+        if log_group.transformer is None:
+            raise ResourceNotFoundException(
+                msg="No transformer found for the specified log group."
+            )
+        return log_group.transformer
+
+    def list_transformers(
+        self,
+        log_group_name_prefix: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        results = []
+        for group in self.groups.values():
+            if log_group_name_prefix and not group.name.startswith(log_group_name_prefix):
+                continue
+            if group.transformer is not None:
+                results.append(group.transformer)
+        return results
+
+    def get_integration(
+        self,
+        integration_name: Optional[str] = None,
+    ) -> dict[str, Any]:
+        # Integrations are not yet modeled
+        raise ResourceNotFoundException(
+            msg=f"Integration with name [{integration_name}] does not exist."
+        )
+
+    def get_log_fields(
+        self,
+        log_group_name: Optional[str] = None,
+        log_group_identifier: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        identifier = log_group_name or log_group_identifier
+        if identifier:
+            found = False
+            for group in self.groups.values():
+                if group.name == identifier or group.arn == identifier:
+                    found = True
+                    break
+            if not found:
+                raise ResourceNotFoundException()
+        # Return common fields that CloudWatch Logs always includes
+        return [
+            {"name": "@timestamp", "percent": 100},
+            {"name": "@message", "percent": 100},
+            {"name": "@logStream", "percent": 100},
+        ]
+
+    def describe_field_indexes(
+        self,
+        log_group_identifiers: Optional[list[str]] = None,
+    ) -> list[dict[str, Any]]:
+        # Field indexes are not yet modeled; return empty list
+        return []
+
+    def describe_import_task_batches(
+        self,
+        import_task_identifier: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        # Import task batches are not yet modeled; return empty list
+        return []
+
+    def list_log_groups_for_query(
+        self,
+        query_id: Optional[str] = None,
+    ) -> list[str]:
+        if query_id and query_id in self.queries:
+            return self.queries[query_id].log_group_names
+        if query_id:
+            raise ResourceNotFoundException(
+                msg=f"Query with id [{query_id}] does not exist."
+            )
+        return []
 
 
 logs_backends = BackendDict(LogsBackend, "logs")

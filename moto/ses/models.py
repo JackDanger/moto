@@ -21,6 +21,8 @@ from .exceptions import (
     CannotDelete,
     ConfigurationSetAlreadyExists,
     ConfigurationSetDoesNotExist,
+    CustomVerificationEmailTemplateAlreadyExists,
+    CustomVerificationEmailTemplateDoesNotExist,
     EventDestinationAlreadyExists,
     InvalidLambdaFunctionException,
     InvalidParameterValue,
@@ -29,6 +31,7 @@ from .exceptions import (
     InvalidSnsTopicException,
     MessageRejectedError,
     NotFoundException,
+    ReceiptFilterAlreadyExists,
     RuleDoesNotExist,
     RuleSetDoesNotExist,
     TemplateDoesNotExist,
@@ -150,6 +153,50 @@ class ReceiptRuleSet(BaseModel):
         return {
             "CreatedTimestamp": self.created_timestamp,
             "Name": self.name,
+        }
+
+
+class ReceiptFilter(BaseModel):
+    def __init__(self, name: str, policy: str, cidr: str):
+        self.name = name
+        self.policy = policy
+        self.cidr = cidr
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "Name": self.name,
+            "IpFilter": {
+                "Policy": self.policy,
+                "Cidr": self.cidr,
+            },
+        }
+
+
+class CustomVerificationEmailTemplate(BaseModel):
+    def __init__(
+        self,
+        template_name: str,
+        from_email_address: str,
+        template_subject: str,
+        template_content: str,
+        success_redirection_url: str,
+        failure_redirection_url: str,
+    ):
+        self.template_name = template_name
+        self.from_email_address = from_email_address
+        self.template_subject = template_subject
+        self.template_content = template_content
+        self.success_redirection_url = success_redirection_url
+        self.failure_redirection_url = failure_redirection_url
+
+    def to_dict(self) -> dict[str, str]:
+        return {
+            "TemplateName": self.template_name,
+            "FromEmailAddress": self.from_email_address,
+            "TemplateSubject": self.template_subject,
+            "TemplateContent": self.template_content,
+            "SuccessRedirectionURL": self.success_redirection_url,
+            "FailureRedirectionURL": self.failure_redirection_url,
         }
 
 
@@ -385,6 +432,10 @@ class SESBackend(BaseBackend):
         self.contacts_lists: dict[str, ContactList] = {}
         self.email_identities: dict[str, EmailIdentity] = {}
         self.dedicated_ip_pools: dict[str, DedicatedIpPool] = {}
+        self.receipt_filters: dict[str, ReceiptFilter] = {}
+        self.custom_verification_email_templates: dict[
+            str, CustomVerificationEmailTemplate
+        ] = {}
         self.tagger = TaggingService()
 
     def _is_verified_address(self, source: str) -> bool:
@@ -1075,6 +1126,14 @@ class SESBackend(BaseBackend):
         else:
             raise RuleDoesNotExist(f"Rule does not exist: {rule['Name']}")
 
+    def delete_receipt_rule(self, rule_set_name: str, rule_name: str) -> None:
+        self._validate_name_param(self.__RULE_SET_PARAM, rule_set_name)
+        self._validate_name_param(self.__RULE_PARAM, rule_name)
+        rule_set = self.receipt_rule_set.get(rule_set_name)
+        if rule_set is None:
+            return  # Idempotent: rule set doesn't exist, succeed silently
+        rule_set.rules[:] = [r for r in rule_set.rules if r["Name"] != rule_name]
+
     def set_identity_mail_from_domain(
         self,
         identity: str,
@@ -1208,6 +1267,88 @@ class SESBackend(BaseBackend):
             result[identity.email_identity] = dkim_data
 
         return result
+
+    # ReceiptFilter operations
+    def create_receipt_filter(self, name: str, policy: str, cidr: str) -> None:
+        if name in self.receipt_filters:
+            raise ReceiptFilterAlreadyExists(f"Receipt filter already exists: {name}")
+        self.receipt_filters[name] = ReceiptFilter(name=name, policy=policy, cidr=cidr)
+
+    def list_receipt_filters(self) -> list[ReceiptFilter]:
+        return list(self.receipt_filters.values())
+
+    def delete_receipt_filter(self, name: str) -> None:
+        self.receipt_filters.pop(name, None)
+
+    # CustomVerificationEmailTemplate operations
+    def create_custom_verification_email_template(
+        self,
+        template_name: str,
+        from_email_address: str,
+        template_subject: str,
+        template_content: str,
+        success_redirection_url: str,
+        failure_redirection_url: str,
+    ) -> None:
+        if template_name in self.custom_verification_email_templates:
+            raise CustomVerificationEmailTemplateAlreadyExists(
+                f"Custom verification email template already exists: {template_name}"
+            )
+        self.custom_verification_email_templates[template_name] = (
+            CustomVerificationEmailTemplate(
+                template_name=template_name,
+                from_email_address=from_email_address,
+                template_subject=template_subject,
+                template_content=template_content,
+                success_redirection_url=success_redirection_url,
+                failure_redirection_url=failure_redirection_url,
+            )
+        )
+
+    def get_custom_verification_email_template(
+        self, template_name: str
+    ) -> CustomVerificationEmailTemplate:
+        tmpl = self.custom_verification_email_templates.get(template_name)
+        if tmpl is None:
+            raise CustomVerificationEmailTemplateDoesNotExist(
+                f"Custom verification email template does not exist: {template_name}"
+            )
+        return tmpl
+
+    def list_custom_verification_email_templates(
+        self,
+    ) -> list[CustomVerificationEmailTemplate]:
+        return list(self.custom_verification_email_templates.values())
+
+    def update_custom_verification_email_template(
+        self,
+        template_name: str,
+        from_email_address: str,
+        template_subject: str,
+        template_content: str,
+        success_redirection_url: str,
+        failure_redirection_url: str,
+    ) -> None:
+        tmpl = self.custom_verification_email_templates.get(template_name)
+        if tmpl is None:
+            raise CustomVerificationEmailTemplateDoesNotExist(
+                f"Custom verification email template does not exist: {template_name}"
+            )
+        tmpl.from_email_address = from_email_address
+        tmpl.template_subject = template_subject
+        tmpl.template_content = template_content
+        tmpl.success_redirection_url = success_redirection_url
+        tmpl.failure_redirection_url = failure_redirection_url
+
+    def delete_custom_verification_email_template(self, template_name: str) -> None:
+        self.custom_verification_email_templates.pop(template_name, None)
+
+    def send_custom_verification_email(
+        self, email_address: str, template_name: str
+    ) -> str:
+        # Verify the template exists
+        self.get_custom_verification_email_template(template_name)
+        return get_random_message_id()
 
 
 ses_backends = BackendDict(SESBackend, "ses")

@@ -75,3 +75,8 @@ class ActivityDoesNotExist(AWSError):
 class ActivityAlreadyExists(AWSError):
     TYPE = "ActivityAlreadyExists"
     STATUS = 400
+
+
+class ConflictException(AWSError):
+    TYPE = "ConflictException"
+    STATUS = 400

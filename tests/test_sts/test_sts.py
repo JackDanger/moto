@@ -786,6 +786,24 @@ def test_get_access_key_info_default():
 
 
 @mock_aws
+def test_decode_authorization_message():
+    client = boto3.client("sts", region_name="us-east-1")
+    resp = client.decode_authorization_message(
+        EncodedMessage="encoded-message-content"
+    )
+    decoded = json.loads(resp["DecodedMessage"])
+    assert decoded["allowed"] is False
+    assert decoded["explicitDeny"] is False
+    assert "context" in decoded
+    assert decoded["context"]["action"] == "ec2:RunInstances"
+    assert decoded["context"]["principal"]["arn"] == (
+        f"arn:aws:iam::{ACCOUNT_ID}:user/ExampleUser"
+    )
+    assert "matchedStatements" in decoded
+    assert "failures" in decoded
+
+
+@mock_aws
 def test_get_access_key_info_with_iam_user():
     """GetAccessKeyInfo returns the correct account for an IAM user's key."""
     iam = boto3.client("iam", region_name="us-east-1")

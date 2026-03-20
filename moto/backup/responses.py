@@ -34,7 +34,7 @@ class BackupResponse(BaseResponse):
     def get_backup_plan(self) -> str:
         params = self._get_params()
         backup_plan_id = self.path.split("/plans/")[-1]
-        backup_plan_id = backup_plan_id.replace("/", "")  # replace any trailing slash
+        backup_plan_id = backup_plan_id.replace("/", "")
         version_id = params.get("versionId")
         plan = self.backup_backend.get_backup_plan(
             backup_plan_id=backup_plan_id, version_id=version_id
@@ -69,6 +69,16 @@ class BackupResponse(BaseResponse):
         return json.dumps(
             {"BackupPlansList": [p.to_list_dict() for p in backup_plans_list]}
         )
+
+    def update_backup_plan(self) -> str:
+        backup_plan_id = self.path.split("/")[-1]
+        params = json.loads(self.body)
+        backup_plan = params.get("BackupPlan")
+        plan = self.backup_backend.update_backup_plan(
+            backup_plan_id=backup_plan_id,
+            backup_plan=backup_plan,
+        )
+        return json.dumps(dict(plan.to_dict()))
 
     def create_backup_vault(self) -> str:
         params = json.loads(self.body)
@@ -127,6 +137,337 @@ class BackupResponse(BaseResponse):
         )
         return "{}"
 
+    # --- Backup Selections ---
+
+    def create_backup_selection(self) -> str:
+        parts = self.path.split("/")
+        plan_idx = parts.index("plans")
+        backup_plan_id = parts[plan_idx + 1]
+        params = json.loads(self.body)
+        backup_selection = params.get("BackupSelection")
+        creator_request_id = params.get("CreatorRequestId")
+        selection = self.backup_backend.create_backup_selection(
+            backup_plan_id=backup_plan_id,
+            backup_selection=backup_selection,
+            creator_request_id=creator_request_id,
+        )
+        return json.dumps(dict(selection.to_dict()))
+
+    def get_backup_selection(self) -> str:
+        parts = self.path.split("/")
+        plan_idx = parts.index("plans")
+        backup_plan_id = parts[plan_idx + 1]
+        sel_idx = parts.index("selections")
+        selection_id = parts[sel_idx + 1].rstrip("/")
+        selection = self.backup_backend.get_backup_selection(
+            backup_plan_id=backup_plan_id,
+            selection_id=selection_id,
+        )
+        return json.dumps(dict(selection.to_get_dict()))
+
+    def delete_backup_selection(self) -> EmptyResult:
+        parts = self.path.split("/")
+        plan_idx = parts.index("plans")
+        backup_plan_id = parts[plan_idx + 1]
+        sel_idx = parts.index("selections")
+        selection_id = parts[sel_idx + 1].rstrip("/")
+        self.backup_backend.delete_backup_selection(
+            backup_plan_id=backup_plan_id,
+            selection_id=selection_id,
+        )
+        return EmptyResult()
+
+    def list_backup_selections(self) -> str:
+        parts = self.path.split("/")
+        plan_idx = parts.index("plans")
+        backup_plan_id = parts[plan_idx + 1]
+        selections = self.backup_backend.list_backup_selections(
+            backup_plan_id=backup_plan_id,
+        )
+        return json.dumps(
+            {"BackupSelectionsList": [s.to_list_dict() for s in selections]}
+        )
+
+    # --- Backup Jobs ---
+
+    def start_backup_job(self) -> str:
+        params = json.loads(self.body)
+        job = self.backup_backend.start_backup_job(
+            backup_vault_name=params.get("BackupVaultName"),
+            resource_arn=params.get("ResourceArn"),
+            iam_role_arn=params.get("IamRoleArn"),
+            idempotency_token=params.get("IdempotencyToken"),
+            start_window_minutes=params.get("StartWindowMinutes"),
+            complete_window_minutes=params.get("CompleteWindowMinutes"),
+            lifecycle=params.get("Lifecycle"),
+            recovery_point_tags=params.get("RecoveryPointTags"),
+            backup_options=params.get("BackupOptions"),
+        )
+        return json.dumps(
+            {
+                "BackupJobId": job.backup_job_id,
+                "RecoveryPointArn": job.recovery_point_arn,
+                "CreationDate": job.creation_date,
+            }
+        )
+
+    def describe_backup_job(self) -> str:
+        backup_job_id = self.path.split("/")[-1].rstrip("/")
+        job = self.backup_backend.describe_backup_job(backup_job_id=backup_job_id)
+        return json.dumps(dict(job.to_dict()))
+
+    def list_backup_jobs(self) -> str:
+        params = self._get_params()
+        jobs = self.backup_backend.list_backup_jobs(
+            by_backup_vault_name=params.get("backupVaultName"),
+            by_state=params.get("state"),
+            by_resource_arn=params.get("resourceArn"),
+            by_resource_type=params.get("resourceType"),
+            by_account_id=params.get("accountId"),
+        )
+        return json.dumps({"BackupJobs": [j.to_list_dict() for j in jobs]})
+
+    def stop_backup_job(self) -> EmptyResult:
+        backup_job_id = self.path.split("/")[-1].rstrip("/")
+        self.backup_backend.stop_backup_job(backup_job_id=backup_job_id)
+        return EmptyResult()
+
+    # --- Frameworks ---
+
+    def create_framework(self) -> str:
+        params = json.loads(self.body)
+        framework = self.backup_backend.create_framework(
+            framework_name=params.get("FrameworkName"),
+            framework_description=params.get("FrameworkDescription"),
+            framework_controls=params.get("FrameworkControls", []),
+            idempotency_token=params.get("IdempotencyToken"),
+            framework_tags=params.get("FrameworkTags"),
+        )
+        return json.dumps(dict(framework.to_dict()))
+
+    def describe_framework(self) -> str:
+        framework_name = self.path.split("/")[-1].rstrip("/")
+        framework = self.backup_backend.describe_framework(
+            framework_name=framework_name,
+        )
+        return json.dumps(dict(framework.to_describe_dict()))
+
+    def delete_framework(self) -> EmptyResult:
+        framework_name = self.path.split("/")[-1].rstrip("/")
+        self.backup_backend.delete_framework(framework_name=framework_name)
+        return EmptyResult()
+
+    def list_frameworks(self) -> str:
+        frameworks = self.backup_backend.list_frameworks()
+        return json.dumps({"Frameworks": [f.to_list_dict() for f in frameworks]})
+
+    def update_framework(self) -> str:
+        framework_name = self.path.split("/")[-1].rstrip("/")
+        params = json.loads(self.body)
+        framework = self.backup_backend.update_framework(
+            framework_name=framework_name,
+            framework_description=params.get("FrameworkDescription"),
+            framework_controls=params.get("FrameworkControls"),
+            idempotency_token=params.get("IdempotencyToken"),
+        )
+        return json.dumps(dict(framework.to_dict()))
+
+    # --- Legal Holds ---
+
+    def create_legal_hold(self) -> str:
+        params = json.loads(self.body)
+        hold = self.backup_backend.create_legal_hold(
+            title=params.get("Title", ""),
+            description=params.get("Description", ""),
+            recovery_point_selection=params.get("RecoveryPointSelection"),
+            tags=params.get("Tags"),
+        )
+        return json.dumps(hold.to_dict())
+
+    def cancel_legal_hold(self) -> str:
+        legal_hold_id = self.path.split("/legal-holds/")[1].split("?")[0].rstrip("/")
+        params = self._get_params()
+        cancel_description = params.get("cancelDescription", "")
+        retain_record_in_days = params.get("retainRecordInDays")
+        if retain_record_in_days:
+            retain_record_in_days = int(retain_record_in_days)
+        self.backup_backend.cancel_legal_hold(
+            legal_hold_id=legal_hold_id,
+            cancel_description=cancel_description,
+            retain_record_in_days=retain_record_in_days,
+        )
+        return "{}"
+
+    def get_legal_hold(self) -> str:
+        legal_hold_id = self.path.split("/legal-holds/")[1].rstrip("/")
+        hold = self.backup_backend.get_legal_hold(
+            legal_hold_id=legal_hold_id,
+        )
+        return json.dumps(hold.to_dict())
+
+    def list_legal_holds(self) -> str:
+        holds = self.backup_backend.list_legal_holds()
+        return json.dumps({"LegalHolds": [h.to_list_dict() for h in holds]})
+
+    # --- Delete Recovery Point ---
+
+    def delete_recovery_point(self) -> str:
+        parts = self.path.split("/")
+        vault_idx = parts.index("backup-vaults")
+        backup_vault_name = parts[vault_idx + 1]
+        rp_idx = parts.index("recovery-points")
+        recovery_point_arn = unquote("/".join(parts[rp_idx + 1 :]).rstrip("/"))
+        self.backup_backend.delete_recovery_point(
+            backup_vault_name=backup_vault_name,
+            recovery_point_arn=recovery_point_arn,
+        )
+        return "{}"
+
+    # --- Recovery Points by Vault / Resource ---
+
+    def list_recovery_points_by_backup_vault(self) -> str:
+        parts = self.path.split("/")
+        vault_idx = parts.index("backup-vaults")
+        backup_vault_name = parts[vault_idx + 1]
+        params = self._get_params()
+        rps = self.backup_backend.list_recovery_points_by_backup_vault(
+            backup_vault_name=backup_vault_name,
+            by_resource_arn=params.get("resourceArn"),
+            by_resource_type=params.get("resourceType"),
+        )
+        return json.dumps({"RecoveryPoints": [r.to_dict() for r in rps]})
+
+    def list_recovery_points_by_resource(self) -> str:
+        resource_arn = unquote(
+            self.path.split("/resources/")[1].split("/recovery-points")[0]
+        )
+        rps = self.backup_backend.list_recovery_points_by_resource(
+            resource_arn=resource_arn,
+        )
+        return json.dumps({"RecoveryPoints": [r.to_dict() for r in rps]})
+
+    def get_recovery_point_restore_metadata(self) -> str:
+        # Path: /backup-vaults/{name}/recovery-points/{rpArn}/restore-metadata
+        parts = self.path.split("/")
+        vault_idx = parts.index("backup-vaults")
+        backup_vault_name = parts[vault_idx + 1]
+        rp_idx = parts.index("recovery-points")
+        # rpArn is between recovery-points/ and /restore-metadata
+        rp_parts = parts[rp_idx + 1 :]
+        # Remove "restore-metadata" at the end
+        if "restore-metadata" in rp_parts:
+            rp_parts = rp_parts[: rp_parts.index("restore-metadata")]
+        recovery_point_arn = unquote("/".join(rp_parts).rstrip("/"))
+        result = self.backup_backend.get_recovery_point_restore_metadata(
+            backup_vault_name=backup_vault_name,
+            recovery_point_arn=recovery_point_arn,
+        )
+        return json.dumps(result)
+
+    def update_recovery_point_lifecycle(self) -> str:
+        parts = self.path.split("/")
+        vault_idx = parts.index("backup-vaults")
+        backup_vault_name = parts[vault_idx + 1]
+        rp_idx = parts.index("recovery-points")
+        recovery_point_arn = unquote("/".join(parts[rp_idx + 1 :]).rstrip("/"))
+        params = json.loads(self.body) if self.body else {}
+        lifecycle = params.get("Lifecycle")
+        result = self.backup_backend.update_recovery_point_lifecycle(
+            backup_vault_name=backup_vault_name,
+            recovery_point_arn=recovery_point_arn,
+            lifecycle=lifecycle,
+        )
+        return json.dumps(result)
+
+    # --- Export Backup Plan Template ---
+
+    def export_backup_plan_template(self) -> str:
+        backup_plan_id = self.path.split("/plans/")[1].split("/")[0]
+        template_json = self.backup_backend.export_backup_plan_template(
+            backup_plan_id=backup_plan_id,
+        )
+        return json.dumps({"BackupPlanTemplateJson": template_json})
+
+    # --- Get Backup Plan From Template ---
+
+    def get_backup_plan_from_template(self) -> str:
+        # Path: /backup/template/plans/{templateId}/toPlan
+        parts = self.path.split("/")
+        plans_idx = parts.index("plans")
+        template_id = parts[plans_idx + 1]
+        plan = self.backup_backend.get_backup_plan_from_template(
+            backup_plan_template_id=template_id,
+        )
+        return json.dumps({"BackupPlanDocument": plan})
+
+    # --- Restore Jobs ---
+
+    def start_restore_job(self) -> str:
+        params = json.loads(self.body)
+        job = self.backup_backend.start_restore_job(
+            recovery_point_arn=params.get("RecoveryPointArn", ""),
+            iam_role_arn=params.get("IamRoleArn", ""),
+            metadata=params.get("Metadata"),
+            resource_type=params.get("ResourceType"),
+            idempotency_token=params.get("IdempotencyToken"),
+        )
+        return json.dumps(
+            {
+                "RestoreJobId": job.restore_job_id,
+            }
+        )
+
+    def describe_restore_job(self) -> str:
+        restore_job_id = self.path.split("/restore-jobs/")[1].rstrip("/")
+        # Strip any sub-paths
+        if "/" in restore_job_id:
+            restore_job_id = restore_job_id.split("/")[0]
+        job = self.backup_backend.describe_restore_job(
+            restore_job_id=restore_job_id,
+        )
+        return json.dumps(job.to_dict())
+
+    def list_restore_jobs(self) -> str:
+        params = self._get_params()
+        jobs = self.backup_backend.list_restore_jobs(
+            by_account_id=params.get("accountId"),
+            by_status=params.get("status"),
+            by_resource_type=params.get("resourceType"),
+        )
+        return json.dumps({"RestoreJobs": [j.to_list_dict() for j in jobs]})
+
+    def list_restore_jobs_by_protected_resource(self) -> str:
+        resource_arn = unquote(
+            self.path.split("/resources/")[1].split("/restore-jobs")[0]
+        )
+        jobs = self.backup_backend.list_restore_jobs_by_protected_resource(
+            resource_arn=resource_arn,
+        )
+        return json.dumps({"RestoreJobs": [j.to_list_dict() for j in jobs]})
+
+    def get_restore_job_metadata(self) -> str:
+        restore_job_id = self.path.split("/restore-jobs/")[1].rstrip("/")
+        if "/" in restore_job_id:
+            restore_job_id = restore_job_id.split("/")[0]
+        result = self.backup_backend.get_restore_job_metadata(
+            restore_job_id=restore_job_id,
+        )
+        return json.dumps(result)
+
+    def put_restore_validation_result(self) -> str:
+        restore_job_id = self.path.split("/restore-jobs/")[1].rstrip("/")
+        if "/" in restore_job_id:
+            restore_job_id = restore_job_id.split("/")[0]
+        params = json.loads(self.body) if self.body else {}
+        self.backup_backend.put_restore_validation_result(
+            restore_job_id=restore_job_id,
+            validation_status=params.get("ValidationStatus", ""),
+            validation_status_message=params.get("ValidationStatusMessage"),
+        )
+        return "{}"
+
+    # --- Vault Lock ---
+
     def put_backup_vault_lock_configuration(self) -> str:
         backup_vault_name = self.path.split("/")[-2]
         params = json.loads(self.body) if self.body else {}
@@ -151,6 +492,8 @@ class BackupResponse(BaseResponse):
         )
 
         return "{}"
+
+    # --- Report Plans ---
 
     def list_report_plans(self) -> ActionResult:
         report_plans = self.backup_backend.list_report_plans()
@@ -178,6 +521,581 @@ class BackupResponse(BaseResponse):
 
     def delete_report_plan(self) -> EmptyResult:
         report_plan_name = self.path.split("/report-plans/")[-1]
-        plan_name = report_plan_name.replace("/", "")  # replace any trailing slash
+        plan_name = report_plan_name.replace("/", "")
         self.backup_backend.delete_report_plan(report_plan_name=plan_name)
+        return EmptyResult()
+
+    # --- Global/Region Settings ---
+
+    def describe_global_settings(self) -> str:
+        settings = self.backup_backend.describe_global_settings()
+        return json.dumps({"GlobalSettings": settings})
+
+    def update_global_settings(self) -> str:
+        params = json.loads(self.body)
+        global_settings = params.get("GlobalSettings", {})
+        self.backup_backend.update_global_settings(global_settings)
+        return "{}"
+
+    def describe_region_settings(self) -> str:
+        settings = self.backup_backend.describe_region_settings()
+        return json.dumps({"ResourceTypeOptInPreference": settings})
+
+    def update_region_settings(self) -> str:
+        params = json.loads(self.body)
+        pref = params.get("ResourceTypeOptInPreference")
+        self.backup_backend.update_region_settings(pref)
+        return "{}"
+
+    # --- Supported Resource Types ---
+
+    def get_supported_resource_types(self) -> str:
+        types = self.backup_backend.get_supported_resource_types()
+        return json.dumps({"ResourceTypes": types})
+
+    # --- Backup Plan Templates ---
+
+    def list_backup_plan_templates(self) -> str:
+        templates = self.backup_backend.list_backup_plan_templates()
+        return json.dumps({"BackupPlanTemplatesList": templates})
+
+    def get_backup_plan_from_json(self) -> str:
+        params = json.loads(self.body)
+        template_json = params.get("BackupPlanTemplateJson", "{}")
+        plan = self.backup_backend.get_backup_plan_from_json(
+            backup_plan_template_json=template_json,
+        )
+        return json.dumps({"BackupPlan": plan})
+
+    # --- Backup Plan Versions ---
+
+    def list_backup_plan_versions(self) -> str:
+        backup_plan_id = self.path.split("/plans/")[1].split("/")[0]
+        versions = self.backup_backend.list_backup_plan_versions(
+            backup_plan_id=backup_plan_id,
+        )
+        return json.dumps(
+            {"BackupPlanVersionsList": [v.to_list_dict() for v in versions]}
+        )
+
+    # --- Copy Jobs ---
+
+    def start_copy_job(self) -> str:
+        params = json.loads(self.body)
+        job = self.backup_backend.start_copy_job(
+            source_backup_vault_name=params.get("SourceBackupVaultName"),
+            destination_backup_vault_arn=params.get("DestinationBackupVaultArn"),
+            recovery_point_arn=params.get("RecoveryPointArn"),
+            iam_role_arn=params.get("IamRoleArn"),
+            idempotency_token=params.get("IdempotencyToken"),
+            lifecycle=params.get("Lifecycle"),
+        )
+        return json.dumps(
+            {
+                "CopyJobId": job.copy_job_id,
+                "CreationDate": job.creation_date,
+            }
+        )
+
+    def describe_copy_job(self) -> str:
+        copy_job_id = self.path.split("/")[-1].rstrip("/")
+        job = self.backup_backend.describe_copy_job(copy_job_id=copy_job_id)
+        return json.dumps({"CopyJob": job.to_dict()})
+
+    def list_copy_jobs(self) -> str:
+        params = self._get_params()
+        jobs = self.backup_backend.list_copy_jobs(
+            by_state=params.get("state"),
+            by_resource_arn=params.get("resourceArn"),
+            by_resource_type=params.get("resourceType"),
+            by_account_id=params.get("accountId"),
+            by_destination_vault_arn=params.get("destinationVaultArn"),
+        )
+        return json.dumps({"CopyJobs": [j.to_dict() for j in jobs]})
+
+    # --- Recovery Points ---
+
+    def describe_recovery_point(self) -> str:
+        # Path: /backup-vaults/{name}/recovery-points/{arn}
+        parts = self.path.split("/")
+        vault_idx = parts.index("backup-vaults")
+        backup_vault_name = parts[vault_idx + 1]
+        rp_idx = parts.index("recovery-points")
+        recovery_point_arn = unquote("/".join(parts[rp_idx + 1 :]).rstrip("/"))
+        rp = self.backup_backend.describe_recovery_point(
+            backup_vault_name=backup_vault_name,
+            recovery_point_arn=recovery_point_arn,
+        )
+        return json.dumps(rp.to_dict())
+
+    # --- Protected Resources ---
+
+    def describe_protected_resource(self) -> str:
+        # Path: /resources/{arn}
+        resource_arn = unquote(self.path.split("/resources/")[1].rstrip("/"))
+        result = self.backup_backend.describe_protected_resource(
+            resource_arn=resource_arn,
+        )
+        return json.dumps(result)
+
+    def list_protected_resources(self) -> str:
+        resources = self.backup_backend.list_protected_resources()
+        return json.dumps({"Results": resources})
+
+    # --- Vault Access Policy ---
+
+    def put_backup_vault_access_policy(self) -> str:
+        backup_vault_name = self.path.split("/backup-vaults/")[1].split("/")[0]
+        params = json.loads(self.body) if self.body else {}
+        policy = params.get("Policy", "")
+        self.backup_backend.put_backup_vault_access_policy(
+            backup_vault_name=backup_vault_name,
+            policy=policy,
+        )
+        return "{}"
+
+    def get_backup_vault_access_policy(self) -> str:
+        backup_vault_name = self.path.split("/backup-vaults/")[1].split("/")[0]
+        result = self.backup_backend.get_backup_vault_access_policy(
+            backup_vault_name=backup_vault_name,
+        )
+        return json.dumps(result)
+
+    def delete_backup_vault_access_policy(self) -> str:
+        backup_vault_name = self.path.split("/backup-vaults/")[1].split("/")[0]
+        self.backup_backend.delete_backup_vault_access_policy(
+            backup_vault_name=backup_vault_name,
+        )
+        return "{}"
+
+    # --- Vault Notifications ---
+
+    def put_backup_vault_notifications(self) -> str:
+        backup_vault_name = self.path.split("/backup-vaults/")[1].split("/")[0]
+        params = json.loads(self.body) if self.body else {}
+        sns_topic_arn = params.get("SNSTopicArn", "")
+        events = params.get("BackupVaultEvents", [])
+        self.backup_backend.put_backup_vault_notifications(
+            backup_vault_name=backup_vault_name,
+            sns_topic_arn=sns_topic_arn,
+            backup_vault_events=events,
+        )
+        return "{}"
+
+    def get_backup_vault_notifications(self) -> str:
+        backup_vault_name = self.path.split("/backup-vaults/")[1].split("/")[0]
+        result = self.backup_backend.get_backup_vault_notifications(
+            backup_vault_name=backup_vault_name,
+        )
+        return json.dumps(result)
+
+    def delete_backup_vault_notifications(self) -> str:
+        backup_vault_name = self.path.split("/backup-vaults/")[1].split("/")[0]
+        self.backup_backend.delete_backup_vault_notifications(
+            backup_vault_name=backup_vault_name,
+        )
+        return "{}"
+
+    # --- Restore Testing Plans ---
+
+    def create_restore_testing_plan(self) -> str:
+        params = json.loads(self.body)
+        rtp = params.get("RestoreTestingPlan", {})
+        tags = params.get("Tags")
+        plan = self.backup_backend.create_restore_testing_plan(
+            restore_testing_plan_name=rtp.get("RestoreTestingPlanName"),
+            schedule_expression=rtp.get("ScheduleExpression"),
+            recovery_point_selection=rtp.get("RecoveryPointSelection", {}),
+            schedule_expression_timezone=rtp.get("ScheduleExpressionTimezone"),
+            start_window_hours=rtp.get("StartWindowHours"),
+            tags=tags,
+        )
+        return json.dumps(
+            {
+                "CreationTime": plan.creation_time,
+                "RestoreTestingPlanArn": plan.restore_testing_plan_arn,
+                "RestoreTestingPlanName": plan.restore_testing_plan_name,
+            }
+        )
+
+    def get_restore_testing_plan(self) -> str:
+        plan_name = self.path.split("/restore-testing/plans/")[1].rstrip("/")
+        plan = self.backup_backend.get_restore_testing_plan(
+            restore_testing_plan_name=plan_name,
+        )
+        return json.dumps({"RestoreTestingPlan": plan.to_dict()})
+
+    def delete_restore_testing_plan(self) -> EmptyResult:
+        plan_name = self.path.split("/restore-testing/plans/")[1].rstrip("/")
+        self.backup_backend.delete_restore_testing_plan(
+            restore_testing_plan_name=plan_name,
+        )
+        return EmptyResult()
+
+    def list_restore_testing_plans(self) -> str:
+        plans = self.backup_backend.list_restore_testing_plans()
+        return json.dumps({"RestoreTestingPlans": [p.to_list_dict() for p in plans]})
+
+    # --- Restore Testing Selections ---
+
+    def create_restore_testing_selection(self) -> str:
+        parts = self.path.split("/")
+        plan_idx = parts.index("plans")
+        plan_name = parts[plan_idx + 1]
+        params = json.loads(self.body)
+        rts = params.get("RestoreTestingSelection", {})
+        selection = self.backup_backend.create_restore_testing_selection(
+            restore_testing_plan_name=plan_name,
+            restore_testing_selection_name=rts.get("RestoreTestingSelectionName"),
+            protected_resource_type=rts.get("ProtectedResourceType"),
+            iam_role_arn=rts.get("IamRoleArn"),
+            protected_resource_arns=rts.get("ProtectedResourceArns"),
+            protected_resource_conditions=rts.get("ProtectedResourceConditions"),
+            restore_metadata_overrides=rts.get("RestoreMetadataOverrides"),
+            validation_window_hours=rts.get("ValidationWindowHours"),
+        )
+        return json.dumps(
+            {
+                "CreationTime": selection.creation_time,
+                "RestoreTestingPlanArn": self.backup_backend.restore_testing_plans[
+                    plan_name
+                ].restore_testing_plan_arn,
+                "RestoreTestingPlanName": plan_name,
+                "RestoreTestingSelectionName": selection.restore_testing_selection_name,
+            }
+        )
+
+    def get_restore_testing_selection(self) -> str:
+        parts = self.path.split("/")
+        plan_idx = parts.index("plans")
+        plan_name = parts[plan_idx + 1]
+        sel_idx = parts.index("selections")
+        sel_name = parts[sel_idx + 1].rstrip("/")
+        selection = self.backup_backend.get_restore_testing_selection(
+            restore_testing_plan_name=plan_name,
+            restore_testing_selection_name=sel_name,
+        )
+        return json.dumps({"RestoreTestingSelection": selection.to_dict()})
+
+    def delete_restore_testing_selection(self) -> EmptyResult:
+        parts = self.path.split("/")
+        plan_idx = parts.index("plans")
+        plan_name = parts[plan_idx + 1]
+        sel_idx = parts.index("selections")
+        sel_name = parts[sel_idx + 1].rstrip("/")
+        self.backup_backend.delete_restore_testing_selection(
+            restore_testing_plan_name=plan_name,
+            restore_testing_selection_name=sel_name,
+        )
+        return EmptyResult()
+
+    def list_restore_testing_selections(self) -> str:
+        parts = self.path.split("/")
+        plan_idx = parts.index("plans")
+        plan_name = parts[plan_idx + 1]
+        selections = self.backup_backend.list_restore_testing_selections(
+            restore_testing_plan_name=plan_name,
+        )
+        return json.dumps(
+            {"RestoreTestingSelections": [s.to_dict() for s in selections]}
+        )
+
+    # --- Update Report Plan ---
+
+    def update_report_plan(self) -> ActionResult:
+        report_plan_name = self.path.split("/report-plans/")[-1].rstrip("/")
+        params = json.loads(self.body) if self.body else {}
+        result = self.backup_backend.update_report_plan(
+            report_plan_name=report_plan_name,
+            report_plan_description=params.get("ReportPlanDescription"),
+            report_delivery_channel=params.get("ReportDeliveryChannel"),
+            report_setting=params.get("ReportSetting"),
+        )
+        return ActionResult(result=result)
+
+    # --- Update Restore Testing Plan ---
+
+    def update_restore_testing_plan(self) -> str:
+        plan_name = self.path.split("/restore-testing/plans/")[1].rstrip("/")
+        params = json.loads(self.body) if self.body else {}
+        rtp = params.get("RestoreTestingPlan", {})
+        plan = self.backup_backend.update_restore_testing_plan(
+            restore_testing_plan_name=plan_name,
+            schedule_expression=rtp.get("ScheduleExpression"),
+            recovery_point_selection=rtp.get("RecoveryPointSelection"),
+            schedule_expression_timezone=rtp.get("ScheduleExpressionTimezone"),
+            start_window_hours=rtp.get("StartWindowHours"),
+        )
+        return json.dumps(
+            {
+                "CreationTime": plan.creation_time,
+                "RestoreTestingPlanArn": plan.restore_testing_plan_arn,
+                "RestoreTestingPlanName": plan.restore_testing_plan_name,
+                "UpdateTime": plan.last_updated_time,
+            }
+        )
+
+    # --- Update Restore Testing Selection ---
+
+    def update_restore_testing_selection(self) -> str:
+        parts = self.path.split("/")
+        plan_idx = parts.index("plans")
+        plan_name = parts[plan_idx + 1]
+        sel_idx = parts.index("selections")
+        sel_name = parts[sel_idx + 1].rstrip("/")
+        params = json.loads(self.body) if self.body else {}
+        rts = params.get("RestoreTestingSelection", {})
+        selection = self.backup_backend.update_restore_testing_selection(
+            restore_testing_plan_name=plan_name,
+            restore_testing_selection_name=sel_name,
+            iam_role_arn=rts.get("IamRoleArn"),
+            protected_resource_arns=rts.get("ProtectedResourceArns"),
+            protected_resource_conditions=rts.get("ProtectedResourceConditions"),
+            restore_metadata_overrides=rts.get("RestoreMetadataOverrides"),
+            validation_window_hours=rts.get("ValidationWindowHours"),
+        )
+        return json.dumps(
+            {
+                "CreationTime": selection.creation_time,
+                "RestoreTestingPlanArn": self.backup_backend.restore_testing_plans[
+                    plan_name
+                ].restore_testing_plan_arn,
+                "RestoreTestingPlanName": plan_name,
+                "RestoreTestingSelectionName": selection.restore_testing_selection_name,
+                "UpdateTime": selection.creation_time,
+            }
+        )
+
+    # --- Logically Air-Gapped Vaults ---
+
+    def create_logically_air_gapped_backup_vault(self) -> str:
+        backup_vault_name = self.path.split("/")[-1].rstrip("/")
+        params = json.loads(self.body) if self.body else {}
+        vault = self.backup_backend.create_logically_air_gapped_backup_vault(
+            backup_vault_name=backup_vault_name,
+            max_retention_days=params.get("MaxRetentionDays", 36500),
+            min_retention_days=params.get("MinRetentionDays", 7),
+        )
+        return json.dumps(vault.to_dict())
+
+    def describe_logically_air_gapped_backup_vault(self) -> str:
+        backup_vault_name = self.path.split("/")[-1].rstrip("/")
+        vault = self.backup_backend.describe_logically_air_gapped_backup_vault(
+            backup_vault_name=backup_vault_name,
+        )
+        return json.dumps(vault.to_dict())
+
+    def list_logically_air_gapped_backup_vaults(self) -> str:
+        vaults = self.backup_backend.list_logically_air_gapped_backup_vaults()
+        return json.dumps(
+            {"LogicallyAirGappedBackupVaults": [v.to_dict() for v in vaults]}
+        )
+
+    def delete_logically_air_gapped_backup_vault(self) -> EmptyResult:
+        backup_vault_name = self.path.split("/")[-1].rstrip("/")
+        self.backup_backend.delete_logically_air_gapped_backup_vault(
+            backup_vault_name=backup_vault_name,
+        )
+        return EmptyResult()
+
+    # --- Report Jobs ---
+
+    def describe_report_job(self) -> str:
+        report_job_id = self.path.split("/report-jobs/")[1].rstrip("/")
+        result = self.backup_backend.describe_report_job(
+            report_job_id=report_job_id,
+        )
+        return json.dumps({"ReportJob": result})
+
+    def list_report_jobs(self) -> str:
+        params = self._get_params()
+        jobs = self.backup_backend.list_report_jobs(
+            by_report_plan_name=params.get("reportPlanName"),
+            by_status=params.get("status"),
+        )
+        return json.dumps({"ReportJobs": jobs})
+
+    def start_report_job(self) -> str:
+        report_plan_name = self.path.split("/report-plans/")[1].split("/")[0]
+        report_job_id = self.backup_backend.start_report_job(
+            report_plan_name=report_plan_name,
+        )
+        return json.dumps({"ReportJobId": report_job_id})
+
+    # --- Disassociate Recovery Point ---
+
+    def disassociate_recovery_point(self) -> str:
+        parts = self.path.split("/")
+        vault_idx = parts.index("backup-vaults")
+        backup_vault_name = parts[vault_idx + 1]
+        rp_idx = parts.index("recovery-points")
+        rp_parts = parts[rp_idx + 1 :]
+        if "disassociate" in rp_parts:
+            rp_parts = rp_parts[: rp_parts.index("disassociate")]
+        recovery_point_arn = unquote("/".join(rp_parts).rstrip("/"))
+        self.backup_backend.disassociate_recovery_point(
+            backup_vault_name=backup_vault_name,
+            recovery_point_arn=recovery_point_arn,
+        )
+        return "{}"
+
+    def disassociate_recovery_point_from_parent(self) -> str:
+        parts = self.path.split("/")
+        vault_idx = parts.index("backup-vaults")
+        backup_vault_name = parts[vault_idx + 1]
+        rp_idx = parts.index("recovery-points")
+        rp_parts = parts[rp_idx + 1 :]
+        if "parentDisassociate" in rp_parts:
+            rp_parts = rp_parts[: rp_parts.index("parentDisassociate")]
+        recovery_point_arn = unquote("/".join(rp_parts).rstrip("/"))
+        self.backup_backend.disassociate_recovery_point_from_parent(
+            backup_vault_name=backup_vault_name,
+            recovery_point_arn=recovery_point_arn,
+        )
+        return "{}"
+
+    # --- List Recovery Points By Legal Hold ---
+
+    def list_recovery_points_by_legal_hold(self) -> str:
+        legal_hold_id = self.path.split("/legal-holds/")[1].split("/")[0]
+        rps = self.backup_backend.list_recovery_points_by_legal_hold(
+            legal_hold_id=legal_hold_id,
+        )
+        return json.dumps({"RecoveryPoints": rps})
+
+    # --- List Protected Resources By Backup Vault ---
+
+    def list_protected_resources_by_backup_vault(self) -> str:
+        parts = self.path.split("/")
+        vault_idx = parts.index("backup-vaults")
+        backup_vault_name = parts[vault_idx + 1]
+        resources = self.backup_backend.list_protected_resources_by_backup_vault(
+            backup_vault_name=backup_vault_name,
+        )
+        return json.dumps({"Results": resources})
+
+    # --- Job Summaries ---
+
+    def list_backup_job_summaries(self) -> str:
+        params = self._get_params()
+        summaries = self.backup_backend.list_backup_job_summaries(
+            account_id=params.get("accountId"),
+            state=params.get("state"),
+            resource_type=params.get("resourceType"),
+        )
+        return json.dumps({"BackupJobSummaries": summaries})
+
+    def list_copy_job_summaries(self) -> str:
+        params = self._get_params()
+        summaries = self.backup_backend.list_copy_job_summaries(
+            account_id=params.get("accountId"),
+            state=params.get("state"),
+            resource_type=params.get("resourceType"),
+        )
+        return json.dumps({"CopyJobSummaries": summaries})
+
+    def list_restore_job_summaries(self) -> str:
+        params = self._get_params()
+        summaries = self.backup_backend.list_restore_job_summaries(
+            account_id=params.get("accountId"),
+            state=params.get("state"),
+            resource_type=params.get("resourceType"),
+        )
+        return json.dumps({"RestoreJobSummaries": summaries})
+
+    # --- Scan Jobs ---
+
+    def start_scan_job(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        job = self.backup_backend.start_scan_job(
+            backup_vault_name=params.get("BackupVaultName", ""),
+            recovery_point_arn=params.get("RecoveryPointArn", ""),
+            iam_role_arn=params.get("IamRoleArn", ""),
+            scan_mode=params.get("ScanMode", "FULL_SCAN"),
+            scanner_role_arn=params.get("ScannerRoleArn"),
+        )
+        return json.dumps(
+            {
+                "ScanJobId": job.scan_job_id,
+                "CreationDate": job.creation_date,
+            }
+        )
+
+    def describe_scan_job(self) -> str:
+        scan_job_id = self.path.split("/scan/jobs/")[-1].split("?")[0].rstrip("/")
+        if "/" in scan_job_id:
+            scan_job_id = scan_job_id.split("/")[0]
+        job = self.backup_backend.describe_scan_job(scan_job_id=scan_job_id)
+        return json.dumps(job.to_dict())
+
+    def list_scan_jobs(self) -> str:
+        params = self._get_params()
+        jobs = self.backup_backend.list_scan_jobs(
+            by_backup_vault_name=params.get("ByBackupVaultName"),
+            by_state=params.get("ByState"),
+            by_recovery_point_arn=params.get("ByRecoveryPointArn"),
+        )
+        return json.dumps({"ScanJobs": [j.to_dict() for j in jobs]})
+
+    # --- Tiering Configurations ---
+
+    def create_tiering_configuration(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        tc = params.get("TieringConfiguration", {})
+        config = self.backup_backend.create_tiering_configuration(
+            tiering_configuration_name=tc.get("TieringConfigurationName", ""),
+            backup_vault_name=tc.get("BackupVaultName", ""),
+            resource_selection=tc.get("ResourceSelection", []),
+            creator_request_id=params.get("CreatorRequestId"),
+        )
+        return json.dumps(
+            {
+                "TieringConfigurationArn": config.tiering_configuration_arn,
+                "TieringConfigurationName": config.tiering_configuration_name,
+                "CreationTime": config.creation_time,
+            }
+        )
+
+    def get_tiering_configuration(self) -> str:
+        name = self.path.split("/tiering-configurations/")[-1].rstrip("/")
+        if "?" in name:
+            name = name.split("?")[0]
+        config = self.backup_backend.get_tiering_configuration(
+            tiering_configuration_name=name,
+        )
+        return json.dumps({"TieringConfiguration": config.to_dict()})
+
+    def list_tiering_configurations(self) -> str:
+        params = self._get_params()
+        configs = self.backup_backend.list_tiering_configurations(
+            by_backup_vault_name=params.get("ByBackupVaultName"),
+        )
+        return json.dumps({"TieringConfigurations": [c.to_dict() for c in configs]})
+
+    def update_tiering_configuration(self) -> str:
+        name = self.path.split("/tiering-configurations/")[-1].rstrip("/")
+        if "?" in name:
+            name = name.split("?")[0]
+        params = json.loads(self.body) if self.body else {}
+        tc = params.get("TieringConfiguration", {})
+        config = self.backup_backend.update_tiering_configuration(
+            tiering_configuration_name=name,
+            backup_vault_name=tc.get("BackupVaultName"),
+            resource_selection=tc.get("ResourceSelection"),
+        )
+        return json.dumps(
+            {
+                "TieringConfigurationArn": config.tiering_configuration_arn,
+                "TieringConfigurationName": config.tiering_configuration_name,
+                "LastUpdatedTime": config.last_updated_time,
+            }
+        )
+
+    def delete_tiering_configuration(self) -> EmptyResult:
+        name = self.path.split("/tiering-configurations/")[-1].rstrip("/")
+        if "?" in name:
+            name = name.split("?")[0]
+        self.backup_backend.delete_tiering_configuration(
+            tiering_configuration_name=name,
+        )
         return EmptyResult()

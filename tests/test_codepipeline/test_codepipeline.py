@@ -719,3 +719,153 @@ def test_create_pipeline_without_tags():
 
     assert response["pipeline"] == expected_pipeline_details
     assert response["tags"] == []
+
+@mock_aws
+def test_list_deploy_action_execution_targets():
+    client = boto3.client("codepipeline", region_name="us-east-1")
+    create_basic_codepipeline(client, "test-pipeline")
+
+    response = client.list_deploy_action_execution_targets(
+        actionExecutionId="fake-execution-id",
+    )
+
+    assert response["targets"] == []
+    assert "nextToken" not in response
+
+
+@mock_aws
+def test_put_action_revision():
+    client = boto3.client("codepipeline", region_name="us-east-1")
+    create_basic_codepipeline(client, "test-pipeline")
+
+    response = client.put_action_revision(
+        pipelineName="test-pipeline",
+        stageName="Stage-1",
+        actionName="Action-1",
+        actionRevision={
+            "revisionId": "rev-123",
+            "revisionChangeId": "change-456",
+            "created": datetime(2024, 1, 1),
+        },
+    )
+
+    assert response["newRevision"] is True
+    assert "pipelineExecutionId" in response
+
+    # Verify an execution was created
+    executions = client.list_pipeline_executions(pipelineName="test-pipeline")
+    assert len(executions["pipelineExecutionSummaries"]) >= 1
+
+
+@mock_aws
+def test_put_action_revision_pipeline_not_found():
+    client = boto3.client("codepipeline", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as e:
+        client.put_action_revision(
+            pipelineName="nonexistent",
+            stageName="Stage-1",
+            actionName="Action-1",
+            actionRevision={
+                "revisionId": "rev-123",
+                "revisionChangeId": "change-456",
+                "created": datetime(2024, 1, 1),
+            },
+        )
+    assert e.value.response["Error"]["Code"] == "PipelineNotFoundException"
+
+
+@mock_aws
+def test_put_action_revision_stage_not_found():
+    client = boto3.client("codepipeline", region_name="us-east-1")
+    create_basic_codepipeline(client, "test-pipeline")
+
+    with pytest.raises(ClientError) as e:
+        client.put_action_revision(
+            pipelineName="test-pipeline",
+            stageName="NonExistentStage",
+            actionName="Action-1",
+            actionRevision={
+                "revisionId": "rev-123",
+                "revisionChangeId": "change-456",
+                "created": datetime(2024, 1, 1),
+            },
+        )
+    assert e.value.response["Error"]["Code"] == "StageNotFoundException"
+
+
+@mock_aws
+def test_update_action_type():
+    client = boto3.client("codepipeline", region_name="us-east-1")
+
+    # Create a custom action type first
+    client.create_custom_action_type(
+        category="Build",
+        provider="MyCustomBuild",
+        version="1",
+        inputArtifactDetails={"minimumCount": 1, "maximumCount": 5},
+        outputArtifactDetails={"minimumCount": 0, "maximumCount": 5},
+    )
+
+    # Update it
+    client.update_action_type(
+        actionType={
+            "id": {
+                "category": "Build",
+                "owner": "Custom",
+                "provider": "MyCustomBuild",
+                "version": "1",
+            },
+            "executor": {
+                "configuration": {
+                    "lambdaExecutorConfiguration": {
+                        "lambdaFunctionArn": "arn:aws:lambda:us-east-1:123456789012:function:my-func"
+                    }
+                },
+                "type": "Lambda",
+            },
+            "inputArtifactDetails": {"minimumCount": 0, "maximumCount": 3},
+            "outputArtifactDetails": {"minimumCount": 0, "maximumCount": 1},
+        }
+    )
+
+    # Verify the action type was updated
+    action_types = client.list_action_types(actionOwnerFilter="Custom")
+    custom_types = action_types["actionTypes"]
+    assert len(custom_types) == 1
+    assert custom_types[0]["inputArtifactDetails"] == {
+        "minimumCount": 0,
+        "maximumCount": 3,
+    }
+    assert custom_types[0]["outputArtifactDetails"] == {
+        "minimumCount": 0,
+        "maximumCount": 1,
+    }
+
+
+@mock_aws
+def test_update_action_type_not_found():
+    client = boto3.client("codepipeline", region_name="us-east-1")
+
+    with pytest.raises(ClientError) as e:
+        client.update_action_type(
+            actionType={
+                "id": {
+                    "category": "Build",
+                    "owner": "Custom",
+                    "provider": "NonExistent",
+                    "version": "1",
+                },
+                "executor": {
+                    "configuration": {
+                        "lambdaExecutorConfiguration": {
+                            "lambdaFunctionArn": "arn:aws:lambda:us-east-1:123456789012:function:f"
+                        }
+                    },
+                    "type": "Lambda",
+                },
+                "inputArtifactDetails": {"minimumCount": 0, "maximumCount": 5},
+                "outputArtifactDetails": {"minimumCount": 0, "maximumCount": 5},
+            }
+        )
+    assert e.value.response["Error"]["Code"] == "ActionTypeNotFoundException"

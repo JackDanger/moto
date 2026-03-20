@@ -1134,3 +1134,93 @@ def test_list_certificates_with_all_key_types():
         arns["ec_384"],
         arns["ec_521"],
     }
+
+
+
+@mock_aws
+def test_renew_certificate():
+    client = boto3.client("acm", region_name="eu-central-1")
+    arn = _pca_cert(client)
+    client.renew_certificate(CertificateArn=arn)
+    resp = client.describe_certificate(CertificateArn=arn)
+    assert resp["Certificate"]["Status"] == "ISSUED"
+
+
+@mock_aws
+def test_renew_certificate_imported_fails():
+    client = boto3.client("acm", region_name="eu-central-1")
+    arn = _import_cert(client)
+    with pytest.raises(ClientError) as ex:
+        client.renew_certificate(CertificateArn=arn)
+    assert ex.value.response["Error"]["Code"] == "InvalidStateException"
+
+
+@mock_aws
+def test_renew_certificate_not_found():
+    client = boto3.client("acm", region_name="eu-central-1")
+    with pytest.raises(ClientError) as ex:
+        client.renew_certificate(CertificateArn=BAD_ARN)
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_revoke_certificate():
+    client = boto3.client("acm", region_name="eu-central-1")
+    arn = _pca_cert(client)
+    client.revoke_certificate(CertificateArn=arn, RevocationReason="KEY_COMPROMISE")
+    resp = client.describe_certificate(CertificateArn=arn)
+    assert resp["Certificate"]["Status"] == "REVOKED"
+    assert resp["Certificate"]["RevocationReason"] == "KEY_COMPROMISE"
+    assert "RevokedAt" in resp["Certificate"]
+
+
+@mock_aws
+def test_revoke_imported_certificate_fails():
+    client = boto3.client("acm", region_name="eu-central-1")
+    arn = _import_cert(client)
+    with pytest.raises(ClientError) as ex:
+        client.revoke_certificate(CertificateArn=arn, RevocationReason="UNSPECIFIED")
+    assert ex.value.response["Error"]["Code"] == "InvalidArnException"
+
+
+@mock_aws
+def test_revoke_already_revoked_fails():
+    client = boto3.client("acm", region_name="eu-central-1")
+    arn = _pca_cert(client)
+    client.revoke_certificate(CertificateArn=arn, RevocationReason="UNSPECIFIED")
+    with pytest.raises(ClientError) as ex:
+        client.revoke_certificate(CertificateArn=arn, RevocationReason="UNSPECIFIED")
+    assert ex.value.response["Error"]["Code"] == "InvalidStateException"
+
+
+@mock_aws
+def test_revoke_certificate_not_found():
+    client = boto3.client("acm", region_name="eu-central-1")
+    with pytest.raises(ClientError) as ex:
+        client.revoke_certificate(CertificateArn=BAD_ARN, RevocationReason="UNSPECIFIED")
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"
+
+
+@mock_aws
+def test_update_certificate_options():
+    client = boto3.client("acm", region_name="eu-central-1")
+    arn = _import_cert(client)
+    resp = client.describe_certificate(CertificateArn=arn)
+    assert resp["Certificate"]["Options"]["CertificateTransparencyLoggingPreference"] == "ENABLED"
+    client.update_certificate_options(
+        CertificateArn=arn,
+        Options={"CertificateTransparencyLoggingPreference": "DISABLED"},
+    )
+    resp = client.describe_certificate(CertificateArn=arn)
+    assert resp["Certificate"]["Options"]["CertificateTransparencyLoggingPreference"] == "DISABLED"
+
+
+@mock_aws
+def test_update_certificate_options_not_found():
+    client = boto3.client("acm", region_name="eu-central-1")
+    with pytest.raises(ClientError) as ex:
+        client.update_certificate_options(
+            CertificateArn=BAD_ARN,
+            Options={"CertificateTransparencyLoggingPreference": "DISABLED"},
+        )
+    assert ex.value.response["Error"]["Code"] == "ResourceNotFoundException"

@@ -296,6 +296,7 @@ class TestStreamRecordImages:
         )
         return streams.get_records(ShardIterator=resp["ShardIterator"])["Records"]
 
+
     @mock_aws
     def test_new_and_old_images_insert_has_no_old_image(self):
         """INSERT with NEW_AND_OLD_IMAGES should not have OldImage."""
@@ -304,6 +305,7 @@ class TestStreamRecordImages:
             TableName="img-test",
             KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
             AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+
             BillingMode="PAY_PER_REQUEST",
             StreamSpecification={
                 "StreamEnabled": True,
@@ -333,6 +335,7 @@ class TestStreamRecordImages:
             TableName="img-test",
             KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
             AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+
             BillingMode="PAY_PER_REQUEST",
             StreamSpecification={
                 "StreamEnabled": True,
@@ -366,6 +369,7 @@ class TestStreamRecordImages:
             TableName="img-test",
             KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
             AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+
             BillingMode="PAY_PER_REQUEST",
             StreamSpecification={
                 "StreamEnabled": True,
@@ -378,6 +382,7 @@ class TestStreamRecordImages:
             Item={"pk": {"S": "k1"}, "val": {"S": "a"}},
         )
         client.delete_item(TableName="img-test", Key={"pk": {"S": "k1"}})
+
 
         records = self._get_records("img-test", stream_arn)
         remove = records[1]
@@ -395,6 +400,7 @@ class TestStreamRecordImages:
             TableName="img-test",
             KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
             AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+
             BillingMode="PAY_PER_REQUEST",
             StreamSpecification={
                 "StreamEnabled": True,
@@ -407,6 +413,7 @@ class TestStreamRecordImages:
             Item={"pk": {"S": "k1"}, "val": {"S": "a"}},
         )
         client.delete_item(TableName="img-test", Key={"pk": {"S": "k1"}})
+
 
         records = self._get_records("img-test", stream_arn)
         remove = records[1]
@@ -423,6 +430,7 @@ class TestStreamRecordImages:
             TableName="img-test",
             KeySchema=[{"AttributeName": "pk", "KeyType": "HASH"}],
             AttributeDefinitions=[{"AttributeName": "pk", "AttributeType": "S"}],
+
             BillingMode="PAY_PER_REQUEST",
             StreamSpecification={
                 "StreamEnabled": True,

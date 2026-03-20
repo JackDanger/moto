@@ -3,6 +3,13 @@
 from moto.core.exceptions import JsonRESTError
 
 
+class ConflictException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message: str):
+        super().__init__("ConflictException", message)
+
+
 class InvalidParameterCombinationException(JsonRESTError):
     code = 400
 
@@ -69,4 +76,54 @@ class TrailNameInvalidChars(InvalidTrailNameException):
     def __init__(self) -> None:
         super().__init__(
             "Trail name or ARN can only contain uppercase letters, lowercase letters, numbers, periods (.), hyphens (-), and underscores (_)."
+        )
+
+
+class EventDataStoreNotFoundException(JsonRESTError):
+    code = 400
+
+    def __init__(self, arn: str):
+        super().__init__(
+            "EventDataStoreNotFoundException",
+            f"The event data store {arn} was not found.",
+        )
+
+
+class ChannelNotFoundException(JsonRESTError):
+    code = 400
+
+    def __init__(self, arn: str):
+        super().__init__(
+            "ChannelNotFoundException",
+            f"The channel {arn} was not found.",
+        )
+
+
+class ResourceNotFoundException(JsonRESTError):
+    code = 400
+
+    def __init__(self, resource_arn: str):
+        super().__init__(
+            "ResourceNotFoundException",
+            f"The resource with ARN {resource_arn} was not found.",
+        )
+
+
+class QueryIdNotFoundException(JsonRESTError):
+    code = 400
+
+    def __init__(self, query_id: str):
+        super().__init__(
+            "QueryIdNotFoundException",
+            f"The query ID {query_id} was not found.",
+        )
+
+
+class ImportNotFoundException(JsonRESTError):
+    code = 400
+
+    def __init__(self, import_id: str):
+        super().__init__(
+            "ImportNotFoundException",
+            f"The import {import_id} was not found.",
         )

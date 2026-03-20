@@ -56,16 +56,12 @@ class IVSResponse(BaseResponse):
 
     def get_channel(self) -> str:
         arn = self._get_param("arn")
-        channel = self.ivs_backend.get_channel(
-            arn=arn,
-        )
+        channel = self.ivs_backend.get_channel(arn=arn)
         return json.dumps({"channel": channel})
 
     def batch_get_channel(self) -> str:
         arns = self._get_param("arns")
-        channels, errors = self.ivs_backend.batch_get_channel(
-            arns=arns,
-        )
+        channels, errors = self.ivs_backend.batch_get_channel(arns=arns)
         return json.dumps({"channels": channels, "errors": errors})
 
     def update_channel(self) -> str:
@@ -91,6 +87,187 @@ class IVSResponse(BaseResponse):
 
     def delete_channel(self) -> None:
         arn = self._get_param("arn")
-        self.ivs_backend.delete_channel(
-            arn=arn,
+        self.ivs_backend.delete_channel(arn=arn)
+
+    # Stream Key operations
+
+    def create_stream_key(self) -> str:
+        channel_arn = self._get_param("channelArn")
+        tags = self._get_param("tags", {})
+        stream_key = self.ivs_backend.create_stream_key(
+            channel_arn=channel_arn,
+            tags=tags,
         )
+        return json.dumps({"streamKey": stream_key})
+
+    def get_stream_key(self) -> str:
+        arn = self._get_param("arn")
+        stream_key = self.ivs_backend.get_stream_key(arn=arn)
+        return json.dumps({"streamKey": stream_key})
+
+    def delete_stream_key(self) -> None:
+        arn = self._get_param("arn")
+        self.ivs_backend.delete_stream_key(arn=arn)
+
+    def batch_get_stream_key(self) -> str:
+        arns = self._get_param("arns")
+        stream_keys, errors = self.ivs_backend.batch_get_stream_key(arns=arns)
+        return json.dumps({"streamKeys": stream_keys, "errors": errors})
+
+    def list_stream_keys(self) -> str:
+        channel_arn = self._get_param("channelArn")
+        max_results = self._get_param("maxResults")
+        next_token = self._get_param("nextToken")
+        stream_keys, next_token = self.ivs_backend.list_stream_keys(
+            channel_arn=channel_arn,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return json.dumps({"streamKeys": stream_keys, "nextToken": next_token})
+
+    # Playback Key Pair operations
+
+    def import_playback_key_pair(self) -> str:
+        name = self._get_param("name")
+        public_key_material = self._get_param("publicKeyMaterial")
+        tags = self._get_param("tags", {})
+        key_pair = self.ivs_backend.import_playback_key_pair(
+            name=name,
+            public_key_material=public_key_material,
+            tags=tags,
+        )
+        return json.dumps({"keyPair": key_pair})
+
+    def get_playback_key_pair(self) -> str:
+        arn = self._get_param("arn")
+        key_pair = self.ivs_backend.get_playback_key_pair(arn=arn)
+        return json.dumps({"keyPair": key_pair})
+
+    def delete_playback_key_pair(self) -> None:
+        arn = self._get_param("arn")
+        self.ivs_backend.delete_playback_key_pair(arn=arn)
+
+    def list_playback_key_pairs(self) -> str:
+        max_results = self._get_param("maxResults")
+        next_token = self._get_param("nextToken")
+        key_pairs, next_token = self.ivs_backend.list_playback_key_pairs(
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return json.dumps({"keyPairs": key_pairs, "nextToken": next_token})
+
+    # Playback Restriction Policy operations
+
+    def create_playback_restriction_policy(self) -> str:
+        allowed_countries = self._get_param("allowedCountries", [])
+        allowed_origins = self._get_param("allowedOrigins", [])
+        enable_strict_origin_enforcement = self._get_param(
+            "enableStrictOriginEnforcement", False
+        )
+        name = self._get_param("name")
+        tags = self._get_param("tags", {})
+        policy = self.ivs_backend.create_playback_restriction_policy(
+            allowed_countries=allowed_countries,
+            allowed_origins=allowed_origins,
+            enable_strict_origin_enforcement=enable_strict_origin_enforcement,
+            name=name,
+            tags=tags,
+        )
+        return json.dumps({"playbackRestrictionPolicy": policy})
+
+    def get_playback_restriction_policy(self) -> str:
+        arn = self._get_param("arn")
+        policy = self.ivs_backend.get_playback_restriction_policy(arn=arn)
+        return json.dumps({"playbackRestrictionPolicy": policy})
+
+    def update_playback_restriction_policy(self) -> str:
+        arn = self._get_param("arn")
+        allowed_countries = self._get_param("allowedCountries")
+        allowed_origins = self._get_param("allowedOrigins")
+        enable_strict_origin_enforcement = self._get_param(
+            "enableStrictOriginEnforcement"
+        )
+        name = self._get_param("name")
+        policy = self.ivs_backend.update_playback_restriction_policy(
+            arn=arn,
+            allowed_countries=allowed_countries,
+            allowed_origins=allowed_origins,
+            enable_strict_origin_enforcement=enable_strict_origin_enforcement,
+            name=name,
+        )
+        return json.dumps({"playbackRestrictionPolicy": policy})
+
+    def delete_playback_restriction_policy(self) -> tuple[str, dict[str, int]]:
+        arn = self._get_param("arn")
+        self.ivs_backend.delete_playback_restriction_policy(arn=arn)
+        return "", {"status": 204}
+
+    # Recording Configuration operations
+
+    def create_recording_configuration(self) -> str:
+        destination_configuration = self._get_param("destinationConfiguration")
+        name = self._get_param("name")
+        recording_reconnect_window_seconds = self._get_param(
+            "recordingReconnectWindowSeconds", 0
+        )
+        rendition_configuration = self._get_param("renditionConfiguration")
+        tags = self._get_param("tags", {})
+        thumbnail_configuration = self._get_param("thumbnailConfiguration")
+        recording_config = self.ivs_backend.create_recording_configuration(
+            destination_configuration=destination_configuration,
+            name=name,
+            recording_reconnect_window_seconds=recording_reconnect_window_seconds,
+            rendition_configuration=rendition_configuration,
+            tags=tags,
+            thumbnail_configuration=thumbnail_configuration,
+        )
+        return json.dumps({"recordingConfiguration": recording_config})
+
+    def get_recording_configuration(self) -> str:
+        arn = self._get_param("arn")
+        recording_config = self.ivs_backend.get_recording_configuration(arn=arn)
+        return json.dumps({"recordingConfiguration": recording_config})
+
+    def delete_recording_configuration(self) -> None:
+        arn = self._get_param("arn")
+        self.ivs_backend.delete_recording_configuration(arn=arn)
+
+    def list_recording_configurations(self) -> str:
+        max_results = self._get_param("maxResults")
+        next_token = self._get_param("nextToken")
+        configs, next_token = self.ivs_backend.list_recording_configurations(
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return json.dumps({"recordingConfigurations": configs, "nextToken": next_token})
+
+    # Tag operations
+
+    def tag_resource(self) -> None:
+        resource_arn = self._get_param("resourceArn")
+        if not resource_arn:
+            resource_arn = (
+                self.path.split("/tags/")[-1] if "/tags/" in self.path else ""
+            )
+        tags = self._get_param("tags", {})
+        self.ivs_backend.tag_resource(resource_arn=resource_arn, tags=tags)
+
+    def untag_resource(self) -> None:
+        resource_arn = self._get_param("resourceArn")
+        if not resource_arn:
+            resource_arn = (
+                self.path.split("/tags/")[-1] if "/tags/" in self.path else ""
+            )
+        tag_keys = self._get_param("tagKeys", [])
+        if not tag_keys:
+            tag_keys = self.querystring.get("tagKeys", [])
+        self.ivs_backend.untag_resource(resource_arn=resource_arn, tag_keys=tag_keys)
+
+    def list_tags_for_resource(self) -> str:
+        resource_arn = self._get_param("resourceArn")
+        if not resource_arn:
+            resource_arn = (
+                self.path.split("/tags/")[-1] if "/tags/" in self.path else ""
+            )
+        tags = self.ivs_backend.list_tags_for_resource(resource_arn=resource_arn)
+        return json.dumps({"tags": tags})
