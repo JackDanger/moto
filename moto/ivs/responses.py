@@ -202,6 +202,81 @@ class IVSResponse(BaseResponse):
         self.ivs_backend.delete_playback_restriction_policy(arn=arn)
         return "", {"status": 204}
 
+    def list_playback_restriction_policies(self) -> str:
+        max_results = self._get_param("maxResults")
+        next_token = self._get_param("nextToken")
+        policies, next_token = self.ivs_backend.list_playback_restriction_policies(
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return json.dumps(
+            {"playbackRestrictionPolicies": policies, "nextToken": next_token}
+        )
+
+    # Stream operations
+
+    def list_streams(self) -> str:
+        filter_by = self._get_param("filterBy")
+        max_results = self._get_param("maxResults")
+        next_token = self._get_param("nextToken")
+        streams, next_token = self.ivs_backend.list_streams(
+            filter_by=filter_by,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return json.dumps({"streams": streams, "nextToken": next_token})
+
+    def stop_stream(self) -> str:
+        channel_arn = self._get_param("channelArn")
+        self.ivs_backend.stop_stream(channel_arn=channel_arn)
+        return json.dumps({})
+
+    def put_metadata(self) -> str:
+        channel_arn = self._get_param("channelArn")
+        metadata = self._get_param("metadata")
+        self.ivs_backend.put_metadata(channel_arn=channel_arn, metadata=metadata)
+        return json.dumps({})
+
+    def list_stream_sessions(self) -> str:
+        channel_arn = self._get_param("channelArn")
+        max_results = self._get_param("maxResults")
+        next_token = self._get_param("nextToken")
+        sessions, next_token = self.ivs_backend.list_stream_sessions(
+            channel_arn=channel_arn,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return json.dumps({"streamSessions": sessions, "nextToken": next_token})
+
+    def get_stream_session(self) -> str:
+        channel_arn = self._get_param("channelArn")
+        stream_id = self._get_param("streamId")
+        session = self.ivs_backend.get_stream_session(
+            channel_arn=channel_arn,
+            stream_id=stream_id,
+        )
+        return json.dumps({"streamSession": session})
+
+    def start_viewer_session_revocation(self) -> str:
+        channel_arn = self._get_param("channelArn")
+        viewer_id = self._get_param("viewerId")
+        viewer_session_versions_less_than_or_equal_to = self._get_param(
+            "viewerSessionVersionsLessThanOrEqualTo"
+        )
+        self.ivs_backend.start_viewer_session_revocation(
+            channel_arn=channel_arn,
+            viewer_id=viewer_id,
+            viewer_session_versions_less_than_or_equal_to=viewer_session_versions_less_than_or_equal_to,
+        )
+        return json.dumps({})
+
+    def batch_start_viewer_session_revocation(self) -> str:
+        viewer_sessions = self._get_param("viewerSessions", [])
+        errors = self.ivs_backend.batch_start_viewer_session_revocation(
+            viewer_sessions=viewer_sessions,
+        )
+        return json.dumps({"errors": errors})
+
     # Recording Configuration operations
 
     def create_recording_configuration(self) -> str:
