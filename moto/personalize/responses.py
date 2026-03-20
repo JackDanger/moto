@@ -107,9 +107,9 @@ class PersonalizeResponse(BaseResponse):
     def tag_resource(self) -> str:
         params = json.loads(self.body)
         resource_arn = params.get("resourceArn")
-        tags = params.get("tags") or {}
+        tags = params.get("tags") or []
         store = self._tags_store()
-        store[resource_arn] = {**store.get(resource_arn, {}), **tags}
+        store[resource_arn] = store.get(resource_arn, []) + tags
         return json.dumps({})
 
     def untag_resource(self) -> str:
@@ -117,12 +117,12 @@ class PersonalizeResponse(BaseResponse):
         resource_arn = params.get("resourceArn")
         tag_keys = params.get("tagKeys") or []
         store = self._tags_store()
-        existing = store.get(resource_arn, {})
-        store[resource_arn] = {k: v for k, v in existing.items() if k not in tag_keys}
+        existing = store.get(resource_arn, [])
+        store[resource_arn] = [t for t in existing if t.get("tagKey") not in tag_keys]
         return json.dumps({})
 
     def list_tags_for_resource(self) -> str:
         params = json.loads(self.body)
         resource_arn = params.get("resourceArn")
         store = self._tags_store()
-        return json.dumps({"tags": store.get(resource_arn, {})})
+        return json.dumps({"tags": store.get(resource_arn, [])})
