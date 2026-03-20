@@ -33,4 +33,6 @@ url_paths = {
     "{0}/describeMediaStorageConfiguration$": response.dispatch,
     "{0}/describeStreamStorageConfiguration$": response.dispatch,
     "{0}/describeMappedResourceConfiguration$": response.dispatch,
+    "{0}/updateImageGenerationConfiguration$": response.dispatch,
+    "{0}/updateNotificationConfiguration$": response.dispatch,
 }
