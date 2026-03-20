@@ -605,3 +605,116 @@ class EBResponse(BaseResponse):
             action_id=action_id,
         )
         return ActionResult(result)
+
+    def check_dns_availability(self) -> ActionResult:
+        cname_prefix = self._get_param("CNAMEPrefix", "")
+        result = self.elasticbeanstalk_backend.check_dns_availability(
+            cname_prefix=cname_prefix,
+        )
+        return ActionResult(result)
+
+    def create_storage_location(self) -> ActionResult:
+        bucket = self.elasticbeanstalk_backend.create_storage_location()
+        return ActionResult({"S3Bucket": bucket})
+
+    def associate_environment_operations_role(self) -> ActionResult:
+        environment_name = self._get_param("EnvironmentName", "")
+        operations_role = self._get_param("OperationsRole", "")
+        self.elasticbeanstalk_backend.associate_environment_operations_role(
+            environment_name=environment_name,
+            operations_role=operations_role,
+        )
+        return EmptyResult()
+
+    def disassociate_environment_operations_role(self) -> ActionResult:
+        environment_name = self._get_param("EnvironmentName", "")
+        self.elasticbeanstalk_backend.disassociate_environment_operations_role(
+            environment_name=environment_name,
+        )
+        return EmptyResult()
+
+    def restart_app_server(self) -> ActionResult:
+        environment_name = self._get_param("EnvironmentName")
+        environment_id = self._get_param("EnvironmentId")
+        self.elasticbeanstalk_backend.restart_app_server(
+            environment_name=environment_name,
+            environment_id=environment_id,
+        )
+        return EmptyResult()
+
+    def update_application(self) -> ActionResult:
+        application_name = self._get_param("ApplicationName", "")
+        description = self._get_param("Description")
+        app = self.elasticbeanstalk_backend.update_application(
+            application_name=application_name,
+            description=description,
+        )
+        result = {
+            "Application": {
+                "ApplicationName": app.application_name,
+                "Description": app.description,
+                "ApplicationArn": app.arn,
+            }
+        }
+        return ActionResult(result)
+
+    def delete_application_version(self) -> ActionResult:
+        application_name = self._get_param("ApplicationName", "")
+        version_label = self._get_param("VersionLabel", "")
+        delete_source_bundle = self._get_param("DeleteSourceBundle", False)
+        self.elasticbeanstalk_backend.delete_application_version(
+            application_name=application_name,
+            version_label=version_label,
+            delete_source_bundle=delete_source_bundle,
+        )
+        return EmptyResult()
+
+    def delete_environment_configuration(self) -> ActionResult:
+        application_name = self._get_param("ApplicationName", "")
+        environment_name = self._get_param("EnvironmentName", "")
+        self.elasticbeanstalk_backend.delete_environment_configuration(
+            application_name=application_name,
+            environment_name=environment_name,
+        )
+        return EmptyResult()
+
+    def update_application_resource_lifecycle(self) -> ActionResult:
+        application_name = self._get_param("ApplicationName", "")
+        resource_lifecycle_config = self._get_param("ResourceLifecycleConfig", {})
+        result = self.elasticbeanstalk_backend.update_application_resource_lifecycle(
+            application_name=application_name,
+            resource_lifecycle_config=resource_lifecycle_config,
+        )
+        return ActionResult(result)
+
+    def update_application_version(self) -> ActionResult:
+        application_name = self._get_param("ApplicationName", "")
+        version_label = self._get_param("VersionLabel", "")
+        description = self._get_param("Description")
+        version = self.elasticbeanstalk_backend.update_application_version(
+            application_name=application_name,
+            version_label=version_label,
+            description=description,
+        )
+        result = {
+            "ApplicationVersion": {
+                "ApplicationName": version.application_name,
+                "VersionLabel": version.version_label,
+                "Description": version.description,
+                "Status": version.status,
+            }
+        }
+        return ActionResult(result)
+
+    def validate_configuration_settings(self) -> ActionResult:
+        application_name = self._get_param("ApplicationName", "")
+        template_name = self._get_param("TemplateName")
+        environment_name = self._get_param("EnvironmentName")
+        option_settings = self._get_param("OptionSettings", [])
+        messages = self.elasticbeanstalk_backend.validate_configuration_settings(
+            application_name=application_name,
+            template_name=template_name,
+            environment_name=environment_name,
+            option_settings=option_settings,
+        )
+        return ActionResult({"Messages": messages})

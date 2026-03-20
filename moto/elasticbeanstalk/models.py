@@ -45,6 +45,7 @@ class Environment(BaseModel):
             "Version": "1.0",
         }
         self.environment_links: list[dict[str, str]] = []
+        self.operations_role: Optional[str] = None
 
     @property
     def application_name(self) -> str:
@@ -134,9 +135,11 @@ class Application(BaseModel):
     ):
         self.backend = weakref.proxy(backend)  # weakref to break cycles
         self.application_name = application_name
+        self.description: str = ""
         self.environments: dict[str, Environment] = {}
         self.versions: dict[str, ApplicationVersion] = {}
         self.configuration_templates: dict[str, ConfigurationTemplate] = {}
+        self.resource_lifecycle_config: dict[str, Any] = {}
         self.account_id = self.backend.account_id
         self.region = self.backend.region_name
         self.arn = make_arn(
@@ -550,6 +553,141 @@ class EBBackend(BaseBackend):
             "ActionDescription": "Mock managed action",
             "Status": "Applied",
         }
+
+    def check_dns_availability(self, cname_prefix: str) -> dict[str, Any]:
+        """Check if a CNAME prefix is available."""
+        # In the mock, all CNAMEs are available unless already used by an env
+        used_cnames = {
+            env.cname
+            for app in self.applications.values()
+            for env in app.environments.values()
+        }
+        fully_qualified = f"{cname_prefix}.{self.region_name}.elasticbeanstalk.com"
+        available = fully_qualified not in used_cnames
+        return {"Available": available, "FullyQualifiedCNAME": fully_qualified}
+
+    def create_storage_location(self) -> str:
+        """Create the S3 storage location for Elastic Beanstalk."""
+        return f"elasticbeanstalk-{self.region_name}-{self.account_id}"
+
+    def associate_environment_operations_role(
+        self,
+        environment_name: str,
+        operations_role: str,
+    ) -> None:
+        """Associate an IAM role with an environment."""
+        env = self._find_environment(environment_name=environment_name)
+        if env:
+            env.operations_role = operations_role
+        # Silently ignore if environment not found (AWS behavior)
+
+    def disassociate_environment_operations_role(
+        self,
+        environment_name: str,
+    ) -> None:
+        """Remove the IAM operations role from an environment."""
+        env = self._find_environment(environment_name=environment_name)
+        if env:
+            env.operations_role = None
+        # Silently ignore if environment not found
+
+    def restart_app_server(
+        self,
+        environment_name: Optional[str] = None,
+        environment_id: Optional[str] = None,
+    ) -> None:
+        """Restart the app server (no-op in mock)."""
+        pass
+
+    def update_application(
+        self,
+        application_name: str,
+        description: Optional[str] = None,
+    ) -> "Application":
+        """Update an application's description."""
+        if application_name not in self.applications:
+            raise InvalidParameterValueError(
+                f"No Application named '{application_name}' found."
+            )
+        app = self.applications[application_name]
+        if description is not None:
+            app.description = description
+        return app
+
+    def delete_application_version(
+        self,
+        application_name: str,
+        version_label: str,
+        delete_source_bundle: bool = False,
+    ) -> None:
+        """Delete a specific application version."""
+        if application_name not in self.applications:
+            raise InvalidParameterValueError(
+                f"No Application named '{application_name}' found."
+            )
+        app = self.applications[application_name]
+        app.versions.pop(version_label, None)
+
+    def delete_environment_configuration(
+        self,
+        application_name: str,
+        environment_name: str,
+    ) -> None:
+        """Delete a draft configuration for an environment (no-op in mock)."""
+        pass
+
+    def update_application_resource_lifecycle(
+        self,
+        application_name: str,
+        resource_lifecycle_config: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Update the resource lifecycle configuration for an application."""
+        if application_name not in self.applications:
+            raise InvalidParameterValueError(
+                f"No Application named '{application_name}' found."
+            )
+        app = self.applications[application_name]
+        app.resource_lifecycle_config = resource_lifecycle_config
+        return {
+            "ApplicationName": application_name,
+            "ResourceLifecycleConfig": resource_lifecycle_config,
+        }
+
+    def update_application_version(
+        self,
+        application_name: str,
+        version_label: str,
+        description: Optional[str] = None,
+    ) -> ApplicationVersion:
+        """Update the description of an application version."""
+        if application_name not in self.applications:
+            raise InvalidParameterValueError(
+                f"No Application named '{application_name}' found."
+            )
+        app = self.applications[application_name]
+        if version_label not in app.versions:
+            raise InvalidParameterValueError(
+                f"No Application Version named '{version_label}' found."
+            )
+        version = app.versions[version_label]
+        if description is not None:
+            version.description = description
+        version.date_updated = utcnow()
+        return version
+
+    def validate_configuration_settings(
+        self,
+        application_name: str,
+        template_name: Optional[str] = None,
+        environment_name: Optional[str] = None,
+        option_settings: Optional[list[dict[str, str]]] = None,
+    ) -> list[dict[str, str]]:
+        """Validate configuration settings (returns empty messages list in mock)."""
+        if application_name not in self.applications:
+            raise InvalidParameterValueError(
+                f"No Application named '{application_name}' found."
+            )
+        return []
 
 
 eb_backends = BackendDict(EBBackend, "elasticbeanstalk")
