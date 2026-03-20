@@ -208,3 +208,25 @@ class KinesisVideoResponse(BaseResponse):
             stream_name=stream_name, stream_arn=stream_arn
         )
         return ActionResult({"MappedResourceConfigurationList": configs})
+
+    def update_image_generation_configuration(self) -> ActionResult:
+        stream_name = self._get_param("StreamName")
+        stream_arn = self._get_param("StreamARN")
+        config = self._get_param("ImageGenerationConfiguration")
+        self.kinesisvideo_backend.update_image_generation_configuration(
+            stream_name=stream_name,
+            stream_arn=stream_arn,
+            image_generation_configuration=config,
+        )
+        return ActionResult({})
+
+    def update_notification_configuration(self) -> ActionResult:
+        stream_name = self._get_param("StreamName")
+        stream_arn = self._get_param("StreamARN")
+        config = self._get_param("NotificationConfiguration")
+        self.kinesisvideo_backend.update_notification_configuration(
+            stream_name=stream_name,
+            stream_arn=stream_arn,
+            notification_configuration=config,
+        )
+        return ActionResult({})

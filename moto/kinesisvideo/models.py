@@ -346,3 +346,21 @@ class KinesisVideoBackend(BaseBackend):
 
 
 kinesisvideo_backends = BackendDict(KinesisVideoBackend, "kinesisvideo")
+
+    def update_image_generation_configuration(
+        self,
+        stream_name: Optional[str],
+        stream_arn: Optional[str],
+        image_generation_configuration: Optional[dict] = None,
+    ) -> None:
+        stream = self._get_stream(stream_name or "", stream_arn or "")
+        stream.image_generation_configuration = image_generation_configuration or {}
+
+    def update_notification_configuration(
+        self,
+        stream_name: Optional[str],
+        stream_arn: Optional[str],
+        notification_configuration: Optional[dict] = None,
+    ) -> None:
+        stream = self._get_stream(stream_name or "", stream_arn or "")
+        stream.notification_configuration = notification_configuration or {}
