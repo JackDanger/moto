@@ -37,4 +37,17 @@ url_paths = {
     r"{0}/(?P<api_version>[^/]+)/functions/(?P<function_name>[\w_:%-]+)/event-invoke-config/list$": LambdaResponse.dispatch,
     r"{0}/(?P<api_version>[^/]+)/layers/(?P<layer_name>.+)/versions/(?P<layer_version>[\w_-]+)/policy$": LambdaResponse.dispatch,
     r"{0}/(?P<api_version>[^/]+)/layers/(?P<layer_name>.+)/versions/(?P<layer_version>[\w_-]+)/policy/(?P<statement_id>[\w_-]+)$": LambdaResponse.dispatch,
+    # Capacity providers (2025-11-30)
+    r"{0}/2025-11-30/capacity-providers/?$": LambdaResponse.dispatch,
+    r"{0}/2025-11-30/capacity-providers/(?P<capacity_provider_name>[^/]+)/?$": LambdaResponse.dispatch,
+    r"{0}/2025-11-30/capacity-providers/(?P<capacity_provider_name>[^/]+)/function-versions/?$": LambdaResponse.dispatch,
+    # Durable executions (2025-12-01)
+    r"{0}/2025-12-01/durable-executions/(?P<durable_execution_arn>.+)/checkpoint/?$": LambdaResponse.dispatch,
+    r"{0}/2025-12-01/durable-executions/(?P<durable_execution_arn>.+)/history/?$": LambdaResponse.dispatch,
+    r"{0}/2025-12-01/durable-executions/(?P<durable_execution_arn>.+)/state/?$": LambdaResponse.dispatch,
+    r"{0}/2025-12-01/durable-executions/(?P<durable_execution_arn>.+)/stop/?$": LambdaResponse.dispatch,
+    r"{0}/2025-12-01/durable-executions/(?P<durable_execution_arn>[^/]+)/?$": LambdaResponse.dispatch,
+    r"{0}/2025-12-01/durable-execution-callbacks/(?P<callback_id>[^/]+)/fail/?$": LambdaResponse.dispatch,
+    r"{0}/2025-12-01/durable-execution-callbacks/(?P<callback_id>[^/]+)/heartbeat/?$": LambdaResponse.dispatch,
+    r"{0}/2025-12-01/durable-execution-callbacks/(?P<callback_id>[^/]+)/succeed/?$": LambdaResponse.dispatch,
 }

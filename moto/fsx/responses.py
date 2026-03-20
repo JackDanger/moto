@@ -441,3 +441,40 @@ class FSxResponse(BaseResponse):
 
     def update_shared_vpc_configuration(self) -> str:
         return json.dumps({"EnableFsxRouteTableUpdatesFromParticipantAccounts": "true"})
+
+    # --- Stub operations (return minimal valid responses) ---
+
+    def cancel_data_repository_task(self) -> str:
+        params = json.loads(self.body)
+        task_id = params.get("TaskId", "")
+        return json.dumps({"Lifecycle": "CANCELING", "TaskId": task_id})
+
+    def copy_backup(self) -> str:
+        return json.dumps({"Backup": {}})
+
+    def copy_snapshot_and_update_volume(self) -> str:
+        params = json.loads(self.body)
+        volume_id = params.get("VolumeId", "")
+        return json.dumps({"VolumeId": volume_id, "Lifecycle": "UPDATING", "AdministrativeActions": []})
+
+    def create_and_attach_s3_access_point(self) -> str:
+        return json.dumps({"ResourceARN": "", "AccessPoint": {}})
+
+    def create_data_repository_task(self) -> str:
+        return json.dumps({"DataRepositoryTask": {"TaskId": "stub", "Lifecycle": "EXECUTING"}})
+
+    def create_file_cache(self) -> str:
+        return json.dumps({"FileCache": {"FileCacheId": "stub", "Lifecycle": "CREATING"}})
+
+    def delete_file_cache(self) -> str:
+        params = json.loads(self.body)
+        file_cache_id = params.get("FileCacheId", "")
+        return json.dumps({"FileCacheId": file_cache_id, "Lifecycle": "DELETING"})
+
+    def detach_and_delete_s3_access_point(self) -> str:
+        return json.dumps({})
+
+    def update_file_cache(self) -> str:
+        params = json.loads(self.body)
+        file_cache_id = params.get("FileCacheId", "stub")
+        return json.dumps({"FileCache": {"FileCacheId": file_cache_id, "Lifecycle": "UPDATING"}})

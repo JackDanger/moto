@@ -444,3 +444,40 @@ class RekognitionResponse(BaseResponse):
         headers = {"Content-Type": "application/x-amz-json-1.1"}
         job_id = self.rekognition_backend.start_text_detection()
         return 200, headers, ('{"JobId":"' + job_id + '"}').encode()
+
+    # ---- Stub operations ----
+
+    def copy_project_version(self) -> str:
+        return json.dumps({"ProjectVersionArn": "arn:stub"})
+
+    def delete_project_policy(self) -> str:
+        return json.dumps({})
+
+    def distribute_dataset_entries(self) -> str:
+        return json.dumps({})
+
+    def get_media_analysis_job(self) -> str:
+        return json.dumps(
+            {
+                "JobId": "",
+                "OperationsConfig": {},
+                "Status": "SUCCEEDED",
+                "Input": {},
+                "OutputConfig": {},
+            }
+        )
+
+    def list_media_analysis_jobs(self) -> str:
+        return json.dumps({"MediaAnalysisJobs": [], "NextToken": None})
+
+    def list_project_policies(self) -> str:
+        return json.dumps({"ProjectPolicies": [], "NextToken": None})
+
+    def put_project_policy(self) -> str:
+        return json.dumps({"PolicyRevisionId": "stub"})
+
+    def start_media_analysis_job(self) -> str:
+        return json.dumps({"JobId": "stub-job-id"})
+
+    def update_dataset_entries(self) -> str:
+        return json.dumps({})

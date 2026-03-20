@@ -542,3 +542,64 @@ class LambdaResponse(BaseResponse):
             return 204, {"status": 204}, "{}"
         else:
             return 404, {"status": 404}, "{}"
+
+    # ---------------------------------------------------------------------------
+    # Stub operations — return minimal valid responses for gap coverage
+    # ---------------------------------------------------------------------------
+
+    def update_code_signing_config(self) -> TYPE_RESPONSE:
+        return 200, {}, json.dumps({"CodeSigningConfig": {}})
+
+    def create_capacity_provider(self) -> TYPE_RESPONSE:
+        return 201, {"status": 201}, json.dumps({"CapacityProvider": {}})
+
+    def delete_capacity_provider(self) -> TYPE_RESPONSE:
+        return 200, {}, json.dumps({"CapacityProvider": {}})
+
+    def get_capacity_provider(self) -> TYPE_RESPONSE:
+        return 200, {}, json.dumps({"CapacityProvider": {}})
+
+    def update_capacity_provider(self) -> TYPE_RESPONSE:
+        return 200, {}, json.dumps({"CapacityProvider": {}})
+
+    def list_capacity_providers(self) -> TYPE_RESPONSE:
+        return 200, {}, json.dumps({"CapacityProviders": [], "NextMarker": None})
+
+    def list_function_versions_by_capacity_provider(self) -> TYPE_RESPONSE:
+        return 200, {}, json.dumps({"FunctionVersions": [], "NextMarker": None})
+
+    def checkpoint_durable_execution(self) -> TYPE_RESPONSE:
+        return 200, {}, json.dumps({"CheckpointToken": None, "NewExecutionState": None})
+
+    def get_durable_execution(self) -> TYPE_RESPONSE:
+        return 200, {}, json.dumps({
+            "DurableExecutionArn": None,
+            "DurableExecutionName": None,
+            "FunctionArn": None,
+            "InputPayload": None,
+            "Result": None,
+            "Error": None,
+            "StartTimestamp": None,
+            "Status": None,
+            "EndTimestamp": None,
+            "Version": None,
+            "TraceHeader": None,
+        })
+
+    def get_durable_execution_history(self) -> TYPE_RESPONSE:
+        return 200, {}, json.dumps({"Events": [], "NextMarker": None})
+
+    def get_durable_execution_state(self) -> TYPE_RESPONSE:
+        return 200, {}, json.dumps({"Operations": [], "NextMarker": None})
+
+    def stop_durable_execution(self) -> TYPE_RESPONSE:
+        return 200, {}, json.dumps({"StopTimestamp": None})
+
+    def send_durable_execution_callback_failure(self) -> TYPE_RESPONSE:
+        return 200, {}, json.dumps({})
+
+    def send_durable_execution_callback_heartbeat(self) -> TYPE_RESPONSE:
+        return 200, {}, json.dumps({})
+
+    def send_durable_execution_callback_success(self) -> TYPE_RESPONSE:
+        return 200, {}, json.dumps({})

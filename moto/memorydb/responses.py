@@ -396,3 +396,29 @@ class MemoryDBResponse(BaseResponse):
             tags=params.get("Tags", []),
         )
         return ActionResult({"ReservedNode": result})
+
+    # --- Stub operations (return minimal valid responses) ---
+
+    def create_multi_region_cluster(self) -> ActionResult:
+        return ActionResult({"MultiRegionCluster": {}})
+
+    def delete_multi_region_cluster(self) -> ActionResult:
+        return ActionResult({"MultiRegionCluster": {}})
+
+    def describe_multi_region_clusters(self) -> ActionResult:
+        return ActionResult({"MultiRegionClusters": [], "NextToken": None})
+
+    def describe_multi_region_parameter_groups(self) -> ActionResult:
+        return ActionResult({"MultiRegionParameterGroups": [], "NextToken": None})
+
+    def describe_multi_region_parameters(self) -> ActionResult:
+        return ActionResult({"Parameters": [], "NextToken": None})
+
+    def failover_shard(self) -> ActionResult:
+        return ActionResult({"Cluster": {}})
+
+    def list_allowed_multi_region_cluster_updates(self) -> ActionResult:
+        return ActionResult({"MultiRegionParameterGroupName": "", "Parameters": []})
+
+    def update_multi_region_cluster(self) -> ActionResult:
+        return ActionResult({"MultiRegionCluster": {}})

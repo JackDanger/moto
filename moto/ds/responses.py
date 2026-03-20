@@ -782,3 +782,7 @@ class DirectoryServiceResponse(BaseResponse):
             directory_id=directory_id,
         )
         return json.dumps(policy)
+
+    def update_trust(self) -> str:
+        """Stub: UpdateTrust is not implemented in Moto backend."""
+        return json.dumps({"RequestId": "stub", "TrustId": ""})
