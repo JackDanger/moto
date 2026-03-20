@@ -1164,9 +1164,9 @@ class BackupResponse(BaseResponse):
     def disassociate_backup_vault_mpa_approval_team(self) -> EmptyResult:
         return EmptyResult()
 
-    def create_restore_access_backup_vault(self) -> ActionResult:
+    def create_restore_access_backup_vault(self) -> str:
         name = self._get_param("BackupVaultName") or "stub-restore-vault"
-        return ActionResult(
+        return json.dumps(
             {
                 "BackupVaultArn": f"arn:aws:backup:{self.region}:{self.current_account}:backup-vault:{name}",
                 "BackupVaultName": name,
