@@ -35,4 +35,10 @@ url_paths = {
     "{0}/describeMappedResourceConfiguration$": response.dispatch,
     "{0}/updateImageGenerationConfiguration$": response.dispatch,
     "{0}/updateNotificationConfiguration$": response.dispatch,
+    "{0}/deleteEdgeConfiguration$": response.dispatch,
+    "{0}/startEdgeConfigurationUpdate$": response.dispatch,
+    "{0}/updateMediaStorageConfiguration$": response.dispatch,
+    "{0}/updateStreamStorageConfiguration$": response.dispatch,
+    "{0}/describeEdgeConfiguration$": response.dispatch,
+    "{0}/listEdgeAgentConfigurations$": response.dispatch,
 }

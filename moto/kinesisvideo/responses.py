@@ -230,3 +230,21 @@ class KinesisVideoResponse(BaseResponse):
             notification_configuration=config,
         )
         return ActionResult({})
+
+    def delete_edge_configuration(self) -> ActionResult:
+        return ActionResult({})
+
+    def start_edge_configuration_update(self) -> ActionResult:
+        return ActionResult({"EdgeConfig": {}, "CreationTime": "2023-01-01T00:00:00Z", "LastUpdatedTime": "2023-01-01T00:00:00Z", "SyncStatus": "ACKNOWLEDGED"})
+
+    def update_media_storage_configuration(self) -> ActionResult:
+        return ActionResult({})
+
+    def update_stream_storage_configuration(self) -> ActionResult:
+        return ActionResult({})
+
+    def describe_edge_configuration(self) -> ActionResult:
+        return ActionResult({"EdgeConfig": {}, "CreationTime": "2023-01-01T00:00:00Z", "LastUpdatedTime": "2023-01-01T00:00:00Z", "SyncStatus": "ACKNOWLEDGED"})
+
+    def list_edge_agent_configurations(self) -> ActionResult:
+        return ActionResult({"EdgeConfigs": []})
