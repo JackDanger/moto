@@ -49,6 +49,10 @@ url_paths = {
     "{0}/clientcertificates$": APIGatewayResponse.dispatch,
     "{0}/clientcertificates/(?P<clientcertificate_id>[^/]+)$": APIGatewayResponse.dispatch,
     "{0}/account$": APIGatewayResponse.dispatch,
+    "{0}/sdktypes$": APIGatewayResponse.dispatch,
+    "{0}/sdktypes/(?P<sdk_type_id>[^/]+)$": APIGatewayResponse.dispatch,
+    "{0}/restapis/(?P<function_id>[^/]+)/authorizers/(?P<authorizer_id>[^/]+)/test$": APIGatewayResponse.dispatch,
+    r"{0}/restapis/(?P<function_id>[^/]+)/resources/(?P<resource_id>[^/]+)/methods/(?P<method_name>[^/]+)/integration/responses$": APIGatewayResponse.dispatch,
 }
 
 # Also manages the APIGatewayV2

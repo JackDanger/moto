@@ -824,6 +824,74 @@ class APIGatewayResponse(BaseResponse):
         vpc_links = self.backend.get_vpc_links()
         return json.dumps({"item": [v.to_json() for v in vpc_links]})
 
+    def update_vpc_link(self) -> str:
+        vpc_link_id = self.path.split("/")[-1]
+        vpc_link = self.backend.get_vpc_link(vpc_link_id=vpc_link_id)
+        return json.dumps(vpc_link.to_json())
+
+    def update_deployment(self) -> str:
+        url_path_parts = self.path.split("/")
+        function_id = url_path_parts[2]
+        deployment_id = url_path_parts[4]
+        deployment = self.backend.get_deployment(function_id, deployment_id)
+        return json.dumps(deployment.to_json())
+
+    def update_domain_name(self) -> str:
+        domain_name = self.path.split("/")[-1]
+        dn = self.backend.get_domain_name(domain_name)
+        return json.dumps(dn.to_json())
+
+    def update_model(self) -> str:
+        url_path_parts = self.path.split("/")
+        function_id = url_path_parts[2]
+        model_name = url_path_parts[4]
+        model = self.backend.get_model(function_id, model_name)
+        return json.dumps(model.to_json())
+
+    def update_resource(self) -> str:
+        url_path_parts = self.path.split("/")
+        function_id = url_path_parts[2]
+        resource_id = url_path_parts[4]
+        resource = self.backend.get_resource(function_id, resource_id)
+        return json.dumps(resource.to_json())
+
+    def get_sdk_types(self) -> str:
+        sdk_types = [
+            {"id": "android", "name": "Android", "description": "Android SDK"},
+            {"id": "ios", "name": "iOS Swift", "description": "iOS SDK (Swift)"},
+            {"id": "javascript", "name": "JavaScript", "description": "JavaScript SDK"},
+        ]
+        return json.dumps({"item": sdk_types})
+
+    def get_sdk_type(self) -> str:
+        sdk_type_id = self.path.split("/")[-1]
+        return json.dumps({"id": sdk_type_id, "name": sdk_type_id.capitalize()})
+
+    def test_invoke_authorizer(self) -> str:
+        return json.dumps(
+            {
+                "clientStatus": 200,
+                "log": "",
+                "latency": 0,
+                "principalId": "test-principal",
+                "policy": '{"Version":"2012-10-17","Statement":[]}',
+                "authorization": {},
+                "claims": {},
+            }
+        )
+
+    def test_invoke_method(self) -> str:
+        return json.dumps(
+            {
+                "status": 200,
+                "body": "",
+                "headers": {},
+                "log": "",
+                "latency": 0,
+                "multiValueHeaders": {},
+            }
+        )
+
     def put_gateway_response(self) -> TYPE_RESPONSE:
         rest_api_id = self.path.split("/")[-3]
         response_type = self.path.split("/")[-1]
