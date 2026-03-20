@@ -15,6 +15,7 @@ url_paths = {
     "{0}/2015-01-01/es/domain/(?P<domainname>[^/]+)/progress$": OpenSearchServiceResponse.domain_change_progress,
     "{0}/2015-01-01/es/domain/(?P<domainname>[^/]+)/dryRun$": OpenSearchServiceResponse.dry_run_progress,
     "{0}/2015-01-01/es/domain/(?P<domainname>[^/]+)/packages$": OpenSearchServiceResponse.list_packages_for_domain_route,
+    "{0}/2015-01-01/domain/(?P<domainname>[^/]+)/packages$": OpenSearchServiceResponse.list_packages_for_domain_route,
     "{0}/2015-01-01/es/domain/(?P<domainname>[^/]+)/vpcEndpoints$": OpenSearchServiceResponse.vpc_endpoints_for_domain,
     "{0}/2015-01-01/es/domain/(?P<domainname>[^/]+)$": OpenSearchServiceResponse.domain,
     "{0}/2015-01-01/es/domain-info$": OpenSearchServiceResponse.list_domains,
