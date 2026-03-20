@@ -338,7 +338,7 @@ class ConnectCampaignServiceBackend(BaseBackend):
         result = []
         for cid in campaign_ids:
             if cid in self.campaigns:
-                result.append({"id": cid, "state": self.campaigns[cid].state})
+                result.append({"campaignId": cid, "state": self.campaigns[cid].state})
         return result
 
 
