@@ -296,9 +296,7 @@ class GlueBackend(BaseBackend):
         self.integration_resource_properties: dict[str, dict[str, Any]] = OrderedDict()
         self.integration_table_properties: dict[str, dict[str, Any]] = OrderedDict()
         self.column_statistics_task_settings: dict[str, dict[str, Any]] = OrderedDict()
-        self.table_optimizers: dict[
-            tuple[str, str, str, str], FakeTableOptimizer
-        ] = {}
+        self.table_optimizers: dict[tuple[str, str, str, str], FakeTableOptimizer] = {}
         self.connection_types: dict[str, FakeConnectionType] = {}
         self.glue_identity_center_config: Optional[
             FakeGlueIdentityCenterConfiguration
@@ -2961,6 +2959,328 @@ class GlueBackend(BaseBackend):
         self.get_ml_transform(transform_id)
         return []
 
+    def cancel_ml_task_run(self, transform_id: str, task_run_id: str) -> dict[str, str]:
+        # Verify the transform exists
+        self.get_ml_transform(transform_id)
+        # In a real implementation, this would cancel a running task run.
+        # We stub it to return the transform and task run IDs.
+        return {
+            "TransformId": transform_id,
+            "TaskRunId": task_run_id,
+            "Status": "STOPPING",
+        }
+
+    def start_ml_evaluation_task_run(self, transform_id: str) -> str:
+        self.get_ml_transform(transform_id)
+        return f"tr_{mock_random.get_random_hex(32)}"
+
+    def start_ml_labeling_set_generation_task_run(
+        self, transform_id: str, output_s3_path: str
+    ) -> str:
+        self.get_ml_transform(transform_id)
+        return f"tr_{mock_random.get_random_hex(32)}"
+
+    def start_export_labels_task_run(
+        self, transform_id: str, output_s3_path: str
+    ) -> str:
+        self.get_ml_transform(transform_id)
+        return f"tr_{mock_random.get_random_hex(32)}"
+
+    def start_import_labels_task_run(
+        self, transform_id: str, input_s3_path: str, replace_all_labels: bool = False
+    ) -> str:
+        self.get_ml_transform(transform_id)
+        return f"tr_{mock_random.get_random_hex(32)}"
+
+    # --- Schema Version Ops ---
+
+    def get_schema_versions_diff(
+        self,
+        schema_id: dict[str, str],
+        first_schema_version_number: dict[str, Any],
+        second_schema_version_number: dict[str, Any],
+        schema_diff_type: str,
+    ) -> dict[str, Any]:
+        # Get both schema versions
+        first_version = self.get_schema_version(
+            schema_id=schema_id,
+            schema_version_number=first_schema_version_number,
+        )
+        second_version = self.get_schema_version(
+            schema_id=schema_id,
+            schema_version_number=second_schema_version_number,
+        )
+        # Return a diff string (simplified - real AWS does actual schema diff)
+        return {
+            "Diff": f"--- version {first_schema_version_number}\n+++ version {second_schema_version_number}\n"
+            f"-{first_version.get('SchemaDefinition', '')}\n+{second_version.get('SchemaDefinition', '')}",
+        }
+
+    def query_schema_version_metadata(
+        self,
+        schema_id: Optional[dict[str, str]] = None,
+        schema_version_number: Optional[dict[str, Any]] = None,
+        schema_version_id: Optional[str] = None,
+        metadata_list: Optional[list[dict[str, str]]] = None,
+    ) -> dict[str, Any]:
+        # Find the schema version
+        (
+            resolved_schema_version_id,
+            registry_name,
+            schema_name,
+            schema_arn,
+            version_number,
+            latest_version,
+        ) = validate_schema_version_params(
+            self.registries, schema_id, schema_version_id, schema_version_number
+        )
+
+        # Find the actual schema version object
+        schema_version_obj = None
+        if resolved_schema_version_id:
+            for registry in self.registries.values():
+                for schema in registry.schemas.values():
+                    if resolved_schema_version_id in schema.schema_versions:
+                        schema_version_obj = schema.schema_versions[
+                            resolved_schema_version_id
+                        ]
+                        break
+        else:
+            schema = self.registries[registry_name].schemas[schema_name]  # type: ignore
+            for sv in schema.schema_versions.values():
+                if version_number == sv.version_number:  # type: ignore
+                    schema_version_obj = sv
+                    break
+
+        if schema_version_obj is None:
+            raise EntityNotFoundException("Schema version not found.")
+
+        # Build metadata entries
+        result_metadata: dict[str, Any] = {}
+        for key, values in schema_version_obj.metadata.items():
+            for val in values:
+                entry_key = f"{key}={val}"
+                result_metadata[entry_key] = {"MetadataValue": val, "MetadataKey": key}
+
+        return {
+            "MetadataInfoMap": result_metadata,
+            "SchemaVersionId": schema_version_obj.schema_version_id,
+        }
+
+    def remove_schema_version_metadata(
+        self,
+        schema_id: Optional[dict[str, str]] = None,
+        schema_version_number: Optional[dict[str, Any]] = None,
+        schema_version_id: Optional[str] = None,
+        metadata_key_value: Optional[dict[str, str]] = None,
+    ) -> dict[str, Any]:
+        if not metadata_key_value:
+            raise InvalidInputException(
+                "RemoveSchemaVersionMetadata", "MetadataKeyValue is required."
+            )
+
+        metadata_key = metadata_key_value.get("MetadataKey", "")
+        metadata_value = metadata_key_value.get("MetadataValue", "")
+
+        (
+            resolved_schema_version_id,
+            registry_name,
+            schema_name,
+            schema_arn,
+            version_number,
+            latest_version,
+        ) = validate_schema_version_params(
+            self.registries, schema_id, schema_version_id, schema_version_number
+        )
+
+        schema_version_obj = None
+        if resolved_schema_version_id:
+            for registry in self.registries.values():
+                for schema in registry.schemas.values():
+                    if resolved_schema_version_id in schema.schema_versions:
+                        schema_version_obj = schema.schema_versions[
+                            resolved_schema_version_id
+                        ]
+                        break
+        else:
+            schema = self.registries[registry_name].schemas[schema_name]  # type: ignore
+            for sv in schema.schema_versions.values():
+                if version_number == sv.version_number:  # type: ignore
+                    schema_version_obj = sv
+                    break
+
+        if schema_version_obj is None:
+            raise EntityNotFoundException("Schema version not found.")
+
+        if metadata_key in schema_version_obj.metadata:
+            if metadata_value in schema_version_obj.metadata[metadata_key]:
+                schema_version_obj.metadata[metadata_key].remove(metadata_value)
+                if not schema_version_obj.metadata[metadata_key]:
+                    del schema_version_obj.metadata[metadata_key]
+
+        return {
+            "SchemaVersionId": schema_version_obj.schema_version_id,
+            "MetadataKey": metadata_key,
+            "MetadataValue": metadata_value,
+            "RegistryName": registry_name or "",
+            "SchemaName": schema_name or "",
+        }
+
+    # --- Stub operations ---
+
+    def create_script(
+        self,
+        dag_nodes: Optional[list[dict[str, Any]]] = None,
+        dag_edges: Optional[list[dict[str, Any]]] = None,
+        language: str = "PYTHON",
+    ) -> dict[str, str]:
+        # Returns a generated script stub
+        if language == "SCALA":
+            script = "// Auto-generated Scala ETL script\nimport com.amazonaws.services.glue.GlueContext\n"
+        else:
+            script = "# Auto-generated Python ETL script\nimport sys\nfrom awsglue.context import GlueContext\n"
+        return (
+            {"PythonScript": script} if language != "SCALA" else {"ScalaCode": script}
+        )
+
+    def get_dataflow_graph(
+        self,
+        python_script: Optional[str] = None,
+    ) -> dict[str, Any]:
+        return {"DagNodes": [], "DagEdges": []}
+
+    def get_plan(
+        self,
+        mapping: list[dict[str, str]],
+        source: dict[str, str],
+        sinks: Optional[list[dict[str, str]]] = None,
+        location: Optional[dict[str, Any]] = None,
+        language: str = "PYTHON",
+    ) -> dict[str, str]:
+        script = "# Auto-generated ETL plan\nimport sys\nfrom awsglue.context import GlueContext\n"
+        return {"PythonScript": script}
+
+    def get_unfiltered_partition_metadata(
+        self,
+        catalog_id: str,
+        database_name: str,
+        table_name: str,
+        partition_values: list[str],
+        supported_permission_types: list[str],
+    ) -> dict[str, Any]:
+        self.get_table(database_name, table_name)  # Validate table exists
+        partition = self.get_partition(database_name, table_name, partition_values)
+        return {
+            "Partition": partition.as_dict()
+            if hasattr(partition, "as_dict")
+            else partition,
+            "AuthorizedColumns": [],
+            "IsRegisteredWithLakeFormation": False,
+        }
+
+    def get_unfiltered_partitions_metadata(
+        self,
+        catalog_id: str,
+        database_name: str,
+        table_name: str,
+        supported_permission_types: list[str],
+    ) -> dict[str, Any]:
+        partitions = self.get_partitions(database_name, table_name, expression="")
+        return {
+            "UnfilteredPartitions": [
+                {
+                    "Partition": p.as_dict() if hasattr(p, "as_dict") else p,
+                    "AuthorizedColumns": [],
+                    "IsRegisteredWithLakeFormation": False,
+                }
+                for p in partitions
+            ],
+        }
+
+    def get_unfiltered_table_metadata(
+        self,
+        catalog_id: str,
+        database_name: str,
+        table_name: str,
+        supported_permission_types: list[str],
+    ) -> dict[str, Any]:
+        table = self.get_table(database_name, table_name)
+        return {
+            "Table": table.as_dict(),
+            "AuthorizedColumns": [],
+            "IsRegisteredWithLakeFormation": False,
+        }
+
+    def test_connection(
+        self,
+        connection_name: Optional[str] = None,
+        connection_type: Optional[str] = None,
+    ) -> None:
+        if connection_name and connection_name not in self.connections:
+            raise EntityNotFoundException(f"Connection {connection_name} not found.")
+        # In emulation, connections always succeed
+        return None
+
+    def update_job_from_source_control(
+        self,
+        job_name: Optional[str] = None,
+        provider: Optional[str] = None,
+        repository_name: Optional[str] = None,
+        repository_owner: Optional[str] = None,
+        branch_name: Optional[str] = None,
+        folder: Optional[str] = None,
+        commit_id: Optional[str] = None,
+        auth_strategy: Optional[str] = None,
+        auth_token: Optional[str] = None,
+    ) -> dict[str, str]:
+        if job_name:
+            if job_name not in self.jobs:
+                raise EntityNotFoundException(f"Job {job_name} not found.")
+        return {"JobName": job_name or ""}
+
+    def update_source_control_from_job(
+        self,
+        job_name: Optional[str] = None,
+        provider: Optional[str] = None,
+        repository_name: Optional[str] = None,
+        repository_owner: Optional[str] = None,
+        branch_name: Optional[str] = None,
+        folder: Optional[str] = None,
+        commit_id: Optional[str] = None,
+        auth_strategy: Optional[str] = None,
+        auth_token: Optional[str] = None,
+    ) -> dict[str, str]:
+        if job_name:
+            if job_name not in self.jobs:
+                raise EntityNotFoundException(f"Job {job_name} not found.")
+        return {"JobName": job_name or ""}
+
+    def describe_entity(
+        self,
+        connection_name: str,
+        entity_name: str,
+        catalog_id: Optional[str] = None,
+        data_store_api_version: Optional[str] = None,
+    ) -> dict[str, Any]:
+        if connection_name not in self.connections:
+            raise EntityNotFoundException(f"Connection {connection_name} not found.")
+        return {
+            "Fields": [],
+        }
+
+    def list_entities(
+        self,
+        connection_name: str,
+        catalog_id: Optional[str] = None,
+        parent_entity_name: Optional[str] = None,
+        data_store_api_version: Optional[str] = None,
+    ) -> dict[str, Any]:
+        if connection_name not in self.connections:
+            raise EntityNotFoundException(f"Connection {connection_name} not found.")
+        return {
+            "Entities": [],
+        }
+
     # --- GetMapping ---
 
     def get_mapping(
@@ -3315,7 +3635,8 @@ class GlueBackend(BaseBackend):
         to_delete = [
             k
             for k, v in self.column_statistics_task_runs.items()
-            if v.get("DatabaseName") == database_name and v.get("TableName") == table_name
+            if v.get("DatabaseName") == database_name
+            and v.get("TableName") == table_name
         ]
         for k in to_delete:
             del self.column_statistics_task_runs[k]

@@ -2354,6 +2354,188 @@ class GlueResponse(BaseResponse):
         self.glue_backend.delete_glue_identity_center_configuration()
         return EmptyResult()
 
+    # --- ML Task Run Operations ---
+
+    def cancel_ml_task_run(self) -> ActionResult:
+        transform_id = self.parameters.get("TransformId")
+        task_run_id = self.parameters.get("TaskRunId")
+        result = self.glue_backend.cancel_ml_task_run(transform_id, task_run_id)
+        return ActionResult(result)
+
+    def start_ml_evaluation_task_run(self) -> ActionResult:
+        transform_id = self.parameters.get("TransformId")
+        task_run_id = self.glue_backend.start_ml_evaluation_task_run(transform_id)
+        return ActionResult({"TaskRunId": task_run_id})
+
+    def start_ml_labeling_set_generation_task_run(self) -> ActionResult:
+        transform_id = self.parameters.get("TransformId")
+        output_s3_path = self.parameters.get("OutputS3Path")
+        task_run_id = self.glue_backend.start_ml_labeling_set_generation_task_run(
+            transform_id, output_s3_path
+        )
+        return ActionResult({"TaskRunId": task_run_id})
+
+    def start_export_labels_task_run(self) -> ActionResult:
+        transform_id = self.parameters.get("TransformId")
+        output_s3_path = self.parameters.get("OutputS3Path")
+        task_run_id = self.glue_backend.start_export_labels_task_run(
+            transform_id, output_s3_path
+        )
+        return ActionResult({"TaskRunId": task_run_id})
+
+    def start_import_labels_task_run(self) -> ActionResult:
+        transform_id = self.parameters.get("TransformId")
+        input_s3_path = self.parameters.get("InputS3Path")
+        replace_all = self.parameters.get("ReplaceAllLabels", False)
+        task_run_id = self.glue_backend.start_import_labels_task_run(
+            transform_id, input_s3_path, replace_all
+        )
+        return ActionResult({"TaskRunId": task_run_id})
+
+    # --- Schema Version Operations ---
+
+    def get_schema_versions_diff(self) -> ActionResult:
+        result = self.glue_backend.get_schema_versions_diff(
+            schema_id=self.parameters.get("SchemaId"),
+            first_schema_version_number=self.parameters.get("FirstSchemaVersionNumber"),
+            second_schema_version_number=self.parameters.get(
+                "SecondSchemaVersionNumber"
+            ),
+            schema_diff_type=self.parameters.get("SchemaDiffType", "SYNTAX_DIFF"),
+        )
+        return ActionResult(result)
+
+    def query_schema_version_metadata(self) -> ActionResult:
+        result = self.glue_backend.query_schema_version_metadata(
+            schema_id=self.parameters.get("SchemaId"),
+            schema_version_number=self.parameters.get("SchemaVersionNumber"),
+            schema_version_id=self.parameters.get("SchemaVersionId"),
+            metadata_list=self.parameters.get("MetadataList"),
+        )
+        return ActionResult(result)
+
+    def remove_schema_version_metadata(self) -> ActionResult:
+        result = self.glue_backend.remove_schema_version_metadata(
+            schema_id=self.parameters.get("SchemaId"),
+            schema_version_number=self.parameters.get("SchemaVersionNumber"),
+            schema_version_id=self.parameters.get("SchemaVersionId"),
+            metadata_key_value=self.parameters.get("MetadataKeyValue"),
+        )
+        return ActionResult(result)
+
+    # --- Stub Operations ---
+
+    def create_script(self) -> ActionResult:
+        result = self.glue_backend.create_script(
+            dag_nodes=self.parameters.get("DagNodes"),
+            dag_edges=self.parameters.get("DagEdges"),
+            language=self.parameters.get("Language", "PYTHON"),
+        )
+        return ActionResult(result)
+
+    def get_dataflow_graph(self) -> ActionResult:
+        result = self.glue_backend.get_dataflow_graph(
+            python_script=self.parameters.get("PythonScript"),
+        )
+        return ActionResult(result)
+
+    def get_plan(self) -> ActionResult:
+        result = self.glue_backend.get_plan(
+            mapping=self.parameters.get("Mapping", []),
+            source=self.parameters.get("Source", {}),
+            sinks=self.parameters.get("Sinks"),
+            location=self.parameters.get("Location"),
+            language=self.parameters.get("Language", "PYTHON"),
+        )
+        return ActionResult(result)
+
+    def get_unfiltered_partition_metadata(self) -> ActionResult:
+        result = self.glue_backend.get_unfiltered_partition_metadata(
+            catalog_id=self.parameters.get("CatalogId", ""),
+            database_name=self.parameters.get("DatabaseName", ""),
+            table_name=self.parameters.get("TableName", ""),
+            partition_values=self.parameters.get("PartitionValues", []),
+            supported_permission_types=self.parameters.get(
+                "SupportedPermissionTypes", []
+            ),
+        )
+        return ActionResult(result)
+
+    def get_unfiltered_partitions_metadata(self) -> ActionResult:
+        result = self.glue_backend.get_unfiltered_partitions_metadata(
+            catalog_id=self.parameters.get("CatalogId", ""),
+            database_name=self.parameters.get("DatabaseName", ""),
+            table_name=self.parameters.get("TableName", ""),
+            supported_permission_types=self.parameters.get(
+                "SupportedPermissionTypes", []
+            ),
+        )
+        return ActionResult(result)
+
+    def get_unfiltered_table_metadata(self) -> ActionResult:
+        result = self.glue_backend.get_unfiltered_table_metadata(
+            catalog_id=self.parameters.get("CatalogId", ""),
+            database_name=self.parameters.get("DatabaseName", ""),
+            table_name=self.parameters.get("Name", ""),
+            supported_permission_types=self.parameters.get(
+                "SupportedPermissionTypes", []
+            ),
+        )
+        return ActionResult(result)
+
+    def test_connection(self) -> EmptyResult:
+        self.glue_backend.test_connection(
+            connection_name=self.parameters.get("ConnectionName"),
+            connection_type=self.parameters.get("ConnectionType"),
+        )
+        return EmptyResult()
+
+    def update_job_from_source_control(self) -> ActionResult:
+        result = self.glue_backend.update_job_from_source_control(
+            job_name=self.parameters.get("JobName"),
+            provider=self.parameters.get("Provider"),
+            repository_name=self.parameters.get("RepositoryName"),
+            repository_owner=self.parameters.get("RepositoryOwner"),
+            branch_name=self.parameters.get("BranchName"),
+            folder=self.parameters.get("Folder"),
+            commit_id=self.parameters.get("CommitId"),
+            auth_strategy=self.parameters.get("AuthStrategy"),
+            auth_token=self.parameters.get("AuthToken"),
+        )
+        return ActionResult(result)
+
+    def update_source_control_from_job(self) -> ActionResult:
+        result = self.glue_backend.update_source_control_from_job(
+            job_name=self.parameters.get("JobName"),
+            provider=self.parameters.get("Provider"),
+            repository_name=self.parameters.get("RepositoryName"),
+            repository_owner=self.parameters.get("RepositoryOwner"),
+            branch_name=self.parameters.get("BranchName"),
+            folder=self.parameters.get("Folder"),
+            commit_id=self.parameters.get("CommitId"),
+            auth_strategy=self.parameters.get("AuthStrategy"),
+            auth_token=self.parameters.get("AuthToken"),
+        )
+        return ActionResult(result)
+
+    def describe_entity(self) -> ActionResult:
+        result = self.glue_backend.describe_entity(
+            connection_name=self.parameters.get("ConnectionName", ""),
+            entity_name=self.parameters.get("EntityName", ""),
+            catalog_id=self.parameters.get("CatalogId"),
+            data_store_api_version=self.parameters.get("DataStoreApiVersion"),
+        )
+        return ActionResult(result)
+
+    def list_entities(self) -> ActionResult:
+        result = self.glue_backend.list_entities(
+            connection_name=self.parameters.get("ConnectionName", ""),
+            catalog_id=self.parameters.get("CatalogId"),
+            parent_entity_name=self.parameters.get("ParentEntityName"),
+            data_store_api_version=self.parameters.get("DataStoreApiVersion"),
+        )
+        return ActionResult(result)
+
     # --- Materialized View Refresh Task Runs ---
 
     def start_materialized_view_refresh_task_run(self) -> ActionResult:
