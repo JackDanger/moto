@@ -145,3 +145,66 @@ class KinesisVideoResponse(BaseResponse):
         resource_arn = self._get_param("ResourceARN")
         tags = self.kinesisvideo_backend.list_tags_for_resource(resource_arn=resource_arn)
         return ActionResult({"Tags": tags})
+
+    def get_signaling_channel_endpoint(self) -> ActionResult:
+        channel_arn = self._get_param("ChannelARN")
+        config = self._get_param("SingleMasterChannelEndpointConfiguration")
+        endpoints = self.kinesisvideo_backend.get_signaling_channel_endpoint(
+            channel_arn=channel_arn,
+            single_master_channel_endpoint_configuration=config,
+        )
+        return ActionResult({"ResourceEndpointList": endpoints})
+
+    def update_data_retention(self) -> ActionResult:
+        stream_name = self._get_param("StreamName")
+        stream_arn = self._get_param("StreamARN")
+        current_version = self._get_param("CurrentVersion")
+        operation = self._get_param("Operation")
+        change = self._get_param("DataRetentionChangeInHours")
+        self.kinesisvideo_backend.update_data_retention(
+            stream_name=stream_name,
+            stream_arn=stream_arn,
+            current_version=current_version,
+            operation=operation,
+            data_retention_change_in_hours=change,
+        )
+        return EmptyResult()
+
+    def describe_image_generation_configuration(self) -> ActionResult:
+        stream_name = self._get_param("StreamName")
+        stream_arn = self._get_param("StreamARN")
+        config = self.kinesisvideo_backend.describe_image_generation_configuration(
+            stream_name=stream_name, stream_arn=stream_arn
+        )
+        return ActionResult({"ImageGenerationConfiguration": config})
+
+    def describe_notification_configuration(self) -> ActionResult:
+        stream_name = self._get_param("StreamName")
+        stream_arn = self._get_param("StreamARN")
+        config = self.kinesisvideo_backend.describe_notification_configuration(
+            stream_name=stream_name, stream_arn=stream_arn
+        )
+        return ActionResult({"NotificationConfiguration": config})
+
+    def describe_media_storage_configuration(self) -> ActionResult:
+        channel_arn = self._get_param("ChannelARN")
+        config = self.kinesisvideo_backend.describe_media_storage_configuration(
+            channel_arn=channel_arn
+        )
+        return ActionResult({"MediaStorageConfiguration": config})
+
+    def describe_stream_storage_configuration(self) -> ActionResult:
+        stream_name = self._get_param("StreamName")
+        stream_arn = self._get_param("StreamARN")
+        config = self.kinesisvideo_backend.describe_stream_storage_configuration(
+            stream_name=stream_name, stream_arn=stream_arn
+        )
+        return ActionResult({"StreamStorageConfigurations": config})
+
+    def describe_mapped_resource_configuration(self) -> ActionResult:
+        stream_name = self._get_param("StreamName")
+        stream_arn = self._get_param("StreamARN")
+        configs = self.kinesisvideo_backend.describe_mapped_resource_configuration(
+            stream_name=stream_name, stream_arn=stream_arn
+        )
+        return ActionResult({"MappedResourceConfigurationList": configs})

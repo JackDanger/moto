@@ -284,5 +284,65 @@ class KinesisVideoBackend(BaseBackend):
             return self.signaling_channels[resource_arn].tags
         raise ResourceNotFoundException(message=f"Resource {resource_arn} not found")
 
+    def get_signaling_channel_endpoint(
+        self, channel_arn: str, single_master_channel_endpoint_configuration: Optional[dict[str, Any]]
+    ) -> list[dict[str, str]]:
+        for ch in self.signaling_channels.values():
+            if ch.arn == channel_arn:
+                protocols = ["WSS", "HTTPS"]
+                if single_master_channel_endpoint_configuration:
+                    protocols = single_master_channel_endpoint_configuration.get("Protocols", protocols)
+                return [
+                    {"Protocol": p, "ResourceEndpoint": f"https://{ch.arn}.kinesisvideo.{self.region_name}.amazonaws.com"}
+                    for p in protocols
+                ]
+        raise ResourceNotFoundException(message=f"Channel {channel_arn} not found")
+
+    def update_data_retention(
+        self,
+        stream_name: Optional[str],
+        stream_arn: Optional[str],
+        current_version: str,
+        operation: str,
+        data_retention_change_in_hours: int,
+    ) -> None:
+        stream = self._get_stream(stream_name or "", stream_arn or "")
+        if current_version != stream.version:
+            raise AccessDeniedException("The stream version does not match the current version.")
+        if operation == "INCREASE_DATA_RETENTION":
+            stream.data_retention_in_hours = (stream.data_retention_in_hours or 0) + data_retention_change_in_hours
+        elif operation == "DECREASE_DATA_RETENTION":
+            stream.data_retention_in_hours = max(0, (stream.data_retention_in_hours or 0) - data_retention_change_in_hours)
+
+    def describe_image_generation_configuration(
+        self, stream_name: Optional[str], stream_arn: Optional[str]
+    ) -> dict[str, Any]:
+        stream = self._get_stream(stream_name or "", stream_arn or "")
+        return getattr(stream, "image_generation_configuration", {}) or {}
+
+    def describe_notification_configuration(
+        self, stream_name: Optional[str], stream_arn: Optional[str]
+    ) -> dict[str, Any]:
+        stream = self._get_stream(stream_name or "", stream_arn or "")
+        return getattr(stream, "notification_configuration", {}) or {}
+
+    def describe_media_storage_configuration(self, channel_arn: str) -> dict[str, Any]:
+        for ch in self.signaling_channels.values():
+            if ch.arn == channel_arn:
+                return getattr(ch, "media_storage_configuration", {}) or {}
+        raise ResourceNotFoundException(message=f"Channel {channel_arn} not found")
+
+    def describe_stream_storage_configuration(
+        self, stream_name: Optional[str], stream_arn: Optional[str]
+    ) -> dict[str, Any]:
+        stream = self._get_stream(stream_name or "", stream_arn or "")
+        return getattr(stream, "stream_storage_configuration", {}) or {}
+
+    def describe_mapped_resource_configuration(
+        self, stream_name: Optional[str], stream_arn: Optional[str]
+    ) -> list[dict[str, Any]]:
+        stream = self._get_stream(stream_name or "", stream_arn or "")
+        return getattr(stream, "mapped_resource_configuration", []) or []
+
 
 kinesisvideo_backends = BackendDict(KinesisVideoBackend, "kinesisvideo")
