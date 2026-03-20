@@ -57,6 +57,24 @@ PAGINATION_MODEL = {
         "limit_default": 123,
         "unique_attribute": "job_id",
     },
+    "list_devices_jobs": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 25,
+        "unique_attribute": "job_id",
+    },
+    "list_application_instance_dependencies": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 25,
+        "unique_attribute": "package_name",
+    },
+    "list_application_instance_node_instances": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 25,
+        "unique_attribute": "node_instance_id",
+    },
 }
 
 
@@ -370,6 +388,89 @@ class ApplicationInstance(BaseObject):
         return self.response_object()
 
 
+class DeviceJob(BaseObject):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        device_id: str,
+        device_name: str,
+        device_type: str,
+        job_type: str,
+        image_version: Optional[str] = None,
+    ) -> None:
+        self.job_id = str(uuid.uuid4()).lower()
+        self.device_id = device_id
+        self.device_name = device_name
+        self.device_arn = arn_formatter("device", device_id, account_id, region_name)
+        self.device_type = device_type
+        self.job_type = job_type
+        self.image_version = image_version or "1.0.0"
+        self.created_time = datetime.now(timezone.utc)
+        self.status = "COMPLETED"
+
+    def response_object(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "CreatedTime": deep_convert_datetime_to_isoformat(self.created_time),
+            "DeviceArn": self.device_arn,
+            "DeviceId": self.device_id,
+            "DeviceName": self.device_name,
+            "DeviceType": self.device_type,
+            "ImageVersion": self.image_version,
+            "JobId": self.job_id,
+            "JobType": self.job_type,
+            "Status": self.status,
+        }
+        return result
+
+    def response_listed(self) -> dict[str, Any]:
+        return {
+            "CreatedTime": deep_convert_datetime_to_isoformat(self.created_time),
+            "DeviceId": self.device_id,
+            "DeviceName": self.device_name,
+            "JobId": self.job_id,
+            "JobType": self.job_type,
+            "Status": self.status,
+        }
+
+
+class PackageVersion(BaseObject):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        package_id: str,
+        package_name: str,
+        package_version: str,
+        patch_version: str,
+        mark_latest: bool = False,
+    ) -> None:
+        self.owner_account = account_id
+        self.package_id = package_id
+        self.package_name = package_name
+        self.package_arn = arn_formatter("package", package_id, account_id, region_name)
+        self.package_version = package_version
+        self.patch_version = patch_version
+        self.is_latest_patch = mark_latest
+        self.status = "REGISTER_COMPLETED"
+        self.status_description = ""
+        self.registered_time = datetime.now(timezone.utc)
+
+    def response_object(self) -> dict[str, Any]:
+        return {
+            "IsLatestPatch": self.is_latest_patch,
+            "OwnerAccount": self.owner_account,
+            "PackageArn": self.package_arn,
+            "PackageId": self.package_id,
+            "PackageName": self.package_name,
+            "PackageVersion": self.package_version,
+            "PatchVersion": self.patch_version,
+            "RegisteredTime": deep_convert_datetime_to_isoformat(self.registered_time),
+            "Status": self.status,
+            "StatusDescription": self.status_description,
+        }
+
+
 class Node(BaseObject):
     def __init__(
         self, job_id: str, job_tags: list[dict[str, Union[str, dict[str, str]]]],
@@ -426,6 +527,10 @@ class PanoramaBackend(BaseBackend):
         self.packages_memory: dict[str, Package] = {}
         self.package_import_jobs_memory: dict[str, PackageImportJob] = {}
         self.application_instances_memory: dict[str, ApplicationInstance] = {}
+        self.device_jobs_memory: dict[str, DeviceJob] = {}
+        self.package_versions_memory: dict[str, PackageVersion] = {}
+        # ARN-based tags store for resources that don't have built-in tags
+        self._tags: dict[str, dict[str, str]] = {}
 
     def provision_device(
         self, description: Optional[str], name: str,
@@ -619,6 +724,171 @@ class PanoramaBackend(BaseBackend):
             ),
         )
         return list(filtered)
+
+    def create_job_for_devices(
+        self,
+        device_ids: list[str],
+        device_job_config: dict[str, Any],
+        job_type: str,
+    ) -> list[DeviceJob]:
+        jobs = []
+        for device_id in device_ids:
+            device = self.devices_memory.get(device_id)
+            if device is None:
+                raise ValidationError(f"Device {device_id} not found")
+            image_version = None
+            if device_job_config:
+                ota_config = device_job_config.get("OTAJobConfig", {})
+                image_version = ota_config.get("ImageVersion")
+            job = DeviceJob(
+                account_id=self.account_id,
+                region_name=self.region_name,
+                device_id=device_id,
+                device_name=device.name,
+                device_type=device.type,
+                job_type=job_type,
+                image_version=image_version,
+            )
+            self.device_jobs_memory[job.job_id] = job
+            jobs.append(job)
+        return jobs
+
+    def describe_device_job(self, job_id: str) -> DeviceJob:
+        job = self.device_jobs_memory.get(job_id)
+        if job is None:
+            raise ResourceNotFoundException(f"DeviceJob {job_id} not found")
+        return job
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_devices_jobs(self, device_id: Optional[str]) -> list[DeviceJob]:
+        jobs = list(self.device_jobs_memory.values())
+        if device_id:
+            jobs = [j for j in jobs if j.device_id == device_id]
+        return jobs
+
+    def register_package_version(
+        self,
+        owner_account: Optional[str],
+        package_id: str,
+        package_version: str,
+        patch_version: str,
+        mark_latest: bool,
+    ) -> None:
+        pkg = self.packages_memory.get(package_id)
+        package_name = pkg.package_name if pkg else package_id
+        key = f"{package_id}/{package_version}/{patch_version}"
+        pv = PackageVersion(
+            account_id=owner_account or self.account_id,
+            region_name=self.region_name,
+            package_id=package_id,
+            package_name=package_name,
+            package_version=package_version,
+            patch_version=patch_version,
+            mark_latest=mark_latest,
+        )
+        self.package_versions_memory[key] = pv
+
+    def deregister_package_version(
+        self,
+        owner_account: Optional[str],
+        package_id: str,
+        package_version: str,
+        patch_version: str,
+        updated_latest_patch_version: Optional[str],
+    ) -> None:
+        key = f"{package_id}/{package_version}/{patch_version}"
+        if key not in self.package_versions_memory:
+            raise ResourceNotFoundException(
+                f"PackageVersion {package_id}/{package_version}/{patch_version} not found"
+            )
+        del self.package_versions_memory[key]
+
+    def describe_package_version(
+        self,
+        owner_account: Optional[str],
+        package_id: str,
+        package_version: str,
+        patch_version: Optional[str],
+    ) -> PackageVersion:
+        # Try to find by exact key first
+        if patch_version:
+            key = f"{package_id}/{package_version}/{patch_version}"
+            pv = self.package_versions_memory.get(key)
+            if pv is not None:
+                return pv
+        else:
+            # Find any matching version/package combo
+            for key, pv in self.package_versions_memory.items():
+                if pv.package_id == package_id and pv.package_version == package_version:
+                    return pv
+        raise ResourceNotFoundException(
+            f"PackageVersion {package_id}/{package_version} not found"
+        )
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_application_instance_dependencies(
+        self, application_instance_id: str,
+    ) -> list[dict[str, Any]]:
+        if application_instance_id not in self.application_instances_memory:
+            raise ResourceNotFoundException(
+                f"ApplicationInstance {application_instance_id} not found"
+            )
+        # Return empty list - dependencies would be resolved from the manifest
+        return []
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_application_instance_node_instances(
+        self, application_instance_id: str,
+    ) -> list[dict[str, Any]]:
+        if application_instance_id not in self.application_instances_memory:
+            raise ResourceNotFoundException(
+                f"ApplicationInstance {application_instance_id} not found"
+            )
+        # Return empty list - node instances would be populated from runtime
+        return []
+
+    def signal_application_instance_node_instances(
+        self,
+        application_instance_id: str,
+        node_signals: list[dict[str, str]],
+    ) -> str:
+        if application_instance_id not in self.application_instances_memory:
+            raise ResourceNotFoundException(
+                f"ApplicationInstance {application_instance_id} not found"
+            )
+        # Signal is accepted; no state change needed in stub implementation
+        return application_instance_id
+
+    def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
+        # Check built-in tags on resources
+        tags = self._get_tags_for_arn(resource_arn)
+        return tags
+
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
+        existing = self._get_tags_for_arn(resource_arn)
+        existing.update(tags)
+        self._tags[resource_arn] = existing
+
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
+        existing = self._get_tags_for_arn(resource_arn)
+        for key in tag_keys:
+            existing.pop(key, None)
+        self._tags[resource_arn] = existing
+
+    def _get_tags_for_arn(self, resource_arn: str) -> dict[str, str]:
+        # First check the _tags store
+        tags = dict(self._tags.get(resource_arn, {}))
+        # Also merge in built-in tags from the actual resources
+        for device in self.devices_memory.values():
+            if device.arn == resource_arn and device.tags:
+                tags.update(device.tags)
+        for pkg in self.packages_memory.values():
+            if pkg.package_arn == resource_arn and pkg.tags:
+                tags.update(pkg.tags)
+        for ai in self.application_instances_memory.values():
+            if ai.arn == resource_arn and ai.tags:
+                tags.update(ai.tags)
+        return tags
 
 
 panorama_backends = BackendDict(
