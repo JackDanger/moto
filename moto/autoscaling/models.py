@@ -1984,14 +1984,18 @@ class AutoScalingBackend(BaseBackend):
         return tags
 
     def enable_metrics_collection(self, group_name: str, metrics: list[str]) -> None:
-        group = self.describe_auto_scaling_groups([group_name])[0]
-        group.enable_metrics_collection(metrics)
+        groups = self.describe_auto_scaling_groups([group_name])
+        if not groups:
+            raise ValidationError(f"AutoScalingGroup name not found - {group_name}")
+        groups[0].enable_metrics_collection(metrics)
 
     def disable_metrics_collection(
         self, group_name: str, metrics: Optional[list[str]]
     ) -> None:
-        group = self.describe_auto_scaling_groups([group_name])[0]
-        group.disable_metrics_collection(metrics)
+        groups = self.describe_auto_scaling_groups([group_name])
+        if not groups:
+            raise ValidationError(f"AutoScalingGroup name not found - {group_name}")
+        groups[0].disable_metrics_collection(metrics)
 
     def put_warm_pool(
         self,
