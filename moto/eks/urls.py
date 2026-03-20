@@ -14,10 +14,12 @@ url_paths = {
     "{0}/clusters/(?P<name>[^/]+)/node-groups$": response.dispatch,
     "{0}/clusters/(?P<name>[^/]+)/node-groups/(?P<nodegroupName>[^/]+)$": response.dispatch,
     "{0}/clusters/(?P<name>[^/]+)/node-groups/(?P<nodegroupName>[^/]+)/update-config$": response.dispatch,
+    "{0}/clusters/(?P<name>[^/]+)/node-groups/(?P<nodegroupName>[^/]+)/update-version$": response.dispatch,
     "{0}/clusters/(?P<name>[^/]+)/fargate-profiles$": response.dispatch,
     "{0}/clusters/(?P<name>[^/]+)/fargate-profiles/(?P<fargateProfileName>[^/]+)$": response.dispatch,
     "{0}/clusters/(?P<name>[^/]+)/update-config$": response.dispatch,
     "{0}/clusters/(?P<name>[^/]+)/updates$": response.dispatch,
+    "{0}/clusters/(?P<name>[^/]+)/updates/(?P<updateId>[^/]+)$": response.dispatch,
     "{0}/clusters/(?P<name>[^/]+)/encryption-config/associate$": response.dispatch,
     "{0}/tags/(?P<resourceArn>.+)$": response.dispatch,
     # Addon routes
@@ -49,6 +51,7 @@ url_paths = {
     # Cluster versions (global)
     "{0}/cluster-versions$": response.dispatch,
     # Cluster registration/deregistration
+    "{0}/cluster-registrations$": response.dispatch,
     "{0}/cluster-registrations/(?P<name>[^/]+)$": response.dispatch,
     # EKS Anywhere subscription routes
     "{0}/eks-anywhere-subscriptions$": response.dispatch,

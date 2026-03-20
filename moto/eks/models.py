@@ -2591,6 +2591,129 @@ class EKSBackend(BaseBackend):
         }
 
 
+    def update_nodegroup_version(
+        self,
+        cluster_name: str,
+        nodegroup_name: str,
+        version: Optional[str] = None,
+        release_version: Optional[str] = None,
+        launch_template: Optional[dict[str, Any]] = None,
+        force: bool = False,
+        client_request_token: Optional[str] = None,
+    ) -> dict[str, Any]:
+        import uuid as _uuid
+        try:
+            cluster = self.clusters[cluster_name]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=cluster_name,
+                nodegroupName=nodegroup_name,
+                fargateProfileName=None,
+                addonName=None,
+                message=CLUSTER_NOT_FOUND_MSG.format(clusterName=cluster_name),
+            )
+        try:
+            nodegroup = cluster.nodegroups[nodegroup_name]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=cluster_name,
+                nodegroupName=nodegroup_name,
+                fargateProfileName=None,
+                addonName=None,
+                message=NODEGROUP_NOT_FOUND_MSG.format(nodegroupName=nodegroup_name),
+            )
+        if version:
+            nodegroup.version = version
+        return {
+            "id": str(_uuid.uuid4()),
+            "status": "Successful",
+            "type": "VersionUpdate",
+            "params": [{"type": "Version", "value": version or ""}],
+            "createdAt": utcnow(),
+            "errors": [],
+        }
+
+    def update_pod_identity_association(
+        self,
+        cluster_name: str,
+        association_id: str,
+        role_arn: Optional[str] = None,
+        client_request_token: Optional[str] = None,
+    ) -> dict[str, Any]:
+        try:
+            cluster = self.clusters[cluster_name]
+        except KeyError:
+            raise ResourceNotFoundException(
+                clusterName=cluster_name,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=CLUSTER_NOT_FOUND_MSG.format(clusterName=cluster_name),
+            )
+        if association_id not in cluster.pod_identity_associations:
+            raise ResourceNotFoundException(
+                clusterName=cluster_name,
+                nodegroupName=None,
+                fargateProfileName=None,
+                addonName=None,
+                message=f"No pod identity association found for associationId: {association_id}",
+            )
+        assoc = cluster.pod_identity_associations[association_id]
+        if role_arn:
+            assoc.role_arn = role_arn
+        assoc.modified_at = utcnow()
+        return {"association": assoc}
+
+    def register_cluster(
+        self,
+        name: str,
+        connector_config: dict[str, Any],
+        client_request_token: Optional[str] = None,
+        tags: Optional[dict[str, str]] = None,
+    ) -> dict[str, Any]:
+        import uuid as _uuid
+        cluster_arn = (
+            f"arn:aws:eks:{self.region_name}:{self.account_id}:cluster/{name}"
+        )
+        cluster_data = {
+            "name": name,
+            "arn": cluster_arn,
+            "status": "ACTIVE",
+            "connectorConfig": connector_config,
+            "tags": tags or {},
+        }
+        return {"cluster": cluster_data}
+
+    def list_updates(
+        self,
+        cluster_name: str,
+        nodegroup_name: Optional[str] = None,
+        addon_name: Optional[str] = None,
+        max_results: int = 100,
+        next_token: Optional[str] = None,
+    ) -> dict[str, Any]:
+        return {"updateIds": [], "nextToken": None}
+
+    def describe_update(
+        self,
+        cluster_name: str,
+        update_id: str,
+        nodegroup_name: Optional[str] = None,
+        addon_name: Optional[str] = None,
+    ) -> dict[str, Any]:
+        import uuid as _uuid
+        return {
+            "update": {
+                "id": update_id,
+                "status": "Successful",
+                "type": "ConfigUpdate",
+                "params": [],
+                "createdAt": utcnow(),
+                "errors": [],
+            }
+        }
+
+
 def paginated_list(
     full_list: list[Any], max_results: int, next_token: Optional[str]
 ) -> tuple[list[Any], Optional[Any]]:

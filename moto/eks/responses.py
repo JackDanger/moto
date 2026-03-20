@@ -842,6 +842,79 @@ class EKSResponse(BaseResponse):
         tags = self.eks_backend.list_tags_for_resource(self._extract_arn_from_path())
         return ActionResult({"tags": tags})
 
+    def update_nodegroup_version(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        nodegroup_name = self._get_param("nodegroupName")
+        version = self._get_param("version")
+        release_version = self._get_param("releaseVersion")
+        launch_template = self._get_param("launchTemplate")
+        force = self._get_param("force", False)
+        client_request_token = self._get_param("clientRequestToken")
+        update = self.eks_backend.update_nodegroup_version(
+            cluster_name=cluster_name,
+            nodegroup_name=nodegroup_name,
+            version=version,
+            release_version=release_version,
+            launch_template=launch_template,
+            force=force,
+            client_request_token=client_request_token,
+        )
+        return ActionResult({"update": update})
+
+    def update_pod_identity_association(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        association_id = self._get_param("associationId")
+        role_arn = self._get_param("roleArn")
+        client_request_token = self._get_param("clientRequestToken")
+        result = self.eks_backend.update_pod_identity_association(
+            cluster_name=cluster_name,
+            association_id=association_id,
+            role_arn=role_arn,
+            client_request_token=client_request_token,
+        )
+        return ActionResult(result)
+
+    def register_cluster(self) -> ActionResult:
+        name = self._get_param("name")
+        connector_config = self._get_param("connectorConfig", {})
+        client_request_token = self._get_param("clientRequestToken")
+        tags = self._get_param("tags")
+        result = self.eks_backend.register_cluster(
+            name=name,
+            connector_config=connector_config,
+            client_request_token=client_request_token,
+            tags=tags,
+        )
+        return ActionResult(result)
+
+    def list_updates(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        nodegroup_name = self._get_param("nodegroupName")
+        addon_name = self._get_param("addonName")
+        max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
+        next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
+        result = self.eks_backend.list_updates(
+            cluster_name=cluster_name,
+            nodegroup_name=nodegroup_name,
+            addon_name=addon_name,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return ActionResult(result)
+
+    def describe_update(self) -> ActionResult:
+        cluster_name = self._get_param("name")
+        update_id = self._get_param("updateId")
+        nodegroup_name = self._get_param("nodegroupName")
+        addon_name = self._get_param("addonName")
+        result = self.eks_backend.describe_update(
+            cluster_name=cluster_name,
+            update_id=update_id,
+            nodegroup_name=nodegroup_name,
+            addon_name=addon_name,
+        )
+        return ActionResult(result)
+
     def _extract_arn_from_path(self) -> str:
         # /tags/arn_that_may_contain_a_slash
         path = unquote(self.path)
