@@ -23,6 +23,8 @@ class Container(BaseModel):
         self.lifecycle_policy: Optional[str] = None
         self.policy: Optional[str] = None
         self.metric_policy: Optional[str] = None
+        self.cors_policy: Optional[list[dict[str, Any]]] = None
+        self.access_logging_enabled: bool = False
         self.tags = kwargs.get("tags") or []
 
     def to_dict(self, exclude: Optional[list[str]] = None) -> dict[str, Any]:
@@ -128,6 +130,62 @@ class MediaStoreBackend(BaseBackend):
         if not metric_policy:
             raise PolicyNotFoundException()
         return metric_policy
+
+    def delete_container_policy(self, container_name: str) -> None:
+        if container_name not in self._containers:
+            raise ContainerNotFoundException()
+        self._containers[container_name].policy = None
+
+    def delete_lifecycle_policy(self, container_name: str) -> None:
+        if container_name not in self._containers:
+            raise ContainerNotFoundException()
+        self._containers[container_name].lifecycle_policy = None
+
+    def delete_metric_policy(self, container_name: str) -> None:
+        if container_name not in self._containers:
+            raise ContainerNotFoundException()
+        self._containers[container_name].metric_policy = None
+
+    def put_cors_policy(
+        self, container_name: str, cors_policy: list[dict[str, Any]]
+    ) -> None:
+        if container_name not in self._containers:
+            raise ContainerNotFoundException()
+        self._containers[container_name].cors_policy = cors_policy
+
+    def get_cors_policy(self, container_name: str) -> list[dict[str, Any]]:
+        if container_name not in self._containers:
+            raise ContainerNotFoundException()
+        cors_policy = self._containers[container_name].cors_policy
+        if cors_policy is None:
+            raise PolicyNotFoundException()
+        return cors_policy
+
+    def delete_cors_policy(self, container_name: str) -> None:
+        if container_name not in self._containers:
+            raise ContainerNotFoundException()
+        self._containers[container_name].cors_policy = None
+
+    def start_access_logging(self, container_name: str) -> None:
+        if container_name not in self._containers:
+            raise ContainerNotFoundException()
+        self._containers[container_name].access_logging_enabled = True
+
+    def stop_access_logging(self, container_name: str) -> None:
+        if container_name not in self._containers:
+            raise ContainerNotFoundException()
+        self._containers[container_name].access_logging_enabled = False
+
+    def tag_resource(self, resource: str, tags: list[dict[str, str]]) -> None:
+        container = self._resolve_resource(resource)
+        existing = {t["Key"]: t["Value"] for t in (container.tags or [])}
+        for tag in tags:
+            existing[tag["Key"]] = tag["Value"]
+        container.tags = [{"Key": k, "Value": v} for k, v in existing.items()]
+
+    def untag_resource(self, resource: str, tag_keys: list[str]) -> None:
+        container = self._resolve_resource(resource)
+        container.tags = [t for t in (container.tags or []) if t["Key"] not in tag_keys]
 
 
 mediastore_backends = BackendDict(MediaStoreBackend, "mediastore")
