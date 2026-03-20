@@ -996,7 +996,10 @@ class DynamoDBBackend(BaseBackend):
         return table_import
 
     def describe_import(self, import_arn: str) -> TableImport:
-        return self.table_imports[import_arn]
+        try:
+            return self.table_imports[import_arn]
+        except KeyError:
+            raise ResourceNotFoundException
 
     def export_table(
         self,
