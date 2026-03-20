@@ -48,6 +48,14 @@ url_paths = {
     "{0}/2015-01-01/es/reservedInstanceOfferings$": OpenSearchServiceResponse.reserved_instance_offerings_route,
     "{0}/2015-01-01/es/reservedInstances$": OpenSearchServiceResponse.reserved_instances_route,
     "{0}/2015-01-01/es/purchaseReservedInstanceOffering$": OpenSearchServiceResponse.purchase_reserved_instance_route,
+    # Upgrade and service software update
+    "{0}/2015-01-01/es/upgradeDomain$": OpenSearchServiceResponse.es_upgrade_domain_route,
+    "{0}/2015-01-01/es/upgradeDomain/(?P<domainname>[^/]+)/history$": OpenSearchServiceResponse.es_upgrade_history_route,
+    "{0}/2015-01-01/es/upgradeDomain/(?P<domainname>[^/]+)/status$": OpenSearchServiceResponse.es_upgrade_status_route,
+    "{0}/2015-01-01/es/serviceSoftwareUpdate/cancel$": OpenSearchServiceResponse.es_service_software_cancel_route,
+    "{0}/2015-01-01/es/serviceSoftwareUpdate/start$": OpenSearchServiceResponse.es_service_software_start_route,
+    # VPC endpoint access
+    "{0}/2015-01-01/es/domain/(?P<domainname>[^/]+)/listVpcEndpointAccess$": OpenSearchServiceResponse.es_list_vpc_endpoint_access_route,
     # Versions & Instance Types
     "{0}/2015-01-01/es/versions$": OpenSearchServiceResponse.es_versions_route,
     "{0}/2015-01-01/es/instanceTypes/(?P<version>[^/]+)$": OpenSearchServiceResponse.es_instance_types_route,

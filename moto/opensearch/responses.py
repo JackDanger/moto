@@ -198,6 +198,58 @@ class OpenSearchServiceResponse(BaseResponse):
         response.setup_class(request, full_url, headers)
         return 200, {}, response.list_domains_for_package()
 
+    # ---- ES-specific upgrade and service software update routes ----
+
+    @classmethod
+    def es_upgrade_domain_route(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
+        response = cls()
+        response.setup_class(request, full_url, headers)
+        if request.method == "POST":
+            return 200, {}, response.upgrade_elasticsearch_domain()
+        return 200, {}, json.dumps({})
+
+    @classmethod
+    def es_upgrade_history_route(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
+        response = cls()
+        response.setup_class(request, full_url, headers)
+        return 200, {}, response.get_upgrade_history()
+
+    @classmethod
+    def es_upgrade_status_route(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
+        response = cls()
+        response.setup_class(request, full_url, headers)
+        return 200, {}, response.get_upgrade_status()
+
+    @classmethod
+    def es_service_software_cancel_route(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
+        response = cls()
+        response.setup_class(request, full_url, headers)
+        return 200, {}, response.cancel_elasticsearch_service_software_update()
+
+    @classmethod
+    def es_service_software_start_route(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
+        response = cls()
+        response.setup_class(request, full_url, headers)
+        return 200, {}, response.start_elasticsearch_service_software_update()
+
+    @classmethod
+    def es_list_vpc_endpoint_access_route(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
+        response = cls()
+        response.setup_class(request, full_url, headers)
+        return 200, {}, response.list_vpc_endpoint_access()
+
     # ---- ES-specific VPC endpoint routes ----
 
     @classmethod
@@ -953,3 +1005,13 @@ class OpenSearchServiceResponse(BaseResponse):
         body = json.loads(self.body)
         domain_name = body.get("DomainName", "")
         return json.dumps({"DomainName": domain_name, "TargetVersion": body.get("TargetVersion", ""), "PerformCheckOnly": body.get("PerformCheckOnly", False), "AdvancedOptions": {}, "ChangeProgressDetails": {}})
+
+    # ES-specific operation name aliases
+    def upgrade_elasticsearch_domain(self) -> str:
+        return self.upgrade_domain()
+
+    def cancel_elasticsearch_service_software_update(self) -> str:
+        return self.cancel_service_software_update()
+
+    def start_elasticsearch_service_software_update(self) -> str:
+        return self.start_service_software_update()
