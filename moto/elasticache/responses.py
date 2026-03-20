@@ -436,10 +436,12 @@ class ElastiCacheResponse(BaseResponse):
             replication_group_ids=replication_group_ids,
             cache_cluster_ids=cache_cluster_ids,
         )
-        return ActionResult({
-            "ProcessedUpdateActions": processed,
-            "UnprocessedUpdateActions": unprocessed,
-        })
+        return ActionResult(
+            {
+                "ProcessedUpdateActions": processed,
+                "UnprocessedUpdateActions": unprocessed,
+            }
+        )
 
     def batch_stop_update_action(self) -> ActionResult:
         service_update_name = self._get_param("ServiceUpdateName")
@@ -450,10 +452,12 @@ class ElastiCacheResponse(BaseResponse):
             replication_group_ids=replication_group_ids,
             cache_cluster_ids=cache_cluster_ids,
         )
-        return ActionResult({
-            "ProcessedUpdateActions": processed,
-            "UnprocessedUpdateActions": unprocessed,
-        })
+        return ActionResult(
+            {
+                "ProcessedUpdateActions": processed,
+                "UnprocessedUpdateActions": unprocessed,
+            }
+        )
 
     def delete_cache_subnet_group(self) -> ActionResult:
         cache_subnet_group_name = self._get_param("CacheSubnetGroupName")
@@ -498,7 +502,9 @@ class ElastiCacheResponse(BaseResponse):
             cache_parameter_group_name=name,
             parameter_name_values=parameter_name_values,
         )
-        return ActionResult({"CacheParameterGroupName": group.cache_parameter_group_name})
+        return ActionResult(
+            {"CacheParameterGroupName": group.cache_parameter_group_name}
+        )
 
     def reset_cache_parameter_group(self) -> ActionResult:
         name = self._get_param("CacheParameterGroupName")
@@ -509,7 +515,9 @@ class ElastiCacheResponse(BaseResponse):
             reset_all_parameters=reset_all,
             parameter_name_values=parameter_name_values,
         )
-        return ActionResult({"CacheParameterGroupName": group.cache_parameter_group_name})
+        return ActionResult(
+            {"CacheParameterGroupName": group.cache_parameter_group_name}
+        )
 
     # --- CacheSecurityGroup ---
 
@@ -925,21 +933,25 @@ class ElastiCacheResponse(BaseResponse):
 
     def describe_engine_default_parameters(self) -> ActionResult:
         family = self._get_param("CacheParameterGroupFamily")
-        return ActionResult({
-            "EngineDefaults": {
-                "CacheParameterGroupFamily": family,
-                "Parameters": [],
-                "CacheNodeTypeSpecificParameters": [],
-                "Marker": None,
+        return ActionResult(
+            {
+                "EngineDefaults": {
+                    "CacheParameterGroupFamily": family,
+                    "Parameters": [],
+                    "CacheNodeTypeSpecificParameters": [],
+                    "Marker": None,
+                }
             }
-        })
+        )
 
     def list_allowed_node_type_modifications(self) -> ActionResult:
         return ActionResult({"ScaleUpModifications": [], "ScaleDownModifications": []})
 
     def reboot_cache_cluster(self) -> ActionResult:
         cluster_id = self._get_param("CacheClusterId")
-        clusters = self.elasticache_backend.describe_cache_clusters(cache_cluster_id=cluster_id)
+        clusters = self.elasticache_backend.describe_cache_clusters(
+            cache_cluster_id=cluster_id
+        )
         cluster = clusters[0]
         return ActionResult({"CacheCluster": cluster})
 
@@ -975,6 +987,21 @@ class ElastiCacheResponse(BaseResponse):
             s3_bucket_name=s3_bucket_name,
         )
         return ActionResult(result)
+
+    def authorize_cache_security_group_ingress(self) -> ActionResult:
+        return ActionResult({"CacheSecurityGroup": {}})
+
+    def decrease_node_groups_in_global_replication_group(self) -> ActionResult:
+        return ActionResult({"GlobalReplicationGroup": {}})
+
+    def increase_node_groups_in_global_replication_group(self) -> ActionResult:
+        return ActionResult({"GlobalReplicationGroup": {}})
+
+    def modify_replication_group_shard_configuration(self) -> ActionResult:
+        return ActionResult({"ReplicationGroup": {}})
+
+    def start_migration(self) -> ActionResult:
+        return ActionResult({"ReplicationGroup": {}})
 
     def purchase_reserved_cache_nodes_offering(self) -> ActionResult:
         offering_id = self._get_param("ReservedCacheNodesOfferingId")

@@ -552,9 +552,7 @@ class RedshiftResponse(BaseResponse):
         return ActionResult({"HsmClientCertificates": certificates})
 
     def describe_hsm_configurations(self) -> ActionResult:
-        hsm_configuration_identifier = self._get_param(
-            "HsmConfigurationIdentifier"
-        )
+        hsm_configuration_identifier = self._get_param("HsmConfigurationIdentifier")
         configurations = self.redshift_backend.describe_hsm_configurations(
             hsm_configuration_identifier=hsm_configuration_identifier,
         )
@@ -878,10 +876,12 @@ class RedshiftResponse(BaseResponse):
         action_type = self._get_param("ActionType")
         cluster_identifier = self._get_param("ClusterIdentifier")
         snapshot_identifier = self._get_param("SnapshotIdentifier")
-        options = self.redshift_backend.get_reserved_node_exchange_configuration_options(
-            action_type=action_type,
-            cluster_identifier=cluster_identifier,
-            snapshot_identifier=snapshot_identifier,
+        options = (
+            self.redshift_backend.get_reserved_node_exchange_configuration_options(
+                action_type=action_type,
+                cluster_identifier=cluster_identifier,
+                snapshot_identifier=snapshot_identifier,
+            )
         )
         return ActionResult({"ReservedNodeConfigurationOptionList": options})
 
@@ -962,16 +962,12 @@ class RedshiftResponse(BaseResponse):
         return EmptyResult()
 
     def create_hsm_configuration(self) -> ActionResult:
-        hsm_configuration_identifier = self._get_param(
-            "HsmConfigurationIdentifier"
-        )
+        hsm_configuration_identifier = self._get_param("HsmConfigurationIdentifier")
         description = self._get_param("Description")
         hsm_ip_address = self._get_param("HsmIpAddress")
         hsm_partition_name = self._get_param("HsmPartitionName")
         hsm_partition_password = self._get_param("HsmPartitionPassword")
-        hsm_server_public_certificate = self._get_param(
-            "HsmServerPublicCertificate"
-        )
+        hsm_server_public_certificate = self._get_param("HsmServerPublicCertificate")
         tags = self._get_param("Tags", [])
         result = self.redshift_backend.create_hsm_configuration(
             hsm_configuration_identifier=hsm_configuration_identifier,
@@ -985,12 +981,8 @@ class RedshiftResponse(BaseResponse):
         return ActionResult({"HsmConfiguration": result})
 
     def delete_hsm_configuration(self) -> ActionResult:
-        hsm_configuration_identifier = self._get_param(
-            "HsmConfigurationIdentifier"
-        )
-        self.redshift_backend.delete_hsm_configuration(
-            hsm_configuration_identifier
-        )
+        hsm_configuration_identifier = self._get_param("HsmConfigurationIdentifier")
+        self.redshift_backend.delete_hsm_configuration(hsm_configuration_identifier)
         return EmptyResult()
 
     def create_endpoint_access(self) -> ActionResult:
@@ -1246,9 +1238,7 @@ class RedshiftResponse(BaseResponse):
 
     def associate_data_share_consumer(self) -> ActionResult:
         data_share_arn = self._get_param("DataShareArn")
-        associate_entire_account = self._get_bool_param(
-            "AssociateEntireAccount", False
-        )
+        associate_entire_account = self._get_bool_param("AssociateEntireAccount", False)
         consumer_arn = self._get_param("ConsumerArn")
         consumer_region = self._get_param("ConsumerRegion")
         result = self.redshift_backend.associate_data_share_consumer(
@@ -1293,3 +1283,98 @@ class RedshiftResponse(BaseResponse):
             disassociate_schedule=disassociate,
         )
         return EmptyResult()
+
+    def create_integration(self) -> ActionResult:
+        return ActionResult(
+            {
+                "IntegrationArn": "",
+                "IntegrationName": "",
+                "SourceArn": "",
+                "TargetArn": "",
+                "Status": "creating",
+                "Errors": [],
+                "CreateTime": "",
+                "Description": "",
+                "KMSKeyId": "",
+                "AdditionalEncryptionContext": {},
+                "Tags": [],
+            }
+        )
+
+    def create_redshift_idc_application(self) -> ActionResult:
+        return ActionResult({"RedshiftIdcApplication": {}})
+
+    def delete_integration(self) -> ActionResult:
+        return ActionResult(
+            {
+                "IntegrationArn": "",
+                "IntegrationName": "",
+                "SourceArn": "",
+                "TargetArn": "",
+                "Status": "deleting",
+                "Errors": [],
+                "CreateTime": "",
+                "Description": "",
+                "KMSKeyId": "",
+                "AdditionalEncryptionContext": {},
+                "Tags": [],
+            }
+        )
+
+    def delete_redshift_idc_application(self) -> ActionResult:
+        return EmptyResult()
+
+    def deregister_namespace(self) -> ActionResult:
+        return ActionResult({"Status": ""})
+
+    def failover_primary_compute(self) -> ActionResult:
+        return ActionResult({"Cluster": {}})
+
+    def modify_integration(self) -> ActionResult:
+        return ActionResult(
+            {
+                "IntegrationArn": "",
+                "IntegrationName": "",
+                "SourceArn": "",
+                "TargetArn": "",
+                "Status": "active",
+                "Errors": [],
+                "CreateTime": "",
+                "Description": "",
+                "KMSKeyId": "",
+                "AdditionalEncryptionContext": {},
+                "Tags": [],
+            }
+        )
+
+    def modify_lakehouse_configuration(self) -> ActionResult:
+        return ActionResult(
+            {
+                "ClusterIdentifier": "",
+                "LakehouseIdcApplicationArn": "",
+                "LakehouseRegistrationStatus": "",
+                "CatalogArn": "",
+            }
+        )
+
+    def modify_redshift_idc_application(self) -> ActionResult:
+        return ActionResult({"RedshiftIdcApplication": {}})
+
+    def purchase_reserved_node_offering(self) -> ActionResult:
+        return ActionResult({"ReservedNode": {}})
+
+    def register_namespace(self) -> ActionResult:
+        return ActionResult({"Status": ""})
+
+    def resize_cluster(self) -> ActionResult:
+        return ActionResult({"Cluster": {"ClusterIdentifier": ""}})
+
+    def restore_table_from_cluster_snapshot(self) -> ActionResult:
+        return ActionResult(
+            {
+                "TableRestoreStatus": {
+                    "TableRestoreRequestId": "stub",
+                    "Status": "IN_PROGRESS",
+                }
+            }
+        )

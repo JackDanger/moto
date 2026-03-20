@@ -688,11 +688,13 @@ class LogsResponse(BaseResponse):
         group_by = self._get_param("groupBy")
         next_token = self._get_param("nextToken")
         limit = self._get_param("limit", 50)
-        summaries, new_next_token = self.logs_backend.list_aggregate_log_group_summaries(
-            log_group_name_pattern=log_group_name_pattern,
-            group_by=group_by,
-            limit=limit,
-            next_token=next_token,
+        summaries, new_next_token = (
+            self.logs_backend.list_aggregate_log_group_summaries(
+                log_group_name_pattern=log_group_name_pattern,
+                group_by=group_by,
+                limit=limit,
+                next_token=next_token,
+            )
         )
         result: dict[str, Any] = {"aggregateLogGroupSummaries": summaries}
         if new_next_token:
@@ -928,9 +930,7 @@ class LogsResponse(BaseResponse):
 
     def put_log_group_deletion_protection(self) -> str:
         log_group_name = self._get_param("logGroupName")
-        deletion_protection_enabled = self._get_param(
-            "deletionProtectionEnabled", True
-        )
+        deletion_protection_enabled = self._get_param("deletionProtectionEnabled", True)
         self.logs_backend.put_log_group_deletion_protection(
             log_group_name=log_group_name,
             deletion_protection_enabled=deletion_protection_enabled,
@@ -1041,3 +1041,24 @@ class LogsResponse(BaseResponse):
             import_destination_arn=import_destination_arn,
         )
         return json.dumps(result)
+
+    def associate_source_to_s3_table_integration(self) -> str:
+        return "{}"
+
+    def disassociate_source_from_s3_table_integration(self) -> str:
+        return "{}"
+
+    def get_log_object(self) -> str:
+        return json.dumps({"Contents": ""})
+
+    def list_sources_for_s3_table_integration(self) -> str:
+        return json.dumps({"sources": [], "NextToken": None})
+
+    def put_integration(self) -> str:
+        return json.dumps({"integrationName": "stub"})
+
+    def start_live_tail(self) -> str:
+        return json.dumps({"ResponseStream": []})
+
+    def test_transformer(self) -> str:
+        return json.dumps({"TransformedLogs": []})

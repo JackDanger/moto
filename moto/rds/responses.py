@@ -1431,7 +1431,9 @@ class RDSResponse(BaseResponse):
 
     def reset_db_cluster_parameter_group(self) -> ActionResult:
         db_cluster_parameter_group_name = self.params.get("DBClusterParameterGroupName")
-        group = self.backend.reset_db_cluster_parameter_group(db_cluster_parameter_group_name)
+        group = self.backend.reset_db_cluster_parameter_group(
+            db_cluster_parameter_group_name
+        )
         result = {"DBClusterParameterGroupName": group.name}
         return ActionResult(result)
 
@@ -1463,6 +1465,71 @@ class RDSResponse(BaseResponse):
             remove_customer_override=remove_customer_override,
         )
         return ActionResult(result)
+
+    def backtrack_db_cluster(self) -> ActionResult:
+        return ActionResult(
+            {
+                "DBClusterIdentifier": "",
+                "BacktrackIdentifier": "",
+                "BacktrackTo": "",
+                "BacktrackedFrom": "",
+                "BacktrackRequestCreationTime": "",
+                "Status": "",
+            }
+        )
+
+    def delete_db_cluster_automated_backup(self) -> ActionResult:
+        return ActionResult({"DBClusterAutomatedBackup": {}})
+
+    def describe_db_cluster_backtracks(self) -> ActionResult:
+        return ActionResult({"Marker": "", "DBClusterBacktracks": []})
+
+    def download_db_log_file_portion(self) -> ActionResult:
+        return ActionResult(
+            {
+                "LogFileData": "",
+                "Marker": "0",
+                "AdditionalDataPending": False,
+            }
+        )
+
+    def modify_current_db_cluster_capacity(self) -> ActionResult:
+        return ActionResult(
+            {
+                "DBClusterIdentifier": "",
+                "PendingCapacity": 0,
+                "CurrentCapacity": 1,
+                "SecondsBeforeTimeout": 0,
+                "TimeoutAction": "",
+            }
+        )
+
+    def modify_db_proxy_endpoint(self) -> ActionResult:
+        return ActionResult({"DBProxyEndpoint": {}})
+
+    def modify_db_recommendation(self) -> ActionResult:
+        return ActionResult({"DBRecommendation": {}})
+
+    def remove_role_from_db_instance(self) -> ActionResult:
+        return EmptyResult()
+
+    def restore_db_cluster_from_s3(self) -> ActionResult:
+        return ActionResult({"DBCluster": {}})
+
+    def restore_db_instance_from_s3(self) -> ActionResult:
+        return ActionResult({"DBInstance": {}})
+
+    def revoke_db_security_group_ingress(self) -> ActionResult:
+        return ActionResult({"DBSecurityGroup": {}})
+
+    def start_db_instance_automated_backups_replication(self) -> ActionResult:
+        return ActionResult({"DBInstanceAutomatedBackup": {}})
+
+    def stop_db_instance_automated_backups_replication(self) -> ActionResult:
+        return ActionResult({"DBInstanceAutomatedBackup": {}})
+
+    def switchover_read_replica(self) -> ActionResult:
+        return ActionResult({"DBInstance": {}})
 
 
 def _tenant_db_dict(tenant_db: Any) -> dict:
