@@ -177,3 +177,35 @@ class ConnectCampaignServiceResponse(BaseResponse):
             arn=arn,
         )
         return json.dumps({"tags": tags})
+
+    def update_campaign_name(self) -> str:
+        campaign_id = self._get_param("id")
+        name = self._get_param("name")
+        self.connectcampaigns_backend.update_campaign_name(id=campaign_id, name=name)
+        return json.dumps({})
+
+    def update_campaign_dialer_config(self) -> str:
+        campaign_id = self._get_param("id")
+        dialer_config = self._get_param("dialerConfig")
+        self.connectcampaigns_backend.update_campaign_dialer_config(
+            id=campaign_id, dialer_config=dialer_config
+        )
+        return json.dumps({})
+
+    def update_campaign_outbound_call_config(self) -> str:
+        campaign_id = self._get_param("id")
+        outbound_call_config = self._get_param("outboundCallConfig") or {}
+        # Accept individual fields too
+        for field in ["connectContactFlowId", "connectSourcePhoneNumber", "connectQueueId", "answerMachineDetectionConfig"]:
+            val = self._get_param(field)
+            if val is not None:
+                outbound_call_config[field] = val
+        self.connectcampaigns_backend.update_campaign_outbound_call_config(
+            id=campaign_id, outbound_call_config=outbound_call_config
+        )
+        return json.dumps({})
+
+    def get_campaign_state_batch(self) -> str:
+        campaign_ids = self._get_param("campaignIds") or []
+        result = self.connectcampaigns_backend.get_campaign_state_batch(campaign_ids=campaign_ids)
+        return json.dumps({"successfulRequests": result, "failedRequests": []})

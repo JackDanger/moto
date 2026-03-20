@@ -319,6 +319,29 @@ class ConnectCampaignServiceBackend(BaseBackend):
         return self.tagger.get_tag_dict_for_resource(arn)
 
 
+    def update_campaign_name(self, id: str, name: str) -> None:
+        if id not in self.campaigns:
+            raise ResourceNotFoundException(f"Campaign with id {id} not found")
+        self.campaigns[id].name = name
+
+    def update_campaign_dialer_config(self, id: str, dialer_config: dict[str, Any]) -> None:
+        if id not in self.campaigns:
+            raise ResourceNotFoundException(f"Campaign with id {id} not found")
+        self.campaigns[id].dialer_config = dialer_config
+
+    def update_campaign_outbound_call_config(self, id: str, outbound_call_config: dict[str, Any]) -> None:
+        if id not in self.campaigns:
+            raise ResourceNotFoundException(f"Campaign with id {id} not found")
+        self.campaigns[id].outbound_call_config.update(outbound_call_config)
+
+    def get_campaign_state_batch(self, campaign_ids: list[str]) -> list[dict[str, str]]:
+        result = []
+        for cid in campaign_ids:
+            if cid in self.campaigns:
+                result.append({"id": cid, "state": self.campaigns[cid].state})
+        return result
+
+
 connectcampaigns_backends = BackendDict(
     ConnectCampaignServiceBackend, "connectcampaigns"
 )

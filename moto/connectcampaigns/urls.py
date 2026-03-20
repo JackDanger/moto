@@ -19,4 +19,8 @@ url_paths = {
     "{0}/campaigns/(?P<id>[^/]+)/state$": ConnectCampaignServiceResponse.dispatch,
     "{0}/connect-instance/(?P<connectInstanceId>[^/]+)/config$": ConnectCampaignServiceResponse.dispatch,
     "{0}/connect-instance/(?P<connectInstanceId>[^/]+)/onboarding$": ConnectCampaignServiceResponse.dispatch,
+    "{0}/campaigns/(?P<id>[^/]+)/name$": ConnectCampaignServiceResponse.dispatch,
+    "{0}/campaigns/(?P<id>[^/]+)/dialer-config$": ConnectCampaignServiceResponse.dispatch,
+    "{0}/campaigns/(?P<id>[^/]+)/outbound-call-config$": ConnectCampaignServiceResponse.dispatch,
+    "{0}/campaigns/state$": ConnectCampaignServiceResponse.dispatch,
 }
