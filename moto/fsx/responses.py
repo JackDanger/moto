@@ -398,3 +398,46 @@ class FSxResponse(BaseResponse):
         resource_arn = params.get("ResourceARN")
         tags = self.fsx_backend.list_tags_for_resource(resource_arn=resource_arn)
         return json.dumps({"Tags": tags})
+
+    def update_storage_virtual_machine(self) -> str:
+        params = json.loads(self.body)
+        svm_id = params.get("StorageVirtualMachineId")
+        svms = self.fsx_backend.describe_storage_virtual_machines()
+        for svm in svms:
+            if svm.svm_id == svm_id:
+                return json.dumps({"StorageVirtualMachine": svm.to_dict()})
+        from .exceptions import StorageVirtualMachineNotFoundException
+        raise StorageVirtualMachineNotFoundException(svm_id)
+
+    def restore_volume_from_snapshot(self) -> str:
+        params = json.loads(self.body)
+        volume_id = params.get("VolumeId")
+        volumes = self.fsx_backend.describe_volumes()
+        for volume in volumes:
+            if volume.volume_id == volume_id:
+                return json.dumps({"Lifecycle": "AVAILABLE", "VolumeId": volume_id, "AdministrativeActions": []})
+        from .exceptions import VolumeNotFoundException
+        raise VolumeNotFoundException(volume_id)
+
+    def update_volume(self) -> str:
+        params = json.loads(self.body)
+        volume_id = params.get("VolumeId")
+        volumes = self.fsx_backend.describe_volumes()
+        for volume in volumes:
+            if volume.volume_id == volume_id:
+                return json.dumps({"Volume": volume.to_dict()})
+        from .exceptions import VolumeNotFoundException
+        raise VolumeNotFoundException(volume_id)
+
+    def release_file_system_nfs_v3_locks(self) -> str:
+        params = json.loads(self.body)
+        file_system_id = params.get("FileSystemId")
+        return json.dumps({"FileSystem": {"FileSystemId": file_system_id, "Lifecycle": "AVAILABLE"}})
+
+    def start_misconfigured_state_recovery(self) -> str:
+        params = json.loads(self.body)
+        file_system_id = params.get("FileSystemId")
+        return json.dumps({"FileSystem": {"FileSystemId": file_system_id, "Lifecycle": "AVAILABLE"}})
+
+    def update_shared_vpc_configuration(self) -> str:
+        return json.dumps({"EnableFsxRouteTableUpdatesFromParticipantAccounts": "true"})
