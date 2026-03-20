@@ -1062,6 +1062,39 @@ class OpenSearchServiceResponse(BaseResponse):
     def add_direct_query_data_source(self) -> str:
         return json.dumps({})
 
+    # ES 2015-01-01 classmethod route wrappers
+    @classmethod
+    def es_authorize_vpc_endpoint_access_route(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
+        response = cls()
+        response.setup_class(request, full_url, headers)
+        return 200, {}, response.authorize_vpc_endpoint_access()
+
+    @classmethod
+    def es_revoke_vpc_endpoint_access_route(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
+        response = cls()
+        response.setup_class(request, full_url, headers)
+        return 200, {}, response.revoke_vpc_endpoint_access()
+
+    @classmethod
+    def es_cancel_domain_config_change_route(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
+        response = cls()
+        response.setup_class(request, full_url, headers)
+        return 200, {}, response.cancel_domain_config_change()
+
+    @classmethod
+    def es_reject_inbound_connection_route(
+        cls, request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:
+        response = cls()
+        response.setup_class(request, full_url, headers)
+        return 200, {}, response.reject_inbound_connection()
+
     # ES-specific operation name aliases
     def upgrade_elasticsearch_domain(self) -> str:
         return self.upgrade_domain()

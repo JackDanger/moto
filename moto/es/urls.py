@@ -57,12 +57,12 @@ url_paths = {
     "{0}/2015-01-01/es/serviceSoftwareUpdate/start$": OpenSearchServiceResponse.es_service_software_start_route,
     # VPC endpoint access
     "{0}/2015-01-01/es/domain/(?P<domainname>[^/]+)/listVpcEndpointAccess$": OpenSearchServiceResponse.es_list_vpc_endpoint_access_route,
-    "{0}/2015-01-01/es/domain/(?P<domainname>[^/]+)/authorizeVpcEndpointAccess$": OpenSearchServiceResponse.authorize_vpc_endpoint_access,
-    "{0}/2015-01-01/es/domain/(?P<domainname>[^/]+)/revokeVpcEndpointAccess$": OpenSearchServiceResponse.revoke_vpc_endpoint_access,
+    "{0}/2015-01-01/es/domain/(?P<domainname>[^/]+)/authorizeVpcEndpointAccess$": OpenSearchServiceResponse.es_authorize_vpc_endpoint_access_route,
+    "{0}/2015-01-01/es/domain/(?P<domainname>[^/]+)/revokeVpcEndpointAccess$": OpenSearchServiceResponse.es_revoke_vpc_endpoint_access_route,
     # Domain config cancel
-    "{0}/2015-01-01/es/domain/(?P<domainname>[^/]+)/config/cancel$": OpenSearchServiceResponse.cancel_domain_config_change,
+    "{0}/2015-01-01/es/domain/(?P<domainname>[^/]+)/config/cancel$": OpenSearchServiceResponse.es_cancel_domain_config_change_route,
     # Inbound connection reject
-    "{0}/2015-01-01/es/ccs/inboundConnection/(?P<conn_id>[^/]+)/reject$": OpenSearchServiceResponse.reject_inbound_connection,
+    "{0}/2015-01-01/es/ccs/inboundConnection/(?P<conn_id>[^/]+)/reject$": OpenSearchServiceResponse.es_reject_inbound_connection_route,
     # Versions & Instance Types
     "{0}/2015-01-01/es/versions$": OpenSearchServiceResponse.es_versions_route,
     "{0}/2015-01-01/es/instanceTypes/(?P<version>[^/]+)$": OpenSearchServiceResponse.es_instance_types_route,
