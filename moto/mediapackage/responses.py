@@ -166,3 +166,18 @@ class MediaPackageResponse(BaseResponse):
         resource_arn = self.path.split("/tags/")[-1]
         tags = self.mediapackage_backend.list_tags_for_resource(resource_arn=resource_arn)
         return json.dumps({"tags": tags})
+
+    def configure_logs(self) -> str:
+        channel_id = self._get_param("id")
+        channel = self.mediapackage_backend.describe_channel(channel_id=channel_id)
+        return json.dumps(channel.to_dict())
+
+    def rotate_channel_credentials(self) -> str:
+        channel_id = self._get_param("id")
+        channel = self.mediapackage_backend.describe_channel(channel_id=channel_id)
+        return json.dumps(channel.to_dict())
+
+    def rotate_ingest_endpoint_credentials(self) -> str:
+        channel_id = self._get_param("id")
+        channel = self.mediapackage_backend.describe_channel(channel_id=channel_id)
+        return json.dumps(channel.to_dict())
