@@ -328,3 +328,11 @@ class OrganizationsResponse(BaseResponse):
     def delete_resource_policy(self) -> str:
         self.organizations_backend.delete_resource_policy()
         return "{}"
+
+    def leave_organization(self) -> str:
+        self.organizations_backend.leave_organization()
+        return "{}"
+
+    def list_accounts_with_invalid_effective_policy(self) -> str:
+        policy_type = self._get_param("PolicyType")
+        return json.dumps({"AccountIds": [], "PolicyType": policy_type})

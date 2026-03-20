@@ -1314,6 +1314,10 @@ class OrganizationsBackendDict(BackendDict[OrganizationsBackend]):
         # Maps member account IDs to the (master account ID, partition) which owns the organisation
         self.master_accounts: dict[str, tuple[str, str]] = {}
 
+    def leave_organization(self) -> None:
+        """Stub: allow account to leave the organization (no-op for testing)."""
+        pass
+
 
 organizations_backends = OrganizationsBackendDict(
     OrganizationsBackend,
