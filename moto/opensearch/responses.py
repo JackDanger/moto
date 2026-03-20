@@ -1006,6 +1006,59 @@ class OpenSearchServiceResponse(BaseResponse):
         domain_name = body.get("DomainName", "")
         return json.dumps({"DomainName": domain_name, "TargetVersion": body.get("TargetVersion", ""), "PerformCheckOnly": body.get("PerformCheckOnly", False), "AdvancedOptions": {}, "ChangeProgressDetails": {}})
 
+    def list_direct_query_data_sources(self) -> str:
+        sources = self.opensearch_backend.list_direct_query_data_sources()
+        return json.dumps({"DirectQueryDataSources": sources})
+
+    def get_index(self) -> str:
+        return json.dumps({"Indices": []})
+
+    def create_index(self) -> str:
+        return json.dumps({})
+
+    def delete_index(self) -> str:
+        return json.dumps({})
+
+    def update_index(self) -> str:
+        return json.dumps({})
+
+    def update_direct_query_data_source(self) -> str:
+        return json.dumps({})
+
+    def reject_inbound_connection(self) -> str:
+        body = json.loads(self.body)
+        connection_id = body.get("ConnectionId", "")
+        return json.dumps({
+            "Connection": {
+                "ConnectionId": connection_id,
+                "ConnectionStatus": {"StatusCode": "REJECTED"},
+            }
+        })
+
+    def cancel_domain_config_change(self) -> str:
+        body = json.loads(self.body)
+        domain_name = body.get("DomainName", "")
+        return json.dumps({
+            "DryRun": body.get("DryRun", False),
+            "CancelledChangeIds": [],
+            "CancelledChangeProperties": [],
+        })
+
+    def associate_packages(self) -> str:
+        return json.dumps({"DomainPackageDetailsList": []})
+
+    def dissociate_packages(self) -> str:
+        return json.dumps({"DomainPackageDetailsList": []})
+
+    def put_default_application_setting(self) -> str:
+        return json.dumps({})
+
+    def update_package_scope(self) -> str:
+        return json.dumps({})
+
+    def add_direct_query_data_source(self) -> str:
+        return json.dumps({})
+
     # ES-specific operation name aliases
     def upgrade_elasticsearch_domain(self) -> str:
         return self.upgrade_domain()

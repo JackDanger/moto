@@ -66,4 +66,11 @@ url_paths = {
     "{0}/GetTemporaryDataLocationCredentials$": response.dispatch,
     "{0}/ListTableStorageOptimizers$": response.dispatch,
     "{0}/GetTableObjects$": response.dispatch,
+    "{0}/CreateLakeFormationOptIn$": response.dispatch,
+    "{0}/DeleteLakeFormationOptIn$": response.dispatch,
+    "{0}/DeleteObjectsOnCancel$": response.dispatch,
+    "{0}/ExtendTransaction$": response.dispatch,
+    "{0}/UpdateResource$": response.dispatch,
+    "{0}/UpdateTableObjects$": response.dispatch,
+    "{0}/UpdateTableStorageOptimizer$": response.dispatch,
 }

@@ -1153,5 +1153,27 @@ class LakeFormationBackend(BaseBackend):
     ) -> list[dict[str, Any]]:
         return []
 
+    def create_lake_formation_opt_in(self, **kwargs: Any) -> None:
+        pass
+
+    def delete_lake_formation_opt_in(self, **kwargs: Any) -> None:
+        pass
+
+    def delete_objects_on_cancel(self, **kwargs: Any) -> None:
+        pass
+
+    def extend_transaction(self, transaction_id: str, **kwargs: Any) -> None:
+        pass
+
+    def update_resource(self, resource_arn: str, role_arn: str, **kwargs: Any) -> None:
+        if resource_arn in self.resources:
+            self.resources[resource_arn].role_arn = role_arn
+
+    def update_table_objects(self, **kwargs: Any) -> None:
+        pass
+
+    def update_table_storage_optimizer(self, **kwargs: Any) -> dict[str, Any]:
+        return {"Result": "Updated table storage optimizer configuration successfully"}
+
 
 lakeformation_backends = BackendDict(LakeFormationBackend, "lakeformation")

@@ -530,3 +530,36 @@ class LakeFormationResponse(BaseResponse):
             table_name=self._get_param("TableName", ""),
         )
         return json.dumps({"Objects": objects})
+
+    def create_lake_formation_opt_in(self) -> str:
+        self.lakeformation_backend.create_lake_formation_opt_in(**self.request_params)
+        return json.dumps({})
+
+    def delete_lake_formation_opt_in(self) -> str:
+        self.lakeformation_backend.delete_lake_formation_opt_in(**self.request_params)
+        return json.dumps({})
+
+    def delete_objects_on_cancel(self) -> str:
+        self.lakeformation_backend.delete_objects_on_cancel(**self.request_params)
+        return json.dumps({})
+
+    def extend_transaction(self) -> str:
+        self.lakeformation_backend.extend_transaction(
+            transaction_id=self._get_param("TransactionId", ""),
+        )
+        return json.dumps({})
+
+    def update_resource(self) -> str:
+        self.lakeformation_backend.update_resource(
+            resource_arn=self._get_param("ResourceArn", ""),
+            role_arn=self._get_param("RoleArn", ""),
+        )
+        return json.dumps({})
+
+    def update_table_objects(self) -> str:
+        self.lakeformation_backend.update_table_objects(**self.request_params)
+        return json.dumps({})
+
+    def update_table_storage_optimizer(self) -> str:
+        result = self.lakeformation_backend.update_table_storage_optimizer(**self.request_params)
+        return json.dumps(result)
