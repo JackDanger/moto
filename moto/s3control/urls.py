@@ -110,4 +110,16 @@ url_paths = {
     # Caller Access Grants
     r"{0}/v20180820/accessgrantsinstance/caller/grants$": S3ControlResponse.dispatch,
     "/v20180820/accessgrantsinstance/caller/grants": S3ControlResponse.dispatch,
+    # Identity Center Association
+    r"{0}/v20180820/accessgrantsinstance/identitycenter$": S3ControlResponse.dispatch,
+    "/v20180820/accessgrantsinstance/identitycenter": S3ControlResponse.dispatch,
+    # Data Access
+    r"{0}/v20180820/accessgrantsinstance/dataaccess$": S3ControlResponse.dispatch,
+    "/v20180820/accessgrantsinstance/dataaccess": S3ControlResponse.dispatch,
+    # Directory Bucket Access Points
+    r"{0}/v20180820/accesspointfordirectory$": S3ControlResponse.dispatch,
+    "/v20180820/accesspointfordirectory": S3ControlResponse.dispatch,
+    # Object Lambda Access Point Configuration
+    r"{0}/v20180820/accesspointforobjectlambda/(?P<name>[^/]+)/configuration$": S3ControlResponse.dispatch,
+    "/v20180820/accesspointforobjectlambda/<name>/configuration": S3ControlResponse.dispatch,
 }

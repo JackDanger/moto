@@ -786,3 +786,15 @@ class DirectoryServiceResponse(BaseResponse):
     def update_trust(self) -> str:
         """Stub: UpdateTrust is not implemented in Moto backend."""
         return json.dumps({"RequestId": "stub", "TrustId": ""})
+
+    def create_hybrid_ad(self) -> str:
+        """Stub: CreateHybridAD is not implemented in Moto backend."""
+        return json.dumps({"DirectoryId": "d-stub0001234"})
+
+    def describe_hybrid_ad_update(self) -> str:
+        """Stub: DescribeHybridADUpdate is not implemented in Moto backend."""
+        return json.dumps({})
+
+    def update_hybrid_ad(self) -> str:
+        """Stub: UpdateHybridAD is not implemented in Moto backend."""
+        return json.dumps({})

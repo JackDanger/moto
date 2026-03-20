@@ -838,8 +838,13 @@ class S3ControlResponse(BaseResponse):
     def put_bucket_versioning(self) -> str:
         account_id = self.headers.get("x-amz-account-id")
         bucket = self.path.split("/")[-2]
-        params = xmltodict.parse(self.body)["PutBucketVersioningRequest"]
-        versioning_config = params.get("VersioningConfiguration", {})
+        params = xmltodict.parse(self.body)
+        # Payload is VersioningConfiguration (may have namespace prefix)
+        root_key = next(
+            (k for k in params if "VersioningConfiguration" in k),
+            "VersioningConfiguration",
+        )
+        versioning_config = params.get(root_key, {})
         status = versioning_config.get("Status", "")
         self.backend.put_bucket_versioning(
             account_id=account_id, bucket=bucket, status=status
@@ -1002,6 +1007,30 @@ class S3ControlResponse(BaseResponse):
         )
         template = self.response_template(LIST_CALLER_ACCESS_GRANTS_TEMPLATE)
         return template.render(grants=grants, next_token=next_token)
+
+    def associate_access_grants_identity_center(self) -> str:
+        """Stub: AssociateAccessGrantsIdentityCenter."""
+        return ""
+
+    def dissociate_access_grants_identity_center(self) -> str:
+        """Stub: DissociateAccessGrantsIdentityCenter."""
+        return ""
+
+    def get_data_access(self) -> str:
+        """Stub: GetDataAccess."""
+        return "<GetDataAccessResult></GetDataAccessResult>"
+
+    def list_access_points_for_directory_buckets(self) -> str:
+        """Stub: ListAccessPointsForDirectoryBuckets."""
+        return "<ListAccessPointsForDirectoryBucketsResult><AccessPointList></AccessPointList></ListAccessPointsForDirectoryBucketsResult>"
+
+    def get_access_point_configuration_for_object_lambda(self) -> str:
+        """Stub: GetAccessPointConfigurationForObjectLambda."""
+        return "<GetAccessPointConfigurationForObjectLambdaResult></GetAccessPointConfigurationForObjectLambdaResult>"
+
+    def put_access_point_configuration_for_object_lambda(self) -> str:
+        """Stub: PutAccessPointConfigurationForObjectLambda."""
+        return ""
 
 
 CREATE_ACCESS_POINT_TEMPLATE = """<CreateAccessPointResult>
