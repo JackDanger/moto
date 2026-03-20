@@ -1629,6 +1629,57 @@ class DynamoHandler(BaseResponse):
         )
         return ActionResult(result)
 
+    def enable_kinesis_streaming_destination(self) -> ActionResult:
+        body = self.body
+        table_name = body["TableName"]
+        stream_arn = body["StreamArn"]
+        precision = body.get("ApproximateCreationDateTimePrecision")
+        result = self.dynamodb_backend.enable_kinesis_streaming_destination(
+            table_name, stream_arn, precision
+        )
+        return ActionResult(result)
+
+    def disable_kinesis_streaming_destination(self) -> ActionResult:
+        body = self.body
+        table_name = body["TableName"]
+        stream_arn = body["StreamArn"]
+        result = self.dynamodb_backend.disable_kinesis_streaming_destination(table_name, stream_arn)
+        return ActionResult(result)
+
+    def update_kinesis_streaming_destination(self) -> ActionResult:
+        body = self.body
+        table_name = body["TableName"]
+        stream_arn = body["StreamArn"]
+        config = body.get("UpdateKinesisStreamingConfiguration")
+        result = self.dynamodb_backend.update_kinesis_streaming_destination(
+            table_name, stream_arn, config
+        )
+        return ActionResult(result)
+
+    def update_contributor_insights(self) -> ActionResult:
+        body = self.body
+        table_name = body["TableName"]
+        action = body["ContributorInsightsAction"]
+        index_name = body.get("IndexName")
+        result = self.dynamodb_backend.update_contributor_insights(table_name, action, index_name)
+        return ActionResult(result)
+
+    def update_global_table_settings(self) -> ActionResult:
+        body = self.body
+        global_table_name = body["GlobalTableName"]
+        result = self.dynamodb_backend.update_global_table_settings(global_table_name, **{
+            k: v for k, v in body.items() if k != "GlobalTableName"
+        })
+        return ActionResult(result)
+
+    def update_table_replica_auto_scaling(self) -> ActionResult:
+        body = self.body
+        table_name = body["TableName"]
+        result = self.dynamodb_backend.update_table_replica_auto_scaling(table_name, **{
+            k: v for k, v in body.items() if k != "TableName"
+        })
+        return ActionResult(result)
+
     def list_imports(self) -> ActionResult:
         return ActionResult({"ImportSummaryList": []})
 

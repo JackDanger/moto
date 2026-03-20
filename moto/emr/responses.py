@@ -696,3 +696,57 @@ class ElasticMapReduceResponse(BaseResponse):
             }
         }
         return ActionResult(result)
+
+    def list_studio_session_mappings(self) -> "ActionResult":
+        studio_id = self._get_param("StudioId")
+        identity_type = self._get_param("IdentityType")
+        mappings = self.backend.list_studio_session_mappings(
+            studio_id=studio_id, identity_type=identity_type
+        )
+        return ActionResult({"SessionMappings": mappings})
+
+    def set_keep_job_flow_alive_when_no_steps(self) -> "ActionResult":
+        job_flow_ids = self._get_param("JobFlowIds", [])
+        keep_alive = self._get_param("KeepJobFlowAliveWhenNoSteps", True)
+        self.backend.set_keep_job_flow_alive_when_no_steps(job_flow_ids, keep_alive)
+        return EmptyResult()
+
+    def set_unhealthy_node_replacement(self) -> "ActionResult":
+        job_flow_ids = self._get_param("JobFlowIds", [])
+        unhealthy = self._get_param("UnhealthyNodeReplacement", True)
+        self.backend.set_unhealthy_node_replacement(job_flow_ids, unhealthy)
+        return EmptyResult()
+
+    def get_cluster_session_credentials(self) -> "ActionResult":
+        cluster_id = self._get_param("ClusterId")
+        execution_role_arn = self._get_param("ExecutionRoleArn")
+        result = self.backend.get_cluster_session_credentials(cluster_id, execution_role_arn)
+        return ActionResult(result)
+
+    def start_notebook_execution(self) -> "ActionResult":
+        editor_id = self._get_param("EditorId")
+        relative_path = self._get_param("RelativePath")
+        execution_engine = self._get_param("ExecutionEngine")
+        service_role = self._get_param("ServiceRole")
+        execution = self.backend.start_notebook_execution(
+            editor_id=editor_id,
+            relative_path=relative_path,
+            execution_engine=execution_engine,
+            service_role=service_role,
+            notebook_execution_name=self._get_param("NotebookExecutionName", ""),
+            notebook_params=self._get_param("NotebookParams", ""),
+            tags=self._get_param("Tags"),
+        )
+        return ActionResult({"NotebookExecutionId": execution.notebook_execution_id})
+
+    def get_persistent_app_ui_presigned_url(self) -> "ActionResult":
+        persistent_app_ui_id = self._get_param("PersistentAppUIId")
+        presentation_type = self._get_param("PresentationType", "ATHENA")
+        result = self.backend.get_persistent_app_ui_presigned_url(persistent_app_ui_id, presentation_type)
+        return ActionResult(result)
+
+    def get_on_cluster_app_ui_presigned_url(self) -> "ActionResult":
+        cluster_id = self._get_param("ClusterId")
+        app_ui_type = self._get_param("OnClusterAppUIType", "SPARK_HISTORY_SERVER")
+        result = self.backend.get_on_cluster_app_ui_presigned_url(cluster_id, app_ui_type)
+        return ActionResult(result)

@@ -1660,5 +1660,85 @@ class ElasticMapReduceBackend(BaseBackend):
             "AvailableOSReleases": [],
         }
 
+    def list_studio_session_mappings(
+        self, studio_id: Optional[str] = None, identity_type: Optional[str] = None
+    ) -> list[dict[str, Any]]:
+        mappings = []
+        for m in self.studio_session_mappings.values():
+            if studio_id and m.studio_id != studio_id:
+                continue
+            if identity_type and m.identity_type != identity_type:
+                continue
+            mappings.append({
+                "StudioId": m.studio_id,
+                "IdentityId": m.identity_id,
+                "IdentityType": m.identity_type,
+                "SessionPolicyArn": m.session_policy_arn,
+            })
+        return mappings
+
+    def set_keep_job_flow_alive_when_no_steps(
+        self, job_flow_ids: list[str], keep_job_flow_alive: bool
+    ) -> None:
+        for jf_id in job_flow_ids:
+            cluster = self.clusters.get(jf_id)
+            if cluster:
+                cluster.keep_job_flow_alive_when_no_steps = keep_job_flow_alive
+
+    def set_unhealthy_node_replacement(
+        self, job_flow_ids: list[str], unhealthy_node_replacement: bool
+    ) -> None:
+        for jf_id in job_flow_ids:
+            cluster = self.clusters.get(jf_id)
+            if cluster:
+                cluster.unhealthy_node_replacement = unhealthy_node_replacement
+
+    def get_cluster_session_credentials(
+        self, cluster_id: str, execution_role_arn: str
+    ) -> dict[str, Any]:
+        return {
+            "Credentials": {
+                "UsernamePassword": {
+                    "Username": "hadoop",
+                    "Password": "changeme",
+                }
+            },
+            "ExpiresAt": "2099-01-01T00:00:00Z",
+        }
+
+    def start_notebook_execution(
+        self,
+        editor_id: str,
+        relative_path: str,
+        execution_engine: dict[str, Any],
+        service_role: str,
+        **kwargs: Any,
+    ) -> "NotebookExecution":
+        return self.create_notebook_execution(
+            editor_id=editor_id,
+            relative_path=relative_path,
+            execution_engine=execution_engine,
+            service_role=service_role,
+            notebook_execution_name=kwargs.get("notebook_execution_name", ""),
+            notebook_params=kwargs.get("notebook_params", ""),
+            tags=kwargs.get("tags"),
+        )
+
+    def get_persistent_app_ui_presigned_url(
+        self, persistent_app_ui_id: str, presentation_type: str
+    ) -> dict[str, Any]:
+        return {
+            "PresignedURLForAthena": "",
+            "PresignedURLForIDP": f"https://emr.example.com/ui/{persistent_app_ui_id}?type={presentation_type}",
+        }
+
+    def get_on_cluster_app_ui_presigned_url(
+        self, cluster_id: str, on_cluster_app_ui_type: str
+    ) -> dict[str, Any]:
+        return {
+            "PresignedURLForAthena": "",
+            "PresignedURLForIDP": f"https://emr.example.com/cluster/{cluster_id}/ui/{on_cluster_app_ui_type}",
+        }
+
 
 emr_backends = BackendDict(ElasticMapReduceBackend, "emr")
