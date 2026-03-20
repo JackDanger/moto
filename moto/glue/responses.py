@@ -2394,3 +2394,123 @@ class GlueResponse(BaseResponse):
             database_name, table_name
         )
         return EmptyResult()
+
+    # --- ML Task Run operations ---
+
+    def cancel_ml_task_run(self) -> str:
+        transform_id = self.parameters.get("TransformId")
+        task_run_id = self.parameters.get("TaskRunId")
+        result = self.glue_backend.cancel_ml_task_run(transform_id, task_run_id)
+        return json.dumps(result)
+
+    def start_ml_evaluation_task_run(self) -> str:
+        transform_id = self.parameters.get("TransformId")
+        task_run_id = self.glue_backend.start_ml_evaluation_task_run(transform_id)
+        return json.dumps({"TaskRunId": task_run_id})
+
+    def start_ml_labeling_set_generation_task_run(self) -> str:
+        transform_id = self.parameters.get("TransformId")
+        output_s3_path = self.parameters.get("OutputS3Path")
+        task_run_id = self.glue_backend.start_ml_labeling_set_generation_task_run(
+            transform_id, output_s3_path
+        )
+        return json.dumps({"TaskRunId": task_run_id})
+
+    def start_export_labels_task_run(self) -> str:
+        transform_id = self.parameters.get("TransformId")
+        output_s3_path = self.parameters.get("OutputS3Path")
+        task_run_id = self.glue_backend.start_export_labels_task_run(
+            transform_id, output_s3_path
+        )
+        return json.dumps({"TaskRunId": task_run_id})
+
+    def start_import_labels_task_run(self) -> str:
+        transform_id = self.parameters.get("TransformId")
+        input_s3_path = self.parameters.get("InputS3Path")
+        replace_all_labels = self.parameters.get("ReplaceAllLabels", False)
+        task_run_id = self.glue_backend.start_import_labels_task_run(
+            transform_id, input_s3_path, replace_all_labels
+        )
+        return json.dumps({"TaskRunId": task_run_id})
+
+    # --- Schema operations ---
+
+    def get_schema_versions_diff(self) -> str:
+        schema_id = self.parameters.get("SchemaId")
+        first_version = self.parameters.get("FirstSchemaVersionNumber")
+        second_version = self.parameters.get("SecondSchemaVersionNumber")
+        schema_diff_type = self.parameters.get("SchemaDiffType")
+        result = self.glue_backend.get_schema_versions_diff(
+            schema_id, first_version, second_version, schema_diff_type
+        )
+        return json.dumps(result)
+
+    def query_schema_version_metadata(self) -> str:
+        schema_id = self.parameters.get("SchemaId")
+        schema_version_number = self.parameters.get("SchemaVersionNumber")
+        schema_version_id = self.parameters.get("SchemaVersionId")
+        result = self.glue_backend.query_schema_version_metadata(
+            schema_id, schema_version_number, schema_version_id
+        )
+        return json.dumps(result)
+
+    def remove_schema_version_metadata(self) -> str:
+        schema_id = self.parameters.get("SchemaId")
+        schema_version_number = self.parameters.get("SchemaVersionNumber")
+        schema_version_id = self.parameters.get("SchemaVersionId")
+        metadata_key_value = self.parameters.get("MetadataKeyValue")
+        result = self.glue_backend.remove_schema_version_metadata(
+            schema_id, schema_version_number, schema_version_id, metadata_key_value
+        )
+        return json.dumps(result)
+
+    # --- Entity operations ---
+
+    def describe_entity(self) -> str:
+        connection_name = self.parameters.get("ConnectionName")
+        entity_name = self.parameters.get("EntityName")
+        result = self.glue_backend.describe_entity(connection_name, entity_name)
+        return json.dumps(result)
+
+    def list_entities(self) -> str:
+        connection_name = self.parameters.get("ConnectionName")
+        result = self.glue_backend.list_entities(connection_name)
+        return json.dumps(result)
+
+    # --- Stub operations ---
+
+    def create_script(self) -> str:
+        result = self.glue_backend.create_script(self.parameters)
+        return json.dumps(result)
+
+    def get_dataflow_graph(self) -> str:
+        result = self.glue_backend.get_dataflow_graph(self.parameters)
+        return json.dumps(result)
+
+    def get_plan(self) -> str:
+        result = self.glue_backend.get_plan(self.parameters)
+        return json.dumps(result)
+
+    def get_unfiltered_table_metadata(self) -> str:
+        result = self.glue_backend.get_unfiltered_table_metadata(self.parameters)
+        return json.dumps(result)
+
+    def get_unfiltered_partitions_metadata(self) -> str:
+        result = self.glue_backend.get_unfiltered_partitions_metadata(self.parameters)
+        return json.dumps(result)
+
+    def get_unfiltered_partition_metadata(self) -> str:
+        result = self.glue_backend.get_unfiltered_partition_metadata(self.parameters)
+        return json.dumps(result)
+
+    def test_connection(self) -> str:
+        result = self.glue_backend.test_connection(self.parameters)
+        return json.dumps(result)
+
+    def update_job_from_source_control(self) -> str:
+        result = self.glue_backend.update_job_from_source_control(self.parameters)
+        return json.dumps(result)
+
+    def update_source_control_from_job(self) -> str:
+        result = self.glue_backend.update_source_control_from_job(self.parameters)
+        return json.dumps(result)
