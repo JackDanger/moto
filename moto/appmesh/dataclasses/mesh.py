@@ -2,8 +2,10 @@ from dataclasses import dataclass, field
 from typing import Any, Literal, Optional
 
 from moto.appmesh.dataclasses.shared import Metadata, Status
+from moto.appmesh.dataclasses.virtual_gateway import VirtualGateway
 from moto.appmesh.dataclasses.virtual_node import VirtualNode
 from moto.appmesh.dataclasses.virtual_router import VirtualRouter
+from moto.appmesh.dataclasses.virtual_service import VirtualServiceResource
 
 
 @dataclass
@@ -20,6 +22,8 @@ class Mesh:
     status: Status
     virtual_nodes: dict[str, VirtualNode] = field(default_factory=dict)
     virtual_routers: dict[str, VirtualRouter] = field(default_factory=dict)
+    virtual_services: dict[str, VirtualServiceResource] = field(default_factory=dict)
+    virtual_gateways: dict[str, VirtualGateway] = field(default_factory=dict)
     tags: list[dict[str, str]] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:  # type ignore[misc]

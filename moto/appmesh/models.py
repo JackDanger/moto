@@ -8,6 +8,14 @@ from moto.appmesh.dataclasses.mesh import (
 )
 from moto.appmesh.dataclasses.route import Route, RouteMetadata, RouteSpec
 from moto.appmesh.dataclasses.shared import Metadata
+from moto.appmesh.dataclasses.virtual_gateway import (
+    GatewayRoute,
+    GatewayRouteMetadata,
+    GatewayRouteSpec,
+    VirtualGateway,
+    VirtualGatewayMetadata,
+    VirtualGatewaySpec,
+)
 from moto.appmesh.dataclasses.virtual_node import (
     VirtualNode,
     VirtualNodeMetadata,
@@ -18,16 +26,27 @@ from moto.appmesh.dataclasses.virtual_router import (
     VirtualRouter,
     VirtualRouterSpec,
 )
+from moto.appmesh.dataclasses.virtual_service import (
+    VirtualServiceMetadata,
+    VirtualServiceResource,
+    VirtualServiceSpec,
+)
 from moto.appmesh.exceptions import (
+    GatewayRouteNameAlreadyTakenError,
+    GatewayRouteNotFoundError,
     MeshNotFoundError,
     MeshOwnerDoesNotMatchError,
     ResourceNotFoundError,
     RouteNameAlreadyTakenError,
     RouteNotFoundError,
+    VirtualGatewayNameAlreadyTakenError,
+    VirtualGatewayNotFoundError,
     VirtualNodeNameAlreadyTakenError,
     VirtualNodeNotFoundError,
     VirtualRouterNameAlreadyTakenError,
     VirtualRouterNotFoundError,
+    VirtualServiceNameAlreadyTakenError,
+    VirtualServiceNotFoundError,
 )
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.utilities.paginator import paginate
@@ -62,6 +81,24 @@ PAGINATION_MODEL = {
         "limit_key": "limit",
         "limit_default": 100,
         "unique_attribute": "virtual_node_name",
+    },
+    "list_virtual_services": {
+        "input_token": "next_token",
+        "limit_key": "limit",
+        "limit_default": 100,
+        "unique_attribute": "virtual_service_name",
+    },
+    "list_virtual_gateways": {
+        "input_token": "next_token",
+        "limit_key": "limit",
+        "limit_default": 100,
+        "unique_attribute": "virtual_gateway_name",
+    },
+    "list_gateway_routes": {
+        "input_token": "next_token",
+        "limit_key": "limit",
+        "limit_default": 100,
+        "unique_attribute": "gateway_route_name",
     },
 }
 
@@ -268,7 +305,7 @@ class AppMeshBackend(BaseBackend):
 
     def _get_resource_with_arn(
         self, resource_arn: str
-    ) -> Union[Mesh, VirtualRouter, Route, VirtualNode]:
+    ) -> Union[Mesh, VirtualRouter, Route, VirtualNode, VirtualServiceResource, VirtualGateway, GatewayRoute]:
         for mesh in self.meshes.values():
             if mesh.metadata.arn == resource_arn:
                 return mesh
@@ -281,6 +318,15 @@ class AppMeshBackend(BaseBackend):
             for virtual_node in mesh.virtual_nodes.values():
                 if virtual_node.metadata.arn == resource_arn:
                     return virtual_node
+            for virtual_service in mesh.virtual_services.values():
+                if virtual_service.metadata.arn == resource_arn:
+                    return virtual_service
+            for virtual_gateway in mesh.virtual_gateways.values():
+                if virtual_gateway.metadata.arn == resource_arn:
+                    return virtual_gateway
+                for gateway_route in virtual_gateway.gateway_routes.values():
+                    if gateway_route.metadata.arn == resource_arn:
+                        return gateway_route
         raise ResourceNotFoundError(resource_arn)
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore
@@ -606,6 +652,414 @@ class AppMeshBackend(BaseBackend):
         self._validate_mesh(mesh_name=mesh_name, mesh_owner=mesh_owner)
         virtual_nodes = self.meshes[mesh_name].virtual_nodes
         return [virtual_node.metadata for virtual_node in virtual_nodes.values()]
+
+    # ── VirtualService ────────────────────────────────────────────────────────
+
+    def _check_virtual_service_availability(
+        self,
+        mesh_name: str,
+        mesh_owner: Optional[str],
+        virtual_service_name: str,
+    ) -> None:
+        self._validate_mesh(mesh_name=mesh_name, mesh_owner=mesh_owner)
+        if virtual_service_name in self.meshes[mesh_name].virtual_services:
+            raise VirtualServiceNameAlreadyTakenError(
+                mesh_name=mesh_name, virtual_service_name=virtual_service_name
+            )
+
+    def _check_virtual_service_validity(
+        self,
+        mesh_name: str,
+        mesh_owner: Optional[str],
+        virtual_service_name: str,
+    ) -> None:
+        self._validate_mesh(mesh_name=mesh_name, mesh_owner=mesh_owner)
+        if virtual_service_name not in self.meshes[mesh_name].virtual_services:
+            raise VirtualServiceNotFoundError(
+                mesh_name=mesh_name, virtual_service_name=virtual_service_name
+            )
+
+    def create_virtual_service(
+        self,
+        client_token: Optional[str],
+        mesh_name: str,
+        mesh_owner: Optional[str],
+        spec: dict,
+        tags: Optional[list[dict[str, str]]],
+        virtual_service_name: str,
+    ) -> VirtualServiceResource:
+        self._check_virtual_service_availability(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_service_name=virtual_service_name,
+        )
+        owner = mesh_owner or self.meshes[mesh_name].metadata.mesh_owner
+        metadata = VirtualServiceMetadata(
+            arn=f"arn:aws:appmesh:{self.region_name}:{self.account_id}:mesh/{mesh_name}/virtualService/{virtual_service_name}",
+            mesh_name=mesh_name,
+            mesh_owner=owner,
+            resource_owner=owner,
+            virtual_service_name=virtual_service_name,
+        )
+        virtual_service = VirtualServiceResource(
+            mesh_name=mesh_name,
+            mesh_owner=owner,
+            metadata=metadata,
+            spec=VirtualServiceSpec(spec=spec),
+            virtual_service_name=virtual_service_name,
+            tags=tags or [],
+        )
+        self.meshes[mesh_name].virtual_services[virtual_service_name] = virtual_service
+        return virtual_service
+
+    def describe_virtual_service(
+        self,
+        mesh_name: str,
+        mesh_owner: Optional[str],
+        virtual_service_name: str,
+    ) -> VirtualServiceResource:
+        self._check_virtual_service_validity(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_service_name=virtual_service_name,
+        )
+        return self.meshes[mesh_name].virtual_services[virtual_service_name]
+
+    def update_virtual_service(
+        self,
+        client_token: Optional[str],
+        mesh_name: str,
+        mesh_owner: Optional[str],
+        spec: dict,
+        virtual_service_name: str,
+    ) -> VirtualServiceResource:
+        self._check_virtual_service_validity(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_service_name=virtual_service_name,
+        )
+        virtual_service = self.meshes[mesh_name].virtual_services[virtual_service_name]
+        virtual_service.spec = VirtualServiceSpec(spec=spec)
+        virtual_service.metadata.version += 1
+        virtual_service.metadata.update_timestamp()
+        return virtual_service
+
+    def delete_virtual_service(
+        self,
+        mesh_name: str,
+        mesh_owner: Optional[str],
+        virtual_service_name: str,
+    ) -> VirtualServiceResource:
+        self._check_virtual_service_validity(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_service_name=virtual_service_name,
+        )
+        virtual_service = self.meshes[mesh_name].virtual_services[virtual_service_name]
+        virtual_service.status["status"] = "DELETED"
+        del self.meshes[mesh_name].virtual_services[virtual_service_name]
+        return virtual_service
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_virtual_services(
+        self,
+        mesh_name: str,
+        mesh_owner: Optional[str],
+    ) -> list[VirtualServiceMetadata]:
+        self._validate_mesh(mesh_name=mesh_name, mesh_owner=mesh_owner)
+        virtual_services = self.meshes[mesh_name].virtual_services
+        return [vs.metadata for vs in virtual_services.values()]
+
+    # ── VirtualGateway ────────────────────────────────────────────────────────
+
+    def _check_virtual_gateway_availability(
+        self,
+        mesh_name: str,
+        mesh_owner: Optional[str],
+        virtual_gateway_name: str,
+    ) -> None:
+        self._validate_mesh(mesh_name=mesh_name, mesh_owner=mesh_owner)
+        if virtual_gateway_name in self.meshes[mesh_name].virtual_gateways:
+            raise VirtualGatewayNameAlreadyTakenError(
+                mesh_name=mesh_name, virtual_gateway_name=virtual_gateway_name
+            )
+
+    def _check_virtual_gateway_validity(
+        self,
+        mesh_name: str,
+        mesh_owner: Optional[str],
+        virtual_gateway_name: str,
+    ) -> None:
+        self._validate_mesh(mesh_name=mesh_name, mesh_owner=mesh_owner)
+        if virtual_gateway_name not in self.meshes[mesh_name].virtual_gateways:
+            raise VirtualGatewayNotFoundError(
+                mesh_name=mesh_name, virtual_gateway_name=virtual_gateway_name
+            )
+
+    def create_virtual_gateway(
+        self,
+        client_token: Optional[str],
+        mesh_name: str,
+        mesh_owner: Optional[str],
+        spec: dict,
+        tags: Optional[list[dict[str, str]]],
+        virtual_gateway_name: str,
+    ) -> VirtualGateway:
+        self._check_virtual_gateway_availability(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_gateway_name=virtual_gateway_name,
+        )
+        owner = mesh_owner or self.meshes[mesh_name].metadata.mesh_owner
+        metadata = VirtualGatewayMetadata(
+            arn=f"arn:aws:appmesh:{self.region_name}:{self.account_id}:mesh/{mesh_name}/virtualGateway/{virtual_gateway_name}",
+            mesh_name=mesh_name,
+            mesh_owner=owner,
+            resource_owner=owner,
+            virtual_gateway_name=virtual_gateway_name,
+        )
+        virtual_gateway = VirtualGateway(
+            mesh_name=mesh_name,
+            mesh_owner=owner,
+            metadata=metadata,
+            spec=VirtualGatewaySpec(spec=spec),
+            virtual_gateway_name=virtual_gateway_name,
+            tags=tags or [],
+        )
+        self.meshes[mesh_name].virtual_gateways[virtual_gateway_name] = virtual_gateway
+        return virtual_gateway
+
+    def describe_virtual_gateway(
+        self,
+        mesh_name: str,
+        mesh_owner: Optional[str],
+        virtual_gateway_name: str,
+    ) -> VirtualGateway:
+        self._check_virtual_gateway_validity(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_gateway_name=virtual_gateway_name,
+        )
+        return self.meshes[mesh_name].virtual_gateways[virtual_gateway_name]
+
+    def update_virtual_gateway(
+        self,
+        client_token: Optional[str],
+        mesh_name: str,
+        mesh_owner: Optional[str],
+        spec: dict,
+        virtual_gateway_name: str,
+    ) -> VirtualGateway:
+        self._check_virtual_gateway_validity(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_gateway_name=virtual_gateway_name,
+        )
+        virtual_gateway = self.meshes[mesh_name].virtual_gateways[virtual_gateway_name]
+        virtual_gateway.spec = VirtualGatewaySpec(spec=spec)
+        virtual_gateway.metadata.version += 1
+        virtual_gateway.metadata.update_timestamp()
+        return virtual_gateway
+
+    def delete_virtual_gateway(
+        self,
+        mesh_name: str,
+        mesh_owner: Optional[str],
+        virtual_gateway_name: str,
+    ) -> VirtualGateway:
+        self._check_virtual_gateway_validity(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_gateway_name=virtual_gateway_name,
+        )
+        virtual_gateway = self.meshes[mesh_name].virtual_gateways[virtual_gateway_name]
+        virtual_gateway.status["status"] = "DELETED"
+        del self.meshes[mesh_name].virtual_gateways[virtual_gateway_name]
+        return virtual_gateway
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_virtual_gateways(
+        self,
+        mesh_name: str,
+        mesh_owner: Optional[str],
+    ) -> list[VirtualGatewayMetadata]:
+        self._validate_mesh(mesh_name=mesh_name, mesh_owner=mesh_owner)
+        virtual_gateways = self.meshes[mesh_name].virtual_gateways
+        return [vg.metadata for vg in virtual_gateways.values()]
+
+    # ── GatewayRoute ─────────────────────────────────────────────────────────
+
+    def _check_gateway_route_validity(
+        self,
+        mesh_name: str,
+        mesh_owner: Optional[str],
+        virtual_gateway_name: str,
+        gateway_route_name: str,
+    ) -> None:
+        self._check_virtual_gateway_validity(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_gateway_name=virtual_gateway_name,
+        )
+        if (
+            gateway_route_name
+            not in self.meshes[mesh_name].virtual_gateways[virtual_gateway_name].gateway_routes
+        ):
+            raise GatewayRouteNotFoundError(
+                mesh_name=mesh_name,
+                virtual_gateway_name=virtual_gateway_name,
+                gateway_route_name=gateway_route_name,
+            )
+
+    def _check_gateway_route_availability(
+        self,
+        mesh_name: str,
+        mesh_owner: Optional[str],
+        virtual_gateway_name: str,
+        gateway_route_name: str,
+    ) -> None:
+        self._check_virtual_gateway_validity(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_gateway_name=virtual_gateway_name,
+        )
+        if (
+            gateway_route_name
+            in self.meshes[mesh_name].virtual_gateways[virtual_gateway_name].gateway_routes
+        ):
+            raise GatewayRouteNameAlreadyTakenError(
+                mesh_name=mesh_name,
+                virtual_gateway_name=virtual_gateway_name,
+                gateway_route_name=gateway_route_name,
+            )
+
+    def create_gateway_route(
+        self,
+        client_token: Optional[str],
+        gateway_route_name: str,
+        mesh_name: str,
+        mesh_owner: Optional[str],
+        spec: dict,
+        tags: Optional[list[dict[str, str]]],
+        virtual_gateway_name: str,
+    ) -> GatewayRoute:
+        self._check_gateway_route_availability(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_gateway_name=virtual_gateway_name,
+            gateway_route_name=gateway_route_name,
+        )
+        owner = mesh_owner or self.meshes[mesh_name].metadata.mesh_owner
+        metadata = GatewayRouteMetadata(
+            arn=f"arn:aws:appmesh:{self.region_name}:{self.account_id}:mesh/{mesh_name}/virtualGateway/{virtual_gateway_name}/gatewayRoute/{gateway_route_name}",
+            mesh_name=mesh_name,
+            mesh_owner=owner,
+            resource_owner=owner,
+            virtual_gateway_name=virtual_gateway_name,
+            gateway_route_name=gateway_route_name,
+        )
+        gateway_route = GatewayRoute(
+            mesh_name=mesh_name,
+            mesh_owner=owner,
+            metadata=metadata,
+            gateway_route_name=gateway_route_name,
+            spec=GatewayRouteSpec(spec=spec),
+            virtual_gateway_name=virtual_gateway_name,
+            tags=tags or [],
+        )
+        self.meshes[mesh_name].virtual_gateways[virtual_gateway_name].gateway_routes[
+            gateway_route_name
+        ] = gateway_route
+        return gateway_route
+
+    def describe_gateway_route(
+        self,
+        gateway_route_name: str,
+        mesh_name: str,
+        mesh_owner: Optional[str],
+        virtual_gateway_name: str,
+    ) -> GatewayRoute:
+        self._check_gateway_route_validity(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_gateway_name=virtual_gateway_name,
+            gateway_route_name=gateway_route_name,
+        )
+        return (
+            self.meshes[mesh_name]
+            .virtual_gateways[virtual_gateway_name]
+            .gateway_routes[gateway_route_name]
+        )
+
+    def update_gateway_route(
+        self,
+        client_token: Optional[str],
+        gateway_route_name: str,
+        mesh_name: str,
+        mesh_owner: Optional[str],
+        spec: dict,
+        virtual_gateway_name: str,
+    ) -> GatewayRoute:
+        self._check_gateway_route_validity(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_gateway_name=virtual_gateway_name,
+            gateway_route_name=gateway_route_name,
+        )
+        gateway_route = (
+            self.meshes[mesh_name]
+            .virtual_gateways[virtual_gateway_name]
+            .gateway_routes[gateway_route_name]
+        )
+        gateway_route.spec = GatewayRouteSpec(spec=spec)
+        gateway_route.metadata.version += 1
+        gateway_route.metadata.update_timestamp()
+        return gateway_route
+
+    def delete_gateway_route(
+        self,
+        gateway_route_name: str,
+        mesh_name: str,
+        mesh_owner: Optional[str],
+        virtual_gateway_name: str,
+    ) -> GatewayRoute:
+        self._check_gateway_route_validity(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_gateway_name=virtual_gateway_name,
+            gateway_route_name=gateway_route_name,
+        )
+        gateway_route = (
+            self.meshes[mesh_name]
+            .virtual_gateways[virtual_gateway_name]
+            .gateway_routes[gateway_route_name]
+        )
+        gateway_route.status["status"] = "DELETED"
+        del (
+            self.meshes[mesh_name]
+            .virtual_gateways[virtual_gateway_name]
+            .gateway_routes[gateway_route_name]
+        )
+        return gateway_route
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_gateway_routes(
+        self,
+        mesh_name: str,
+        mesh_owner: Optional[str],
+        virtual_gateway_name: str,
+    ) -> list[GatewayRouteMetadata]:
+        self._check_virtual_gateway_validity(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_gateway_name=virtual_gateway_name,
+        )
+        virtual_gateway = self.meshes[mesh_name].virtual_gateways[virtual_gateway_name]
+        return [gr.metadata for gr in virtual_gateway.gateway_routes.values()]
+
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
+        resource = self._get_resource_with_arn(resource_arn=resource_arn)
+        resource.tags = [t for t in resource.tags if t.get("key") not in tag_keys]
 
 
 appmesh_backends = BackendDict(AppMeshBackend, "appmesh")

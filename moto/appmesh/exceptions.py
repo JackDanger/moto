@@ -89,3 +89,55 @@ class VirtualNodeNameAlreadyTakenError(MeshError):
             "VirtualNodeNameAlreadyTaken",
             f"There is already a virtual node named {virtual_node_name} associated with mesh {mesh_name}",
         )
+
+
+class VirtualServiceNotFoundError(MeshError):
+    def __init__(self, mesh_name: str, virtual_service_name: str) -> None:
+        super().__init__(
+            "VirtualServiceNotFound",
+            f"{virtual_service_name} is not a virtual service associated with mesh {mesh_name}",
+        )
+
+
+class VirtualServiceNameAlreadyTakenError(MeshError):
+    def __init__(self, mesh_name: str, virtual_service_name: str) -> None:
+        super().__init__(
+            "VirtualServiceNameAlreadyTaken",
+            f"There is already a virtual service named {virtual_service_name} associated with mesh {mesh_name}",
+        )
+
+
+class VirtualGatewayNotFoundError(MeshError):
+    def __init__(self, mesh_name: str, virtual_gateway_name: str) -> None:
+        super().__init__(
+            "VirtualGatewayNotFound",
+            f"{virtual_gateway_name} is not a virtual gateway associated with mesh {mesh_name}",
+        )
+
+
+class VirtualGatewayNameAlreadyTakenError(MeshError):
+    def __init__(self, mesh_name: str, virtual_gateway_name: str) -> None:
+        super().__init__(
+            "VirtualGatewayNameAlreadyTaken",
+            f"There is already a virtual gateway named {virtual_gateway_name} associated with mesh {mesh_name}",
+        )
+
+
+class GatewayRouteNotFoundError(MeshError):
+    def __init__(
+        self, mesh_name: str, virtual_gateway_name: str, gateway_route_name: str
+    ) -> None:
+        super().__init__(
+            "GatewayRouteNotFound",
+            f"There is no gateway route named {gateway_route_name} associated with virtual gateway {virtual_gateway_name} in mesh {mesh_name}.",
+        )
+
+
+class GatewayRouteNameAlreadyTakenError(MeshError):
+    def __init__(
+        self, mesh_name: str, virtual_gateway_name: str, gateway_route_name: str
+    ) -> None:
+        super().__init__(
+            "GatewayRouteNameAlreadyTaken",
+            f"There is already a gateway route named {gateway_route_name} associated with virtual gateway {virtual_gateway_name} in mesh {mesh_name}.",
+        )
