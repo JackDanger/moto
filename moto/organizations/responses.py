@@ -350,7 +350,7 @@ class OrganizationsResponse(BaseResponse):
         return json.dumps({"HandshakeId": f"h-{self._get_param('TargetId', 'unknown')}"})
 
     def list_effective_policy_validation_errors(self) -> str:
-        return json.dumps({"ValidationErrors": []})
+        return json.dumps({"EffectivePolicyValidationErrors": []})
 
     def list_inbound_responsibility_transfers(self) -> str:
         return json.dumps({"ResponsibilityTransfers": []})
