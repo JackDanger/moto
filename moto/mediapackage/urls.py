@@ -15,4 +15,5 @@ url_paths = {
     "{0}/origin_endpoints/(?P<id>[^/.]+)$": response.dispatch,
     "{0}/harvest_jobs$": response.dispatch,
     "{0}/harvest_jobs/(?P<id>[^/.]+)$": response.dispatch,
+    "{0}/tags/(?P<resource_arn>.+)$": response.dispatch,
 }

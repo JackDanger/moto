@@ -149,3 +149,20 @@ class MediaPackageResponse(BaseResponse):
     def list_harvest_jobs(self) -> str:
         jobs = self.mediapackage_backend.list_harvest_jobs()
         return json.dumps({"harvestJobs": jobs})
+
+    def tag_resource(self) -> str:
+        resource_arn = self._get_param("resourceArn") or self.path.split("/tags/")[-1]
+        tags = self._get_param("tags") or {}
+        self.mediapackage_backend.tag_resource(resource_arn=resource_arn, tags=tags)
+        return json.dumps({})
+
+    def untag_resource(self) -> str:
+        resource_arn = self.path.split("/tags/")[-1]
+        tag_keys = self.querystring.get("tagKeys", [])
+        self.mediapackage_backend.untag_resource(resource_arn=resource_arn, tag_keys=tag_keys)
+        return json.dumps({})
+
+    def list_tags_for_resource(self) -> str:
+        resource_arn = self.path.split("/tags/")[-1]
+        tags = self.mediapackage_backend.list_tags_for_resource(resource_arn=resource_arn)
+        return json.dumps({"tags": tags})

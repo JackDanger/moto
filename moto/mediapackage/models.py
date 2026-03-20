@@ -236,4 +236,37 @@ class MediaPackageBackend(BaseBackend):
         return list(self._harvest_jobs.values())
 
 
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
+        # Find resource by ARN and update tags
+        for channel in self._channels.values():
+            if channel.arn == resource_arn:
+                channel.tags = {**(channel.tags or {}), **tags}
+                return
+        for endpoint in self._origin_endpoints.values():
+            if endpoint.arn == resource_arn:
+                endpoint.tags = {**(endpoint.tags or {}), **tags}
+                return
+        raise ClientError("NotFoundException", f"resource with arn={resource_arn} not found")
+
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
+        for channel in self._channels.values():
+            if channel.arn == resource_arn:
+                channel.tags = {k: v for k, v in (channel.tags or {}).items() if k not in tag_keys}
+                return
+        for endpoint in self._origin_endpoints.values():
+            if endpoint.arn == resource_arn:
+                endpoint.tags = {k: v for k, v in (endpoint.tags or {}).items() if k not in tag_keys}
+                return
+        raise ClientError("NotFoundException", f"resource with arn={resource_arn} not found")
+
+    def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
+        for channel in self._channels.values():
+            if channel.arn == resource_arn:
+                return channel.tags or {}
+        for endpoint in self._origin_endpoints.values():
+            if endpoint.arn == resource_arn:
+                return endpoint.tags or {}
+        raise ClientError("NotFoundException", f"resource with arn={resource_arn} not found")
+
+
 mediapackage_backends = BackendDict(MediaPackageBackend, "mediapackage")
