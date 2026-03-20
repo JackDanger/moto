@@ -525,5 +525,11 @@ class OpenSearchIngestionBackend(BaseBackend):
             raise ResourceNotFoundException(resource_arn)
         del self.resource_policies[resource_arn]
 
+    def list_pipeline_endpoints(self) -> list[dict[str, Any]]:
+        return []
+
+    def list_pipeline_endpoint_connections(self) -> list[dict[str, Any]]:
+        return []
+
 
 osis_backends = BackendDict(OpenSearchIngestionBackend, "osis")

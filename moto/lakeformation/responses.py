@@ -498,3 +498,37 @@ class LakeFormationResponse(BaseResponse):
             catalog_id,
         )
         return "{}"
+
+    def list_lake_formation_opt_ins(self) -> str:
+        opt_ins = self.lakeformation_backend.list_lake_formation_opt_ins()
+        return json.dumps({"LakeFormationOptInsInfoList": opt_ins})
+
+    def get_temporary_data_location_credentials(self) -> str:
+        creds = self.lakeformation_backend.get_temporary_data_location_credentials(
+            resource_arn=self._get_param("ResourceArn", ""),
+            vended_s3_path=self._get_param("VendedS3Path", ""),
+            permissions=self._get_param("Permissions") or [],
+            duration_seconds=self._get_param("DurationSeconds"),
+            audit_context=self._get_param("AuditContext"),
+            supported_permission_types=self._get_param("SupportedPermissionTypes"),
+        )
+        return json.dumps(creds)
+
+    def list_table_storage_optimizers(self) -> str:
+        catalog_id = self._get_param("CatalogId") or self.current_account
+        optimizers = self.lakeformation_backend.list_table_storage_optimizers(
+            catalog_id=catalog_id,
+            database_name=self._get_param("DatabaseName", ""),
+            table_name=self._get_param("TableName", ""),
+            storage_optimizer_type=self._get_param("StorageOptimizerType"),
+        )
+        return json.dumps({"StorageOptimizerList": optimizers})
+
+    def get_table_objects(self) -> str:
+        catalog_id = self._get_param("CatalogId") or self.current_account
+        objects = self.lakeformation_backend.get_table_objects(
+            catalog_id=catalog_id,
+            database_name=self._get_param("DatabaseName", ""),
+            table_name=self._get_param("TableName", ""),
+        )
+        return json.dumps({"Objects": objects})

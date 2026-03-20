@@ -1118,5 +1118,44 @@ class LakeFormationBackend(BaseBackend):
             raise EntityNotFound
         self.identity_center_config = None
 
+    def list_lake_formation_opt_ins(self) -> list[dict[str, Any]]:
+        return []
+
+    def get_temporary_data_location_credentials(
+        self,
+        resource_arn: str,
+        vended_s3_path: str,
+        permissions: list[str],
+        duration_seconds: Optional[int] = None,
+        audit_context: Optional[dict[str, Any]] = None,
+        supported_permission_types: Optional[list[str]] = None,
+    ) -> dict[str, Any]:
+        import uuid
+
+        return {
+            "AccessKeyId": f"ASIA{uuid.uuid4().hex[:16].upper()}",
+            "SecretAccessKey": uuid.uuid4().hex,
+            "SessionToken": uuid.uuid4().hex,
+            "Expiration": "2099-01-01T00:00:00Z",
+        }
+
+    def list_table_storage_optimizers(
+        self,
+        catalog_id: str,
+        database_name: str,
+        table_name: str,
+        storage_optimizer_type: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        return []
+
+    def get_table_objects(
+        self,
+        catalog_id: str,
+        database_name: str,
+        table_name: str,
+        **kwargs: Any,
+    ) -> list[dict[str, Any]]:
+        return []
+
 
 lakeformation_backends = BackendDict(LakeFormationBackend, "lakeformation")

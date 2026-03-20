@@ -203,3 +203,11 @@ class OpenSearchIngestionResponse(BaseResponse):
             }
         ]
         return json.dumps({"ChangeProgressStatuses": change_progress_statuses})
+
+    def list_pipeline_endpoints(self) -> str:
+        endpoints = self.osis_backend.list_pipeline_endpoints()
+        return json.dumps({"Endpoints": endpoints})
+
+    def list_pipeline_endpoint_connections(self) -> str:
+        connections = self.osis_backend.list_pipeline_endpoint_connections()
+        return json.dumps({"EndpointConnections": connections})
