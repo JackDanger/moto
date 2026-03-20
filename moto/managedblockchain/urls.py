@@ -18,4 +18,7 @@ url_paths = {
     # >= botocore 1.19.41 (API change - memberId is now part of query-string or body)
     "{0}/networks/(?P<networkid>[^/.]+)/nodes$": ManagedBlockchainResponse.dispatch,
     "{0}/networks/(?P<networkid>[^/.]+)/nodes/(?P<nodeid>[^/.]+)$": ManagedBlockchainResponse.dispatch,
+    "{0}/accessors$": ManagedBlockchainResponse.dispatch,
+    "{0}/accessors/(?P<accessorid>[^/.]+)$": ManagedBlockchainResponse.dispatch,
+    "{0}/tags/(?P<resourceArn>.+)$": ManagedBlockchainResponse.dispatch,
 }

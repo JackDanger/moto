@@ -5,6 +5,8 @@ from typing import Any, Optional
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
+from moto.moto_api._internal import mock_random
+from moto.utilities.utils import get_partition
 
 from .exceptions import (
     BadRequestException,
@@ -358,6 +360,29 @@ class ManagedBlockchainNode(BaseModel):
         self.logpublishingconfiguration = logpublishingconfiguration
 
 
+class ManagedBlockchainAccessor(BaseModel):
+    def __init__(
+        self,
+        accessor_id: str,
+        accessor_type: str,
+        account_id: str,
+        region_name: str,
+        tags: Optional[dict[str, str]] = None,
+        network_type: Optional[str] = None,
+    ):
+        self.id = accessor_id
+        self.type = accessor_type
+        self.account_id = account_id
+        self.region_name = region_name
+        self.tags = tags or {}
+        self.network_type = network_type or "ETHEREUM_GOERLI"
+        self.status = "AVAILABLE"
+        self.creation_date = utcnow()
+        partition = get_partition(region_name)
+        self.arn = f"arn:{partition}:managedblockchain:{region_name}:{account_id}:accessors/{accessor_id}"
+        self.billing_token = str(mock_random.uuid4())
+
+
 class ManagedBlockchainBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -366,6 +391,7 @@ class ManagedBlockchainBackend(BaseBackend):
         self.proposals: dict[str, ManagedBlockchainProposal] = {}
         self.invitations: dict[str, ManagedBlockchainInvitation] = {}
         self.nodes: dict[str, ManagedBlockchainNode] = {}
+        self.accessors: dict[str, ManagedBlockchainAccessor] = {}
 
     def create_network(
         self,
@@ -915,6 +941,68 @@ class ManagedBlockchainBackend(BaseBackend):
             raise ResourceNotFoundException("UpdateNode", f"Node {nodeid} not found.")
 
         self.nodes[nodeid].update(logpublishingconfiguration)
+
+    def create_accessor(
+        self,
+        accessor_type: str,
+        tags: Optional[dict[str, str]],
+        network_type: Optional[str],
+    ) -> ManagedBlockchainAccessor:
+        accessor_id = f"a-{mock_random.get_random_hex(12).upper()}"
+        accessor = ManagedBlockchainAccessor(
+            accessor_id=accessor_id,
+            accessor_type=accessor_type,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            tags=tags,
+            network_type=network_type,
+        )
+        self.accessors[accessor_id] = accessor
+        return accessor
+
+    def delete_accessor(self, accessor_id: str) -> None:
+        if accessor_id not in self.accessors:
+            raise ResourceNotFoundException(
+                "DeleteAccessor", f"Accessor {accessor_id} not found."
+            )
+        del self.accessors[accessor_id]
+
+    def get_accessor(self, accessor_id: str) -> ManagedBlockchainAccessor:
+        if accessor_id not in self.accessors:
+            raise ResourceNotFoundException(
+                "GetAccessor", f"Accessor {accessor_id} not found."
+            )
+        return self.accessors[accessor_id]
+
+    def list_accessors(self) -> list[ManagedBlockchainAccessor]:
+        return list(self.accessors.values())
+
+    def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
+        for accessor in self.accessors.values():
+            if accessor.arn == resource_arn:
+                return accessor.tags
+        raise ResourceNotFoundException(
+            "ListTagsForResource", f"Resource {resource_arn} not found."
+        )
+
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
+        for accessor in self.accessors.values():
+            if accessor.arn == resource_arn:
+                accessor.tags.update(tags)
+                return
+        raise ResourceNotFoundException(
+            "TagResource", f"Resource {resource_arn} not found."
+        )
+
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
+        for accessor in self.accessors.values():
+            if accessor.arn == resource_arn:
+                for key in tag_keys:
+                    accessor.tags.pop(key, None)
+                return
+        raise ResourceNotFoundException(
+            "UntagResource", f"Resource {resource_arn} not found."
+        )
 
 
 managedblockchain_backends = BackendDict(ManagedBlockchainBackend, "managedblockchain")

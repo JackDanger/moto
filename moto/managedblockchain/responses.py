@@ -180,3 +180,79 @@ class ManagedBlockchainResponse(BaseResponse):
         node_id = nodeid_from_managedblockchain_url(self.path)
         self.backend.delete_node(network_id, member_id, node_id)
         return ""
+
+    def create_accessor(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        accessor_type = params.get("AccessorType", "BILLING_TOKEN")
+        tags = params.get("Tags")
+        network_type = params.get("NetworkType")
+        accessor = self.backend.create_accessor(
+            accessor_type=accessor_type,
+            tags=tags,
+            network_type=network_type,
+        )
+        return json.dumps(
+            {
+                "AccessorId": accessor.id,
+                "BillingToken": accessor.billing_token,
+            }
+        )
+
+    def delete_accessor(self) -> str:
+        accessor_id = self.path.split("/")[-1]
+        self.backend.delete_accessor(accessor_id=accessor_id)
+        return ""
+
+    def get_accessor(self) -> str:
+        accessor_id = self.path.split("/")[-1]
+        accessor = self.backend.get_accessor(accessor_id=accessor_id)
+        return json.dumps(
+            {
+                "Accessor": {
+                    "Id": accessor.id,
+                    "Type": accessor.type,
+                    "BillingToken": accessor.billing_token,
+                    "Status": accessor.status,
+                    "CreationDate": accessor.creation_date.isoformat(),
+                    "Arn": accessor.arn,
+                    "Tags": accessor.tags,
+                    "NetworkType": accessor.network_type,
+                }
+            }
+        )
+
+    def list_accessors(self) -> str:
+        accessors = self.backend.list_accessors()
+        return json.dumps(
+            {
+                "Accessors": [
+                    {
+                        "Id": a.id,
+                        "Type": a.type,
+                        "BillingToken": a.billing_token,
+                        "Status": a.status,
+                        "CreationDate": a.creation_date.isoformat(),
+                        "Arn": a.arn,
+                    }
+                    for a in accessors
+                ]
+            }
+        )
+
+    def list_tags_for_resource(self) -> str:
+        resource_arn = self.path.split("/tags/", 1)[-1]
+        tags = self.backend.list_tags_for_resource(resource_arn=resource_arn)
+        return json.dumps({"Tags": tags})
+
+    def tag_resource(self) -> str:
+        resource_arn = self.path.split("/tags/", 1)[-1]
+        params = json.loads(self.body) if self.body else {}
+        tags = params.get("Tags", {})
+        self.backend.tag_resource(resource_arn=resource_arn, tags=tags)
+        return ""
+
+    def untag_resource(self) -> str:
+        resource_arn = self.path.split("/tags/", 1)[-1]
+        tag_keys = self.querystring.get("tagKeys", [])
+        self.backend.untag_resource(resource_arn=resource_arn, tag_keys=tag_keys)
+        return ""
