@@ -183,7 +183,7 @@ class Trail(BaseModel):
         return self.event_selectors, self.advanced_event_selectors
 
     def put_insight_selectors(self, insight_selectors: list[dict[str, str]]) -> None:
-        self.insight_selectors.extend(insight_selectors)
+        self.insight_selectors = list(insight_selectors)
 
     def get_insight_selectors(self) -> list[dict[str, str]]:
         return self.insight_selectors
