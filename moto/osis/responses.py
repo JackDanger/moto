@@ -211,3 +211,12 @@ class OpenSearchIngestionResponse(BaseResponse):
     def list_pipeline_endpoint_connections(self) -> str:
         connections = self.osis_backend.list_pipeline_endpoint_connections()
         return json.dumps({"PipelineEndpointConnections": connections})
+
+    def create_pipeline_endpoint(self) -> str:
+        return json.dumps({"PipelineEndpoint": {"Status": "ACTIVE"}})
+
+    def delete_pipeline_endpoint(self) -> str:
+        return json.dumps({})
+
+    def revoke_pipeline_endpoint_connections(self) -> str:
+        return json.dumps({"RevokedConnections": []})

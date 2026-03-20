@@ -336,3 +336,32 @@ class OrganizationsResponse(BaseResponse):
     def list_accounts_with_invalid_effective_policy(self) -> str:
         policy_type = self._get_param("PolicyType")
         return json.dumps({"Accounts": [], "PolicyType": policy_type})
+
+    def create_gov_cloud_account(self) -> str:
+        return json.dumps(
+            self.organizations_backend.create_account(**self.request_params)
+        )
+
+    def describe_responsibility_transfer(self) -> str:
+        transfer_id = self._get_param("TransferId")
+        return json.dumps({"ResponsibilityTransfer": {"TransferId": transfer_id, "State": "REQUESTED"}})
+
+    def invite_organization_to_transfer_responsibility(self) -> str:
+        return json.dumps({"HandshakeId": f"h-{self._get_param('TargetId', 'unknown')}"})
+
+    def list_effective_policy_validation_errors(self) -> str:
+        return json.dumps({"ValidationErrors": []})
+
+    def list_inbound_responsibility_transfers(self) -> str:
+        return json.dumps({"ResponsibilityTransfers": []})
+
+    def list_outbound_responsibility_transfers(self) -> str:
+        return json.dumps({"ResponsibilityTransfers": []})
+
+    def terminate_responsibility_transfer(self) -> str:
+        transfer_id = self._get_param("TransferId")
+        return json.dumps({"ResponsibilityTransfer": {"TransferId": transfer_id, "State": "CANCELLED"}})
+
+    def update_responsibility_transfer(self) -> str:
+        transfer_id = self._get_param("TransferId")
+        return json.dumps({"ResponsibilityTransfer": {"TransferId": transfer_id, "State": "REQUESTED"}})
