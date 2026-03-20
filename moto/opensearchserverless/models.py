@@ -623,29 +623,6 @@ class OpenSearchServiceServerlessBackend(BaseBackend):
             )
         del self.lifecycle_policies[key]
 
-    def update_lifecycle_policy(
-        self,
-        name: str,
-        type: str,
-        description: str | None,
-        policy: str | None,
-        policy_version: str | None,
-    ) -> "LifecyclePolicy":
-        from moto.utilities.utils import unix_time
-
-        key = f"{name}:{type}"
-        if key not in self.lifecycle_policies:
-            raise ResourceNotFoundException(
-                msg=f"Policy with name {name} and type {type} is not found"
-            )
-        lp = self.lifecycle_policies[key]
-        if description is not None:
-            lp.description = description
-        if policy is not None:
-            lp.policy = policy
-            lp.policy_version = mock_random.get_random_string(20)
-        return lp
-
     def batch_get_lifecycle_policy(
         self, identifiers: list[dict[str, str]]
     ) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
