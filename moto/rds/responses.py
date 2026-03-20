@@ -1471,9 +1471,9 @@ class RDSResponse(BaseResponse):
             {
                 "DBClusterIdentifier": "",
                 "BacktrackIdentifier": "",
-                "BacktrackTo": "",
-                "BacktrackedFrom": "",
-                "BacktrackRequestCreationTime": "",
+                "BacktrackTo": None,
+                "BacktrackedFrom": None,
+                "BacktrackRequestCreationTime": None,
                 "Status": "",
             }
         )
