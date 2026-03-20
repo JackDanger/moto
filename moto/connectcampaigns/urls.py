@@ -23,4 +23,5 @@ url_paths = {
     "{0}/campaigns/(?P<id>[^/]+)/dialer-config$": ConnectCampaignServiceResponse.dispatch,
     "{0}/campaigns/(?P<id>[^/]+)/outbound-call-config$": ConnectCampaignServiceResponse.dispatch,
     "{0}/campaigns/state$": ConnectCampaignServiceResponse.dispatch,
+    "{0}/campaigns-state$": ConnectCampaignServiceResponse.dispatch,
 }
