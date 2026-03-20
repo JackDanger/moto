@@ -183,14 +183,149 @@ class TranscribeResponse(BaseResponse):
         )
         return EmptyResult()
 
+    # --- CallAnalyticsCategory CRUD ---
+
+    def create_call_analytics_category(self) -> ActionResult:
+        response = self.transcribe_backend.create_call_analytics_category(
+            category_name=self._get_param("CategoryName"),
+            rules=self._get_param("Rules"),
+            input_type=self._get_param("InputType"),
+            tags=self._get_param("Tags"),
+        )
+        return ActionResult(response)
+
+    def get_call_analytics_category(self) -> ActionResult:
+        response = self.transcribe_backend.get_call_analytics_category(
+            category_name=self._get_param("CategoryName"),
+        )
+        return ActionResult(response)
+
+    def delete_call_analytics_category(self) -> ActionResult:
+        self.transcribe_backend.delete_call_analytics_category(
+            category_name=self._get_param("CategoryName"),
+        )
+        return EmptyResult()
+
+    def update_call_analytics_category(self) -> ActionResult:
+        response = self.transcribe_backend.update_call_analytics_category(
+            category_name=self._get_param("CategoryName"),
+            rules=self._get_param("Rules"),
+            input_type=self._get_param("InputType"),
+        )
+        return ActionResult(response)
+
     def list_call_analytics_categories(self) -> ActionResult:
-        return ActionResult({"Categories": [], "NextToken": None})
+        response = self.transcribe_backend.list_call_analytics_categories(
+            next_token=self._get_param("NextToken"),
+            max_results=self._get_param("MaxResults"),
+        )
+        return ActionResult(response)
+
+    # --- CallAnalyticsJob CRUD ---
+
+    def start_call_analytics_job(self) -> ActionResult:
+        response = self.transcribe_backend.start_call_analytics_job(
+            call_analytics_job_name=self._get_param("CallAnalyticsJobName"),
+            media=self._get_param("Media"),
+            output_location=self._get_param("OutputLocation"),
+            output_encryption_kms_key_id=self._get_param("OutputEncryptionKMSKeyId"),
+            data_access_role_arn=self._get_param("DataAccessRoleArn"),
+            settings=self._get_param("Settings"),
+            tags=self._get_param("Tags"),
+            channel_definitions=self._get_param("ChannelDefinitions"),
+        )
+        return ActionResult(response)
+
+    def get_call_analytics_job(self) -> ActionResult:
+        response = self.transcribe_backend.get_call_analytics_job(
+            call_analytics_job_name=self._get_param("CallAnalyticsJobName"),
+        )
+        return ActionResult(response)
+
+    def delete_call_analytics_job(self) -> ActionResult:
+        self.transcribe_backend.delete_call_analytics_job(
+            call_analytics_job_name=self._get_param("CallAnalyticsJobName"),
+        )
+        return EmptyResult()
 
     def list_call_analytics_jobs(self) -> ActionResult:
-        return ActionResult({"CallAnalyticsJobSummaries": [], "NextToken": None})
+        response = self.transcribe_backend.list_call_analytics_jobs(
+            status=self._get_param("Status"),
+            job_name_contains=self._get_param("JobNameContains"),
+            next_token=self._get_param("NextToken"),
+            max_results=self._get_param("MaxResults"),
+        )
+        return ActionResult(response)
+
+    # --- MedicalScribeJob CRUD ---
+
+    def start_medical_scribe_job(self) -> ActionResult:
+        response = self.transcribe_backend.start_medical_scribe_job(
+            medical_scribe_job_name=self._get_param("MedicalScribeJobName"),
+            media=self._get_param("Media"),
+            output_bucket_name=self._get_param("OutputBucketName"),
+            output_encryption_kms_key_id=self._get_param("OutputEncryptionKMSKeyId"),
+            kms_encryption_context=self._get_param("KMSEncryptionContext"),
+            data_access_role_arn=self._get_param("DataAccessRoleArn"),
+            settings=self._get_param("Settings"),
+            channel_definitions=self._get_param("ChannelDefinitions"),
+            tags=self._get_param("Tags"),
+            medical_scribe_context=self._get_param("MedicalScribeContext"),
+        )
+        return ActionResult(response)
+
+    def get_medical_scribe_job(self) -> ActionResult:
+        response = self.transcribe_backend.get_medical_scribe_job(
+            medical_scribe_job_name=self._get_param("MedicalScribeJobName"),
+        )
+        return ActionResult(response)
+
+    def delete_medical_scribe_job(self) -> ActionResult:
+        self.transcribe_backend.delete_medical_scribe_job(
+            medical_scribe_job_name=self._get_param("MedicalScribeJobName"),
+        )
+        return EmptyResult()
 
     def list_medical_scribe_jobs(self) -> ActionResult:
-        return ActionResult({"MedicalScribeJobSummaries": [], "NextToken": None})
+        response = self.transcribe_backend.list_medical_scribe_jobs(
+            status=self._get_param("Status"),
+            job_name_contains=self._get_param("JobNameContains"),
+            next_token=self._get_param("NextToken"),
+            max_results=self._get_param("MaxResults"),
+        )
+        return ActionResult(response)
+
+    # --- UpdateMedicalVocabulary ---
+
+    def update_medical_vocabulary(self) -> ActionResult:
+        response = self.transcribe_backend.update_medical_vocabulary(
+            vocabulary_name=self._get_param("VocabularyName"),
+            language_code=self._get_param("LanguageCode"),
+            vocabulary_file_uri=self._get_param("VocabularyFileUri"),
+        )
+        return ActionResult(response)
+
+    # --- TagResource / UntagResource / ListTagsForResource ---
+
+    def tag_resource(self) -> ActionResult:
+        self.transcribe_backend.tag_resource(
+            resource_arn=self._get_param("ResourceArn"),
+            tags=self._get_param("Tags"),
+        )
+        return EmptyResult()
+
+    def untag_resource(self) -> ActionResult:
+        self.transcribe_backend.untag_resource(
+            resource_arn=self._get_param("ResourceArn"),
+            tag_keys=self._get_param("TagKeys"),
+        )
+        return EmptyResult()
+
+    def list_tags_for_resource(self) -> ActionResult:
+        response = self.transcribe_backend.list_tags_for_resource(
+            resource_arn=self._get_param("ResourceArn"),
+        )
+        return ActionResult(response)
 
     # --- VocabularyFilter CRUD ---
 

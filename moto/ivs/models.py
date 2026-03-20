@@ -418,8 +418,6 @@ class IVSBackend(BaseBackend):
             session = {
                 "channelArn": channel_arn,
                 "streamId": mock_random.get_random_string(12),
-                "startTime": "",
-                "endTime": "",
                 "health": "HEALTHY",
                 "state": "LIVE",
                 "truncatedEvents": [],
