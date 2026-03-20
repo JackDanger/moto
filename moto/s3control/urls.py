@@ -90,9 +90,11 @@ url_paths = {
     "/v20180820/storagelensgroup": S3ControlResponse.dispatch,
     "/v20180820/storagelensgroup/<group_name>": S3ControlResponse.dispatch,
     # Object Lambda Access Points
+    r"{0}/v20180820/accesspointforobjectlambda$": S3ControlResponse.dispatch,
     r"{0}/v20180820/accesspointforobjectlambda/(?P<name>[^/]+)$": S3ControlResponse.dispatch,
     r"{0}/v20180820/accesspointforobjectlambda/(?P<name>[^/]+)/policy$": S3ControlResponse.dispatch,
     r"{0}/v20180820/accesspointforobjectlambda/(?P<name>[^/]+)/policyStatus$": S3ControlResponse.dispatch,
+    "/v20180820/accesspointforobjectlambda": S3ControlResponse.dispatch,
     "/v20180820/accesspointforobjectlambda/<name>": S3ControlResponse.dispatch,
     "/v20180820/accesspointforobjectlambda/<name>/policy": S3ControlResponse.dispatch,
     "/v20180820/accesspointforobjectlambda/<name>/policyStatus": S3ControlResponse.dispatch,
@@ -102,4 +104,10 @@ url_paths = {
     # Job Tagging
     r"{0}/v20180820/jobs/(?P<job_id>[^/]+)/tagging$": S3ControlResponse.dispatch,
     "/v20180820/jobs/<job_id>/tagging": S3ControlResponse.dispatch,
+    # Regional Buckets (Outposts)
+    r"{0}/v20180820/bucket$": S3ControlResponse.dispatch,
+    "/v20180820/bucket": S3ControlResponse.dispatch,
+    # Caller Access Grants
+    r"{0}/v20180820/accessgrantsinstance/caller/grants$": S3ControlResponse.dispatch,
+    "/v20180820/accessgrantsinstance/caller/grants": S3ControlResponse.dispatch,
 }

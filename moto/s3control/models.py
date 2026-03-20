@@ -1239,6 +1239,44 @@ class S3ControlBackend(BaseBackend):
             raise JobNotFound(job_id)
         self.job_tags.pop(job_id, None)
 
+    def list_access_points_for_object_lambda(
+        self,
+        account_id: str,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> tuple[list[dict[str, Any]], Optional[str]]:
+        # Returns list of object lambda access points for this account
+        access_points = [
+            {
+                "Name": ap.name,
+                "ObjectLambdaAccessPointArn": ap.arn,
+                "Alias": {"Value": ap.alias, "Status": "READY"},
+            }
+            for ap in self.object_lambda_access_points.get(account_id, {}).values()
+        ]
+        return access_points, None
+
+    def list_regional_buckets(
+        self,
+        account_id: str,
+        outpost_id: Optional[str] = None,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> tuple[list[dict[str, Any]], Optional[str]]:
+        # Stub: regional (Outposts) buckets not yet modeled
+        return [], None
+
+    def list_caller_access_grants(
+        self,
+        account_id: str,
+        grant_scope: Optional[str] = None,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+        allowed_by_application: Optional[bool] = None,
+    ) -> tuple[list[dict[str, Any]], Optional[str]]:
+        # Stub: caller access grants not yet modeled
+        return [], None
+
 
 s3control_backends = BackendDict(
     S3ControlBackend,

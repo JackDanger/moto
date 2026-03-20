@@ -958,6 +958,51 @@ class S3ControlResponse(BaseResponse):
         template = self.response_template(GET_BUCKET_VERSIONING_TEMPLATE)
         return template.render(status=status or "")
 
+    def list_access_points_for_object_lambda(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        params = self._get_params()
+        max_results = params.get("maxResults")
+        if max_results:
+            max_results = int(max_results)
+        access_points, next_token = self.backend.list_access_points_for_object_lambda(
+            account_id=account_id,
+            max_results=max_results,
+            next_token=params.get("nextToken"),
+        )
+        template = self.response_template(LIST_ACCESS_POINTS_FOR_OBJECT_LAMBDA_TEMPLATE)
+        return template.render(access_points=access_points, next_token=next_token)
+
+    def list_regional_buckets(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        params = self._get_params()
+        max_results = params.get("maxResults")
+        if max_results:
+            max_results = int(max_results)
+        buckets, next_token = self.backend.list_regional_buckets(
+            account_id=account_id,
+            outpost_id=params.get("outpostId") or self.headers.get("x-amz-outpost-id"),
+            max_results=max_results,
+            next_token=params.get("nextToken"),
+        )
+        template = self.response_template(LIST_REGIONAL_BUCKETS_TEMPLATE)
+        return template.render(buckets=buckets, next_token=next_token)
+
+    def list_caller_access_grants(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        params = self._get_params()
+        max_results = params.get("maxResults")
+        if max_results:
+            max_results = int(max_results)
+        grants, next_token = self.backend.list_caller_access_grants(
+            account_id=account_id,
+            grant_scope=params.get("grantScope"),
+            max_results=max_results,
+            next_token=params.get("nextToken"),
+            allowed_by_application=params.get("allowedByApplication") == "true",
+        )
+        template = self.response_template(LIST_CALLER_ACCESS_GRANTS_TEMPLATE)
+        return template.render(grants=grants, next_token=next_token)
+
 
 CREATE_ACCESS_POINT_TEMPLATE = """<CreateAccessPointResult>
   <ResponseMetadata>
@@ -1638,4 +1683,48 @@ GET_JOB_TAGGING_TEMPLATE = f"""<GetJobTaggingResult {XMLNS}>
     {{% endfor %}}
   </Tags>
 </GetJobTaggingResult>
+"""
+
+LIST_ACCESS_POINTS_FOR_OBJECT_LAMBDA_TEMPLATE = f"""<ListAccessPointsForObjectLambdaResult {XMLNS}>
+  <ObjectLambdaAccessPointList>
+    {{% for ap in access_points %}}
+    <ObjectLambdaAccessPoint>
+      <Name>{{{{ ap.Name }}}}</Name>
+      <ObjectLambdaAccessPointArn>{{{{ ap.ObjectLambdaAccessPointArn }}}}</ObjectLambdaAccessPointArn>
+    </ObjectLambdaAccessPoint>
+    {{% endfor %}}
+  </ObjectLambdaAccessPointList>
+  {{% if next_token %}}
+  <NextToken>{{{{ next_token }}}}</NextToken>
+  {{% endif %}}
+</ListAccessPointsForObjectLambdaResult>
+"""
+
+LIST_REGIONAL_BUCKETS_TEMPLATE = f"""<ListRegionalBucketsResult {XMLNS}>
+  <RegionalBucketList>
+    {{% for bucket in buckets %}}
+    <RegionalBucket>
+      <Bucket>{{{{ bucket.Bucket }}}}</Bucket>
+    </RegionalBucket>
+    {{% endfor %}}
+  </RegionalBucketList>
+  {{% if next_token %}}
+  <NextToken>{{{{ next_token }}}}</NextToken>
+  {{% endif %}}
+</ListRegionalBucketsResult>
+"""
+
+LIST_CALLER_ACCESS_GRANTS_TEMPLATE = f"""<ListCallerAccessGrantsResult {XMLNS}>
+  <CallerAccessGrantsList>
+    {{% for grant in grants %}}
+    <CallerAccessGrant>
+      <Permission>{{{{ grant.Permission }}}}</Permission>
+      <GrantScope>{{{{ grant.GrantScope }}}}</GrantScope>
+    </CallerAccessGrant>
+    {{% endfor %}}
+  </CallerAccessGrantsList>
+  {{% if next_token %}}
+  <NextToken>{{{{ next_token }}}}</NextToken>
+  {{% endif %}}
+</ListCallerAccessGrantsResult>
 """

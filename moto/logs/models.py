@@ -2583,6 +2583,37 @@ class LogsBackend(BaseBackend):
         # Import task batches are not yet modeled; return empty list
         return []
 
+    def test_metric_filter(
+        self,
+        filter_pattern: str,
+        log_event_messages: list[str],
+    ) -> list[dict[str, Any]]:
+        # Stub: metric filter testing not yet modeled
+        return []
+
+    def cancel_import_task(
+        self,
+        import_id: str,
+    ) -> dict[str, Any]:
+        # Stub: import tasks not yet modeled; return minimal response
+        return {"importId": import_id, "importStatus": "CANCELLED"}
+
+    def create_import_task(
+        self,
+        import_source_arn: str,
+        import_role_arn: str,
+        import_filter: Optional[dict[str, Any]] = None,
+        import_destination_arn: Optional[str] = None,
+    ) -> dict[str, Any]:
+        # Stub: import tasks not yet modeled; return minimal response
+        import uuid
+
+        return {
+            "importId": str(uuid.uuid4()),
+            "importDestinationArn": import_destination_arn or "",
+            "creationTime": 0,
+        }
+
     def list_log_groups_for_query(
         self,
         query_id: Optional[str] = None,

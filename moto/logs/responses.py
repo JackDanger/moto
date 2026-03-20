@@ -1014,3 +1014,30 @@ class LogsResponse(BaseResponse):
         identifier = self._get_param("identifier")
         history = self.logs_backend.get_scheduled_query_history(arn=identifier)
         return json.dumps({"scheduledQueryRunSummaries": history})
+
+    def test_metric_filter(self) -> str:
+        filter_pattern = self._get_param("filterPattern", "")
+        log_event_messages = self._get_param("logEventMessages") or []
+        matches = self.logs_backend.test_metric_filter(
+            filter_pattern=filter_pattern,
+            log_event_messages=log_event_messages,
+        )
+        return json.dumps({"matches": matches})
+
+    def cancel_import_task(self) -> str:
+        import_id = self._get_param("importId", "")
+        result = self.logs_backend.cancel_import_task(import_id=import_id)
+        return json.dumps(result)
+
+    def create_import_task(self) -> str:
+        import_source_arn = self._get_param("importSourceArn", "")
+        import_role_arn = self._get_param("importRoleArn", "")
+        import_filter = self._get_param("importFilter")
+        import_destination_arn = self._get_param("importDestinationArn")
+        result = self.logs_backend.create_import_task(
+            import_source_arn=import_source_arn,
+            import_role_arn=import_role_arn,
+            import_filter=import_filter,
+            import_destination_arn=import_destination_arn,
+        )
+        return json.dumps(result)

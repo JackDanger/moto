@@ -2372,5 +2372,49 @@ class ElastiCacheBackend(BaseBackend):
         ]
         return grg
 
+    def copy_serverless_cache_snapshot(
+        self,
+        source_serverless_cache_snapshot_name: str,
+        target_serverless_cache_snapshot_name: str,
+        kms_key_id: Optional[str] = None,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> dict[str, Any]:
+        # Stub: serverless cache snapshots not yet modeled
+        return {
+            "ServerlessCacheSnapshot": {
+                "ServerlessCacheSnapshotName": target_serverless_cache_snapshot_name,
+                "Status": "creating",
+            }
+        }
+
+    def export_serverless_cache_snapshot(
+        self,
+        serverless_cache_snapshot_name: str,
+        s3_bucket_name: str,
+    ) -> dict[str, Any]:
+        # Stub: serverless cache snapshots not yet modeled
+        return {
+            "ServerlessCacheSnapshot": {
+                "ServerlessCacheSnapshotName": serverless_cache_snapshot_name,
+                "Status": "exporting",
+            }
+        }
+
+    def purchase_reserved_cache_nodes_offering(
+        self,
+        reserved_cache_nodes_offering_id: str,
+        reserved_cache_node_id: Optional[str] = None,
+        cache_node_count: int = 1,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> dict[str, Any]:
+        # Stub: reserved cache nodes not yet modeled
+        node_id = reserved_cache_node_id or str(mock_random.uuid4())
+        return {
+            "ReservedCacheNode": {
+                "ReservedCacheNodeId": node_id,
+                "ReservedCacheNodesOfferingId": reserved_cache_nodes_offering_id,
+            }
+        }
+
 
 elasticache_backends = BackendDict(ElastiCacheBackend, "elasticache")

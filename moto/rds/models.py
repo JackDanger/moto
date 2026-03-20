@@ -5848,6 +5848,28 @@ class RDSBackend(BaseBackend):
     def _is_cluster(self, arn: str) -> bool:
         return arn.split(":")[-2] == "cluster"
 
+    def disable_http_endpoint(
+        self,
+        resource_arn: str,
+    ) -> dict[str, Any]:
+        # Stub: HTTP endpoint management not yet modeled
+        return {"ResourceArn": resource_arn, "HttpEndpointEnabled": False}
+
+    def enable_http_endpoint(
+        self,
+        resource_arn: str,
+    ) -> dict[str, Any]:
+        # Stub: HTTP endpoint management not yet modeled
+        return {"ResourceArn": resource_arn, "HttpEndpointEnabled": True}
+
+    def modify_certificates(
+        self,
+        certificate_identifier: Optional[str] = None,
+        remove_customer_override: Optional[bool] = None,
+    ) -> dict[str, Any]:
+        # Stub: certificate management not yet modeled
+        return {"Certificate": {}}
+
 
 class OptionGroup(RDSBaseModel):
     resource_type = "og"

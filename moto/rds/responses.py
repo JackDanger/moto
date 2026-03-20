@@ -1445,6 +1445,25 @@ class RDSResponse(BaseResponse):
         result = {"DBMajorEngineVersions": versions}
         return ActionResult(result)
 
+    def disable_http_endpoint(self) -> ActionResult:
+        resource_arn = self.params.get("ResourceArn", "")
+        result = self.backend.disable_http_endpoint(resource_arn=resource_arn)
+        return ActionResult(result)
+
+    def enable_http_endpoint(self) -> ActionResult:
+        resource_arn = self.params.get("ResourceArn", "")
+        result = self.backend.enable_http_endpoint(resource_arn=resource_arn)
+        return ActionResult(result)
+
+    def modify_certificates(self) -> ActionResult:
+        certificate_identifier = self.params.get("CertificateIdentifier")
+        remove_customer_override = self.params.get("RemoveCustomerOverride")
+        result = self.backend.modify_certificates(
+            certificate_identifier=certificate_identifier,
+            remove_customer_override=remove_customer_override,
+        )
+        return ActionResult(result)
+
 
 def _tenant_db_dict(tenant_db: Any) -> dict:
     return {

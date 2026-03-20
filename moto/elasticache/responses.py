@@ -953,3 +953,38 @@ class ElastiCacheResponse(BaseResponse):
             replication_group_region=rg_region,
         )
         return ActionResult({"GlobalReplicationGroup": grg})
+
+    def copy_serverless_cache_snapshot(self) -> ActionResult:
+        source_name = self._get_param("SourceServerlessCacheSnapshotName")
+        target_name = self._get_param("TargetServerlessCacheSnapshotName")
+        kms_key_id = self._get_param("KmsKeyId")
+        tags = self._get_param("Tags")
+        result = self.elasticache_backend.copy_serverless_cache_snapshot(
+            source_serverless_cache_snapshot_name=source_name,
+            target_serverless_cache_snapshot_name=target_name,
+            kms_key_id=kms_key_id,
+            tags=tags,
+        )
+        return ActionResult(result)
+
+    def export_serverless_cache_snapshot(self) -> ActionResult:
+        snapshot_name = self._get_param("ServerlessCacheSnapshotName")
+        s3_bucket_name = self._get_param("S3BucketName")
+        result = self.elasticache_backend.export_serverless_cache_snapshot(
+            serverless_cache_snapshot_name=snapshot_name,
+            s3_bucket_name=s3_bucket_name,
+        )
+        return ActionResult(result)
+
+    def purchase_reserved_cache_nodes_offering(self) -> ActionResult:
+        offering_id = self._get_param("ReservedCacheNodesOfferingId")
+        node_id = self._get_param("ReservedCacheNodeId")
+        node_count = self._get_param("CacheNodeCount") or 1
+        tags = self._get_param("Tags")
+        result = self.elasticache_backend.purchase_reserved_cache_nodes_offering(
+            reserved_cache_nodes_offering_id=offering_id,
+            reserved_cache_node_id=node_id,
+            cache_node_count=int(node_count),
+            tags=tags,
+        )
+        return ActionResult(result)
