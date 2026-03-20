@@ -9,4 +9,6 @@ url_bases = [
 
 url_paths = {
     "{0}/$": Route53ResolverResponse.dispatch,
+    "{0}/outpost-resolvers$": Route53ResolverResponse.dispatch,
+    "{0}/outpost-resolvers/(?P<resolver_id>[^/]+)$": Route53ResolverResponse.dispatch,
 }

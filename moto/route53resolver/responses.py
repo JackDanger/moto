@@ -733,6 +733,72 @@ class Route53ResolverResponse(BaseResponse):
         """List all outpost resolvers."""
         return json.dumps({"OutpostResolvers": []})
 
+    def create_outpost_resolver(self) -> str:
+        """Create an outpost resolver stub."""
+        name = self._get_param("Name")
+        outpost_arn = self._get_param("OutpostArn")
+        preferred_instance_type = self._get_param("PreferredInstanceType")
+        resolver = {
+            "Id": f"rslvr-op-{name}",
+            "CreatorRequestId": self._get_param("CreatorRequestId", ""),
+            "Arn": f"arn:aws:route53resolver:{self.region}:{self.current_account}:outpost-resolver/rslvr-op-{name}",
+            "Name": name,
+            "OutpostArn": outpost_arn or "",
+            "PreferredInstanceType": preferred_instance_type or "m5.large",
+            "Status": "OPERATIONAL",
+            "StatusMessage": "",
+            "InstanceCount": 1,
+        }
+        return json.dumps({"OutpostResolver": resolver})
+
+    def get_outpost_resolver(self) -> str:
+        """Get an outpost resolver stub."""
+        resolver_id = self.path.rstrip("/").split("/")[-1]
+        resolver = {
+            "Id": resolver_id,
+            "Arn": f"arn:aws:route53resolver:{self.region}:{self.current_account}:outpost-resolver/{resolver_id}",
+            "Name": resolver_id,
+            "OutpostArn": "",
+            "PreferredInstanceType": "m5.large",
+            "Status": "OPERATIONAL",
+            "StatusMessage": "",
+            "InstanceCount": 1,
+        }
+        return json.dumps({"OutpostResolver": resolver})
+
+    def delete_outpost_resolver(self) -> str:
+        """Delete an outpost resolver stub."""
+        resolver_id = self.path.rstrip("/").split("/")[-1]
+        resolver = {
+            "Id": resolver_id,
+            "Arn": f"arn:aws:route53resolver:{self.region}:{self.current_account}:outpost-resolver/{resolver_id}",
+            "Name": resolver_id,
+            "OutpostArn": "",
+            "PreferredInstanceType": "m5.large",
+            "Status": "DELETING",
+            "StatusMessage": "",
+            "InstanceCount": 1,
+        }
+        return json.dumps({"OutpostResolver": resolver})
+
+    def update_outpost_resolver(self) -> str:
+        """Update an outpost resolver stub."""
+        resolver_id = self.path.rstrip("/").split("/")[-1]
+        name = self._get_param("Name")
+        instance_count = self._get_param("InstanceCount")
+        preferred_instance_type = self._get_param("PreferredInstanceType")
+        resolver = {
+            "Id": resolver_id,
+            "Arn": f"arn:aws:route53resolver:{self.region}:{self.current_account}:outpost-resolver/{resolver_id}",
+            "Name": name or resolver_id,
+            "OutpostArn": "",
+            "PreferredInstanceType": preferred_instance_type or "m5.large",
+            "Status": "OPERATIONAL",
+            "StatusMessage": "",
+            "InstanceCount": instance_count or 1,
+        }
+        return json.dumps({"OutpostResolver": resolver})
+
     def list_resolver_configs(self) -> str:
         """List all resolver configs."""
         return json.dumps({"ResolverConfigs": []})

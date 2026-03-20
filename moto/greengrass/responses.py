@@ -660,3 +660,14 @@ class GreengrassResponse(BaseResponse):
 
     def get_thing_runtime_configuration(self) -> str:
         return json.dumps({"RuntimeConfiguration": {}})
+
+    def update_thing_runtime_configuration(self) -> str:
+        return json.dumps({})
+
+    def update_group_certificate_configuration(self) -> str:
+        group_id = self.path.rstrip("/").split("/")[-2] if "/groups/" in self.path else ""
+        return json.dumps({
+            "CertificateAuthorityExpiryInMilliseconds": "",
+            "CertificateExpiryInMilliseconds": "",
+            "GroupId": group_id,
+        })

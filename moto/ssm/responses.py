@@ -1305,3 +1305,22 @@ class SimpleSystemManagerResponse(BaseResponse):
             tags=tags,
         )
         return ActionResult(result)
+
+    def register_default_patch_baseline(self) -> ActionResult:
+        baseline_id = self._get_param("BaselineId")
+        return ActionResult({"BaselineId": baseline_id})
+
+    def describe_effective_patches_for_patch_baseline(self) -> ActionResult:
+        return ActionResult({"EffectivePatches": [], "NextToken": None})
+
+    def describe_maintenance_window_executions(self) -> ActionResult:
+        return ActionResult({"WindowExecutions": [], "NextToken": None})
+
+    def list_nodes_summary(self) -> ActionResult:
+        return ActionResult({"Summary": [], "NextToken": None})
+
+    def put_inventory(self) -> ActionResult:
+        return ActionResult({"Message": ""})
+
+    def create_association_batch(self) -> ActionResult:
+        return ActionResult({"Successful": [], "Failed": []})

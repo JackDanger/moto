@@ -791,6 +791,9 @@ class WAFV2Response(BaseResponse):
         )
         return 200, {}, json.dumps({"ResourceArns": resources})
 
+    def get_top_path_statistics_by_traffic(self) -> TYPE_RESPONSE:
+        return 200, {}, json.dumps({"TopPathStatisticsByTraffic": []})
+
 
 # notes about region and scope
 # --scope = CLOUDFRONT is ALWAYS us-east-1 (but we use "global" instead to differentiate between REGIONAL us-east-1)

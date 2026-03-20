@@ -30,6 +30,7 @@ url_paths = {
     "{0}/core-networks/(?P<networkid>[^/.]+)/core-network-policy$": NetworkManagerResponse.dispatch,
     "{0}/core-networks/(?P<networkid>[^/.]+)/core-network-policy-versions$": NetworkManagerResponse.dispatch,
     "{0}/core-networks/(?P<networkid>[^/.]+)/core-network-policy-versions/(?P<versionid>[^/.]+)$": NetworkManagerResponse.dispatch,
+    "{0}/core-networks/(?P<networkid>[^/.]+)/core-network-policy-versions/(?P<versionid>[^/.]+)/restore$": NetworkManagerResponse.dispatch,
     # Core network change sets
     "{0}/core-networks/(?P<networkid>[^/.]+)/core-network-change-sets/(?P<versionid>[^/.]+)$": NetworkManagerResponse.dispatch,
     "{0}/core-networks/(?P<networkid>[^/.]+)/core-network-change-sets/(?P<versionid>[^/.]+)/execute$": NetworkManagerResponse.dispatch,

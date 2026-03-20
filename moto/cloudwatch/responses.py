@@ -529,3 +529,15 @@ class CloudWatchResponse(BaseResponse):
             alarm_name=alarm_name,
         )
         return ActionResult(report)
+
+    def put_alarm_mute_rule(self) -> ActionResult:
+        rule_name = self._get_param("RuleName")
+        alarm_name = self._get_param("AlarmName")
+        result = {
+            "RuleName": rule_name,
+            "AlarmName": alarm_name,
+        }
+        return ActionResult(result)
+
+    def delete_alarm_mute_rule(self) -> EmptyResult:
+        return EmptyResult()

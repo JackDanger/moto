@@ -75,6 +75,7 @@ url_paths = {
     r"{0}/accounts/(?P<account_id>[^/]+)/dashboards/(?P<dashboard_id>[^/]+)/embed-url$": dispatch,
     r"{0}/accounts/(?P<account_id>[^/]+)/dashboards/(?P<dashboard_id>[^/]+)/snapshot-jobs$": dispatch,
     r"{0}/accounts/(?P<account_id>[^/]+)/dashboards/(?P<dashboard_id>[^/]+)/snapshot-jobs/(?P<snapshot_job_id>[^/]+)$": dispatch,
+    r"{0}/accounts/(?P<account_id>[^/]+)/dashboards/(?P<dashboard_id>[^/]+)/snapshot-jobs/(?P<snapshot_job_id>[^/]+)/result$": dispatch,
     r"{0}/accounts/(?P<account_id>[^/]+)/dashboards/(?P<dashboard_id>[^/]+)/schedules/(?P<schedule_id>[^/]+)$": dispatch,
 
     # --- Analysis ---
@@ -105,6 +106,7 @@ url_paths = {
     r"{0}/accounts/(?P<account_id>[^/]+)/folders$": dispatch,
     r"{0}/accounts/(?P<account_id>[^/]+)/folders/(?P<folder_id>[^/]+)$": dispatch,
     r"{0}/accounts/(?P<account_id>[^/]+)/folders/(?P<folder_id>[^/]+)/permissions$": dispatch,
+    r"{0}/accounts/(?P<account_id>[^/]+)/folders/(?P<folder_id>[^/]+)/resolved-permissions$": dispatch,
     r"{0}/accounts/(?P<account_id>[^/]+)/folders/(?P<folder_id>[^/]+)/members$": dispatch,
     r"{0}/accounts/(?P<account_id>[^/]+)/folders/(?P<folder_id>[^/]+)/members/(?P<member_type>[^/]+)/(?P<member_id>[^/]+)$": dispatch,
     r"{0}/accounts/(?P<account_id>[^/]+)/resource/(?P<resource_arn>[^/]+)/folders$": dispatch,
