@@ -379,7 +379,7 @@ class S3TablesResponse(BaseResponse):
 
     def put_table_bucket_maintenance_configuration(self) -> TYPE_RESPONSE:
         # URL: /buckets/{arn}/maintenance/{type}
-        table_bucket_arn, config_type = _parse_path(self.raw_path, 1)
+        table_bucket_arn, _, config_type = _parse_path(self.raw_path, 2)
         body = json.loads(self.body)
         value = body.get("value", {})
         self.s3tables_backend.put_table_bucket_maintenance_configuration(
