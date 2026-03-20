@@ -410,6 +410,43 @@ class IdentityStoreBackend(BaseBackend):
             d["Name"] = Name.from_dict(d["Name"])
         identity_store.users[user_id] = User(**d)
 
+    def get_group_membership_id(
+        self,
+        identity_store_id: str,
+        group_id: str,
+        member_id: dict[str, str],
+    ) -> tuple[str, str]:
+        identity_store = self.__get_identity_store(identity_store_id)
+        user_id = member_id.get("UserId", "")
+        for membership_id, m in identity_store.group_memberships.items():
+            if m["GroupId"] == group_id and m["MemberId"].get("UserId") == user_id:
+                return membership_id, identity_store_id
+        raise ResourceNotFoundException(
+            message="MEMBERSHIP not found.", resource_type="GROUP_MEMBERSHIP"
+        )
+
+    def is_member_in_groups(
+        self,
+        identity_store_id: str,
+        member_id: dict[str, str],
+        group_ids: list[str],
+    ) -> list[dict[str, Any]]:
+        identity_store = self.__get_identity_store(identity_store_id)
+        user_id = member_id.get("UserId", "")
+        member_groups = {
+            m["GroupId"]
+            for m in identity_store.group_memberships.values()
+            if m["MemberId"].get("UserId") == user_id
+        }
+        return [
+            {
+                "GroupId": gid,
+                "MemberId": member_id,
+                "MembershipExists": gid in member_groups,
+            }
+            for gid in group_ids
+        ]
+
     def describe_group_membership(
         self, identity_store_id: str, membership_id: str
     ) -> dict[str, Any]:
