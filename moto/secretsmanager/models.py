@@ -1296,5 +1296,11 @@ class SecretsManagerBackend(BaseBackend):
 
         return secret_page, new_next_token
 
+    def stop_replication_to_replica(self, secret_id: str) -> tuple[str, str]:
+        secret = self.describe_secret(secret_id)
+        if isinstance(secret, ReplicaSecret):
+            raise OperationNotPermittedOnReplica
+        return secret.arn, secret_id
+
 
 secretsmanager_backends = BackendDict(SecretsManagerBackend, "secretsmanager")
