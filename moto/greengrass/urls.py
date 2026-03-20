@@ -41,7 +41,7 @@ url_paths = {
     "{0}/greengrass/groups/(?P<GroupId>[^/]+)/deployments/\\$reset$": GreengrassResponse.dispatch,
     "{0}/greengrass/groups/(?P<group_id>[^/]+)/deployments/(?P<group_version_id>[^/]+)/status$": GreengrassResponse.dispatch,
     "{0}/greengrass/groups/(?P<group_id>[^/]+)/versions/(?P<group_version_id>[^/]+)/?$": GreengrassResponse.dispatch,
-    "{0}/greengrass/tags/(?P<resource_arn>.+)$": GreengrassResponse.dispatch,
+    "{0}/tags/(?P<resource_arn>.+)$": GreengrassResponse.dispatch,
     "{0}/greengrass/servicerole$": GreengrassResponse.dispatch,
     "{0}/greengrass/bulk/deployments$": GreengrassResponse.dispatch,
     "{0}/greengrass/bulk/deployments/(?P<bulk_deployment_id>[^/]+)/status$": GreengrassResponse.dispatch,
