@@ -1168,8 +1168,11 @@ class BackupResponse(BaseResponse):
         name = self._get_param("BackupVaultName") or "stub-restore-vault"
         return json.dumps(
             {
-                "BackupVaultArn": f"arn:aws:backup:{self.region}:{self.current_account}:backup-vault:{name}",
-                "BackupVaultName": name,
+                "RestoreAccessBackupVaultArn": (
+                    f"arn:aws:backup:{self.region}:{self.current_account}:backup-vault:{name}"
+                ),
+                "RestoreAccessBackupVaultName": name,
+                "VaultState": "AVAILABLE",
                 "CreationDate": None,
             }
         )
