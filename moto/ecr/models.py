@@ -1734,7 +1734,7 @@ class ECRBackend(BaseBackend):
 
     # ---- Signing configuration stubs ----
 
-    _signing_configuration: dict[str, Any] = {}
+    _signing_configuration: dict[str, Any] = {"rules": []}
 
     def put_signing_configuration(
         self, signing_configuration: dict[str, Any]
