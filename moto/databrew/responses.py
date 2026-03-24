@@ -49,7 +49,7 @@ class DataBrewResponse(BaseResponse):
 
     def list_recipes(self) -> str:
         # https://docs.aws.amazon.com/databrew/latest/dg/API_ListRecipes.html
-        next_token = self._get_param("nextToken", self._get_param("nextToken"))
+        next_token = self._get_param("nextToken")
         max_results = self._get_int_param(
             "MaxResults", self._get_int_param("maxResults")
         )
@@ -70,7 +70,7 @@ class DataBrewResponse(BaseResponse):
     def list_recipe_versions(self) -> str:
         # https://docs.aws.amazon.com/databrew/latest/dg/API_ListRecipeVersions.html
         recipe_name = self._get_param("name")
-        next_token = self._get_param("nextToken", self._get_param("nextToken"))
+        next_token = self._get_param("nextToken")
         max_results = self._get_int_param(
             "MaxResults", self._get_int_param("maxResults")
         )
@@ -159,7 +159,7 @@ class DataBrewResponse(BaseResponse):
 
     def list_rulesets(self) -> str:
         # https://docs.aws.amazon.com/databrew/latest/dg/API_ListRulesets.html
-        next_token = self._get_param("nextToken", self._get_param("nextToken"))
+        next_token = self._get_param("nextToken")
         max_results = self._get_int_param(
             "MaxResults", self._get_int_param("maxResults")
         )
@@ -198,7 +198,7 @@ class DataBrewResponse(BaseResponse):
         )
 
     def list_datasets(self) -> str:
-        next_token = self._get_param("nextToken", self._get_param("nextToken"))
+        next_token = self._get_param("nextToken")
         max_results = self._get_int_param(
             "MaxResults", self._get_int_param("maxResults")
         )
@@ -244,137 +244,12 @@ class DataBrewResponse(BaseResponse):
 
     # endregion
 
-    # region Projects
-
-    def create_project(self) -> str:
-        project_name = self.parameters.get("Name")
-        dataset_name = self.parameters.get("DatasetName")
-        recipe_name = self.parameters.get("RecipeName")
-        role_arn = self.parameters.get("RoleArn")
-        sample = self.parameters.get("Sample")
-        tags = self.parameters.get("Tags")
-        self.databrew_backend.create_project(
-            project_name,
-            dataset_name,
-            recipe_name,
-            role_arn,
-            sample,
-            tags,
-        )
-        return json.dumps({"Name": project_name})
-
-    def describe_project(self) -> str:
-        project_name = self._get_path().rstrip("/").rsplit("/", 1)[1]
-        project = self.databrew_backend.describe_project(project_name)
-        return json.dumps(project.as_dict())
-
-    def list_projects(self) -> str:
-        next_token = self._get_param("nextToken", self._get_param("nextToken"))
-        max_results = self._get_int_param(
-            "MaxResults", self._get_int_param("maxResults")
-        )
-        project_list, next_token = self.databrew_backend.list_projects(
-            next_token=next_token, max_results=max_results
-        )
-        return json.dumps(
-            {
-                "Projects": [p.as_dict() for p in project_list],
-                "NextToken": next_token,
-            }
-        )
-
-    def update_project(self) -> str:
-        project_name = self._get_path().rstrip("/").rsplit("/", 1)[1]
-        role_arn = self.parameters.get("RoleArn")
-        sample = self.parameters.get("Sample")
-        project = self.databrew_backend.update_project(project_name, role_arn, sample)
-        return json.dumps(
-            {
-                "Name": project.name,
-                "LastModifiedDate": project.last_modified_date.timestamp(),
-            }
-        )
-
-    def delete_project(self) -> str:
-        project_name = self._get_path().rstrip("/").rsplit("/", 1)[1]
-        self.databrew_backend.delete_project(project_name)
-        return json.dumps({"Name": project_name})
-
-    # endregion
-
-    # region Schedules
-
-    def create_schedule(self) -> str:
-        schedule_name = self.parameters.get("Name")
-        cron_expression = self.parameters.get("CronExpression")
-        job_names = self.parameters.get("JobNames")
-        tags = self.parameters.get("Tags")
-        self.databrew_backend.create_schedule(
-            schedule_name, cron_expression, job_names, tags
-        )
-        return json.dumps({"Name": schedule_name})
-
-    def describe_schedule(self) -> str:
-        schedule_name = self._get_path().rstrip("/").rsplit("/", 1)[1]
-        schedule = self.databrew_backend.describe_schedule(schedule_name)
-        return json.dumps(schedule.as_dict())
-
-    def list_schedules(self) -> str:
-        next_token = self._get_param("nextToken", self._get_param("nextToken"))
-        max_results = self._get_int_param(
-            "MaxResults", self._get_int_param("maxResults")
-        )
-        schedule_list, next_token = self.databrew_backend.list_schedules(
-            next_token=next_token, max_results=max_results
-        )
-        return json.dumps(
-            {
-                "Schedules": [s.as_dict() for s in schedule_list],
-                "NextToken": next_token,
-            }
-        )
-
-    def update_schedule(self) -> str:
-        schedule_name = self._get_path().rstrip("/").rsplit("/", 1)[1]
-        cron_expression = self.parameters.get("CronExpression")
-        job_names = self.parameters.get("JobNames")
-        self.databrew_backend.update_schedule(schedule_name, cron_expression, job_names)
-        return json.dumps({"Name": schedule_name})
-
-    def delete_schedule(self) -> str:
-        schedule_name = self._get_path().rstrip("/").rsplit("/", 1)[1]
-        self.databrew_backend.delete_schedule(schedule_name)
-        return json.dumps({"Name": schedule_name})
-
-    # endregion
-
-    # region Tags
-
-    def tag_resource(self) -> str:
-        resource_arn = unquote(self._get_path().split("/tags/", 1)[1])
-        tags = self.parameters.get("Tags", {})
-        self.databrew_backend.tag_resource(resource_arn, tags)
-        return json.dumps({})
-
-    def untag_resource(self) -> str:
-        resource_arn = unquote(self._get_path().split("/tags/", 1)[1])
-        tag_keys = self.querystring.get("tagKeys", [])
-        self.databrew_backend.untag_resource(resource_arn, tag_keys)
-        return json.dumps({})
-
-    def list_tags_for_resource(self) -> str:
-        resource_arn = unquote(self._get_path().split("/tags/", 1)[1])
-        tags = self.databrew_backend.list_tags_for_resource(resource_arn)
-        return json.dumps({"Tags": tags})
-
-    # endregion
-
     # region Jobs
     def list_jobs(self) -> str:
         # https://docs.aws.amazon.com/databrew/latest/dg/API_ListJobs.html
         dataset_name = self._get_param("datasetName")
         project_name = self._get_param("projectName")
-        next_token = self._get_param("nextToken", self._get_param("nextToken"))
+        next_token = self._get_param("nextToken")
         max_results = self._get_int_param(
             "MaxResults", self._get_int_param("maxResults")
         )
@@ -479,61 +354,5 @@ class DataBrewResponse(BaseResponse):
             "timeout": self._get_int_param("Timeout"),
         }
         return json.dumps(self.databrew_backend.update_recipe_job(**kwargs).as_dict())
-
-    def start_job_run(self) -> str:
-        # Path: /jobs/{name}/startJobRun
-        path_parts = self._get_path().strip("/").split("/")
-        job_name = path_parts[1]
-        run_id = self.databrew_backend.start_job_run(job_name)
-        return json.dumps({"RunId": run_id})
-
-    def stop_job_run(self) -> str:
-        # Path: /jobs/{name}/jobRun/{runId}/stopJobRun
-        path_parts = self._get_path().strip("/").split("/")
-        job_name = path_parts[1]
-        run_id = path_parts[3]
-        result_run_id = self.databrew_backend.stop_job_run(job_name, run_id)
-        return json.dumps({"RunId": result_run_id})
-
-    def list_job_runs(self) -> str:
-        # Path: /jobs/{name}/jobRuns
-        path_parts = self._get_path().strip("/").split("/")
-        job_name = path_parts[1]
-        runs = self.databrew_backend.list_job_runs(job_name)
-        return json.dumps({"JobRuns": runs})
-
-    def describe_job_run(self) -> str:
-        # Path: /jobs/{name}/jobRun/{runId}
-        path_parts = self._get_path().strip("/").split("/")
-        job_name = path_parts[1]
-        run_id = path_parts[3]
-        run = self.databrew_backend.describe_job_run(job_name, run_id)
-        return json.dumps(run)
-
-    def batch_delete_recipe_version(self) -> str:
-        # Path: /recipes/{name}/batchDeleteRecipeVersion
-        path_parts = self._get_path().strip("/").split("/")
-        recipe_name = path_parts[1]
-        recipe_versions = self.parameters.get("RecipeVersions", [])
-        errors = self.databrew_backend.batch_delete_recipe_version(
-            recipe_name, recipe_versions
-        )
-        return json.dumps({"Errors": errors, "Recipe": recipe_name})
-
-    def start_project_session(self) -> str:
-        # Path: /projects/{name}/startProjectSession
-        path_parts = self._get_path().strip("/").split("/")
-        project_name = path_parts[1]
-        project_name_result, client_session_id = self.databrew_backend.start_project_session(
-            project_name
-        )
-        return json.dumps({"Name": project_name_result, "ClientSessionId": client_session_id})
-
-    def send_project_session_action(self) -> str:
-        # Path: /projects/{name}/sendProjectSessionAction
-        path_parts = self._get_path().strip("/").split("/")
-        project_name = path_parts[1]
-        result = self.databrew_backend.send_project_session_action(project_name)
-        return json.dumps(result)
 
     # endregion
