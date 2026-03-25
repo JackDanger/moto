@@ -488,6 +488,8 @@ class DirectoryServiceBackend(BaseBackend):
         self.computers: dict[str, list[Computer]] = {}
         # Keyed by schema_extension_id
         self.schema_extensions: dict[str, SchemaExtension] = {}
+        # Keyed by assessment_id
+        self.ad_assessments: dict[str, dict[str, Any]] = {}
 
     def _verify_subnets(self, region: str, vpc_settings: dict[str, Any]) -> None:
         """Verify subnets are valid, else raise an exception.
@@ -963,10 +965,12 @@ class DirectoryServiceBackend(BaseBackend):
     def describe_ad_assessment(
         self, assessment_id: str
     ) -> dict[str, Any]:
-        """Describe an AD assessment — raises not found."""
-        raise EntityDoesNotExistException(
-            f"Assessment {assessment_id} does not exist"
-        )
+        """Describe an AD assessment."""
+        if assessment_id not in self.ad_assessments:
+            raise EntityDoesNotExistException(
+                f"Assessment {assessment_id} does not exist"
+            )
+        return self.ad_assessments[assessment_id]
 
     def describe_ca_enrollment_policy(
         self, directory_id: str
@@ -1549,17 +1553,31 @@ class DirectoryServiceBackend(BaseBackend):
     def start_ad_assessment(self, directory_id: str) -> str:
         """Start an AD assessment and return a new assessment ID."""
         self._validate_directory_id(directory_id)
-        import uuid
+        from datetime import datetime, timezone
 
-        return str(uuid.uuid4())
+        assessment_id = str(mock_random.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        self.ad_assessments[assessment_id] = {
+            "AssessmentId": assessment_id,
+            "DirectoryId": directory_id,
+            "Status": "InProgress",
+            "StartTime": now,
+            "LastUpdateDateTime": now,
+        }
+        return assessment_id
 
     def list_ad_assessments(self, directory_id: Optional[str] = None) -> list[dict[str, Any]]:
-        """List AD assessments — returns empty list (stub)."""
-        return []
+        """List AD assessments, optionally filtered by directory ID."""
+        assessments = list(self.ad_assessments.values())
+        if directory_id:
+            assessments = [a for a in assessments if a.get("DirectoryId") == directory_id]
+        return assessments
 
     def delete_ad_assessment(self, assessment_id: str) -> None:
-        """Delete an AD assessment — raises not found."""
-        raise EntityDoesNotExistException(f"Assessment {assessment_id} does not exist")
+        """Delete an AD assessment."""
+        if assessment_id not in self.ad_assessments:
+            raise EntityDoesNotExistException(f"Assessment {assessment_id} does not exist")
+        del self.ad_assessments[assessment_id]
 
     def enable_directory_data_access(self, directory_id: str) -> None:
         """Enable directory data access for a directory."""
