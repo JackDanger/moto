@@ -27,6 +27,7 @@ url_paths = {
     "{0}/UpdatePlaybackRestrictionPolicy": IVSResponse.dispatch,
     "{0}/DeletePlaybackRestrictionPolicy": IVSResponse.dispatch,
     "{0}/ListPlaybackRestrictionPolicies": IVSResponse.dispatch,
+    "{0}/GetStream": IVSResponse.dispatch,
     "{0}/ListStreams": IVSResponse.dispatch,
     "{0}/StopStream": IVSResponse.dispatch,
     "{0}/PutMetadata": IVSResponse.dispatch,

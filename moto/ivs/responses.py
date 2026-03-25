@@ -215,6 +215,11 @@ class IVSResponse(BaseResponse):
 
     # Stream operations
 
+    def get_stream(self) -> str:
+        channel_arn = self._get_param("channelArn")
+        stream = self.ivs_backend.get_stream(channel_arn=channel_arn)
+        return json.dumps({"stream": stream})
+
     def list_streams(self) -> str:
         filter_by = self._get_param("filterBy")
         max_results = self._get_param("maxResults")

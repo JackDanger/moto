@@ -386,6 +386,17 @@ class IVSBackend(BaseBackend):
                 streams = [s for s in streams if s.get("health") == health]
         return streams
 
+    def get_stream(self, channel_arn: str) -> dict[str, Any]:
+        self._find_channel(channel_arn)
+        stream = next(
+            (s for s in self.streams if s.get("channelArn") == channel_arn), None
+        )
+        if stream is None:
+            raise ResourceNotFoundException(
+                f"No active stream found for channel: {channel_arn}"
+            )
+        return stream
+
     def stop_stream(self, channel_arn: str) -> None:
         self._find_channel(channel_arn)
         self.streams = [s for s in self.streams if s.get("channelArn") != channel_arn]
