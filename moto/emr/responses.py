@@ -440,6 +440,23 @@ class ElasticMapReduceResponse(BaseResponse):
         self.backend.delete_studio(studio_id)
         return EmptyResult()
 
+    def update_studio(self) -> ActionResult:
+        studio_id = self._get_param("StudioId")
+        name = self._get_param("Name")
+        description = self._get_param("Description")
+        subnet_ids = self._get_param("SubnetIds")
+        default_s3_location = self._get_param("DefaultS3Location")
+        encryption_key_arn = self._get_param("EncryptionKeyArn")
+        self.backend.update_studio(
+            studio_id=studio_id,
+            name=name,
+            description=description,
+            subnet_ids=subnet_ids,
+            default_s3_location=default_s3_location,
+            encryption_key_arn=encryption_key_arn,
+        )
+        return EmptyResult()
+
     def list_studios(self) -> ActionResult:
         studios = self.backend.list_studios()
         result = {

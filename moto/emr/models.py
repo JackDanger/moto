@@ -1452,6 +1452,29 @@ class ElasticMapReduceBackend(BaseBackend):
     def list_studios(self) -> list[Studio]:
         return list(self.studios.values())
 
+    def update_studio(
+        self,
+        studio_id: str,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        subnet_ids: Optional[list[str]] = None,
+        default_s3_location: Optional[str] = None,
+        encryption_key_arn: Optional[str] = None,
+    ) -> None:
+        if studio_id not in self.studios:
+            raise InvalidRequestException(message=f"Studio {studio_id} does not exist.")
+        studio = self.studios[studio_id]
+        if name is not None:
+            studio.name = name
+        if description is not None:
+            studio.description = description
+        if subnet_ids is not None:
+            studio.subnet_ids = subnet_ids
+        if default_s3_location is not None:
+            studio.default_s3_location = default_s3_location
+        if encryption_key_arn is not None:
+            studio.encryption_key_arn = encryption_key_arn
+
     def put_managed_scaling_policy(
         self, cluster_id: str, managed_scaling_policy: dict[str, Any]
     ) -> None:
