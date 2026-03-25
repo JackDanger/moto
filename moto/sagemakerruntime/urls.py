@@ -12,5 +12,6 @@ response = SageMakerRuntimeResponse()
 
 url_paths = {
     "{0}/endpoints/(?P<name>[^/]+)/async-invocations$": response.dispatch,
+    "{0}/endpoints/(?P<name>[^/]+)/invocations-response-stream$": response.dispatch,
     "{0}/endpoints/(?P<name>[^/]+)/invocations$": response.dispatch,
 }

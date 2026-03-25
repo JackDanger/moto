@@ -144,4 +144,58 @@ class SageMakerRuntimeBackend(BaseBackend):
         return self.async_results[endpoint_name][input_location]
 
 
+    def invoke_endpoint_with_response_stream(
+        self, endpoint_name: str, unique_repr: bytes
+    ) -> tuple[str, str, str, str]:
+        """
+        This call will return a minimal EventStream-compatible response by default.
+
+        The response body is encoded as a single AWS EventStream frame with a
+        PayloadPart event containing the body data. This follows the AWS binary
+        EventStream framing protocol.
+
+        You can configure a queue of results the same way as invoke_endpoint, using
+        the `/moto-api/static/sagemaker/endpoint-results` endpoint.
+
+        .. sourcecode:: python
+
+            expected_results = {
+                "account_id": "123456789012",  # This is the default - can be omitted
+                "region": "us-east-1",  # This is the default - can be omitted
+                "results": [
+                    {
+                         "Body": "first body",
+                         "ContentType": "text/xml",
+                         "InvokedProductionVariant": "prod",
+                         "CustomAttributes": "my_attr",
+                     },
+                ],
+            }
+            requests.post(
+                "http://motoapi.amazonaws.com/moto-api/static/sagemaker/endpoint-results",
+                json=expected_results,
+            )
+
+            client = boto3.client("sagemaker-runtime", region_name="us-east-1")
+            details = client.invoke_endpoint_with_response_stream(
+                EndpointName="asdf", Body=b"qwer"
+            )
+
+        """
+        if endpoint_name not in self.results:
+            self.results[endpoint_name] = {}
+        if unique_repr in self.results[endpoint_name]:
+            return self.results[endpoint_name][unique_repr]
+        if self.results_queue:
+            self.results[endpoint_name][unique_repr] = self.results_queue.pop(0)
+        else:
+            self.results[endpoint_name][unique_repr] = (
+                "body",
+                "content_type",
+                "invoked_production_variant",
+                "custom_attributes",
+            )
+        return self.results[endpoint_name][unique_repr]
+
+
 sagemakerruntime_backends = BackendDict(SageMakerRuntimeBackend, "sagemaker-runtime")
