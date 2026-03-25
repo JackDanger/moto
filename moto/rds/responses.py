@@ -726,6 +726,17 @@ class RDSResponse(BaseResponse):
         }
         return ActionResult(result)
 
+    def modify_db_snapshot(self) -> ActionResult:
+        params = self.params
+        db_snapshot_identifier = params["DBSnapshotIdentifier"]
+        snapshot = self.backend.modify_db_snapshot(
+            db_snapshot_identifier=db_snapshot_identifier,
+            engine_version=params.get("EngineVersion"),
+            option_group_name=params.get("OptionGroupName"),
+        )
+        result = {"DBSnapshot": snapshot}
+        return ActionResult(result)
+
     def modify_db_snapshot_attribute(self) -> ActionResult:
         params = self.params
         db_snapshot_identifier = params["DBSnapshotIdentifier"]
@@ -860,6 +871,28 @@ class RDSResponse(BaseResponse):
         proxy_name = self.params.get("DBProxyName")
         targets = self.backend.describe_db_proxy_targets(proxy_name=proxy_name)
         result = {"Targets": targets}
+        return ActionResult(result)
+
+    def modify_db_proxy(self) -> ActionResult:
+        db_proxy_name = self.params.get("DBProxyName")
+        new_db_proxy_name = self.params.get("NewDBProxyName")
+        auth = self.params.get("Auth")
+        require_tls = self.params.get("RequireTLS")
+        idle_client_timeout = self.params.get("IdleClientTimeout")
+        debug_logging = self.params.get("DebugLogging")
+        role_arn = self.params.get("RoleArn")
+        security_groups = self.params.get("SecurityGroups")
+        proxy = self.backend.modify_db_proxy(
+            db_proxy_name=db_proxy_name,
+            new_db_proxy_name=new_db_proxy_name,
+            auth=auth,
+            require_tls=require_tls,
+            idle_client_timeout=idle_client_timeout,
+            debug_logging=debug_logging,
+            role_arn=role_arn,
+            security_groups=security_groups,
+        )
+        result = {"DBProxy": proxy}
         return ActionResult(result)
 
     def delete_db_proxy(self) -> ActionResult:

@@ -4633,6 +4633,23 @@ class RDSBackend(BaseBackend):
         snapshot.modify_attribute(attribute_name, values_to_add, values_to_remove)
         return snapshot.attributes
 
+    def modify_db_snapshot(
+        self,
+        db_snapshot_identifier: str,
+        engine_version: Optional[str] = None,
+        option_group_name: Optional[str] = None,
+    ) -> "DBSnapshot":
+        snapshots = self.describe_db_snapshots(
+            db_instance_identifier=None,
+            db_snapshot_identifier=db_snapshot_identifier,
+        )
+        snapshot = snapshots[0]
+        if engine_version is not None:
+            snapshot.engine_version = engine_version
+        if option_group_name is not None:
+            snapshot.database.option_group_name = option_group_name
+        return snapshot
+
     def create_db_proxy(
         self,
         db_proxy_name: str,
@@ -4727,6 +4744,42 @@ class RDSBackend(BaseBackend):
             new_targets.append(target)
         target_group.targets.extend(new_targets)
         return new_targets
+
+    def modify_db_proxy(
+        self,
+        db_proxy_name: str,
+        new_db_proxy_name: Optional[str] = None,
+        auth: Optional[list[dict[str, str]]] = None,
+        require_tls: Optional[bool] = None,
+        idle_client_timeout: Optional[int] = None,
+        debug_logging: Optional[bool] = None,
+        role_arn: Optional[str] = None,
+        security_groups: Optional[list[str]] = None,
+    ) -> "DBProxy":
+        if db_proxy_name not in self.db_proxies:
+            raise DBProxyNotFoundFault(db_proxy_name)
+        proxy = self.db_proxies[db_proxy_name]
+        if auth is not None:
+            proxy.auth = auth
+        if require_tls is not None:
+            proxy.require_tls = require_tls
+        if idle_client_timeout is not None:
+            proxy.idle_client_timeout = idle_client_timeout
+        if debug_logging is not None:
+            proxy.debug_logging = debug_logging
+        if role_arn is not None:
+            proxy.role_arn = role_arn
+        if security_groups is not None:
+            proxy.vpc_security_group_ids = security_groups
+        if new_db_proxy_name and new_db_proxy_name != db_proxy_name:
+            self.db_proxies.pop(db_proxy_name)
+            proxy.db_proxy_name = new_db_proxy_name
+            proxy.endpoint = proxy.endpoint.replace(
+                db_proxy_name, new_db_proxy_name, 1
+            )
+            self.db_proxies[new_db_proxy_name] = proxy
+        proxy.updated_date = utcnow()
+        return proxy
 
     def delete_db_proxy(self, proxy_name: str) -> DBProxy:
         if proxy_name not in self.db_proxies:
