@@ -176,6 +176,19 @@ class TranscribeResponse(BaseResponse):
         self.transcribe_backend.delete_vocabulary(vocabulary_name=vocabulary_name)
         return EmptyResult()
 
+    def update_vocabulary(self) -> ActionResult:
+        vocabulary_name = self._get_param("VocabularyName")
+        language_code = self._get_param("LanguageCode")
+        phrases = self._get_param("Phrases")
+        vocabulary_file_uri = self._get_param("VocabularyFileUri")
+        response = self.transcribe_backend.update_vocabulary(
+            vocabulary_name=vocabulary_name,
+            language_code=language_code,
+            phrases=phrases,
+            vocabulary_file_uri=vocabulary_file_uri,
+        )
+        return ActionResult(response)
+
     def delete_medical_vocabulary(self) -> ActionResult:
         vocabulary_name = self._get_param("VocabularyName")
         self.transcribe_backend.delete_medical_vocabulary(

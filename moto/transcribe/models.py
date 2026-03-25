@@ -1125,6 +1125,37 @@ class TranscribeBackend(BaseBackend):
                 message="The requested vocabulary couldn't be found. Check the vocabulary name and try your request again."
             )
 
+    def update_vocabulary(
+        self,
+        vocabulary_name: str,
+        language_code: str,
+        phrases: Optional[list[str]],
+        vocabulary_file_uri: Optional[str],
+    ) -> dict[str, Any]:
+        if (
+            phrases is not None
+            and vocabulary_file_uri is not None
+            or phrases is None
+            and vocabulary_file_uri is None
+        ):
+            raise BadRequestException(
+                message="Either Phrases or VocabularyFileUri field should be provided."
+            )
+        try:
+            vocab = self.vocabularies[vocabulary_name]
+        except KeyError:
+            raise BadRequestException(
+                message="The requested vocabulary couldn't be found. "
+                "Check the vocabulary name and try your request again."
+            )
+        vocab.language_code = language_code
+        if phrases is not None:
+            vocab.phrases = phrases
+        if vocabulary_file_uri is not None:
+            vocab.vocabulary_file_uri = vocabulary_file_uri
+        vocab.advance()
+        return vocab.response_object("CREATE")
+
     def delete_medical_vocabulary(self, vocabulary_name: str) -> None:
         try:
             del self.medical_vocabularies[vocabulary_name]
