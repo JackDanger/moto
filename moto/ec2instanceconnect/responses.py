@@ -13,3 +13,6 @@ class Ec2InstanceConnectResponse(BaseResponse):
 
     def send_ssh_public_key(self) -> str:
         return self.ec2instanceconnect_backend.send_ssh_public_key()
+
+    def send_serial_console_ssh_public_key(self) -> str:
+        return self.ec2instanceconnect_backend.send_serial_console_ssh_public_key()
