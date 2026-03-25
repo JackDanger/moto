@@ -1971,7 +1971,7 @@ class GlueResponse(BaseResponse):
 
     def delete_integration(self) -> ActionResult:
         result = self.glue_backend.delete_integration(
-            integration_arn=self.parameters["IntegrationArn"],
+            integration_arn=self.parameters["IntegrationIdentifier"],
         )
         return ActionResult(result)
 
