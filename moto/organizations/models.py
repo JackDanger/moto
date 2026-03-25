@@ -1297,8 +1297,30 @@ class OrganizationsBackend(BaseBackend):
         backend.resource_policy = None
 
     def leave_organization(self) -> None:
-        """Stub: allow account to leave the organization (no-op for testing)."""
-        pass
+        """Remove the calling account from its organization.
+
+        Raises ConstraintViolationException if this is the master account.
+        Raises AWSOrganizationsNotInUseException if the account is not in any org.
+        """
+        if self.org is not None:
+            # This backend IS the master account — master cannot leave
+            raise ConstraintViolationException(
+                "MASTER_ACCOUNT_CANNOT_LEAVE_ORGANIZATION"
+            )
+
+        if self.account_id not in organizations_backends.master_accounts:
+            raise AWSOrganizationsNotInUseException
+
+        # Member account: remove from master's account list and from the
+        # master_accounts registry so it is no longer tracked.
+        master_account_id, partition = organizations_backends.master_accounts[
+            self.account_id
+        ]
+        master_backend = organizations_backends[master_account_id][partition]
+        master_backend.accounts = [
+            a for a in master_backend.accounts if a.id != self.account_id
+        ]
+        del organizations_backends.master_accounts[self.account_id]
 
 
 class OrganizationsBackendDict(BackendDict[OrganizationsBackend]):
