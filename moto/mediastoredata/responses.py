@@ -13,6 +13,19 @@ class MediaStoreDataResponse(BaseResponse):
     def mediastoredata_backend(self) -> MediaStoreDataBackend:
         return mediastoredata_backends[self.current_account][self.region]
 
+    def describe_object(self) -> tuple[str, dict[str, str]]:
+        path = self._get_param("Path")
+        result = self.mediastoredata_backend.describe_object(path=path)
+        headers: dict[str, str] = {
+            "ETag": result.etag,
+            "Content-Type": result.content_type,
+            "Content-Length": str(len(result.body)),
+            "Last-Modified": result.last_modified.strftime("%a, %d %b %Y %H:%M:%S GMT"),
+        }
+        if result.cache_control:
+            headers["Cache-Control"] = result.cache_control
+        return "", headers
+
     def get_object(self) -> tuple[str, dict[str, str]]:
         path = self._get_param("Path")
         result = self.mediastoredata_backend.get_object(path=path)
