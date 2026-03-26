@@ -1,5 +1,6 @@
 import json
 import time
+from dataclasses import dataclass, field
 from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -189,10 +190,19 @@ class FakeShadow(BaseModel):
         }
 
 
+@dataclass
+class RetainedMessage:
+    topic: str
+    payload: bytes
+    qos: int
+    last_modified_time: int = field(default_factory=lambda: int(time.time() * 1000))
+
+
 class IoTDataPlaneBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.published_payloads: list[tuple[str, bytes]] = []
+        self.retained_messages: dict[str, RetainedMessage] = {}
 
     @property
     def iot_backend(self) -> IoTBackend:
@@ -252,12 +262,59 @@ class IoTDataPlaneBackend(BaseBackend):
         thing.thing_shadows[shadow_name] = new_shadow
         return new_shadow
 
-    def publish(self, topic: str, payload: bytes) -> None:
+    def publish(self, topic: str, payload: bytes, qos: int = 0, retain: bool = False) -> None:
         self.published_payloads.append((topic, payload))
+        if retain:
+            if payload:
+                # Store (or overwrite) the retained message for this topic
+                self.retained_messages[topic] = RetainedMessage(
+                    topic=topic,
+                    payload=payload,
+                    qos=qos,
+                )
+            else:
+                # Publishing an empty payload with retain=True deletes the retained message
+                self.retained_messages.pop(topic, None)
 
     def list_named_shadows_for_thing(self, thing_name: str) -> list[str]:
         thing = self.iot_backend.describe_thing(thing_name)
         return [name for name in thing.thing_shadows.keys() if name is not None]
+
+    def delete_connection(self, client_id: str) -> None:
+        """Disconnect a connected MQTT client.
+
+        In this emulator, MQTT connections are not tracked, so this is a no-op
+        that succeeds for any client_id (mirroring the 'fire-and-forget' nature
+        of the AWS API when the client is no longer connected).
+        """
+        # No persistent connection state to remove in the emulator.
+        pass
+
+    def get_retained_message(self, topic: str) -> RetainedMessage:
+        """Get the retained message for a topic."""
+        msg = self.retained_messages.get(topic)
+        if msg is None:
+            raise ResourceNotFoundException()
+        return msg
+
+    def list_retained_messages(
+        self, next_token: Optional[str], max_results: Optional[int]
+    ) -> tuple[list[RetainedMessage], Optional[str]]:
+        """List retained messages (topic + metadata, no payload)."""
+        all_msgs = sorted(self.retained_messages.values(), key=lambda m: m.topic)
+        if max_results is None:
+            max_results = 100
+
+        start = 0
+        if next_token is not None:
+            try:
+                start = int(next_token)
+            except ValueError:
+                start = 0
+
+        page = all_msgs[start : start + max_results]
+        new_token = str(start + max_results) if start + max_results < len(all_msgs) else None
+        return page, new_token
 
 
 iotdata_backends = BackendDict(IoTDataPlaneBackend, "iot-data")
