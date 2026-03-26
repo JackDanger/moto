@@ -90,6 +90,7 @@ class VerifiedAccessGroup(TaggedEC2Resource):
         self.verified_access_instance_id = verified_access_instance_id
         self.description = description
         self.policy_document = policy_document
+        self.policy_enabled: bool = False
         self.state = "active"
         self._created_at = utcnow()
         self.add_tags(tags or {})
@@ -145,6 +146,7 @@ class VerifiedAccessEndpoint(TaggedEC2Resource):
         self.network_interface_options = network_interface_options
         self.description = description
         self.policy_document = policy_document
+        self.policy_enabled: bool = False
         self.state = "active"
         self._created_at = utcnow()
         self.add_tags(tags or {})

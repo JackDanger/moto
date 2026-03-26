@@ -2220,17 +2220,17 @@ EC2_GET_TRANSIT_GATEWAY_METERING_POLICY_ENTRIES = """<GetTransitGatewayMeteringP
 
 EC2_GET_TRANSIT_GATEWAY_MULTICAST_DOMAIN_ASSOCIATIONS = """<GetTransitGatewayMulticastDomainAssociationsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>{{ request_id }}</requestId>
-    <multicastDomainAssociationsSet/>
+    <multicastDomainAssociations/>
 </GetTransitGatewayMulticastDomainAssociationsResponse>"""
 
 EC2_GET_TRANSIT_GATEWAY_POLICY_TABLE_ASSOCIATIONS = """<GetTransitGatewayPolicyTableAssociationsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>{{ request_id }}</requestId>
-    <associationsSet/>
+    <associations/>
 </GetTransitGatewayPolicyTableAssociationsResponse>"""
 
 EC2_GET_TRANSIT_GATEWAY_POLICY_TABLE_ENTRIES = """<GetTransitGatewayPolicyTableEntriesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>{{ request_id }}</requestId>
-    <transitGatewayPolicyTableEntrySet/>
+    <transitGatewayPolicyTableEntries/>
 </GetTransitGatewayPolicyTableEntriesResponse>"""
 
 EC2_GET_VERIFIED_ACCESS_ENDPOINT_POLICY = """<GetVerifiedAccessEndpointPolicyResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
@@ -2279,3 +2279,296 @@ EC2_DESCRIBE_CAPACITY_RESERVATION_BILLING_REQUESTS = """<DescribeCapacityReserva
     <requestId>{{ request_id }}</requestId>
     <capacityReservationBillingRequestSet/>
 </DescribeCapacityReservationBillingRequestsResponse>"""
+
+EC2_MODIFY_ID_FORMAT = """<ModifyIdFormatResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <return>true</return>
+</ModifyIdFormatResponse>"""
+
+EC2_MODIFY_IDENTITY_ID_FORMAT = """<ModifyIdentityIdFormatResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <return>true</return>
+</ModifyIdentityIdFormatResponse>"""
+
+EC2_MODIFY_ADDRESS_ATTRIBUTE = """<ModifyAddressAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <address>
+        <allocationId>{{ allocation_id }}</allocationId>
+    </address>
+</ModifyAddressAttributeResponse>"""
+
+EC2_RESET_ADDRESS_ATTRIBUTE = """<ResetAddressAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <address>
+        <allocationId>{{ allocation_id }}</allocationId>
+    </address>
+</ResetAddressAttributeResponse>"""
+
+EC2_MODIFY_AVAILABILITY_ZONE_GROUP = """<ModifyAvailabilityZoneGroupResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <return>true</return>
+</ModifyAvailabilityZoneGroupResponse>"""
+
+EC2_MODIFY_DEFAULT_CREDIT_SPECIFICATION = """<ModifyDefaultCreditSpecificationResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <instanceFamilyCreditSpecification>
+        <instanceFamily>{{ instance_family }}</instanceFamily>
+        <cpuCredits>{{ cpu_credits }}</cpuCredits>
+    </instanceFamilyCreditSpecification>
+</ModifyDefaultCreditSpecificationResponse>"""
+
+EC2_MODIFY_FPGA_IMAGE_ATTRIBUTE = """<ModifyFpgaImageAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <return>true</return>
+</ModifyFpgaImageAttributeResponse>"""
+
+EC2_RESET_FPGA_IMAGE_ATTRIBUTE = """<ResetFpgaImageAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <return>true</return>
+</ResetFpgaImageAttributeResponse>"""
+
+EC2_MODIFY_INSTANCE_CAPACITY_RESERVATION_ATTRIBUTES = """<ModifyInstanceCapacityReservationAttributesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <return>true</return>
+</ModifyInstanceCapacityReservationAttributesResponse>"""
+
+EC2_MODIFY_INSTANCE_CREDIT_SPECIFICATION = """<ModifyInstanceCreditSpecificationResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <successfulInstanceCreditSpecificationSet/>
+    <unsuccessfulInstanceCreditSpecificationSet/>
+</ModifyInstanceCreditSpecificationResponse>"""
+
+EC2_MODIFY_INSTANCE_EVENT_START_TIME = """<ModifyInstanceEventStartTimeResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <event>
+        <instanceEventId>{{ instance_event_id }}</instanceEventId>
+    </event>
+</ModifyInstanceEventStartTimeResponse>"""
+
+EC2_MODIFY_INSTANCE_MAINTENANCE_OPTIONS = """<ModifyInstanceMaintenanceOptionsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <instanceId>{{ instance_id }}</instanceId>
+    <autoRecovery>{{ auto_recovery }}</autoRecovery>
+</ModifyInstanceMaintenanceOptionsResponse>"""
+
+EC2_MODIFY_INSTANCE_NETWORK_PERFORMANCE_OPTIONS = """<ModifyInstanceNetworkPerformanceOptionsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <instanceId>{{ instance_id }}</instanceId>
+    <bandwidthWeighting>{{ bandwidth_weighting }}</bandwidthWeighting>
+</ModifyInstanceNetworkPerformanceOptionsResponse>"""
+
+EC2_MODIFY_INSTANCE_PLACEMENT = """<ModifyInstancePlacementResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <return>true</return>
+</ModifyInstancePlacementResponse>"""
+
+EC2_MODIFY_IPAM_RESOURCE_CIDR = """<ModifyIpamResourceCidrResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <ipamResourceCidr>
+        <resourceCidr>{{ resource_cidr }}</resourceCidr>
+    </ipamResourceCidr>
+</ModifyIpamResourceCidrResponse>"""
+
+EC2_MODIFY_IPAM_RESOURCE_DISCOVERY = """<ModifyIpamResourceDiscoveryResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <ipamResourceDiscovery>
+        <ipamResourceDiscoveryId>{{ resource_discovery_id }}</ipamResourceDiscoveryId>
+    </ipamResourceDiscovery>
+</ModifyIpamResourceDiscoveryResponse>"""
+
+EC2_MODIFY_IPAM_SCOPE = """<ModifyIpamScopeResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <ipamScope>
+        <ipamScopeId>{{ scope_id }}</ipamScopeId>
+    </ipamScope>
+</ModifyIpamScopeResponse>"""
+
+EC2_MODIFY_LOCAL_GATEWAY_ROUTE = """<ModifyLocalGatewayRouteResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <route>
+        <localGatewayRouteTableId>{{ route_table_id }}</localGatewayRouteTableId>
+        <state>active</state>
+    </route>
+</ModifyLocalGatewayRouteResponse>"""
+
+EC2_MODIFY_PRIVATE_DNS_NAME_OPTIONS = """<ModifyPrivateDnsNameOptionsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <return>true</return>
+</ModifyPrivateDnsNameOptionsResponse>"""
+
+EC2_MODIFY_RESERVED_INSTANCES = """<ModifyReservedInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <reservedInstancesModificationId>rimod-12345678</reservedInstancesModificationId>
+</ModifyReservedInstancesResponse>"""
+
+EC2_MODIFY_SNAPSHOT_TIER = """<ModifySnapshotTierResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <snapshotId>{{ snapshot_id }}</snapshotId>
+    <tieringStartTime>{{ tier_time }}</tieringStartTime>
+</ModifySnapshotTierResponse>"""
+
+EC2_MODIFY_TRANSIT_GATEWAY_PREFIX_LIST_REFERENCE = """<ModifyTransitGatewayPrefixListReferenceResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <transitGatewayPrefixListReference>
+        <transitGatewayRouteTableId>{{ route_table_id }}</transitGatewayRouteTableId>
+        <prefixListId>{{ prefix_list_id }}</prefixListId>
+        <state>active</state>
+    </transitGatewayPrefixListReference>
+</ModifyTransitGatewayPrefixListReferenceResponse>"""
+
+EC2_MODIFY_VPC_ENDPOINT_CONNECTION_NOTIFICATION = """<ModifyVpcEndpointConnectionNotificationResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <return>true</return>
+</ModifyVpcEndpointConnectionNotificationResponse>"""
+
+EC2_MODIFY_VPC_ENDPOINT_SERVICE_PAYER_RESPONSIBILITY = """<ModifyVpcEndpointServicePayerResponsibilityResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <return>true</return>
+</ModifyVpcEndpointServicePayerResponsibilityResponse>"""
+
+EC2_MODIFY_VPN_CONNECTION = """<ModifyVpnConnectionResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <vpnConnection>
+        <vpnConnectionId>{{ vpn_connection_id }}</vpnConnectionId>
+        <state>available</state>
+    </vpnConnection>
+</ModifyVpnConnectionResponse>"""
+
+EC2_MODIFY_VPN_CONNECTION_OPTIONS = """<ModifyVpnConnectionOptionsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <vpnConnection>
+        <vpnConnectionId>{{ vpn_connection_id }}</vpnConnectionId>
+    </vpnConnection>
+</ModifyVpnConnectionOptionsResponse>"""
+
+EC2_MODIFY_VPN_TUNNEL_CERTIFICATE = """<ModifyVpnTunnelCertificateResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <vpnConnection>
+        <vpnConnectionId>{{ vpn_connection_id }}</vpnConnectionId>
+    </vpnConnection>
+</ModifyVpnTunnelCertificateResponse>"""
+
+EC2_MODIFY_VPN_TUNNEL_OPTIONS = """<ModifyVpnTunnelOptionsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <vpnConnection>
+        <vpnConnectionId>{{ vpn_connection_id }}</vpnConnectionId>
+    </vpnConnection>
+</ModifyVpnTunnelOptionsResponse>"""
+
+EC2_MOVE_ADDRESS_TO_VPC = """<MoveAddressToVpcResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <allocationId>eipalloc-stub12345</allocationId>
+    <status>MoveInProgress</status>
+</MoveAddressToVpcResponse>"""
+
+EC2_MOVE_BYOIP_CIDR_TO_IPAM = """<MoveByoipCidrToIpamResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <byoipCidr>
+        <cidr>{{ cidr }}</cidr>
+        <state>move-in-progress</state>
+    </byoipCidr>
+</MoveByoipCidrToIpamResponse>"""
+
+EC2_PURCHASE_RESERVED_INSTANCES_OFFERING = """<PurchaseReservedInstancesOfferingResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <reservedInstancesId>ri-stub12345678</reservedInstancesId>
+</PurchaseReservedInstancesOfferingResponse>"""
+
+EC2_PURCHASE_SCHEDULED_INSTANCES = """<PurchaseScheduledInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <scheduledInstanceSet/>
+</PurchaseScheduledInstancesResponse>"""
+
+EC2_REGISTER_INSTANCE_EVENT_NOTIFICATION_ATTRIBUTES = """<RegisterInstanceEventNotificationAttributesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <instanceTagAttribute>
+        <instanceTagKeySet/>
+        <includeAllTagsOfInstance>true</includeAllTagsOfInstance>
+    </instanceTagAttribute>
+</RegisterInstanceEventNotificationAttributesResponse>"""
+
+EC2_REGISTER_TRANSIT_GATEWAY_MULTICAST_GROUP_MEMBERS = """<RegisterTransitGatewayMulticastGroupMembersResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <registeredMulticastGroupMembers>
+        <transitGatewayMulticastDomainId>{{ domain_id }}</transitGatewayMulticastDomainId>
+        <registeredNetworkInterfaceIds/>
+    </registeredMulticastGroupMembers>
+</RegisterTransitGatewayMulticastGroupMembersResponse>"""
+
+EC2_REGISTER_TRANSIT_GATEWAY_MULTICAST_GROUP_SOURCES = """<RegisterTransitGatewayMulticastGroupSourcesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <registeredMulticastGroupSources>
+        <transitGatewayMulticastDomainId>{{ domain_id }}</transitGatewayMulticastDomainId>
+        <registeredNetworkInterfaceIds/>
+    </registeredMulticastGroupSources>
+</RegisterTransitGatewayMulticastGroupSourcesResponse>"""
+
+EC2_REPLACE_VPN_TUNNEL = """<ReplaceVpnTunnelResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <return>true</return>
+</ReplaceVpnTunnelResponse>"""
+
+EC2_RESTORE_ADDRESS_TO_CLASSIC = """<RestoreAddressToClassicResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <status>MoveInProgress</status>
+    <publicIp>{{ public_ip }}</publicIp>
+</RestoreAddressToClassicResponse>"""
+
+EC2_REVOKE_CLIENT_VPN_INGRESS = """<RevokeClientVpnIngressResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <status>
+        <code>revoking</code>
+    </status>
+</RevokeClientVpnIngressResponse>"""
+
+EC2_RUN_SCHEDULED_INSTANCES = """<RunScheduledInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <instanceIdSet/>
+</RunScheduledInstancesResponse>"""
+
+EC2_SEARCH_TRANSIT_GATEWAY_MULTICAST_GROUPS = """<SearchTransitGatewayMulticastGroupsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <multicastGroupSet/>
+</SearchTransitGatewayMulticastGroupsResponse>"""
+
+EC2_SEND_DIAGNOSTIC_INTERRUPT = """<SendDiagnosticInterruptResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <return>true</return>
+</SendDiagnosticInterruptResponse>"""
+
+EC2_START_VPC_ENDPOINT_SERVICE_PRIVATE_DNS_VERIFICATION = """<StartVpcEndpointServicePrivateDnsVerificationResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <return>true</return>
+</StartVpcEndpointServicePrivateDnsVerificationResponse>"""
+
+EC2_LOCK_SNAPSHOT = """<LockSnapshotResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <snapshotId>{{ snapshot_id }}</snapshotId>
+    <lockState>locked</lockState>
+    <lockMode>{{ lock_mode }}</lockMode>
+</LockSnapshotResponse>"""
+
+EC2_UNLOCK_SNAPSHOT = """<UnlockSnapshotResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <snapshotId>{{ snapshot_id }}</snapshotId>
+    <lockState>unlocked</lockState>
+</UnlockSnapshotResponse>"""
+
+EC2_UNASSIGN_PRIVATE_NAT_GATEWAY_ADDRESS = """<UnassignPrivateNatGatewayAddressResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <natGatewayId>{{ nat_gateway_id }}</natGatewayId>
+    <natGatewayAddressSet/>
+</UnassignPrivateNatGatewayAddressResponse>"""
+
+EC2_WITHDRAW_BYOIP_CIDR = """<WithdrawByoipCidrResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <byoipCidr>
+        <cidr>{{ cidr }}</cidr>
+        <state>withdrawn</state>
+    </byoipCidr>
+</WithdrawByoipCidrResponse>"""
+
+EC2_IMPORT_CLIENT_VPN_CLIENT_CERTIFICATE_REVOCATION_LIST = """<ImportClientVpnClientCertificateRevocationListResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <return>true</return>
+</ImportClientVpnClientCertificateRevocationListResponse>"""

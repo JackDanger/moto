@@ -76,7 +76,7 @@ class TransitGatewayRouteTable(EC2BaseResponse):
         propagations = self.ec2_backend.get_transit_gateway_attachment_propagations(
             transit_gateway_attachment_id, filters
         )
-        return ActionResult({"transitGatewayAttachmentPropagations": propagations})
+        return ActionResult({"TransitGatewayAttachmentPropagations": propagations})
 
     def get_transit_gateway_route_table_associations(self) -> ActionResult:
         transit_gateway_route_table_id = self._get_param("TransitGatewayRouteTableId")

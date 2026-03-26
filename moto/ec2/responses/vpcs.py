@@ -311,7 +311,7 @@ class VPCs(EC2BaseResponse):
         associations = self.ec2_backend.get_managed_prefix_list_associations(
             prefix_list_id
         )
-        result = {"PrefixListAssociationSet": associations}
+        result = {"PrefixListAssociations": associations}
         return ActionResult(result)
 
     def delete_managed_prefix_list(self) -> ActionResult:
