@@ -22,6 +22,10 @@ class SpotFleets(EC2BaseResponse):
             spot_request_id=spot_fleet_request_id, spot_requests=spot_requests
         )
 
+    def describe_spot_fleet_request_history(self) -> str:
+        template = self.response_template(DESCRIBE_SPOT_FLEET_REQUEST_HISTORY_TEMPLATE)
+        return template.render()
+
     def describe_spot_fleet_requests(self) -> str:
         spot_fleet_request_ids = self._get_param("SpotFleetRequestIds", [])
 
@@ -164,6 +168,11 @@ DESCRIBE_SPOT_FLEET_INSTANCES_TEMPLATE = """<DescribeSpotFleetInstancesResponse 
     </activeInstanceSet>
 </DescribeSpotFleetInstancesResponse>
 """
+
+DESCRIBE_SPOT_FLEET_REQUEST_HISTORY_TEMPLATE = """<DescribeSpotFleetRequestHistoryResponse xmlns="http://ec2.amazonaws.com/doc/2016-09-15/">
+    <requestId>{{ request_id }}</requestId>
+    <historyRecordSet/>
+</DescribeSpotFleetRequestHistoryResponse>"""
 
 CANCEL_SPOT_FLEETS_TEMPLATE = """<CancelSpotFleetRequestsResponse xmlns="http://ec2.amazonaws.com/doc/2016-09-15/">
     <requestId>e12d2fe5-6503-4b4b-911c-example</requestId>

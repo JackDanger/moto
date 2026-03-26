@@ -148,6 +148,10 @@ class GapStubs(EC2BaseResponse):
         template = self.response_template(EC2_DESCRIBE_FLEET_HISTORY)
         return template.render()
 
+    def describe_fpga_image_attribute(self) -> str:
+        template = self.response_template(EC2_DESCRIBE_FPGA_IMAGE_ATTRIBUTE)
+        return template.render()
+
     def describe_fpga_images(self) -> str:
         template = self.response_template(EC2_DESCRIBE_FPGA_IMAGES)
         return template.render()
@@ -162,6 +166,10 @@ class GapStubs(EC2BaseResponse):
 
     def describe_id_format(self) -> str:
         template = self.response_template(EC2_DESCRIBE_ID_FORMAT)
+        return template.render()
+
+    def describe_identity_id_format(self) -> str:
+        template = self.response_template(EC2_DESCRIBE_IDENTITY_ID_FORMAT)
         return template.render()
 
     def describe_image_usage_report_entries(self) -> str:
@@ -336,6 +344,10 @@ class GapStubs(EC2BaseResponse):
         template = self.response_template(EC2_DESCRIBE_ROUTE_SERVERS)
         return template.render()
 
+    def describe_scheduled_instance_availability(self) -> str:
+        template = self.response_template(EC2_DESCRIBE_SCHEDULED_INSTANCE_AVAILABILITY)
+        return template.render()
+
     def describe_scheduled_instances(self) -> str:
         template = self.response_template(EC2_DESCRIBE_SCHEDULED_INSTANCES)
         return template.render()
@@ -354,6 +366,10 @@ class GapStubs(EC2BaseResponse):
 
     def describe_security_group_vpc_associations(self) -> str:
         template = self.response_template(EC2_DESCRIBE_SECURITY_GROUP_VPC_ASSOCIATIONS)
+        return template.render()
+
+    def describe_security_group_references(self) -> str:
+        template = self.response_template(EC2_DESCRIBE_SECURITY_GROUP_REFERENCES)
         return template.render()
 
     def describe_service_link_virtual_interfaces(self) -> str:
@@ -580,6 +596,146 @@ class GapStubs(EC2BaseResponse):
         template = self.response_template(EC2_RESET_EBS_DEFAULT_KMS_KEY_ID)
         return template.render()
 
+    def accept_capacity_reservation_billing_ownership(self) -> str:
+        template = self.response_template(EC2_ACCEPT_CAPACITY_RESERVATION_BILLING_OWNERSHIP)
+        return template.render()
+
+    def accept_reserved_instances_exchange_quote(self) -> str:
+        template = self.response_template(EC2_ACCEPT_RESERVED_INSTANCES_EXCHANGE_QUOTE)
+        return template.render()
+
+    def accept_transit_gateway_vpc_attachment(self) -> str:
+        template = self.response_template(EC2_ACCEPT_TRANSIT_GATEWAY_VPC_ATTACHMENT)
+        return template.render()
+
+    def advertise_byoip_cidr(self) -> str:
+        template = self.response_template(EC2_ADVERTISE_BYOIP_CIDR)
+        return template.render()
+
+    def apply_security_groups_to_client_vpn_target_network(self) -> str:
+        template = self.response_template(EC2_APPLY_SECURITY_GROUPS_TO_CLIENT_VPN_TARGET_NETWORK)
+        return template.render()
+
+    def assign_private_nat_gateway_address(self) -> str:
+        template = self.response_template(EC2_ASSIGN_PRIVATE_NAT_GATEWAY_ADDRESS)
+        return template.render()
+
+    def associate_client_vpn_target_network(self) -> str:
+        template = self.response_template(EC2_ASSOCIATE_CLIENT_VPN_TARGET_NETWORK)
+        return template.render()
+
+    def associate_enclave_certificate_iam_role(self) -> str:
+        template = self.response_template(EC2_ASSOCIATE_ENCLAVE_CERTIFICATE_IAM_ROLE)
+        return template.render()
+
+    def associate_ipam_byoasn(self) -> str:
+        template = self.response_template(EC2_ASSOCIATE_IPAM_BYOASN)
+        return template.render()
+
+    def associate_ipam_resource_discovery(self) -> str:
+        template = self.response_template(EC2_ASSOCIATE_IPAM_RESOURCE_DISCOVERY)
+        return template.render()
+
+    def associate_nat_gateway_address(self) -> str:
+        template = self.response_template(EC2_ASSOCIATE_NAT_GATEWAY_ADDRESS)
+        return template.render()
+
+    def associate_transit_gateway_multicast_domain(self) -> str:
+        template = self.response_template(EC2_ASSOCIATE_TRANSIT_GATEWAY_MULTICAST_DOMAIN)
+        return template.render()
+
+    def associate_transit_gateway_policy_table(self) -> str:
+        template = self.response_template(EC2_ASSOCIATE_TRANSIT_GATEWAY_POLICY_TABLE)
+        return template.render()
+
+    def attach_classic_link_vpc(self) -> str:
+        template = self.response_template(EC2_ATTACH_CLASSIC_LINK_VPC)
+        return template.render()
+
+    def attach_verified_access_trust_provider(self) -> str:
+        template = self.response_template(EC2_ATTACH_VERIFIED_ACCESS_TRUST_PROVIDER)
+        return template.render()
+
+    def bundle_instance(self) -> str:
+        template = self.response_template(EC2_BUNDLE_INSTANCE)
+        return template.render()
+
+    def cancel_bundle_task(self) -> str:
+        template = self.response_template(EC2_CANCEL_BUNDLE_TASK)
+        return template.render()
+
+    def cancel_conversion_task(self) -> str:
+        template = self.response_template(EC2_CANCEL_CONVERSION_TASK)
+        return template.render()
+
+    def cancel_declarative_policies_report(self) -> str:
+        template = self.response_template(EC2_CANCEL_DECLARATIVE_POLICIES_REPORT)
+        return template.render()
+
+    def cancel_export_task(self) -> str:
+        template = self.response_template(EC2_CANCEL_EXPORT_TASK)
+        return template.render()
+
+    def cancel_image_launch_permission(self) -> str:
+        template = self.response_template(EC2_CANCEL_IMAGE_LAUNCH_PERMISSION)
+        return template.render()
+
+    def cancel_reserved_instances_listing(self) -> str:
+        template = self.response_template(EC2_CANCEL_RESERVED_INSTANCES_LISTING)
+        return template.render()
+
+    def copy_fpga_image(self) -> str:
+        template = self.response_template(EC2_COPY_FPGA_IMAGE)
+        return template.render()
+
+    def create_capacity_reservation_by_splitting(self) -> str:
+        template = self.response_template(EC2_CREATE_CAPACITY_RESERVATION_BY_SPLITTING)
+        return template.render()
+
+    def create_client_vpn_route(self) -> str:
+        template = self.response_template(EC2_CREATE_CLIENT_VPN_ROUTE)
+        return template.render()
+
+    def create_fpga_image(self) -> str:
+        template = self.response_template(EC2_CREATE_FPGA_IMAGE)
+        return template.render()
+
+    def create_instance_export_task(self) -> str:
+        template = self.response_template(EC2_CREATE_INSTANCE_EXPORT_TASK)
+        return template.render()
+
+    def create_ipam_external_resource_verification_token(self) -> str:
+        template = self.response_template(EC2_CREATE_IPAM_EXTERNAL_RESOURCE_VERIFICATION_TOKEN)
+        return template.render()
+
+    def create_local_gateway_route_table_virtual_interface_group_association(self) -> str:
+        template = self.response_template(EC2_CREATE_LOCAL_GATEWAY_ROUTE_TABLE_VIRTUAL_INTERFACE_GROUP_ASSOCIATION)
+        return template.render()
+
+    def create_local_gateway_route_table_vpc_association(self) -> str:
+        template = self.response_template(EC2_CREATE_LOCAL_GATEWAY_ROUTE_TABLE_VPC_ASSOCIATION)
+        return template.render()
+
+    def create_network_interface_permission(self) -> str:
+        template = self.response_template(EC2_CREATE_NETWORK_INTERFACE_PERMISSION)
+        return template.render()
+
+    def create_reserved_instances_listing(self) -> str:
+        template = self.response_template(EC2_CREATE_RESERVED_INSTANCES_LISTING)
+        return template.render()
+
+    def create_restore_image_task(self) -> str:
+        template = self.response_template(EC2_CREATE_RESTORE_IMAGE_TASK)
+        return template.render()
+
+    def create_transit_gateway_multicast_domain(self) -> str:
+        template = self.response_template(EC2_CREATE_TRANSIT_GATEWAY_MULTICAST_DOMAIN)
+        return template.render()
+
+    def create_transit_gateway_policy_table(self) -> str:
+        template = self.response_template(EC2_CREATE_TRANSIT_GATEWAY_POLICY_TABLE)
+        return template.render()
+
 
 # --- XML Response Templates ---
 
@@ -756,6 +912,11 @@ EC2_DESCRIBE_FLEET_HISTORY = """<DescribeFleetHistoryResponse xmlns="http://ec2.
     <historyRecordSet/>
 </DescribeFleetHistoryResponse>"""
 
+EC2_DESCRIBE_FPGA_IMAGE_ATTRIBUTE = """<DescribeFpgaImageAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <fpgaImageAttribute/>
+</DescribeFpgaImageAttributeResponse>"""
+
 EC2_DESCRIBE_FPGA_IMAGES = """<DescribeFpgaImagesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>{{ request_id }}</requestId>
     <fpgaImagesSet/>
@@ -775,6 +936,11 @@ EC2_DESCRIBE_ID_FORMAT = """<DescribeIdFormatResponse xmlns="http://ec2.amazonaw
     <requestId>{{ request_id }}</requestId>
     <idFormatSet/>
 </DescribeIdFormatResponse>"""
+
+EC2_DESCRIBE_IDENTITY_ID_FORMAT = """<DescribeIdentityIdFormatResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <idFormatSet/>
+</DescribeIdentityIdFormatResponse>"""
 
 EC2_DESCRIBE_IMAGE_USAGE_REPORT_ENTRIES = """<DescribeImageUsageReportEntriesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>{{ request_id }}</requestId>
@@ -991,6 +1157,11 @@ EC2_DESCRIBE_ROUTE_SERVERS = """<DescribeRouteServersResponse xmlns="http://ec2.
     <routeServersSet/>
 </DescribeRouteServersResponse>"""
 
+EC2_DESCRIBE_SCHEDULED_INSTANCE_AVAILABILITY = """<DescribeScheduledInstanceAvailabilityResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <scheduledInstanceAvailabilitySet/>
+</DescribeScheduledInstanceAvailabilityResponse>"""
+
 EC2_DESCRIBE_SCHEDULED_INSTANCES = """<DescribeScheduledInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>{{ request_id }}</requestId>
     <scheduledInstanceSet/>
@@ -1010,6 +1181,11 @@ EC2_DESCRIBE_SECONDARY_SUBNETS = """<DescribeSecondarySubnetsResponse xmlns="htt
     <requestId>{{ request_id }}</requestId>
     <secondarySubnetsSet/>
 </DescribeSecondarySubnetsResponse>"""
+
+EC2_DESCRIBE_SECURITY_GROUP_REFERENCES = """<DescribeSecurityGroupReferencesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <securityGroupReferenceSet/>
+</DescribeSecurityGroupReferencesResponse>"""
 
 EC2_DESCRIBE_SECURITY_GROUP_VPC_ASSOCIATIONS = """<DescribeSecurityGroupVpcAssociationsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
     <requestId>{{ request_id }}</requestId>
@@ -1284,3 +1460,222 @@ EC2_RESET_EBS_DEFAULT_KMS_KEY_ID = """<ResetEbsDefaultKmsKeyIdResponse xmlns="ht
     <return>true</return>
 </ResetEbsDefaultKmsKeyIdResponse>"""
 
+
+EC2_ACCEPT_CAPACITY_RESERVATION_BILLING_OWNERSHIP = """<AcceptCapacityReservationBillingOwnershipResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <return>true</return>
+</AcceptCapacityReservationBillingOwnershipResponse>"""
+
+EC2_ACCEPT_RESERVED_INSTANCES_EXCHANGE_QUOTE = """<AcceptReservedInstancesExchangeQuoteResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <exchangeId>riex-stub</exchangeId>
+</AcceptReservedInstancesExchangeQuoteResponse>"""
+
+EC2_ACCEPT_TRANSIT_GATEWAY_VPC_ATTACHMENT = """<AcceptTransitGatewayVpcAttachmentResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <return>true</return>
+</AcceptTransitGatewayVpcAttachmentResponse>"""
+
+EC2_ADVERTISE_BYOIP_CIDR = """<AdvertiseByoipCidrResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <byoipCidr>
+        <cidr></cidr>
+        <state>advertised</state>
+    </byoipCidr>
+</AdvertiseByoipCidrResponse>"""
+
+EC2_APPLY_SECURITY_GROUPS_TO_CLIENT_VPN_TARGET_NETWORK = """<ApplySecurityGroupsToClientVpnTargetNetworkResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <securityGroupIds/>
+</ApplySecurityGroupsToClientVpnTargetNetworkResponse>"""
+
+EC2_ASSIGN_PRIVATE_NAT_GATEWAY_ADDRESS = """<AssignPrivateNatGatewayAddressResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <natGatewayId></natGatewayId>
+    <natGatewayAddressSet/>
+</AssignPrivateNatGatewayAddressResponse>"""
+
+EC2_ASSOCIATE_CLIENT_VPN_TARGET_NETWORK = """<AssociateClientVpnTargetNetworkResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <associationId>cvpn-assoc-stub</associationId>
+    <status>
+        <code>associating</code>
+    </status>
+</AssociateClientVpnTargetNetworkResponse>"""
+
+EC2_ASSOCIATE_ENCLAVE_CERTIFICATE_IAM_ROLE = """<AssociateEnclaveCertificateIamRoleResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <return>true</return>
+</AssociateEnclaveCertificateIamRoleResponse>"""
+
+EC2_ASSOCIATE_IPAM_BYOASN = """<AssociateIpamByoasnResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <return>true</return>
+</AssociateIpamByoasnResponse>"""
+
+EC2_ASSOCIATE_IPAM_RESOURCE_DISCOVERY = """<AssociateIpamResourceDiscoveryResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <return>true</return>
+</AssociateIpamResourceDiscoveryResponse>"""
+
+EC2_ASSOCIATE_NAT_GATEWAY_ADDRESS = """<AssociateNatGatewayAddressResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <natGatewayId></natGatewayId>
+    <natGatewayAddressSet/>
+</AssociateNatGatewayAddressResponse>"""
+
+EC2_ASSOCIATE_TRANSIT_GATEWAY_MULTICAST_DOMAIN = """<AssociateTransitGatewayMulticastDomainResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <associations>
+        <subnets/>
+        <state>associating</state>
+    </associations>
+</AssociateTransitGatewayMulticastDomainResponse>"""
+
+EC2_ASSOCIATE_TRANSIT_GATEWAY_POLICY_TABLE = """<AssociateTransitGatewayPolicyTableResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <association>
+        <state>associating</state>
+    </association>
+</AssociateTransitGatewayPolicyTableResponse>"""
+
+EC2_ATTACH_CLASSIC_LINK_VPC = """<AttachClassicLinkVpcResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <return>true</return>
+</AttachClassicLinkVpcResponse>"""
+
+EC2_ATTACH_VERIFIED_ACCESS_TRUST_PROVIDER = """<AttachVerifiedAccessTrustProviderResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <return>true</return>
+</AttachVerifiedAccessTrustProviderResponse>"""
+
+EC2_BUNDLE_INSTANCE = """<BundleInstanceResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <bundleInstanceTask>
+        <instanceId></instanceId>
+        <bundleId>bun-stub</bundleId>
+        <state>pending</state>
+    </bundleInstanceTask>
+</BundleInstanceResponse>"""
+
+EC2_CANCEL_BUNDLE_TASK = """<CancelBundleTaskResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <bundleInstanceTask>
+        <bundleId></bundleId>
+        <state>cancelling</state>
+    </bundleInstanceTask>
+</CancelBundleTaskResponse>"""
+
+EC2_CANCEL_CONVERSION_TASK = """<CancelConversionTaskResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <return>true</return>
+</CancelConversionTaskResponse>"""
+
+EC2_CANCEL_DECLARATIVE_POLICIES_REPORT = """<CancelDeclarativePoliciesReportResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <return>true</return>
+</CancelDeclarativePoliciesReportResponse>"""
+
+EC2_CANCEL_EXPORT_TASK = """<CancelExportTaskResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <return>true</return>
+</CancelExportTaskResponse>"""
+
+EC2_CANCEL_IMAGE_LAUNCH_PERMISSION = """<CancelImageLaunchPermissionResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <return>true</return>
+</CancelImageLaunchPermissionResponse>"""
+
+EC2_CANCEL_RESERVED_INSTANCES_LISTING = """<CancelReservedInstancesListingResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <reservedInstancesListingsSet/>
+</CancelReservedInstancesListingResponse>"""
+
+EC2_COPY_FPGA_IMAGE = """<CopyFpgaImageResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <fpgaImageId>afi-stub</fpgaImageId>
+</CopyFpgaImageResponse>"""
+
+EC2_CREATE_CAPACITY_RESERVATION_BY_SPLITTING = """<CreateCapacityReservationBySplittingResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <sourceCapacityReservation/>
+    <destinationCapacityReservation/>
+</CreateCapacityReservationBySplittingResponse>"""
+
+EC2_CREATE_CLIENT_VPN_ROUTE = """<CreateClientVpnRouteResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <status>
+        <code>creating</code>
+    </status>
+</CreateClientVpnRouteResponse>"""
+
+EC2_CREATE_FPGA_IMAGE = """<CreateFpgaImageResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <fpgaImageId>afi-stub</fpgaImageId>
+    <fpgaImageGlobalId>agfi-stub</fpgaImageGlobalId>
+</CreateFpgaImageResponse>"""
+
+EC2_CREATE_INSTANCE_EXPORT_TASK = """<CreateInstanceExportTaskResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <exportTask>
+        <exportTaskId>export-stub</exportTaskId>
+        <state>active</state>
+    </exportTask>
+</CreateInstanceExportTaskResponse>"""
+
+EC2_CREATE_IPAM_EXTERNAL_RESOURCE_VERIFICATION_TOKEN = """<CreateIpamExternalResourceVerificationTokenResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <ipamExternalResourceVerificationToken>
+        <ipamExternalResourceVerificationTokenId>ipam-evrt-stub</ipamExternalResourceVerificationTokenId>
+    </ipamExternalResourceVerificationToken>
+</CreateIpamExternalResourceVerificationTokenResponse>"""
+
+EC2_CREATE_LOCAL_GATEWAY_ROUTE_TABLE_VIRTUAL_INTERFACE_GROUP_ASSOCIATION = """<CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <localGatewayRouteTableVirtualInterfaceGroupAssociation>
+        <state>associating</state>
+    </localGatewayRouteTableVirtualInterfaceGroupAssociation>
+</CreateLocalGatewayRouteTableVirtualInterfaceGroupAssociationResponse>"""
+
+EC2_CREATE_LOCAL_GATEWAY_ROUTE_TABLE_VPC_ASSOCIATION = """<CreateLocalGatewayRouteTableVpcAssociationResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <localGatewayRouteTableVpcAssociation>
+        <state>associating</state>
+    </localGatewayRouteTableVpcAssociation>
+</CreateLocalGatewayRouteTableVpcAssociationResponse>"""
+
+EC2_CREATE_NETWORK_INTERFACE_PERMISSION = """<CreateNetworkInterfacePermissionResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <interfacePermission>
+        <networkInterfacePermissionId>eni-perm-stub</networkInterfacePermissionId>
+        <permissionState>
+            <state>granted</state>
+        </permissionState>
+    </interfacePermission>
+</CreateNetworkInterfacePermissionResponse>"""
+
+EC2_CREATE_RESERVED_INSTANCES_LISTING = """<CreateReservedInstancesListingResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <reservedInstancesListingsSet/>
+</CreateReservedInstancesListingResponse>"""
+
+EC2_CREATE_RESTORE_IMAGE_TASK = """<CreateRestoreImageTaskResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <imageId>ami-stub</imageId>
+</CreateRestoreImageTaskResponse>"""
+
+EC2_CREATE_TRANSIT_GATEWAY_MULTICAST_DOMAIN = """<CreateTransitGatewayMulticastDomainResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <transitGatewayMulticastDomain>
+        <transitGatewayMulticastDomainId>tgw-mcast-domain-stub</transitGatewayMulticastDomainId>
+        <state>pending</state>
+    </transitGatewayMulticastDomain>
+</CreateTransitGatewayMulticastDomainResponse>"""
+
+EC2_CREATE_TRANSIT_GATEWAY_POLICY_TABLE = """<CreateTransitGatewayPolicyTableResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <transitGatewayPolicyTable>
+        <transitGatewayPolicyTableId>tgw-policy-tbl-stub</transitGatewayPolicyTableId>
+        <state>pending</state>
+    </transitGatewayPolicyTable>
+</CreateTransitGatewayPolicyTableResponse>"""
