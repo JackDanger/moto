@@ -91,3 +91,110 @@ class CognitoIdentityResponse(BaseResponse):
             identity_pool_id=identity_pool_id,
         )
         return ""
+
+    def describe_identity(self) -> str:
+        identity_id = self._get_param("IdentityId")
+        return self.backend.describe_identity(identity_id=identity_id)
+
+    def delete_identities(self) -> str:
+        identity_ids_to_delete = self._get_param("IdentityIdsToDelete") or []
+        return self.backend.delete_identities(identity_ids_to_delete=identity_ids_to_delete)
+
+    def get_identity_pool_roles(self) -> str:
+        identity_pool_id = self._get_param("IdentityPoolId")
+        return self.backend.get_identity_pool_roles(identity_pool_id=identity_pool_id)
+
+    def set_identity_pool_roles(self) -> str:
+        identity_pool_id = self._get_param("IdentityPoolId")
+        roles = self._get_param("Roles") or {}
+        role_mappings = self._get_param("RoleMappings")
+        self.backend.set_identity_pool_roles(
+            identity_pool_id=identity_pool_id,
+            roles=roles,
+            role_mappings=role_mappings,
+        )
+        return ""
+
+    def list_tags_for_resource(self) -> str:
+        resource_arn = self._get_param("ResourceArn")
+        return self.backend.list_tags_for_resource(resource_arn=resource_arn)
+
+    def tag_resource(self) -> str:
+        resource_arn = self._get_param("ResourceArn")
+        tags = self._get_param("Tags") or {}
+        return self.backend.tag_resource(resource_arn=resource_arn, tags=tags)
+
+    def untag_resource(self) -> str:
+        resource_arn = self._get_param("ResourceArn")
+        tag_keys = self._get_param("TagKeys") or []
+        return self.backend.untag_resource(resource_arn=resource_arn, tag_keys=tag_keys)
+
+    def lookup_developer_identity(self) -> str:
+        identity_pool_id = self._get_param("IdentityPoolId")
+        identity_id = self._get_param("IdentityId")
+        developer_user_identifier = self._get_param("DeveloperUserIdentifier")
+        max_results = self._get_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        return self.backend.lookup_developer_identity(
+            identity_pool_id=identity_pool_id,
+            identity_id=identity_id,
+            developer_user_identifier=developer_user_identifier,
+            max_results=max_results,
+            next_token=next_token,
+        )
+
+    def merge_developer_identities(self) -> str:
+        source_user_identifier = self._get_param("SourceUserIdentifier")
+        destination_user_identifier = self._get_param("DestinationUserIdentifier")
+        developer_provider_name = self._get_param("DeveloperProviderName")
+        identity_pool_id = self._get_param("IdentityPoolId")
+        return self.backend.merge_developer_identities(
+            source_user_identifier=source_user_identifier,
+            destination_user_identifier=destination_user_identifier,
+            developer_provider_name=developer_provider_name,
+            identity_pool_id=identity_pool_id,
+        )
+
+    def unlink_developer_identity(self) -> str:
+        identity_id = self._get_param("IdentityId")
+        identity_pool_id = self._get_param("IdentityPoolId")
+        developer_provider_name = self._get_param("DeveloperProviderName")
+        developer_user_identifier = self._get_param("DeveloperUserIdentifier")
+        self.backend.unlink_developer_identity(
+            identity_id=identity_id,
+            identity_pool_id=identity_pool_id,
+            developer_provider_name=developer_provider_name,
+            developer_user_identifier=developer_user_identifier,
+        )
+        return ""
+
+    def unlink_identity(self) -> str:
+        identity_id = self._get_param("IdentityId")
+        logins = self._get_param("Logins") or {}
+        logins_to_remove = self._get_param("LoginsToRemove") or []
+        self.backend.unlink_identity(
+            identity_id=identity_id,
+            logins=logins,
+            logins_to_remove=logins_to_remove,
+        )
+        return ""
+
+    def get_principal_tag_attribute_map(self) -> str:
+        identity_pool_id = self._get_param("IdentityPoolId")
+        identity_provider_name = self._get_param("IdentityProviderName")
+        return self.backend.get_principal_tag_attribute_map(
+            identity_pool_id=identity_pool_id,
+            identity_provider_name=identity_provider_name,
+        )
+
+    def set_principal_tag_attribute_map(self) -> str:
+        identity_pool_id = self._get_param("IdentityPoolId")
+        identity_provider_name = self._get_param("IdentityProviderName")
+        use_defaults = self._get_param("UseDefaults")
+        principal_tags = self._get_param("PrincipalTags")
+        return self.backend.set_principal_tag_attribute_map(
+            identity_pool_id=identity_pool_id,
+            identity_provider_name=identity_provider_name,
+            use_defaults=use_defaults,
+            principal_tags=principal_tags,
+        )

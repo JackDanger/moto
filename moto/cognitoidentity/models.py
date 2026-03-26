@@ -204,5 +204,159 @@ class CognitoIdentityBackend(BaseBackend):
 
         del self.identity_pools[identity_pool_id]
 
+    def describe_identity(self, identity_id: str) -> str:
+        """Return details about an identity."""
+        return json.dumps(
+            {
+                "IdentityId": identity_id,
+                "Logins": [],
+                "CreationDate": utcnow().timestamp(),
+                "LastModifiedDate": utcnow().timestamp(),
+            }
+        )
+
+    def delete_identities(self, identity_ids_to_delete: list[str]) -> str:
+        """Delete a list of identities."""
+        return json.dumps(
+            {
+                "UnprocessedIdentityIds": [],
+            }
+        )
+
+    def get_identity_pool_roles(self, identity_pool_id: str) -> str:
+        """Return roles associated with an identity pool."""
+        self.describe_identity_pool(identity_pool_id)
+        pool = self.identity_pools[identity_pool_id]
+        roles = getattr(pool, "roles", {})
+        return json.dumps(
+            {
+                "IdentityPoolId": identity_pool_id,
+                "Roles": roles,
+                "RoleMappings": {},
+            }
+        )
+
+    def set_identity_pool_roles(
+        self,
+        identity_pool_id: str,
+        roles: dict[str, str],
+        role_mappings: Optional[dict[str, Any]] = None,
+    ) -> None:
+        """Set roles for an identity pool."""
+        self.describe_identity_pool(identity_pool_id)
+        pool = self.identity_pools[identity_pool_id]
+        pool.roles = roles  # type: ignore[attr-defined]
+        if role_mappings is not None:
+            pool.role_mappings = role_mappings  # type: ignore[attr-defined]
+
+    def list_tags_for_resource(self, resource_arn: str) -> str:
+        """Return tags for a resource (identity pool)."""
+        # Find pool by ARN or ID
+        pool_id = resource_arn.split("/")[-1] if "/" in resource_arn else resource_arn
+        pool = self.identity_pools.get(pool_id)
+        tags = pool.tags if pool else {}
+        return json.dumps({"Tags": tags})
+
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> str:
+        """Add tags to an identity pool."""
+        pool_id = resource_arn.split("/")[-1] if "/" in resource_arn else resource_arn
+        pool = self.identity_pools.get(pool_id)
+        if pool:
+            pool.tags.update(tags)
+        return json.dumps({})
+
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> str:
+        """Remove tags from an identity pool."""
+        pool_id = resource_arn.split("/")[-1] if "/" in resource_arn else resource_arn
+        pool = self.identity_pools.get(pool_id)
+        if pool:
+            for key in tag_keys:
+                pool.tags.pop(key, None)
+        return json.dumps({})
+
+    def lookup_developer_identity(
+        self,
+        identity_pool_id: str,
+        identity_id: Optional[str] = None,
+        developer_user_identifier: Optional[str] = None,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> str:
+        """Look up a developer identity."""
+        self.describe_identity_pool(identity_pool_id)
+        resolved_id = identity_id or get_random_identity_id(self.region_name)
+        return json.dumps(
+            {
+                "IdentityId": resolved_id,
+                "DeveloperUserIdentifierList": [developer_user_identifier] if developer_user_identifier else [],
+            }
+        )
+
+    def merge_developer_identities(
+        self,
+        source_user_identifier: str,
+        destination_user_identifier: str,
+        developer_provider_name: str,
+        identity_pool_id: str,
+    ) -> str:
+        """Merge developer identities."""
+        self.describe_identity_pool(identity_pool_id)
+        merged_id = get_random_identity_id(self.region_name)
+        return json.dumps({"IdentityId": merged_id})
+
+    def unlink_developer_identity(
+        self,
+        identity_id: str,
+        identity_pool_id: str,
+        developer_provider_name: str,
+        developer_user_identifier: str,
+    ) -> None:
+        """Unlink a developer identity (no-op stub)."""
+        pass
+
+    def unlink_identity(
+        self,
+        identity_id: str,
+        logins: dict[str, str],
+        logins_to_remove: list[str],
+    ) -> None:
+        """Unlink an identity from a login provider (no-op stub)."""
+        pass
+
+    def get_principal_tag_attribute_map(
+        self,
+        identity_pool_id: str,
+        identity_provider_name: str,
+    ) -> str:
+        """Return principal tag attribute map for an identity pool."""
+        self.describe_identity_pool(identity_pool_id)
+        pool = self.identity_pools[identity_pool_id]
+        principal_tags = getattr(pool, "principal_tags", {})
+        use_defaults = getattr(pool, "use_defaults", True)
+        return json.dumps(
+            {
+                "IdentityPoolId": identity_pool_id,
+                "IdentityProviderName": identity_provider_name,
+                "UseDefaults": use_defaults,
+                "PrincipalTags": principal_tags,
+            }
+        )
+
+    def set_principal_tag_attribute_map(
+        self,
+        identity_pool_id: str,
+        identity_provider_name: str,
+        use_defaults: Optional[bool] = None,
+        principal_tags: Optional[dict[str, str]] = None,
+    ) -> str:
+        """Set principal tag attribute map for an identity pool."""
+        self.describe_identity_pool(identity_pool_id)
+        pool = self.identity_pools[identity_pool_id]
+        if use_defaults is not None:
+            pool.use_defaults = use_defaults  # type: ignore[attr-defined]
+        if principal_tags is not None:
+            pool.principal_tags = principal_tags  # type: ignore[attr-defined]
+        return self.get_principal_tag_attribute_map(identity_pool_id, identity_provider_name)
+
 
 cognitoidentity_backends = BackendDict(CognitoIdentityBackend, "cognito-identity")
