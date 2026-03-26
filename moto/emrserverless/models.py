@@ -488,5 +488,69 @@ class EMRServerlessBackend(BaseBackend):
         sort_key = "createdAt"
         return paginated_list(job_run_dicts, sort_key, max_results, next_token)
 
+    def get_dashboard_for_job_run(
+        self, application_id: str, job_run_id: str
+    ) -> dict[str, Any]:
+        job_run = self.get_job_run(application_id, job_run_id)
+        # Return a synthetic dashboard URL
+        url = f"https://emr-serverless.{self.region_name}.amazonaws.com/applications/{application_id}/jobruns/{job_run_id}/dashboard?authToken=mock-token"
+        return {"url": url}
+
+    def list_job_run_attempts(
+        self,
+        application_id: str,
+        job_run_id: str,
+        max_results: int,
+        next_token: Optional[str],
+    ) -> tuple[list[dict[str, Any]], Optional[str]]:
+        job_run = self.get_job_run(application_id, job_run_id)
+        # The emulator tracks a single attempt per job run
+        attempt = {
+            "applicationId": application_id,
+            "id": job_run_id,
+            "name": job_run.name,
+            "arn": job_run.arn,
+            "createdBy": job_run.created_by,
+            "jobCreatedAt": job_run.created_at,
+            "createdAt": job_run.created_at,
+            "updatedAt": job_run.updated_at,
+            "executionRole": job_run.execution_role_arn,
+            "state": job_run.state,
+            "stateDetails": job_run.state_details or "",
+            "releaseLabel": job_run.release_label,
+            "type": job_run.application_type,
+            "attempt": 1,
+        }
+        attempts = [attempt]
+        sort_key = "createdAt"
+        return paginated_list(attempts, sort_key, max_results, next_token)
+
+    def _find_resource_by_arn(self, resource_arn: str) -> Any:
+        """Find an application or job run by ARN."""
+        for application in self.applications.values():
+            if application.arn == resource_arn:
+                return application
+        for job_run_list in self.job_runs.values():
+            for job_run in job_run_list:
+                if job_run.arn == resource_arn:
+                    return job_run
+        raise ResourceNotFoundException(resource_arn, "Resource")
+
+    def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
+        resource = self._find_resource_by_arn(resource_arn)
+        return resource.tags or {}
+
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
+        resource = self._find_resource_by_arn(resource_arn)
+        if resource.tags is None:
+            resource.tags = {}
+        resource.tags.update(tags)
+
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
+        resource = self._find_resource_by_arn(resource_arn)
+        if resource.tags:
+            for key in tag_keys:
+                resource.tags.pop(key, None)
+
 
 emrserverless_backends = BackendDict(EMRServerlessBackend, "emr-serverless")

@@ -202,3 +202,46 @@ class EMRServerlessResponse(BaseResponse):
             states=states,
         )
         return 200, {}, json.dumps({"jobRuns": job_runs, "nextToken": next_token})
+
+    def get_dashboard_for_job_run(self) -> TYPE_RESPONSE:
+        application_id = self._get_param("applicationId")
+        job_run_id = self._get_param("jobRunId")
+        result = self.emrserverless_backend.get_dashboard_for_job_run(
+            application_id=application_id,
+            job_run_id=job_run_id,
+        )
+        return 200, {}, json.dumps(result)
+
+    def list_job_run_attempts(self) -> TYPE_RESPONSE:
+        application_id = self._get_param("applicationId")
+        job_run_id = self._get_param("jobRunId")
+        next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
+        max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
+        attempts, next_token = self.emrserverless_backend.list_job_run_attempts(
+            application_id=application_id,
+            job_run_id=job_run_id,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return 200, {}, json.dumps({"jobRunAttempts": attempts, "nextToken": next_token})
+
+    def list_tags_for_resource(self) -> TYPE_RESPONSE:
+        resource_arn = self._get_param("resourceArn")
+        tags = self.emrserverless_backend.list_tags_for_resource(
+            resource_arn=resource_arn
+        )
+        return 200, {}, json.dumps({"tags": tags})
+
+    def tag_resource(self) -> TYPE_RESPONSE:
+        resource_arn = self._get_param("resourceArn")
+        tags = self._get_param("tags")
+        self.emrserverless_backend.tag_resource(resource_arn=resource_arn, tags=tags)
+        return 200, {}, "{}"
+
+    def untag_resource(self) -> TYPE_RESPONSE:
+        resource_arn = self._get_param("resourceArn")
+        tag_keys = self.querystring.get("tagKeys", [])
+        self.emrserverless_backend.untag_resource(
+            resource_arn=resource_arn, tag_keys=tag_keys
+        )
+        return 200, {}, "{}"
