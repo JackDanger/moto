@@ -134,6 +134,18 @@ class ServiceQuotasResponse(BaseResponse):
         )
         return json.dumps({"ServiceQuotaIncreaseRequestInTemplateList": items})
 
+    def get_service_quota_increase_request_from_template(self) -> str:
+        params = json.loads(self.body)
+        service_code = str(params.get("ServiceCode"))
+        quota_code = str(params.get("QuotaCode"))
+        aws_region = str(params.get("AwsRegion"))
+        item = self.backend.get_service_quota_increase_request_from_template(
+            service_code=service_code,
+            quota_code=quota_code,
+            aws_region=aws_region,
+        )
+        return json.dumps({"ServiceQuotaIncreaseRequestInTemplate": item})
+
     def delete_service_quota_increase_request_from_template(self) -> str:
         params = json.loads(self.body)
         service_code = str(params.get("ServiceCode"))
