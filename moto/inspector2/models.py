@@ -271,6 +271,20 @@ class CodeSecurityScanConfiguration(BaseModel):
         }
 
 
+class CisSession(BaseModel):
+    """Tracks the state of a CIS scan session."""
+
+    def __init__(self, scan_job_id: str, session_token: str):
+        self.scan_job_id = scan_job_id
+        self.session_token = session_token
+        self.status = "ACTIVE"
+        self.started_at = unix_time()
+        self.stopped_at: Optional[float] = None
+        self.stop_message: Optional[dict[str, Any]] = None
+        self.telemetry_messages: list[dict[str, Any]] = []
+        self.last_health_at: Optional[float] = None
+
+
 class Inspector2Backend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -288,6 +302,7 @@ class Inspector2Backend(BaseBackend):
         self.findings_queue: list[Any] = []
         self.findings: dict[str, Any] = {}
         self.cis_scan_configurations: dict[str, CisScanConfiguration] = {}
+        self.cis_sessions: dict[str, CisSession] = {}
         self.findings_reports: dict[str, FindingsReport] = {}
         self.sbom_exports: dict[str, SbomExport] = {}
         self.code_security_integrations: dict[str, CodeSecurityIntegration] = {}
@@ -659,22 +674,32 @@ class Inspector2Backend(BaseBackend):
     def start_cis_session(
         self, scan_job_id: str, message: dict[str, Any]
     ) -> None:
-        pass
+        session_token = message.get("sessionToken", "")
+        session = CisSession(scan_job_id=scan_job_id, session_token=session_token)
+        self.cis_sessions[scan_job_id] = session
 
     def stop_cis_session(
         self, scan_job_id: str, session_token: str, message: dict[str, Any]
     ) -> None:
-        pass
+        session = self.cis_sessions.get(scan_job_id)
+        if session:
+            session.status = "STOPPED"
+            session.stopped_at = unix_time()
+            session.stop_message = message
 
     def send_cis_session_health(
         self, scan_job_id: str, session_token: str
     ) -> None:
-        pass
+        session = self.cis_sessions.get(scan_job_id)
+        if session:
+            session.last_health_at = unix_time()
 
     def send_cis_session_telemetry(
         self, scan_job_id: str, session_token: str, messages: list[dict[str, Any]]
     ) -> None:
-        pass
+        session = self.cis_sessions.get(scan_job_id)
+        if session:
+            session.telemetry_messages.extend(messages or [])
 
     # Findings reports
 
