@@ -378,3 +378,137 @@ class VerifiedAccessBackend:
                 if e.verified_access_instance_id == verified_access_instance_id
             ]
         return endpoints
+
+    def get_verified_access_instance(
+        self, verified_access_instance_id: str
+    ) -> VerifiedAccessInstance:
+        instance = self.verified_access_instances.get(verified_access_instance_id)
+        if not instance:
+            from ..exceptions import EC2ClientError
+
+            raise EC2ClientError(
+                "InvalidVerifiedAccessInstanceId.NotFound",
+                f"The verified access instance ID '{verified_access_instance_id}' does not exist",
+            )
+        return instance
+
+    def modify_verified_access_instance(
+        self,
+        verified_access_instance_id: str,
+        description: Optional[str] = None,
+    ) -> VerifiedAccessInstance:
+        instance = self.get_verified_access_instance(verified_access_instance_id)
+        if description is not None:
+            instance.description = description
+        return instance
+
+    def modify_verified_access_trust_provider(
+        self,
+        verified_access_trust_provider_id: str,
+        description: Optional[str] = None,
+        oidc_options: Optional[dict[str, str]] = None,
+        device_options: Optional[dict[str, str]] = None,
+    ) -> VerifiedAccessTrustProvider:
+        provider = self.verified_access_trust_providers.get(
+            verified_access_trust_provider_id
+        )
+        if not provider:
+            from ..exceptions import EC2ClientError
+
+            raise EC2ClientError(
+                "InvalidVerifiedAccessTrustProviderId.NotFound",
+                f"The verified access trust provider ID '{verified_access_trust_provider_id}' does not exist",
+            )
+        if description is not None:
+            provider.description = description
+        if oidc_options is not None:
+            provider.oidc_options = oidc_options
+        if device_options is not None:
+            provider.device_options = device_options
+        return provider
+
+    def modify_verified_access_group(
+        self,
+        verified_access_group_id: str,
+        verified_access_instance_id: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> VerifiedAccessGroup:
+        group = self.verified_access_groups.get(verified_access_group_id)
+        if not group:
+            from ..exceptions import EC2ClientError
+
+            raise EC2ClientError(
+                "InvalidVerifiedAccessGroupId.NotFound",
+                f"The verified access group ID '{verified_access_group_id}' does not exist",
+            )
+        if verified_access_instance_id is not None:
+            group.verified_access_instance_id = verified_access_instance_id
+        if description is not None:
+            group.description = description
+        return group
+
+    def modify_verified_access_group_policy(
+        self,
+        verified_access_group_id: str,
+        policy_enabled: Optional[bool] = None,
+        policy_document: Optional[str] = None,
+    ) -> VerifiedAccessGroup:
+        group = self.verified_access_groups.get(verified_access_group_id)
+        if not group:
+            from ..exceptions import EC2ClientError
+
+            raise EC2ClientError(
+                "InvalidVerifiedAccessGroupId.NotFound",
+                f"The verified access group ID '{verified_access_group_id}' does not exist",
+            )
+        if policy_enabled is not None:
+            group.policy_enabled = policy_enabled
+        if policy_document is not None:
+            group.policy_document = policy_document
+        return group
+
+    def modify_verified_access_endpoint(
+        self,
+        verified_access_endpoint_id: str,
+        verified_access_group_id: Optional[str] = None,
+        description: Optional[str] = None,
+        load_balancer_options: Optional[dict[str, Any]] = None,
+        network_interface_options: Optional[dict[str, Any]] = None,
+    ) -> VerifiedAccessEndpoint:
+        endpoint = self.verified_access_endpoints.get(verified_access_endpoint_id)
+        if not endpoint:
+            from ..exceptions import EC2ClientError
+
+            raise EC2ClientError(
+                "InvalidVerifiedAccessEndpointId.NotFound",
+                f"The verified access endpoint ID '{verified_access_endpoint_id}' does not exist",
+            )
+        if verified_access_group_id is not None:
+            endpoint.verified_access_group_id = verified_access_group_id
+        if description is not None:
+            endpoint.description = description
+        if load_balancer_options is not None:
+            endpoint.load_balancer_options = load_balancer_options
+        if network_interface_options is not None:
+            endpoint.network_interface_options = network_interface_options
+        return endpoint
+
+    def modify_verified_access_endpoint_policy(
+        self,
+        verified_access_endpoint_id: str,
+        policy_enabled: Optional[bool] = None,
+        policy_document: Optional[str] = None,
+    ) -> VerifiedAccessEndpoint:
+        endpoint = self.verified_access_endpoints.get(verified_access_endpoint_id)
+        if not endpoint:
+            from ..exceptions import EC2ClientError
+
+            raise EC2ClientError(
+                "InvalidVerifiedAccessEndpointId.NotFound",
+                f"The verified access endpoint ID '{verified_access_endpoint_id}' does not exist",
+            )
+        if policy_enabled is not None:
+            endpoint.policy_enabled = policy_enabled
+        if policy_document is not None:
+            endpoint.policy_document = policy_document
+        return endpoint
