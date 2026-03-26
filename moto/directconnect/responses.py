@@ -558,7 +558,7 @@ class DirectConnectResponse(BaseResponse):
             bgp_peers=params.get("bgpPeers"),
             status=params.get("status"),
         )
-        return json.dumps({"virtualInterfaceTests": tests})
+        return json.dumps({"virtualInterfaceTestHistory": tests})
 
     def start_bgp_failover_test(self) -> str:
         params = json.loads(self.body)

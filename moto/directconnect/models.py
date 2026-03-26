@@ -1295,14 +1295,15 @@ class DirectConnectBackend(BaseBackend):
 
     def describe_customer_metadata(self) -> dict[str, Any]:
         return {
-            "customerMetadata": {
-                "customerAgreements": [
-                    {
-                        "agreementName": "SpectrumFrameworkAgreement",
-                        "status": "signed",
-                    }
-                ]
-            }
+            "agreements": [
+                {
+                    "agreementName": "SpectrumFrameworkAgreement",
+                    "agreementType": "ManagedAgreement",
+                    "ownerAccount": self.account_id,
+                    "status": "signed",
+                }
+            ],
+            "nniPartnerType": "nonPartner",
         }
 
     def describe_locations(self) -> list[dict[str, Any]]:
