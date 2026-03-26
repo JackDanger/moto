@@ -2682,6 +2682,461 @@ class ConnectResponse(BaseResponse):
         )
         return "{}"
 
+    # ---- Search operations (N-Z) ----
+
+    def search_contact_evaluations(self) -> str:
+        instance_id = self._get_instance_id()
+        params = json.loads(self.body) if self.body else {}
+        results = self.connect_backend.search_contact_evaluations(
+            instance_id=instance_id,
+            search_criteria=params.get("SearchCriteria"),
+        )
+        return json.dumps({"ContactEvaluations": results})
+
+    def search_contacts(self) -> str:
+        instance_id = self._get_instance_id()
+        params = json.loads(self.body) if self.body else {}
+        results = self.connect_backend.search_contacts(
+            instance_id=instance_id,
+            time_range=params.get("TimeRange"),
+            search_criteria=params.get("SearchCriteria"),
+        )
+        return json.dumps({"Contacts": results})
+
+    def search_data_tables(self) -> str:
+        instance_id = self._get_instance_id()
+        params = json.loads(self.body) if self.body else {}
+        results = self.connect_backend.search_data_tables(
+            instance_id=instance_id,
+            search_criteria=params.get("SearchCriteria"),
+        )
+        return json.dumps({"DataTables": results})
+
+    def search_email_addresses(self) -> str:
+        instance_id = self._get_instance_id()
+        params = json.loads(self.body) if self.body else {}
+        results = self.connect_backend.search_email_addresses(
+            instance_id=instance_id,
+            search_criteria=params.get("SearchCriteria"),
+        )
+        return json.dumps({"EmailAddresses": results})
+
+    def search_evaluation_forms(self) -> str:
+        instance_id = self._get_instance_id()
+        params = json.loads(self.body) if self.body else {}
+        results = self.connect_backend.search_evaluation_forms(
+            instance_id=instance_id,
+            search_criteria=params.get("SearchCriteria"),
+        )
+        return json.dumps({"EvaluationForms": results})
+
+    def search_hours_of_operation_overrides(self) -> str:
+        instance_id = self._get_instance_id()
+        params = json.loads(self.body) if self.body else {}
+        results = self.connect_backend.search_hours_of_operation_overrides(
+            instance_id=instance_id,
+            hours_of_operation_id=params.get("HoursOfOperationId"),
+            search_criteria=params.get("SearchCriteria"),
+        )
+        return json.dumps({"HoursOfOperationOverrides": results})
+
+    def search_notifications(self) -> str:
+        instance_id = self._get_instance_id()
+        params = json.loads(self.body) if self.body else {}
+        results = self.connect_backend.search_notifications(
+            instance_id=instance_id,
+            search_criteria=params.get("SearchCriteria"),
+        )
+        return json.dumps({"Notifications": results})
+
+    def search_resource_tags(self) -> str:
+        instance_id = self._get_instance_id()
+        params = json.loads(self.body) if self.body else {}
+        results = self.connect_backend.search_resource_tags(
+            instance_id=instance_id,
+            resource_types=params.get("ResourceTypes"),
+        )
+        return json.dumps({"Tags": results})
+
+    def search_test_cases(self) -> str:
+        instance_id = self._get_instance_id()
+        params = json.loads(self.body) if self.body else {}
+        results = self.connect_backend.search_test_cases(
+            instance_id=instance_id,
+            search_criteria=params.get("SearchCriteria"),
+        )
+        return json.dumps({"TestCases": results})
+
+    def search_views(self) -> str:
+        instance_id = self._get_instance_id()
+        params = json.loads(self.body) if self.body else {}
+        results = self.connect_backend.search_views(
+            instance_id=instance_id,
+            search_criteria=params.get("SearchCriteria"),
+        )
+        return json.dumps({"Views": results})
+
+    def search_workspace_associations(self) -> str:
+        instance_id = self._get_instance_id()
+        params = json.loads(self.body) if self.body else {}
+        results = self.connect_backend.search_workspace_associations(
+            instance_id=instance_id,
+            search_criteria=params.get("SearchCriteria"),
+        )
+        return json.dumps({"WorkspaceAssociations": results})
+
+    def search_workspaces(self) -> str:
+        instance_id = self._get_instance_id()
+        params = json.loads(self.body) if self.body else {}
+        results = self.connect_backend.search_workspaces(
+            instance_id=instance_id,
+            search_criteria=params.get("SearchCriteria"),
+        )
+        return json.dumps({"Workspaces": results})
+
+    # ---- Contact lifecycle (N-Z) ----
+
+    def pause_contact(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        instance_id = str(params["InstanceId"])
+        contact_id = str(params["ContactId"])
+        self.connect_backend.pause_contact(
+            instance_id=instance_id, contact_id=contact_id
+        )
+        return "{}"
+
+    def put_user_status(self) -> str:
+        instance_id = self._get_instance_id()
+        user_id = self._get_param_from_path("UserId")
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.put_user_status(
+            instance_id=instance_id,
+            user_id=user_id,
+            agent_status_id=str(params["AgentStatusId"]),
+        )
+        return "{}"
+
+    def replicate_instance(self) -> str:
+        instance_id = self._get_instance_id()
+        params = json.loads(self.body) if self.body else {}
+        result = self.connect_backend.replicate_instance(
+            instance_id=instance_id,
+            replica_region=str(params["ReplicaRegion"]),
+            replica_alias=str(params["ReplicaAlias"]),
+            client_token=params.get("ClientToken"),
+        )
+        return json.dumps(result)
+
+    def resume_contact(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        instance_id = str(params["InstanceId"])
+        contact_id = str(params["ContactId"])
+        self.connect_backend.resume_contact(
+            instance_id=instance_id, contact_id=contact_id
+        )
+        return "{}"
+
+    def resume_contact_recording(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.resume_contact_recording(
+            instance_id=str(params["InstanceId"]),
+            contact_id=str(params["ContactId"]),
+            initial_contact_id=str(params["InitialContactId"]),
+        )
+        return "{}"
+
+    def start_chat_contact(self) -> str:
+        instance_id = self._get_instance_id()
+        params = json.loads(self.body) if self.body else {}
+        result = self.connect_backend.start_chat_contact(
+            instance_id=instance_id,
+            contact_flow_id=str(params["ContactFlowId"]),
+            participant_details=params["ParticipantDetails"],
+            attributes=params.get("Attributes"),
+            initial_message=params.get("InitialMessage"),
+            client_token=params.get("ClientToken"),
+            chat_duration_in_minutes=params.get("ChatDurationInMinutes"),
+            supported_messaging_content_types=params.get(
+                "SupportedMessagingContentTypes"
+            ),
+            persistent_chat=params.get("PersistentChat"),
+            related_contact_id=params.get("RelatedContactId"),
+            segment_attributes=params.get("SegmentAttributes"),
+        )
+        return json.dumps(result)
+
+    def start_contact_recording(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.start_contact_recording(
+            instance_id=str(params["InstanceId"]),
+            contact_id=str(params["ContactId"]),
+            initial_contact_id=str(params["InitialContactId"]),
+            voice_recording_configuration=params.get("VoiceRecordingConfiguration"),
+        )
+        return "{}"
+
+    def start_contact_streaming(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        result = self.connect_backend.start_contact_streaming(
+            instance_id=str(params["InstanceId"]),
+            contact_id=str(params["ContactId"]),
+            chat_streaming_configuration=params["ChatStreamingConfiguration"],
+            client_token=params.get("ClientToken"),
+        )
+        return json.dumps(result)
+
+    def start_outbound_voice_contact(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        result = self.connect_backend.start_outbound_voice_contact(
+            instance_id=str(params["InstanceId"]),
+            contact_flow_id=str(params["ContactFlowId"]),
+            destination_phone_number=str(params["DestinationPhoneNumber"]),
+            queue_id=params.get("QueueId"),
+            source_phone_number=params.get("SourcePhoneNumber"),
+            attributes=params.get("Attributes"),
+            answer_machine_detection_config=params.get("AnswerMachineDetectionConfig"),
+            campaign_id=params.get("CampaignId"),
+            traffic_type=params.get("TrafficType"),
+            client_token=params.get("ClientToken"),
+        )
+        return json.dumps(result)
+
+    def start_task_contact(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        result = self.connect_backend.start_task_contact(
+            instance_id=str(params["InstanceId"]),
+            contact_flow_id=str(params["ContactFlowId"]),
+            name=str(params["Name"]),
+            previous_contact_id=params.get("PreviousContactId"),
+            attributes=params.get("Attributes"),
+            references=params.get("References"),
+            description=params.get("Description"),
+            related_contact_id=params.get("RelatedContactId"),
+            scheduled_time=params.get("ScheduledTime"),
+            task_template_id=params.get("TaskTemplateId"),
+            quick_connect_id=params.get("QuickConnectId"),
+            client_token=params.get("ClientToken"),
+        )
+        return json.dumps(result)
+
+    def stop_contact_recording(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.stop_contact_recording(
+            instance_id=str(params["InstanceId"]),
+            contact_id=str(params["ContactId"]),
+            initial_contact_id=str(params["InitialContactId"]),
+        )
+        return "{}"
+
+    def stop_contact_streaming(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.stop_contact_streaming(
+            instance_id=str(params["InstanceId"]),
+            contact_id=str(params["ContactId"]),
+            streaming_id=str(params["StreamingId"]),
+        )
+        return "{}"
+
+    def submit_contact_evaluation(self) -> str:
+        instance_id = self._get_instance_id()
+        evaluation_id = self._get_param_from_path("EvaluationId")
+        params = json.loads(self.body) if self.body else {}
+        result = self.connect_backend.submit_contact_evaluation(
+            instance_id=instance_id,
+            evaluation_id=evaluation_id,
+            answers=params.get("Answers"),
+            notes=params.get("Notes"),
+        )
+        return json.dumps(result)
+
+    def suspend_contact_recording(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.suspend_contact_recording(
+            instance_id=str(params["InstanceId"]),
+            contact_id=str(params["ContactId"]),
+            initial_contact_id=str(params["InitialContactId"]),
+        )
+        return "{}"
+
+    def tag_contact(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        instance_id = str(params["InstanceId"])
+        contact_id = str(params["ContactId"])
+        tags = params.get("Tags", {})
+        self.connect_backend.tag_contact(
+            instance_id=instance_id, contact_id=contact_id, tags=tags
+        )
+        return "{}"
+
+    def untag_contact(self) -> str:
+        instance_id = self._get_instance_id()
+        contact_id = self._get_param_from_path("ContactId")
+        tag_keys = self.querystring.get("TagKeys", [])
+        self.connect_backend.untag_contact(
+            instance_id=instance_id, contact_id=contact_id, tag_keys=tag_keys
+        )
+        return "{}"
+
+    def transfer_contact(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        result = self.connect_backend.transfer_contact(
+            instance_id=str(params["InstanceId"]),
+            contact_id=str(params["ContactId"]),
+            contact_flow_id=str(params["ContactFlowId"]),
+            queue_id=params.get("QueueId"),
+            user_id=params.get("UserId"),
+            client_token=params.get("ClientToken"),
+        )
+        return json.dumps(result)
+
+    # ---- Update operations (N-Z) ----
+
+    def update_contact_routing_data(self) -> str:
+        instance_id = self._get_instance_id()
+        contact_id = self._get_param_from_path("ContactId")
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.update_contact_routing_data(
+            instance_id=instance_id,
+            contact_id=contact_id,
+            queue_time_adjustment_seconds=params.get("QueueTimeAdjustmentSeconds"),
+            queue_priority=params.get("QueuePriority"),
+            routing_criteria=params.get("RoutingCriteria"),
+        )
+        return "{}"
+
+    def update_contact_schedule(self) -> str:
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.update_contact_schedule(
+            instance_id=str(params["InstanceId"]),
+            contact_id=str(params["ContactId"]),
+            scheduled_time=str(params["ScheduledTime"]),
+        )
+        return "{}"
+
+    def update_email_address_metadata(self) -> str:
+        instance_id = self._get_instance_id()
+        email_address_id = self._get_param_from_path("EmailAddressId")
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.update_email_address_metadata(
+            instance_id=instance_id,
+            email_address_id=email_address_id,
+            description=params.get("Description"),
+            display_name=params.get("DisplayName"),
+        )
+        return "{}"
+
+    def update_notification_content(self) -> str:
+        instance_id = self._get_instance_id()
+        notification_id = self._get_param_from_path("NotificationId")
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.update_notification_content(
+            instance_id=instance_id,
+            notification_id=notification_id,
+            content=params["Content"],
+        )
+        return "{}"
+
+    def update_participant_authentication(self) -> str:
+        instance_id = self._get_instance_id()
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.update_participant_authentication(
+            instance_id=instance_id,
+            state=str(params["State"]),
+            code=params.get("Code"),
+            error=params.get("Error"),
+            error_description=params.get("ErrorDescription"),
+        )
+        return "{}"
+
+    def update_phone_number_metadata(self) -> str:
+        phone_number_id = self._get_param_from_path("PhoneNumberId")
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.update_phone_number_metadata(
+            phone_number_id=phone_number_id,
+            phone_number_description=params.get("PhoneNumberDescription"),
+            client_token=params.get("ClientToken"),
+        )
+        return "{}"
+
+    def update_queue_outbound_email_config(self) -> str:
+        instance_id = self._get_instance_id()
+        queue_id = self._get_param_from_path("QueueId")
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.update_queue_outbound_email_config(
+            instance_id=instance_id,
+            queue_id=queue_id,
+            outbound_email_config=params.get("OutboundEmailConfig", {}),
+        )
+        return "{}"
+
+    def update_routing_profile_agent_availability_timer(self) -> str:
+        instance_id = self._get_instance_id()
+        routing_profile_id = self._get_param_from_path("RoutingProfileId")
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.update_routing_profile_agent_availability_timer(
+            instance_id=instance_id,
+            routing_profile_id=routing_profile_id,
+            agent_availability_timer=str(params["AgentAvailabilityTimer"]),
+        )
+        return "{}"
+
+    def update_user_notification_status(self) -> str:
+        instance_id = self._get_instance_id()
+        user_id = self._get_param_from_path("UserId")
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.update_user_notification_status(
+            instance_id=instance_id,
+            user_id=user_id,
+            notification_id=str(params["NotificationId"]),
+            status=str(params.get("Status", "")),
+        )
+        return "{}"
+
+    def update_user_proficiencies(self) -> str:
+        instance_id = self._get_instance_id()
+        user_id = self._get_param_from_path("UserId")
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.update_user_proficiencies(
+            instance_id=instance_id,
+            user_id=user_id,
+            user_proficiencies=params.get("UserProficiencies", []),
+        )
+        return "{}"
+
+    def update_workspace_metadata(self) -> str:
+        instance_id = self._get_instance_id()
+        workspace_id = self._get_param_from_path("WorkspaceId")
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.update_workspace_metadata(
+            instance_id=instance_id,
+            workspace_id=workspace_id,
+            name=params.get("Name"),
+            description=params.get("Description"),
+        )
+        return "{}"
+
+    def update_workspace_theme(self) -> str:
+        instance_id = self._get_instance_id()
+        workspace_id = self._get_param_from_path("WorkspaceId")
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.update_workspace_theme(
+            instance_id=instance_id,
+            workspace_id=workspace_id,
+            theme=params.get("Theme"),
+        )
+        return "{}"
+
+    def update_workspace_visibility(self) -> str:
+        instance_id = self._get_instance_id()
+        workspace_id = self._get_param_from_path("WorkspaceId")
+        params = json.loads(self.body) if self.body else {}
+        self.connect_backend.update_workspace_visibility(
+            instance_id=instance_id,
+            workspace_id=workspace_id,
+            visibility=str(params["Visibility"]),
+        )
+        return "{}"
+
     # ---- Authentication Profiles ----
 
     def describe_authentication_profile(self) -> str:
