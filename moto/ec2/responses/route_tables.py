@@ -87,6 +87,18 @@ class RouteTables(EC2BaseResponse):
         self.ec2_backend.disassociate_route_table(association_id)
         return EmptyResult()
 
+    def enable_vgw_route_propagation(self) -> ActionResult:
+        gateway_id = self._get_param("GatewayId")
+        route_table_id = self._get_param("RouteTableId")
+        self.ec2_backend.enable_vgw_route_propagation(gateway_id, route_table_id)
+        return EmptyResult()
+
+    def disable_vgw_route_propagation(self) -> ActionResult:
+        gateway_id = self._get_param("GatewayId")
+        route_table_id = self._get_param("RouteTableId")
+        self.ec2_backend.disable_vgw_route_propagation(gateway_id, route_table_id)
+        return EmptyResult()
+
     def replace_route(self) -> ActionResult:
         route_table_id = self._get_param("RouteTableId")
         destination_cidr_block = self._get_param("DestinationCidrBlock")
