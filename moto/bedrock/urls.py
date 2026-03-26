@@ -17,6 +17,33 @@ url_paths = {
     "{0}/knowledgebases$": AgentsforBedrockResponse.dispatch,
     "{0}/knowledgebases/(?P<kb_name>[^/]+)$": AgentsforBedrockResponse.dispatch,
     "{0}/knowledgebases/(?P<kb_name>[^/]+)/$": AgentsforBedrockResponse.dispatch,
+    # Knowledge Base Data Sources
+    "{0}/knowledgebases/(?P<kb_id>[^/]+)/datasources/?$": AgentsforBedrockResponse.dispatch,
+    "{0}/knowledgebases/(?P<kb_id>[^/]+)/datasources/(?P<ds_id>[^/]+)$": AgentsforBedrockResponse.dispatch,
+    # Ingestion Jobs
+    "{0}/knowledgebases/(?P<kb_id>[^/]+)/datasources/(?P<ds_id>[^/]+)/ingestionjobs/?$": AgentsforBedrockResponse.dispatch,
+    "{0}/knowledgebases/(?P<kb_id>[^/]+)/datasources/(?P<ds_id>[^/]+)/ingestionjobs/(?P<job_id>[^/]+)$": AgentsforBedrockResponse.dispatch,
+    "{0}/knowledgebases/(?P<kb_id>[^/]+)/datasources/(?P<ds_id>[^/]+)/ingestionjobs/(?P<job_id>[^/]+)/stop$": AgentsforBedrockResponse.dispatch,
+    # Agent sub-resources (aliases, versions, action groups, knowledge bases)
+    "{0}/agents/(?P<agent_id>[^/]+)/agentaliases/?$": AgentsforBedrockResponse.dispatch,
+    "{0}/agents/(?P<agent_id>[^/]+)/agentaliases/(?P<alias_id>[^/]+)/?$": AgentsforBedrockResponse.dispatch,
+    "{0}/agents/(?P<agent_id>[^/]+)/agentversions/?$": AgentsforBedrockResponse.dispatch,
+    "{0}/agents/(?P<agent_id>[^/]+)/agentversions/(?P<version>[^/]+)/?$": AgentsforBedrockResponse.dispatch,
+    "{0}/agents/(?P<agent_id>[^/]+)/agentversions/(?P<version>[^/]+)/actiongroups/?$": AgentsforBedrockResponse.dispatch,
+    "{0}/agents/(?P<agent_id>[^/]+)/agentversions/(?P<version>[^/]+)/actiongroups/(?P<ag_id>[^/]+)/?$": AgentsforBedrockResponse.dispatch,
+    "{0}/agents/(?P<agent_id>[^/]+)/agentversions/(?P<version>[^/]+)/knowledgebases/?$": AgentsforBedrockResponse.dispatch,
+    "{0}/agents/(?P<agent_id>[^/]+)/agentversions/(?P<version>[^/]+)/knowledgebases/(?P<kb_id>[^/]+)/?$": AgentsforBedrockResponse.dispatch,
+    # Flows
+    "{0}/flows/?$": AgentsforBedrockResponse.dispatch,
+    "{0}/flows/(?P<flow_id>[^/]+)/?$": AgentsforBedrockResponse.dispatch,
+    "{0}/flows/(?P<flow_id>[^/]+)/aliases$": AgentsforBedrockResponse.dispatch,
+    "{0}/flows/(?P<flow_id>[^/]+)/aliases/(?P<alias_id>[^/]+)$": AgentsforBedrockResponse.dispatch,
+    "{0}/flows/(?P<flow_id>[^/]+)/versions$": AgentsforBedrockResponse.dispatch,
+    "{0}/flows/(?P<flow_id>[^/]+)/versions/(?P<version>[^/]+)/?$": AgentsforBedrockResponse.dispatch,
+    # Prompts
+    "{0}/prompts/?$": AgentsforBedrockResponse.dispatch,
+    "{0}/prompts/(?P<prompt_id>[^/]+)/?$": AgentsforBedrockResponse.dispatch,
+    "{0}/prompts/(?P<prompt_id>[^/]+)/versions$": AgentsforBedrockResponse.dispatch,
     # Custom Models
     "{0}/custom-models$": BedrockResponse.dispatch,
     "{0}/custom-models/create-custom-model$": BedrockResponse.dispatch,
