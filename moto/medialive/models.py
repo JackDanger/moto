@@ -610,6 +610,128 @@ def _now_iso() -> str:
     )
 
 
+class InputDevice(BaseModel):
+    def __init__(self, **kwargs: Any):
+        self.arn = kwargs.get("arn")
+        self.connection_state = kwargs.get("connection_state", "DISCONNECTED")
+        self.device_settings_sync_state = kwargs.get(
+            "device_settings_sync_state", "SYNCED"
+        )
+        self.device_update_status = kwargs.get("device_update_status", "UP_TO_DATE")
+        self.hd_device_settings = kwargs.get("hd_device_settings", {})
+        self.input_device_id = kwargs.get("input_device_id")
+        self.mac_address = kwargs.get("mac_address", "00:00:00:00:00:00")
+        self.name = kwargs.get("name", "")
+        self.network_settings = kwargs.get("network_settings", {})
+        self.serial_number = kwargs.get("serial_number", "")
+        self.tags = kwargs.get("tags", {})
+        self.device_type = kwargs.get("device_type", "HD")
+        self.uhd_device_settings = kwargs.get("uhd_device_settings", {})
+        self.availability_zone = kwargs.get("availability_zone", "")
+        self.medialive_input_arns: list[str] = kwargs.get("medialive_input_arns", [])
+        self.output_type = kwargs.get("output_type", "NONE")
+        # Transfer state: TRANSFERRING, TRANSFERRED
+        self.transfer_target_account_id: Optional[str] = None
+        self.transfer_target_region: Optional[str] = None
+        self.transfer_target_handler: Optional[str] = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "arn": self.arn,
+            "availabilityZone": self.availability_zone,
+            "connectionState": self.connection_state,
+            "deviceSettingsSyncState": self.device_settings_sync_state,
+            "deviceUpdateStatus": self.device_update_status,
+            "hdDeviceSettings": self.hd_device_settings,
+            "id": self.input_device_id,
+            "macAddress": self.mac_address,
+            "mediaCnnectInputArns": self.medialive_input_arns,
+            "name": self.name,
+            "networkSettings": self.network_settings,
+            "outputType": self.output_type,
+            "serialNumber": self.serial_number,
+            "tags": self.tags,
+            "type": self.device_type,
+            "uhdDeviceSettings": self.uhd_device_settings,
+        }
+
+
+class Offering(BaseModel):
+    def __init__(self, **kwargs: Any):
+        self.arn = kwargs.get("arn")
+        self.currency_code = kwargs.get("currency_code", "USD")
+        self.duration = kwargs.get("duration", 1)
+        self.duration_units = kwargs.get("duration_units", "MONTHS")
+        self.fixed_price = kwargs.get("fixed_price", 0.0)
+        self.offering_description = kwargs.get("offering_description", "")
+        self.offering_id = kwargs.get("offering_id")
+        self.offering_type = kwargs.get("offering_type", "NO_UPFRONT")
+        self.region = kwargs.get("region", "")
+        self.resource_specification = kwargs.get("resource_specification", {})
+        self.usage_price = kwargs.get("usage_price", 0.0)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "arn": self.arn,
+            "currencyCode": self.currency_code,
+            "duration": self.duration,
+            "durationUnits": self.duration_units,
+            "fixedPrice": self.fixed_price,
+            "offeringDescription": self.offering_description,
+            "offeringId": self.offering_id,
+            "offeringType": self.offering_type,
+            "region": self.region,
+            "resourceSpecification": self.resource_specification,
+            "usagePrice": self.usage_price,
+        }
+
+
+class Reservation(BaseModel):
+    def __init__(self, **kwargs: Any):
+        self.arn = kwargs.get("arn")
+        self.count = kwargs.get("count", 1)
+        self.currency_code = kwargs.get("currency_code", "USD")
+        self.duration = kwargs.get("duration", 1)
+        self.duration_units = kwargs.get("duration_units", "MONTHS")
+        self.end = kwargs.get("end", "")
+        self.fixed_price = kwargs.get("fixed_price", 0.0)
+        self.name = kwargs.get("name", "")
+        self.offering_description = kwargs.get("offering_description", "")
+        self.offering_id = kwargs.get("offering_id")
+        self.offering_type = kwargs.get("offering_type", "NO_UPFRONT")
+        self.region = kwargs.get("region", "")
+        self.renewal_settings = kwargs.get("renewal_settings", {})
+        self.reservation_id = kwargs.get("reservation_id")
+        self.resource_specification = kwargs.get("resource_specification", {})
+        self.start = kwargs.get("start", "")
+        self.state = kwargs.get("state", "ACTIVE")
+        self.tags = kwargs.get("tags", {})
+        self.usage_price = kwargs.get("usage_price", 0.0)
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "arn": self.arn,
+            "count": self.count,
+            "currencyCode": self.currency_code,
+            "duration": self.duration,
+            "durationUnits": self.duration_units,
+            "end": self.end,
+            "fixedPrice": self.fixed_price,
+            "name": self.name,
+            "offeringDescription": self.offering_description,
+            "offeringId": self.offering_id,
+            "offeringType": self.offering_type,
+            "region": self.region,
+            "renewalSettings": self.renewal_settings,
+            "reservationId": self.reservation_id,
+            "resourceSpecification": self.resource_specification,
+            "start": self.start,
+            "state": self.state,
+            "tags": self.tags,
+            "usagePrice": self.usage_price,
+        }
+
+
 class MediaLiveBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
@@ -634,6 +756,9 @@ class MediaLiveBackend(BaseBackend):
         self._signal_maps: dict[str, SignalMap] = OrderedDict()
         self._tags: dict[str, dict[str, str]] = {}  # arn -> {key: value}
         self._schedules: dict[str, list[dict[str, Any]]] = {}  # channel_id -> actions
+        self._input_devices: dict[str, InputDevice] = OrderedDict()
+        self._offerings: dict[str, Offering] = OrderedDict()
+        self._reservations: dict[str, Reservation] = OrderedDict()
 
     def _arn(self, resource_type: str, resource_id: str) -> str:
         partition = get_partition(self.region_name)
@@ -1985,74 +2110,198 @@ class MediaLiveBackend(BaseBackend):
     ) -> dict[str, Any]:
         return {"accountConfiguration": account_configuration or {"kmsKeyId": None}}
 
-    # ---- Stubs for InputDevice, Offering, Reservation (no local state) ----
+    # ---- InputDevice ----
 
-    def list_input_devices(self) -> list[Any]:
-        return []
+    def _register_input_device(self, input_device_id: str) -> InputDevice:
+        """Create a minimal InputDevice record if not already present."""
+        if input_device_id not in self._input_devices:
+            arn = self._arn("inputDevice", input_device_id)
+            device = InputDevice(
+                arn=arn,
+                input_device_id=input_device_id,
+                connection_state="CONNECTED",
+                device_settings_sync_state="SYNCED",
+                device_update_status="UP_TO_DATE",
+                name=input_device_id,
+                serial_number=input_device_id,
+            )
+            self._input_devices[input_device_id] = device
+        return self._input_devices[input_device_id]
 
-    def describe_input_device(self, input_device_id: str) -> dict[str, Any]:
-        raise NotFoundException(f"InputDevice {input_device_id} not found")
+    def list_input_devices(self) -> list[InputDevice]:
+        return list(self._input_devices.values())
+
+    def describe_input_device(self, input_device_id: str) -> InputDevice:
+        if input_device_id not in self._input_devices:
+            raise NotFoundException(f"InputDevice {input_device_id} not found")
+        return self._input_devices[input_device_id]
 
     def update_input_device(
-        self, input_device_id: str, **kwargs: Any
-    ) -> dict[str, Any]:
-        raise NotFoundException(f"InputDevice {input_device_id} not found")
+        self,
+        input_device_id: str,
+        hd_device_settings: Optional[dict[str, Any]] = None,
+        name: Optional[str] = None,
+        uhd_device_settings: Optional[dict[str, Any]] = None,
+        availability_zone: Optional[str] = None,
+    ) -> InputDevice:
+        if input_device_id not in self._input_devices:
+            raise NotFoundException(f"InputDevice {input_device_id} not found")
+        device = self._input_devices[input_device_id]
+        if hd_device_settings is not None:
+            device.hd_device_settings = hd_device_settings
+        if name is not None:
+            device.name = name
+        if uhd_device_settings is not None:
+            device.uhd_device_settings = uhd_device_settings
+        if availability_zone is not None:
+            device.availability_zone = availability_zone
+        return device
 
     def accept_input_device_transfer(self, input_device_id: str) -> None:
-        raise NotFoundException(f"InputDevice {input_device_id} not found")
+        if input_device_id not in self._input_devices:
+            raise NotFoundException(f"InputDevice {input_device_id} not found")
+        device = self._input_devices[input_device_id]
+        device.transfer_target_account_id = None
 
     def cancel_input_device_transfer(self, input_device_id: str) -> None:
-        raise NotFoundException(f"InputDevice {input_device_id} not found")
+        if input_device_id not in self._input_devices:
+            raise NotFoundException(f"InputDevice {input_device_id} not found")
+        device = self._input_devices[input_device_id]
+        device.transfer_target_account_id = None
 
     def reject_input_device_transfer(self, input_device_id: str) -> None:
-        raise NotFoundException(f"InputDevice {input_device_id} not found")
+        if input_device_id not in self._input_devices:
+            raise NotFoundException(f"InputDevice {input_device_id} not found")
+        device = self._input_devices[input_device_id]
+        device.transfer_target_account_id = None
 
     def reboot_input_device(self, input_device_id: str) -> None:
-        raise NotFoundException(f"InputDevice {input_device_id} not found")
+        if input_device_id not in self._input_devices:
+            raise NotFoundException(f"InputDevice {input_device_id} not found")
 
     def start_input_device(self, input_device_id: str) -> None:
-        raise NotFoundException(f"InputDevice {input_device_id} not found")
+        if input_device_id not in self._input_devices:
+            raise NotFoundException(f"InputDevice {input_device_id} not found")
 
     def stop_input_device(self, input_device_id: str) -> None:
-        raise NotFoundException(f"InputDevice {input_device_id} not found")
+        if input_device_id not in self._input_devices:
+            raise NotFoundException(f"InputDevice {input_device_id} not found")
 
     def start_input_device_maintenance_window(self, input_device_id: str) -> None:
-        raise NotFoundException(f"InputDevice {input_device_id} not found")
+        if input_device_id not in self._input_devices:
+            raise NotFoundException(f"InputDevice {input_device_id} not found")
 
-    def transfer_input_device(self, input_device_id: str, **kwargs: Any) -> None:
-        raise NotFoundException(f"InputDevice {input_device_id} not found")
+    def transfer_input_device(
+        self,
+        input_device_id: str,
+        target_customer_id: Optional[str] = None,
+        target_region: Optional[str] = None,
+        transfer_message: Optional[str] = None,
+    ) -> None:
+        if input_device_id not in self._input_devices:
+            raise NotFoundException(f"InputDevice {input_device_id} not found")
+        device = self._input_devices[input_device_id]
+        device.transfer_target_account_id = target_customer_id
+        device.transfer_target_region = target_region
 
     def describe_input_device_thumbnail(
         self, input_device_id: str, accept: str
     ) -> bytes:
-        raise NotFoundException(f"InputDevice {input_device_id} not found")
+        if input_device_id not in self._input_devices:
+            raise NotFoundException(f"InputDevice {input_device_id} not found")
+        return b""
 
-    def list_input_device_transfers(self, transfer_type: str) -> list[Any]:
-        return []
+    def list_input_device_transfers(self, transfer_type: str) -> list[InputDevice]:
+        return [
+            d
+            for d in self._input_devices.values()
+            if d.transfer_target_account_id is not None
+        ]
 
     def claim_device(self, **kwargs: Any) -> None:
-        pass  # No-op stub
+        pass  # No-op: device claiming is account-level, no local state needed
 
-    def list_offerings(self) -> list[Any]:
-        return []
+    # ---- Offering ----
 
-    def describe_offering(self, offering_id: str) -> dict[str, Any]:
-        raise NotFoundException(f"Offering {offering_id} not found")
+    def list_offerings(self) -> list[Offering]:
+        return list(self._offerings.values())
 
-    def purchase_offering(self, offering_id: str, **kwargs: Any) -> dict[str, Any]:
-        raise NotFoundException(f"Offering {offering_id} not found")
+    def describe_offering(self, offering_id: str) -> Offering:
+        if offering_id not in self._offerings:
+            raise NotFoundException(f"Offering {offering_id} not found")
+        return self._offerings[offering_id]
 
-    def list_reservations(self) -> list[Any]:
-        return []
+    def purchase_offering(
+        self,
+        offering_id: str,
+        count: int,
+        name: Optional[str],
+        renewal_settings: Optional[dict[str, Any]],
+        request_id: Optional[str],
+        start: Optional[str],
+        tags: Optional[dict[str, str]],
+    ) -> Reservation:
+        if offering_id not in self._offerings:
+            raise NotFoundException(f"Offering {offering_id} not found")
+        offering = self._offerings[offering_id]
+        reservation_id = mock_random.uuid4().hex
+        arn = self._arn("reservation", reservation_id)
+        now = _now_iso()
+        reservation = Reservation(
+            arn=arn,
+            count=count or 1,
+            currency_code=offering.currency_code,
+            duration=offering.duration,
+            duration_units=offering.duration_units,
+            fixed_price=offering.fixed_price,
+            name=name or offering.offering_description,
+            offering_description=offering.offering_description,
+            offering_id=offering_id,
+            offering_type=offering.offering_type,
+            region=self.region_name,
+            renewal_settings=renewal_settings or {},
+            reservation_id=reservation_id,
+            resource_specification=offering.resource_specification,
+            start=start or now,
+            state="ACTIVE",
+            tags=tags or {},
+            usage_price=offering.usage_price,
+        )
+        self._reservations[reservation_id] = reservation
+        self._store_tags(arn, tags)
+        return reservation
 
-    def describe_reservation(self, reservation_id: str) -> dict[str, Any]:
-        raise NotFoundException(f"Reservation {reservation_id} not found")
+    # ---- Reservation ----
 
-    def delete_reservation(self, reservation_id: str) -> dict[str, Any]:
-        raise NotFoundException(f"Reservation {reservation_id} not found")
+    def list_reservations(self) -> list[Reservation]:
+        return list(self._reservations.values())
 
-    def update_reservation(self, reservation_id: str, **kwargs: Any) -> dict[str, Any]:
-        raise NotFoundException(f"Reservation {reservation_id} not found")
+    def describe_reservation(self, reservation_id: str) -> Reservation:
+        if reservation_id not in self._reservations:
+            raise NotFoundException(f"Reservation {reservation_id} not found")
+        return self._reservations[reservation_id]
+
+    def delete_reservation(self, reservation_id: str) -> Reservation:
+        if reservation_id not in self._reservations:
+            raise NotFoundException(f"Reservation {reservation_id} not found")
+        reservation = self._reservations.pop(reservation_id)
+        reservation.state = "CANCELED"
+        return reservation
+
+    def update_reservation(
+        self,
+        reservation_id: str,
+        name: Optional[str] = None,
+        renewal_settings: Optional[dict[str, Any]] = None,
+    ) -> Reservation:
+        if reservation_id not in self._reservations:
+            raise NotFoundException(f"Reservation {reservation_id} not found")
+        reservation = self._reservations[reservation_id]
+        if name is not None:
+            reservation.name = name
+        if renewal_settings is not None:
+            reservation.renewal_settings = renewal_settings
+        return reservation
 
     # ---- Misc stubs ----
 

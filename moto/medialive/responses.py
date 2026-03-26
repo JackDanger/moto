@@ -983,21 +983,31 @@ class MediaLiveResponse(BaseResponse):
         )
         return json.dumps(result)
 
-    # ---- InputDevice stubs ----
+    # ---- InputDevice ----
 
     def list_input_devices(self) -> str:
-        self.medialive_backend.list_input_devices()
-        return json.dumps({"inputDevices": [], "nextToken": None})
+        devices = self.medialive_backend.list_input_devices()
+        return json.dumps(
+            {"inputDevices": [d.to_dict() for d in devices], "nextToken": None}
+        )
 
     def describe_input_device(self) -> str:
         input_device_id = self._get_param("inputDeviceId")
-        self.medialive_backend.describe_input_device(input_device_id=input_device_id)
-        return json.dumps({})  # unreachable
+        device = self.medialive_backend.describe_input_device(
+            input_device_id=input_device_id
+        )
+        return json.dumps(device.to_dict())
 
     def update_input_device(self) -> str:
         input_device_id = self._get_param("inputDeviceId")
-        self.medialive_backend.update_input_device(input_device_id=input_device_id)
-        return json.dumps({})  # unreachable
+        device = self.medialive_backend.update_input_device(
+            input_device_id=input_device_id,
+            hd_device_settings=self._get_param("hdDeviceSettings"),
+            name=self._get_param("name"),
+            uhd_device_settings=self._get_param("uhdDeviceSettings"),
+            availability_zone=self._get_param("availabilityZone"),
+        )
+        return json.dumps(device.to_dict())
 
     def accept_input_device_transfer(self) -> str:
         input_device_id = self._get_param("inputDeviceId")
@@ -1044,7 +1054,12 @@ class MediaLiveResponse(BaseResponse):
 
     def transfer_input_device(self) -> str:
         input_device_id = self._get_param("inputDeviceId")
-        self.medialive_backend.transfer_input_device(input_device_id=input_device_id)
+        self.medialive_backend.transfer_input_device(
+            input_device_id=input_device_id,
+            target_customer_id=self._get_param("targetCustomerId"),
+            target_region=self._get_param("targetRegion"),
+            transfer_message=self._get_param("transferMessage"),
+        )
         return json.dumps({})
 
     def describe_input_device_thumbnail(self) -> str:
@@ -1053,50 +1068,78 @@ class MediaLiveResponse(BaseResponse):
         self.medialive_backend.describe_input_device_thumbnail(
             input_device_id=input_device_id, accept=accept
         )
-        return json.dumps({})  # unreachable
+        return json.dumps({})
 
     def list_input_device_transfers(self) -> str:
-        self.medialive_backend.list_input_device_transfers(transfer_type="")
-        return json.dumps({"inputDeviceTransfers": [], "nextToken": None})
+        devices = self.medialive_backend.list_input_device_transfers(transfer_type="")
+        return json.dumps(
+            {
+                "inputDeviceTransfers": [d.to_dict() for d in devices],
+                "nextToken": None,
+            }
+        )
 
     def claim_device(self) -> str:
         self.medialive_backend.claim_device()
         return json.dumps({})
 
-    # ---- Offering / Reservation stubs ----
+    # ---- Offering / Reservation ----
 
     def list_offerings(self) -> str:
-        self.medialive_backend.list_offerings()
-        return json.dumps({"offerings": [], "nextToken": None})
+        offerings = self.medialive_backend.list_offerings()
+        return json.dumps(
+            {"offerings": [o.to_dict() for o in offerings], "nextToken": None}
+        )
 
     def describe_offering(self) -> str:
         offering_id = self._get_param("offeringId")
-        self.medialive_backend.describe_offering(offering_id=offering_id)
-        return json.dumps({})  # unreachable
+        offering = self.medialive_backend.describe_offering(offering_id=offering_id)
+        return json.dumps(offering.to_dict())
 
     def purchase_offering(self) -> str:
         offering_id = self._get_param("offeringId")
-        self.medialive_backend.purchase_offering(offering_id=offering_id)
-        return json.dumps({})  # unreachable
+        reservation = self.medialive_backend.purchase_offering(
+            offering_id=offering_id,
+            count=self._get_int_param("count"),
+            name=self._get_param("name"),
+            renewal_settings=self._get_param("renewalSettings"),
+            request_id=self._get_param("requestId"),
+            start=self._get_param("start"),
+            tags=self._get_param("tags"),
+        )
+        return json.dumps({"reservation": reservation.to_dict()})
 
     def list_reservations(self) -> str:
-        self.medialive_backend.list_reservations()
-        return json.dumps({"reservations": [], "nextToken": None})
+        reservations = self.medialive_backend.list_reservations()
+        return json.dumps(
+            {
+                "reservations": [r.to_dict() for r in reservations],
+                "nextToken": None,
+            }
+        )
 
     def describe_reservation(self) -> str:
         reservation_id = self._get_param("reservationId")
-        self.medialive_backend.describe_reservation(reservation_id=reservation_id)
-        return json.dumps({})  # unreachable
+        reservation = self.medialive_backend.describe_reservation(
+            reservation_id=reservation_id
+        )
+        return json.dumps(reservation.to_dict())
 
     def delete_reservation(self) -> str:
         reservation_id = self._get_param("reservationId")
-        self.medialive_backend.delete_reservation(reservation_id=reservation_id)
-        return json.dumps({})  # unreachable
+        reservation = self.medialive_backend.delete_reservation(
+            reservation_id=reservation_id
+        )
+        return json.dumps(reservation.to_dict())
 
     def update_reservation(self) -> str:
         reservation_id = self._get_param("reservationId")
-        self.medialive_backend.update_reservation(reservation_id=reservation_id)
-        return json.dumps({})  # unreachable
+        reservation = self.medialive_backend.update_reservation(
+            reservation_id=reservation_id,
+            name=self._get_param("name"),
+            renewal_settings=self._get_param("renewalSettings"),
+        )
+        return json.dumps({"reservation": reservation.to_dict()})
 
     # ---- Misc stubs ----
 
