@@ -301,4 +301,5 @@ url_paths = {
     "{0}/routing-profiles/(?P<InstanceId>[^/]+)/(?P<RoutingProfileId>[^/]+)/manual-assignment-queues$": ConnectResponse.dispatch,
     "{0}/security-profiles-flow-modules/(?P<InstanceId>[^/]+)/(?P<SecurityProfileId>[^/]+)$": ConnectResponse.dispatch,
     "{0}/contact/monitor$": ConnectResponse.dispatch,
+    "{0}/users/(?P<InstanceId>[^/]+)/(?P<UserId>[^/]+)/notifications$": ConnectResponse.dispatch,
 }
