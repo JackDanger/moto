@@ -110,7 +110,7 @@ class AgentAlias(BaseModel):
         self.description = description
         self.routing_configuration = routing_configuration or []
         self.tags = tags or {}
-        self.agent_alias_id = str(mock_random.uuid4())[:8].upper()
+        self.agent_alias_id = str(mock_random.uuid4()).replace("-", "")[:10].upper()
         self.agent_alias_arn = f"arn:{get_partition(region_name)}:bedrock:{region_name}:{account_id}:agent-alias/{agent_id}/{self.agent_alias_id}"
         self.created_at = unix_time()
         self.updated_at = unix_time()
