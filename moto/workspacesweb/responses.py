@@ -669,7 +669,7 @@ class WorkSpacesWebResponse(BaseResponse):
             self.parsed_url.path.split("/trustStores/")[-1].split("/certificates")[0]
         )
         items = self.workspacesweb_backend.list_trust_store_certificates(trust_store_arn=trust_store_arn)
-        return json.dumps({"certificateSummaryList": items, "trustStoreArn": trust_store_arn})
+        return json.dumps({"certificateList": items, "trustStoreArn": trust_store_arn})
 
     def associate_trust_store(self) -> str:
         trust_store_arn = unquote(self._get_param("trustStoreArn"))
