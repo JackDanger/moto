@@ -213,4 +213,4 @@ class AmisResponse(EC2BaseResponse):
             s3_export_location=s3_export_location,
             description=description,
         )
-        return ActionResult({"ExportImageTask": result})
+        return ActionResult(result)
