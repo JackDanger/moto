@@ -961,6 +961,14 @@ class InvalidIpamIdError(EC2ClientError):
 
 
 
+class InvalidIpamPoolIdError(EC2ClientError):
+    def __init__(self, ipam_pool_id: str):
+        super().__init__(
+            "InvalidIpamPoolId.NotFound",
+            f"The IPAM pool ID '{ipam_pool_id}' does not exist",
+        )
+
+
 class InvalidIpamScopeIdError(EC2ClientError):
     def __init__(self, ipam_scope_id: str):
         super().__init__(

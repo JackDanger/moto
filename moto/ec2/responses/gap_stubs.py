@@ -644,10 +644,6 @@ class GapStubs(EC2BaseResponse):
         template = self.response_template(EC2_GET_IPAM_PREFIX_LIST_RESOLVER_VERSIONS)
         return template.render()
 
-    def get_managed_prefix_list_associations(self) -> str:
-        template = self.response_template(EC2_GET_MANAGED_PREFIX_LIST_ASSOCIATIONS)
-        return template.render()
-
     def get_reserved_instances_exchange_quote(self) -> str:
         template = self.response_template(EC2_GET_RESERVED_INSTANCES_EXCHANGE_QUOTE)
         return template.render()
@@ -664,16 +660,8 @@ class GapStubs(EC2BaseResponse):
         template = self.response_template(EC2_GET_ROUTE_SERVER_ROUTING_DATABASE)
         return template.render()
 
-    def get_security_groups_for_vpc(self) -> str:
-        template = self.response_template(EC2_GET_SECURITY_GROUPS_FOR_VPC)
-        return template.render()
-
     def get_spot_placement_scores(self) -> str:
         template = self.response_template(EC2_GET_SPOT_PLACEMENT_SCORES)
-        return template.render()
-
-    def get_transit_gateway_attachment_propagations(self) -> str:
-        template = self.response_template(EC2_GET_TRANSIT_GATEWAY_ATTACHMENT_PROPAGATIONS)
         return template.render()
 
     def get_transit_gateway_metering_policy_entries(self) -> str:
@@ -762,6 +750,223 @@ class GapStubs(EC2BaseResponse):
 
     def accept_address_transfer(self) -> str:
         template = self.response_template(EC2_ACCEPT_ADDRESS_TRANSFER)
+        return template.render()
+
+    def modify_id_format(self) -> str:
+        template = self.response_template(EC2_MODIFY_ID_FORMAT)
+        return template.render()
+
+    def modify_identity_id_format(self) -> str:
+        template = self.response_template(EC2_MODIFY_IDENTITY_ID_FORMAT)
+        return template.render()
+
+    def modify_address_attribute(self) -> str:
+        allocation_id = self._get_param("AllocationId", "")
+        template = self.response_template(EC2_MODIFY_ADDRESS_ATTRIBUTE)
+        return template.render(allocation_id=allocation_id)
+
+    def reset_address_attribute(self) -> str:
+        allocation_id = self._get_param("AllocationId", "")
+        template = self.response_template(EC2_RESET_ADDRESS_ATTRIBUTE)
+        return template.render(allocation_id=allocation_id)
+
+    def modify_availability_zone_group(self) -> str:
+        template = self.response_template(EC2_MODIFY_AVAILABILITY_ZONE_GROUP)
+        return template.render()
+
+    def modify_default_credit_specification(self) -> str:
+        instance_family = self._get_param("InstanceFamily", "")
+        cpu_credits = self._get_param("CpuCredits", "standard")
+        template = self.response_template(EC2_MODIFY_DEFAULT_CREDIT_SPECIFICATION)
+        return template.render(instance_family=instance_family, cpu_credits=cpu_credits)
+
+    def modify_fpga_image_attribute(self) -> str:
+        template = self.response_template(EC2_MODIFY_FPGA_IMAGE_ATTRIBUTE)
+        return template.render()
+
+    def reset_fpga_image_attribute(self) -> str:
+        template = self.response_template(EC2_RESET_FPGA_IMAGE_ATTRIBUTE)
+        return template.render()
+
+    def modify_instance_capacity_reservation_attributes(self) -> str:
+        template = self.response_template(EC2_MODIFY_INSTANCE_CAPACITY_RESERVATION_ATTRIBUTES)
+        return template.render()
+
+    def modify_instance_credit_specification(self) -> str:
+        template = self.response_template(EC2_MODIFY_INSTANCE_CREDIT_SPECIFICATION)
+        return template.render()
+
+    def modify_instance_event_start_time(self) -> str:
+        instance_event_id = self._get_param("InstanceEventId", "")
+        template = self.response_template(EC2_MODIFY_INSTANCE_EVENT_START_TIME)
+        return template.render(instance_event_id=instance_event_id)
+
+    def modify_instance_maintenance_options(self) -> str:
+        instance_id = self._get_param("InstanceId", "")
+        auto_recovery = self._get_param("AutoRecovery", "default")
+        template = self.response_template(EC2_MODIFY_INSTANCE_MAINTENANCE_OPTIONS)
+        return template.render(instance_id=instance_id, auto_recovery=auto_recovery)
+
+    def modify_instance_network_performance_options(self) -> str:
+        instance_id = self._get_param("InstanceId", "")
+        bandwidth_weighting = self._get_param("BandwidthWeighting", "default")
+        template = self.response_template(EC2_MODIFY_INSTANCE_NETWORK_PERFORMANCE_OPTIONS)
+        return template.render(instance_id=instance_id, bandwidth_weighting=bandwidth_weighting)
+
+    def modify_instance_placement(self) -> str:
+        template = self.response_template(EC2_MODIFY_INSTANCE_PLACEMENT)
+        return template.render()
+
+    def modify_ipam_resource_cidr(self) -> str:
+        resource_cidr = self._get_param("ResourceCidr", "")
+        template = self.response_template(EC2_MODIFY_IPAM_RESOURCE_CIDR)
+        return template.render(resource_cidr=resource_cidr)
+
+    def modify_ipam_resource_discovery(self) -> str:
+        resource_discovery_id = self._get_param("IpamResourceDiscoveryId", "")
+        template = self.response_template(EC2_MODIFY_IPAM_RESOURCE_DISCOVERY)
+        return template.render(resource_discovery_id=resource_discovery_id)
+
+    def modify_ipam_scope(self) -> str:
+        scope_id = self._get_param("IpamScopeId", "")
+        template = self.response_template(EC2_MODIFY_IPAM_SCOPE)
+        return template.render(scope_id=scope_id)
+
+    def modify_local_gateway_route(self) -> str:
+        route_table_id = self._get_param("LocalGatewayRouteTableId", "")
+        template = self.response_template(EC2_MODIFY_LOCAL_GATEWAY_ROUTE)
+        return template.render(route_table_id=route_table_id)
+
+    def modify_private_dns_name_options(self) -> str:
+        template = self.response_template(EC2_MODIFY_PRIVATE_DNS_NAME_OPTIONS)
+        return template.render()
+
+    def modify_reserved_instances(self) -> str:
+        template = self.response_template(EC2_MODIFY_RESERVED_INSTANCES)
+        return template.render()
+
+    def modify_snapshot_tier(self) -> str:
+        snapshot_id = self._get_param("SnapshotId", "")
+        template = self.response_template(EC2_MODIFY_SNAPSHOT_TIER)
+        return template.render(snapshot_id=snapshot_id, tier_time="2024-01-01T00:00:00.000Z")
+
+    def modify_transit_gateway_prefix_list_reference(self) -> str:
+        route_table_id = self._get_param("TransitGatewayRouteTableId", "")
+        prefix_list_id = self._get_param("PrefixListId", "")
+        template = self.response_template(EC2_MODIFY_TRANSIT_GATEWAY_PREFIX_LIST_REFERENCE)
+        return template.render(route_table_id=route_table_id, prefix_list_id=prefix_list_id)
+
+    def modify_vpc_endpoint_connection_notification(self) -> str:
+        template = self.response_template(EC2_MODIFY_VPC_ENDPOINT_CONNECTION_NOTIFICATION)
+        return template.render()
+
+    def modify_vpc_endpoint_service_payer_responsibility(self) -> str:
+        template = self.response_template(EC2_MODIFY_VPC_ENDPOINT_SERVICE_PAYER_RESPONSIBILITY)
+        return template.render()
+
+    def modify_vpn_connection(self) -> str:
+        vpn_connection_id = self._get_param("VpnConnectionId", "")
+        template = self.response_template(EC2_MODIFY_VPN_CONNECTION)
+        return template.render(vpn_connection_id=vpn_connection_id)
+
+    def modify_vpn_connection_options(self) -> str:
+        vpn_connection_id = self._get_param("VpnConnectionId", "")
+        template = self.response_template(EC2_MODIFY_VPN_CONNECTION_OPTIONS)
+        return template.render(vpn_connection_id=vpn_connection_id)
+
+    def modify_vpn_tunnel_certificate(self) -> str:
+        vpn_connection_id = self._get_param("VpnConnectionId", "")
+        template = self.response_template(EC2_MODIFY_VPN_TUNNEL_CERTIFICATE)
+        return template.render(vpn_connection_id=vpn_connection_id)
+
+    def modify_vpn_tunnel_options(self) -> str:
+        vpn_connection_id = self._get_param("VpnConnectionId", "")
+        template = self.response_template(EC2_MODIFY_VPN_TUNNEL_OPTIONS)
+        return template.render(vpn_connection_id=vpn_connection_id)
+
+    def move_address_to_vpc(self) -> str:
+        template = self.response_template(EC2_MOVE_ADDRESS_TO_VPC)
+        return template.render()
+
+    def move_byoip_cidr_to_ipam(self) -> str:
+        cidr = self._get_param("Cidr", "")
+        template = self.response_template(EC2_MOVE_BYOIP_CIDR_TO_IPAM)
+        return template.render(cidr=cidr)
+
+    def purchase_reserved_instances_offering(self) -> str:
+        template = self.response_template(EC2_PURCHASE_RESERVED_INSTANCES_OFFERING)
+        return template.render()
+
+    def purchase_scheduled_instances(self) -> str:
+        template = self.response_template(EC2_PURCHASE_SCHEDULED_INSTANCES)
+        return template.render()
+
+    def register_instance_event_notification_attributes(self) -> str:
+        template = self.response_template(EC2_REGISTER_INSTANCE_EVENT_NOTIFICATION_ATTRIBUTES)
+        return template.render()
+
+    def register_transit_gateway_multicast_group_members(self) -> str:
+        domain_id = self._get_param("TransitGatewayMulticastDomainId", "")
+        template = self.response_template(EC2_REGISTER_TRANSIT_GATEWAY_MULTICAST_GROUP_MEMBERS)
+        return template.render(domain_id=domain_id)
+
+    def register_transit_gateway_multicast_group_sources(self) -> str:
+        domain_id = self._get_param("TransitGatewayMulticastDomainId", "")
+        template = self.response_template(EC2_REGISTER_TRANSIT_GATEWAY_MULTICAST_GROUP_SOURCES)
+        return template.render(domain_id=domain_id)
+
+    def replace_vpn_tunnel(self) -> str:
+        template = self.response_template(EC2_REPLACE_VPN_TUNNEL)
+        return template.render()
+
+    def restore_address_to_classic(self) -> str:
+        public_ip = self._get_param("PublicIp", "")
+        template = self.response_template(EC2_RESTORE_ADDRESS_TO_CLASSIC)
+        return template.render(public_ip=public_ip)
+
+    def revoke_client_vpn_ingress(self) -> str:
+        template = self.response_template(EC2_REVOKE_CLIENT_VPN_INGRESS)
+        return template.render()
+
+    def run_scheduled_instances(self) -> str:
+        template = self.response_template(EC2_RUN_SCHEDULED_INSTANCES)
+        return template.render()
+
+    def search_transit_gateway_multicast_groups(self) -> str:
+        template = self.response_template(EC2_SEARCH_TRANSIT_GATEWAY_MULTICAST_GROUPS)
+        return template.render()
+
+    def send_diagnostic_interrupt(self) -> str:
+        template = self.response_template(EC2_SEND_DIAGNOSTIC_INTERRUPT)
+        return template.render()
+
+    def start_vpc_endpoint_service_private_dns_verification(self) -> str:
+        template = self.response_template(EC2_START_VPC_ENDPOINT_SERVICE_PRIVATE_DNS_VERIFICATION)
+        return template.render()
+
+    def lock_snapshot(self) -> str:
+        snapshot_id = self._get_param("SnapshotId", "")
+        lock_mode = self._get_param("LockMode", "governance")
+        template = self.response_template(EC2_LOCK_SNAPSHOT)
+        return template.render(snapshot_id=snapshot_id, lock_mode=lock_mode)
+
+    def unlock_snapshot(self) -> str:
+        snapshot_id = self._get_param("SnapshotId", "")
+        template = self.response_template(EC2_UNLOCK_SNAPSHOT)
+        return template.render(snapshot_id=snapshot_id)
+
+    def unassign_private_nat_gateway_address(self) -> str:
+        nat_gateway_id = self._get_param("NatGatewayId", "")
+        template = self.response_template(EC2_UNASSIGN_PRIVATE_NAT_GATEWAY_ADDRESS)
+        return template.render(nat_gateway_id=nat_gateway_id)
+
+    def withdraw_byoip_cidr(self) -> str:
+        cidr = self._get_param("Cidr", "")
+        template = self.response_template(EC2_WITHDRAW_BYOIP_CIDR)
+        return template.render(cidr=cidr)
+
+    def import_client_vpn_client_certificate_revocation_list(self) -> str:
+        template = self.response_template(EC2_IMPORT_CLIENT_VPN_CLIENT_CERTIFICATE_REVOCATION_LIST)
         return template.render()
 
     def accept_capacity_reservation_billing_ownership(self) -> str:
@@ -1855,3 +2060,222 @@ EC2_ACCEPT_ADDRESS_TRANSFER = """<AcceptAddressTransferResponse xmlns="http://ec
         <addressTransferStatus>accepted</addressTransferStatus>
     </addressTransfer>
 </AcceptAddressTransferResponse>"""
+
+EC2_GET_ACTIVE_VPN_TUNNEL_STATUS = """<GetActiveVpnTunnelStatusResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <activeVpnTunnelStatus/>
+</GetActiveVpnTunnelStatusResponse>"""
+
+EC2_GET_ASSOCIATED_ENCLAVE_CERTIFICATE_IAM_ROLES = """<GetAssociatedEnclaveCertificateIamRolesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <associatedRoleSet/>
+</GetAssociatedEnclaveCertificateIamRolesResponse>"""
+
+EC2_GET_ASSOCIATED_IPV6_POOL_CIDRS = """<GetAssociatedIpv6PoolCidrsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <ipv6CidrAssociationSet/>
+</GetAssociatedIpv6PoolCidrsResponse>"""
+
+EC2_GET_CAPACITY_MANAGER_METRIC_DIMENSIONS = """<GetCapacityManagerMetricDimensionsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <capacityManagerMetricDimensionsSet/>
+</GetCapacityManagerMetricDimensionsResponse>"""
+
+EC2_GET_CAPACITY_RESERVATION_USAGE = """<GetCapacityReservationUsageResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <availableInstanceCount>0</availableInstanceCount>
+    <totalInstanceCount>0</totalInstanceCount>
+    <instanceUsagesSet/>
+</GetCapacityReservationUsageResponse>"""
+
+EC2_GET_CONSOLE_SCREENSHOT = """<GetConsoleScreenshotResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <imageData></imageData>
+</GetConsoleScreenshotResponse>"""
+
+EC2_GET_DEFAULT_CREDIT_SPECIFICATION = """<GetDefaultCreditSpecificationResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <instanceFamilyCreditSpecification>
+        <cpuCredits>standard</cpuCredits>
+    </instanceFamilyCreditSpecification>
+</GetDefaultCreditSpecificationResponse>"""
+
+EC2_GET_FLOW_LOGS_INTEGRATION_TEMPLATE = """<GetFlowLogsIntegrationTemplateResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <result></result>
+</GetFlowLogsIntegrationTemplateResponse>"""
+
+EC2_GET_GROUPS_FOR_CAPACITY_RESERVATION = """<GetGroupsForCapacityReservationResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <capacityReservationGroupSet/>
+</GetGroupsForCapacityReservationResponse>"""
+
+EC2_GET_IMAGE_ANCESTRY = """<GetImageAncestryResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <imageAncestryEntrySet/>
+</GetImageAncestryResponse>"""
+
+EC2_GET_INSTANCE_TPM_EK_PUB = """<GetInstanceTpmEkPubResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <keyValue></keyValue>
+    <keyFormat>der</keyFormat>
+</GetInstanceTpmEkPubResponse>"""
+
+EC2_GET_INSTANCE_TYPES_FROM_INSTANCE_REQUIREMENTS = """<GetInstanceTypesFromInstanceRequirementsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <instanceTypeSet/>
+</GetInstanceTypesFromInstanceRequirementsResponse>"""
+
+EC2_GET_IPAM_ADDRESS_HISTORY = """<GetIpamAddressHistoryResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <historyRecordSet/>
+</GetIpamAddressHistoryResponse>"""
+
+EC2_GET_IPAM_DISCOVERED_ACCOUNTS = """<GetIpamDiscoveredAccountsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <ipamDiscoveredAccountSet/>
+</GetIpamDiscoveredAccountsResponse>"""
+
+EC2_GET_IPAM_DISCOVERED_PUBLIC_ADDRESSES = """<GetIpamDiscoveredPublicAddressesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <ipamDiscoveredPublicAddressSet/>
+</GetIpamDiscoveredPublicAddressesResponse>"""
+
+EC2_GET_IPAM_DISCOVERED_RESOURCE_CIDRS = """<GetIpamDiscoveredResourceCidrsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <ipamDiscoveredResourceCidrSet/>
+</GetIpamDiscoveredResourceCidrsResponse>"""
+
+EC2_GET_IPAM_POLICY_ALLOCATION_RULES = """<GetIpamPolicyAllocationRulesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <ipamPolicyAllocationRuleSet/>
+</GetIpamPolicyAllocationRulesResponse>"""
+
+EC2_GET_IPAM_POLICY_ORGANIZATION_TARGETS = """<GetIpamPolicyOrganizationTargetsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <ipamPolicyOrganizationTargetSet/>
+</GetIpamPolicyOrganizationTargetsResponse>"""
+
+EC2_GET_IPAM_PREFIX_LIST_RESOLVER_RULES = """<GetIpamPrefixListResolverRulesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <ipamPrefixListResolverRuleSet/>
+</GetIpamPrefixListResolverRulesResponse>"""
+
+EC2_GET_IPAM_PREFIX_LIST_RESOLVER_VERSION_ENTRIES = """<GetIpamPrefixListResolverVersionEntriesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <ipamPrefixListResolverVersionEntrySet/>
+</GetIpamPrefixListResolverVersionEntriesResponse>"""
+
+EC2_GET_IPAM_PREFIX_LIST_RESOLVER_VERSIONS = """<GetIpamPrefixListResolverVersionsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <ipamPrefixListResolverVersionSet/>
+</GetIpamPrefixListResolverVersionsResponse>"""
+
+EC2_GET_MANAGED_PREFIX_LIST_ASSOCIATIONS = """<GetManagedPrefixListAssociationsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <prefixListAssociationSet/>
+</GetManagedPrefixListAssociationsResponse>"""
+
+EC2_GET_RESERVED_INSTANCES_EXCHANGE_QUOTE = """<GetReservedInstancesExchangeQuoteResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <isValidExchange>false</isValidExchange>
+    <validationFailureReason>No matching offerings found</validationFailureReason>
+    <targetConfigurationValueSet/>
+</GetReservedInstancesExchangeQuoteResponse>"""
+
+EC2_GET_ROUTE_SERVER_ASSOCIATIONS = """<GetRouteServerAssociationsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <routeServerAssociationSet/>
+</GetRouteServerAssociationsResponse>"""
+
+EC2_GET_ROUTE_SERVER_PROPAGATIONS = """<GetRouteServerPropagationsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <routeServerPropagationSet/>
+</GetRouteServerPropagationsResponse>"""
+
+EC2_GET_ROUTE_SERVER_ROUTING_DATABASE = """<GetRouteServerRoutingDatabaseResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <routeServerRouteDatabaseEntrySet/>
+</GetRouteServerRoutingDatabaseResponse>"""
+
+EC2_GET_SECURITY_GROUPS_FOR_VPC = """<GetSecurityGroupsForVpcResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <securityGroupForVpcSet/>
+</GetSecurityGroupsForVpcResponse>"""
+
+EC2_GET_SPOT_PLACEMENT_SCORES = """<GetSpotPlacementScoresResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <spotPlacementScoreSet/>
+</GetSpotPlacementScoresResponse>"""
+
+EC2_GET_TRANSIT_GATEWAY_ATTACHMENT_PROPAGATIONS = """<GetTransitGatewayAttachmentPropagationsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <transitGatewayAttachmentPropagationsSet/>
+</GetTransitGatewayAttachmentPropagationsResponse>"""
+
+EC2_GET_TRANSIT_GATEWAY_METERING_POLICY_ENTRIES = """<GetTransitGatewayMeteringPolicyEntriesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <transitGatewayMeteringPolicyEntrySet/>
+</GetTransitGatewayMeteringPolicyEntriesResponse>"""
+
+EC2_GET_TRANSIT_GATEWAY_MULTICAST_DOMAIN_ASSOCIATIONS = """<GetTransitGatewayMulticastDomainAssociationsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <multicastDomainAssociationsSet/>
+</GetTransitGatewayMulticastDomainAssociationsResponse>"""
+
+EC2_GET_TRANSIT_GATEWAY_POLICY_TABLE_ASSOCIATIONS = """<GetTransitGatewayPolicyTableAssociationsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <associationsSet/>
+</GetTransitGatewayPolicyTableAssociationsResponse>"""
+
+EC2_GET_TRANSIT_GATEWAY_POLICY_TABLE_ENTRIES = """<GetTransitGatewayPolicyTableEntriesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <transitGatewayPolicyTableEntrySet/>
+</GetTransitGatewayPolicyTableEntriesResponse>"""
+
+EC2_GET_VERIFIED_ACCESS_ENDPOINT_POLICY = """<GetVerifiedAccessEndpointPolicyResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <policyEnabled>false</policyEnabled>
+    <policyDocument></policyDocument>
+</GetVerifiedAccessEndpointPolicyResponse>"""
+
+EC2_GET_VERIFIED_ACCESS_ENDPOINT_TARGETS = """<GetVerifiedAccessEndpointTargetsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <verifiedAccessEndpointTargetSet/>
+</GetVerifiedAccessEndpointTargetsResponse>"""
+
+EC2_GET_VERIFIED_ACCESS_GROUP_POLICY = """<GetVerifiedAccessGroupPolicyResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <policyEnabled>false</policyEnabled>
+    <policyDocument></policyDocument>
+</GetVerifiedAccessGroupPolicyResponse>"""
+
+EC2_GET_VPC_RESOURCES_BLOCKING_ENCRYPTION_ENFORCEMENT = """<GetVpcResourcesBlockingEncryptionEnforcementResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <vpcResourcesBlockingEncryptionEnforcementSet/>
+</GetVpcResourcesBlockingEncryptionEnforcementResponse>"""
+
+EC2_GET_VPN_CONNECTION_DEVICE_SAMPLE_CONFIGURATION = """<GetVpnConnectionDeviceSampleConfigurationResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <vpnConnectionDeviceSampleConfiguration></vpnConnectionDeviceSampleConfiguration>
+</GetVpnConnectionDeviceSampleConfigurationResponse>"""
+
+EC2_GET_VPN_TUNNEL_REPLACEMENT_STATUS = """<GetVpnTunnelReplacementStatusResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <vpnConnectionId></vpnConnectionId>
+    <outsideIpAddress></outsideIpAddress>
+    <status>
+        <statusCode>available</statusCode>
+    </status>
+    <maintenanceDetails/>
+</GetVpnTunnelReplacementStatusResponse>"""
+
+EC2_DESCRIBE_CAPACITY_BLOCK_EXTENSION_OFFERINGS = """<DescribeCapacityBlockExtensionOfferingsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <capacityBlockExtensionOfferingSet/>
+</DescribeCapacityBlockExtensionOfferingsResponse>"""
+
+EC2_DESCRIBE_CAPACITY_RESERVATION_BILLING_REQUESTS = """<DescribeCapacityReservationBillingRequestsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <capacityReservationBillingRequestSet/>
+</DescribeCapacityReservationBillingRequestsResponse>"""
