@@ -116,9 +116,13 @@ class OutpostsBucket(BaseModel):
 
     @property
     def arn(self) -> str:
-        partition = get_partition(self.region_name)
+        # region_name on s3control backend is a partition name ("aws", "aws-cn", etc.)
+        # so use us-east-1 as the default region for ARN construction
+        region = self.region_name if "-" in self.region_name else "us-east-1"
+        partition = get_partition(region)
+        account = self.account_id or "123456789012"
         return (
-            f"arn:{partition}:s3-outposts:{self.region_name}:{self.account_id}"
+            f"arn:{partition}:s3-outposts:{region}:{account}"
             f":outpost/{self.outpost_id}/bucket/{self.bucket}"
         )
 
