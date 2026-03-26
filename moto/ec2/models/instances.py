@@ -945,6 +945,20 @@ class InstanceBackend:
 
         return rebooted_instances
 
+    def monitor_instances(self, instance_ids: list[str]) -> list[Instance]:
+        monitored = []
+        for instance in self.get_multi_instances_by_id(instance_ids):
+            instance.monitoring_state = "enabled"
+            monitored.append(instance)
+        return monitored
+
+    def unmonitor_instances(self, instance_ids: list[str]) -> list[Instance]:
+        unmonitored = []
+        for instance in self.get_multi_instances_by_id(instance_ids):
+            instance.monitoring_state = "disabled"
+            unmonitored.append(instance)
+        return unmonitored
+
     def modify_instance_attribute(
         self, instance_id: str, key: str, value: Any
     ) -> Instance:

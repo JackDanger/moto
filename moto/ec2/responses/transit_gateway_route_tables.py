@@ -70,6 +70,14 @@ class TransitGatewayRouteTable(EC2BaseResponse):
             {"routeSet": transit_gateway_routes, "additionalRoutesAvailable": False}
         )
 
+    def get_transit_gateway_attachment_propagations(self) -> ActionResult:
+        transit_gateway_attachment_id = self._get_param("TransitGatewayAttachmentId")
+        filters = self._filters_from_querystring()
+        propagations = self.ec2_backend.get_transit_gateway_attachment_propagations(
+            transit_gateway_attachment_id, filters
+        )
+        return ActionResult({"transitGatewayAttachmentPropagations": propagations})
+
     def get_transit_gateway_route_table_associations(self) -> ActionResult:
         transit_gateway_route_table_id = self._get_param("TransitGatewayRouteTableId")
         filters = self._filters_from_querystring()

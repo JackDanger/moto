@@ -384,6 +384,24 @@ class TransitGatewayRouteTableBackend:
 
         return transit_gateway_propagation
 
+    def get_transit_gateway_attachment_propagations(
+        self, transit_gateway_attachment_id: str, filters: Any = None
+    ) -> list[TransitGatewayRelations]:
+        """Return route tables that the given attachment propagates to."""
+        results = [
+            prop
+            for prop in self.transit_gateway_propagations.values()
+            if prop.transit_gateway_attachment_id == transit_gateway_attachment_id
+        ]
+        attr_pairs = (
+            ("resource-id", "resource_id"),
+            ("resource-type", "resource_type"),
+            ("transit-gateway-route-table-id", "transit_gateway_route_table_id"),
+        )
+        if filters:
+            results = filter_resources(results, filters, attr_pairs)
+        return results
+
     def disassociate_transit_gateway_route_table(
         self, tgw_attach_id: str, tgw_rt_id: str
     ) -> TransitGatewayRelations:

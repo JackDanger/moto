@@ -560,6 +560,170 @@ class GapStubs(EC2BaseResponse):
         template = self.response_template(EC2_GET_VPN_CONNECTION_DEVICE_TYPES)
         return template.render()
 
+    def get_active_vpn_tunnel_status(self) -> str:
+        template = self.response_template(EC2_GET_ACTIVE_VPN_TUNNEL_STATUS)
+        return template.render()
+
+    def get_associated_enclave_certificate_iam_roles(self) -> str:
+        template = self.response_template(EC2_GET_ASSOCIATED_ENCLAVE_CERTIFICATE_IAM_ROLES)
+        return template.render()
+
+    def get_associated_ipv6_pool_cidrs(self) -> str:
+        template = self.response_template(EC2_GET_ASSOCIATED_IPV6_POOL_CIDRS)
+        return template.render()
+
+    def get_capacity_manager_metric_dimensions(self) -> str:
+        template = self.response_template(EC2_GET_CAPACITY_MANAGER_METRIC_DIMENSIONS)
+        return template.render()
+
+    def get_capacity_reservation_usage(self) -> str:
+        template = self.response_template(EC2_GET_CAPACITY_RESERVATION_USAGE)
+        return template.render()
+
+    def get_console_screenshot(self) -> str:
+        template = self.response_template(EC2_GET_CONSOLE_SCREENSHOT)
+        return template.render()
+
+    def get_default_credit_specification(self) -> str:
+        template = self.response_template(EC2_GET_DEFAULT_CREDIT_SPECIFICATION)
+        return template.render()
+
+    def get_flow_logs_integration_template(self) -> str:
+        template = self.response_template(EC2_GET_FLOW_LOGS_INTEGRATION_TEMPLATE)
+        return template.render()
+
+    def get_groups_for_capacity_reservation(self) -> str:
+        template = self.response_template(EC2_GET_GROUPS_FOR_CAPACITY_RESERVATION)
+        return template.render()
+
+    def get_image_ancestry(self) -> str:
+        template = self.response_template(EC2_GET_IMAGE_ANCESTRY)
+        return template.render()
+
+    def get_instance_tpm_ek_pub(self) -> str:
+        template = self.response_template(EC2_GET_INSTANCE_TPM_EK_PUB)
+        return template.render()
+
+    def get_instance_types_from_instance_requirements(self) -> str:
+        template = self.response_template(EC2_GET_INSTANCE_TYPES_FROM_INSTANCE_REQUIREMENTS)
+        return template.render()
+
+    def get_ipam_address_history(self) -> str:
+        template = self.response_template(EC2_GET_IPAM_ADDRESS_HISTORY)
+        return template.render()
+
+    def get_ipam_discovered_accounts(self) -> str:
+        template = self.response_template(EC2_GET_IPAM_DISCOVERED_ACCOUNTS)
+        return template.render()
+
+    def get_ipam_discovered_public_addresses(self) -> str:
+        template = self.response_template(EC2_GET_IPAM_DISCOVERED_PUBLIC_ADDRESSES)
+        return template.render()
+
+    def get_ipam_discovered_resource_cidrs(self) -> str:
+        template = self.response_template(EC2_GET_IPAM_DISCOVERED_RESOURCE_CIDRS)
+        return template.render()
+
+    def get_ipam_policy_allocation_rules(self) -> str:
+        template = self.response_template(EC2_GET_IPAM_POLICY_ALLOCATION_RULES)
+        return template.render()
+
+    def get_ipam_policy_organization_targets(self) -> str:
+        template = self.response_template(EC2_GET_IPAM_POLICY_ORGANIZATION_TARGETS)
+        return template.render()
+
+    def get_ipam_prefix_list_resolver_rules(self) -> str:
+        template = self.response_template(EC2_GET_IPAM_PREFIX_LIST_RESOLVER_RULES)
+        return template.render()
+
+    def get_ipam_prefix_list_resolver_version_entries(self) -> str:
+        template = self.response_template(EC2_GET_IPAM_PREFIX_LIST_RESOLVER_VERSION_ENTRIES)
+        return template.render()
+
+    def get_ipam_prefix_list_resolver_versions(self) -> str:
+        template = self.response_template(EC2_GET_IPAM_PREFIX_LIST_RESOLVER_VERSIONS)
+        return template.render()
+
+    def get_managed_prefix_list_associations(self) -> str:
+        template = self.response_template(EC2_GET_MANAGED_PREFIX_LIST_ASSOCIATIONS)
+        return template.render()
+
+    def get_reserved_instances_exchange_quote(self) -> str:
+        template = self.response_template(EC2_GET_RESERVED_INSTANCES_EXCHANGE_QUOTE)
+        return template.render()
+
+    def get_route_server_associations(self) -> str:
+        template = self.response_template(EC2_GET_ROUTE_SERVER_ASSOCIATIONS)
+        return template.render()
+
+    def get_route_server_propagations(self) -> str:
+        template = self.response_template(EC2_GET_ROUTE_SERVER_PROPAGATIONS)
+        return template.render()
+
+    def get_route_server_routing_database(self) -> str:
+        template = self.response_template(EC2_GET_ROUTE_SERVER_ROUTING_DATABASE)
+        return template.render()
+
+    def get_security_groups_for_vpc(self) -> str:
+        template = self.response_template(EC2_GET_SECURITY_GROUPS_FOR_VPC)
+        return template.render()
+
+    def get_spot_placement_scores(self) -> str:
+        template = self.response_template(EC2_GET_SPOT_PLACEMENT_SCORES)
+        return template.render()
+
+    def get_transit_gateway_attachment_propagations(self) -> str:
+        template = self.response_template(EC2_GET_TRANSIT_GATEWAY_ATTACHMENT_PROPAGATIONS)
+        return template.render()
+
+    def get_transit_gateway_metering_policy_entries(self) -> str:
+        template = self.response_template(EC2_GET_TRANSIT_GATEWAY_METERING_POLICY_ENTRIES)
+        return template.render()
+
+    def get_transit_gateway_multicast_domain_associations(self) -> str:
+        template = self.response_template(EC2_GET_TRANSIT_GATEWAY_MULTICAST_DOMAIN_ASSOCIATIONS)
+        return template.render()
+
+    def get_transit_gateway_policy_table_associations(self) -> str:
+        template = self.response_template(EC2_GET_TRANSIT_GATEWAY_POLICY_TABLE_ASSOCIATIONS)
+        return template.render()
+
+    def get_transit_gateway_policy_table_entries(self) -> str:
+        template = self.response_template(EC2_GET_TRANSIT_GATEWAY_POLICY_TABLE_ENTRIES)
+        return template.render()
+
+    def get_verified_access_endpoint_policy(self) -> str:
+        template = self.response_template(EC2_GET_VERIFIED_ACCESS_ENDPOINT_POLICY)
+        return template.render()
+
+    def get_verified_access_endpoint_targets(self) -> str:
+        template = self.response_template(EC2_GET_VERIFIED_ACCESS_ENDPOINT_TARGETS)
+        return template.render()
+
+    def get_verified_access_group_policy(self) -> str:
+        template = self.response_template(EC2_GET_VERIFIED_ACCESS_GROUP_POLICY)
+        return template.render()
+
+    def get_vpc_resources_blocking_encryption_enforcement(self) -> str:
+        template = self.response_template(EC2_GET_VPC_RESOURCES_BLOCKING_ENCRYPTION_ENFORCEMENT)
+        return template.render()
+
+    def get_vpn_connection_device_sample_configuration(self) -> str:
+        template = self.response_template(EC2_GET_VPN_CONNECTION_DEVICE_SAMPLE_CONFIGURATION)
+        return template.render()
+
+    def get_vpn_tunnel_replacement_status(self) -> str:
+        template = self.response_template(EC2_GET_VPN_TUNNEL_REPLACEMENT_STATUS)
+        return template.render()
+
+    def describe_capacity_block_extension_offerings(self) -> str:
+        template = self.response_template(EC2_DESCRIBE_CAPACITY_BLOCK_EXTENSION_OFFERINGS)
+        return template.render()
+
+    def describe_capacity_reservation_billing_requests(self) -> str:
+        template = self.response_template(EC2_DESCRIBE_CAPACITY_RESERVATION_BILLING_REQUESTS)
+        return template.render()
+
     def import_image(self) -> str:
         template = self.response_template(EC2_IMPORT_IMAGE)
         return template.render()
