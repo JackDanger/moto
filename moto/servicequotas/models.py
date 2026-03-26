@@ -191,6 +191,17 @@ class ServiceQuotasBackend(BaseBackend):
             items = [i for i in items if i["AwsRegion"] == aws_region]
         return items
 
+    def get_service_quota_increase_request_from_template(
+        self,
+        service_code: str,
+        quota_code: str,
+        aws_region: str,
+    ) -> dict[str, Any]:
+        key = f"{service_code}/{quota_code}/{aws_region}"
+        if key not in self._template_requests:
+            raise NoSuchResource
+        return self._template_requests[key]
+
     def delete_service_quota_increase_request_from_template(
         self,
         service_code: str,
