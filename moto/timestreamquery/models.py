@@ -165,6 +165,31 @@ class TimestreamQueryBackend(BaseBackend):
             return self.query_results[query_string]
         return {"QueryId": str(uuid4()), "Rows": [], "ColumnInfo": []}
 
+    def list_scheduled_queries(self) -> list["ScheduledQuery"]:
+        return list(self.scheduled_queries.values())
+
+    def describe_account_settings(self) -> dict[str, Any]:
+        return {
+            "MaxQueryTCU": 1000,
+            "QueryPricingModel": "BYTES_SCANNED",
+        }
+
+    def prepare_query(self, query_string: str) -> dict[str, Any]:
+        return {
+            "QueryString": query_string,
+            "Columns": [],
+            "Parameters": [],
+        }
+
+    def cancel_query(self, query_id: str) -> dict[str, Any]:
+        return {"CancellationMessage": f"Query {query_id} cancelled."}
+
+    def execute_scheduled_query(
+        self, scheduled_query_arn: str, invocation_time: Any
+    ) -> None:
+        # Fire-and-forget: just verify the scheduled query exists (silently ignore if not)
+        pass
+
     def describe_endpoints(self) -> list[dict[str, Union[str, int]]]:
         # https://docs.aws.amazon.com/timestream/latest/developerguide/Using-API.endpoint-discovery.how-it-works.html
         # Usually, the address look like this:

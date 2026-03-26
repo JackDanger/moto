@@ -231,3 +231,30 @@ class TimestreamWriteResponse(BaseResponse):
         task_id = self._get_param("TaskId")
         self.timestreamwrite_backend.resume_batch_load_task(task_id)
         return "{}"
+
+    def list_scheduled_queries(self) -> str:
+        queries = self.timestreamquery_backend.list_scheduled_queries()
+        return json.dumps({"ScheduledQueries": [q.description() for q in queries]})
+
+    def describe_account_settings(self) -> str:
+        settings = self.timestreamquery_backend.describe_account_settings()
+        return json.dumps(settings)
+
+    def prepare_query(self) -> str:
+        query_string = self._get_param("QueryString")
+        result = self.timestreamquery_backend.prepare_query(query_string=query_string)
+        return json.dumps(result)
+
+    def cancel_query(self) -> str:
+        query_id = self._get_param("QueryId")
+        result = self.timestreamquery_backend.cancel_query(query_id=query_id)
+        return json.dumps(result)
+
+    def execute_scheduled_query(self) -> str:
+        scheduled_query_arn = self._get_param("ScheduledQueryArn")
+        invocation_time = self._get_param("InvocationTime")
+        self.timestreamquery_backend.execute_scheduled_query(
+            scheduled_query_arn=scheduled_query_arn,
+            invocation_time=invocation_time,
+        )
+        return "{}"
