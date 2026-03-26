@@ -464,7 +464,7 @@ class SSOAdminResponse(BaseResponse):
     def describe_instance(self) -> str:
         instance_arn = self._get_param("InstanceArn")
         instance = self.ssoadmin_backend.describe_instance(instance_arn=instance_arn)
-        return json.dumps({"InstanceMetadata": instance.to_json()})
+        return json.dumps(instance.to_json())
 
     # --- Instance Access Control Attribute Configuration ---
 
@@ -833,7 +833,9 @@ class SSOAdminResponse(BaseResponse):
 
     def put_application_session_configuration(self) -> str:
         application_arn = self._get_param("ApplicationArn")
-        session_configuration = self._get_param("SessionConfiguration")
+        # AWS API uses UserBackgroundSessionApplicationStatus
+        user_background_status = self._get_param("UserBackgroundSessionApplicationStatus")
+        session_configuration = {"UserBackgroundSessionApplicationStatus": user_background_status}
         self.ssoadmin_backend.put_application_session_configuration(
             application_arn=application_arn,
             session_configuration=session_configuration,
