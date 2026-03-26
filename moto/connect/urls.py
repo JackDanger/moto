@@ -241,4 +241,7 @@ url_paths = {
     "{0}/workspaces/(?P<InstanceId>[^/]+)/(?P<WorkspaceId>[^/]+)/metadata$": ConnectResponse.dispatch,
     "{0}/workspaces/(?P<InstanceId>[^/]+)/(?P<WorkspaceId>[^/]+)/theme$": ConnectResponse.dispatch,
     "{0}/workspaces/(?P<InstanceId>[^/]+)/(?P<WorkspaceId>[^/]+)/visibility$": ConnectResponse.dispatch,
+    # Authentication profiles
+    "{0}/authentication-profiles/(?P<InstanceId>[^/]+)/(?P<AuthenticationProfileId>[^/]+)$": ConnectResponse.dispatch,
+    "{0}/authentication-profiles-summary/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
 }
