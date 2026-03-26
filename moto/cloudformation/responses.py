@@ -858,6 +858,39 @@ class CloudFormationResponse(BaseResponse):
         self.cloudformation_backend.continue_update_rollback(stack_name)
         return EmptyResult()
 
+    def cancel_update_stack(self) -> ActionResult:
+        stack_name = self._get_param("StackName")
+        self.cloudformation_backend.cancel_update_stack(stack_name)
+        return EmptyResult()
+
+    def describe_resource_scan(self) -> ActionResult:
+        resource_scan_id = self._get_param("ResourceScanId")
+        result = self.cloudformation_backend.describe_resource_scan(resource_scan_id)
+        return ActionResult(result)
+
+    def describe_type_registration(self) -> ActionResult:
+        registration_token = self._get_param("RegistrationToken")
+        result = self.cloudformation_backend.describe_type_registration(registration_token)
+        return ActionResult(result)
+
+    def register_type(self) -> ActionResult:
+        type_name = self._get_param("TypeName")
+        type_ = self._get_param("Type", "RESOURCE")
+        schema_handler_package = self._get_param("SchemaHandlerPackage")
+        result = self.cloudformation_backend.register_type(type_name, type_, schema_handler_package)
+        return ActionResult(result)
+
+    def set_type_configuration(self) -> ActionResult:
+        type_arn = self._get_param("TypeArn")
+        type_name = self._get_param("TypeName")
+        type_ = self._get_param("Type", "RESOURCE")
+        configuration = self._get_param("Configuration")
+        configuration_alias = self._get_param("ConfigurationAlias", "default")
+        result = self.cloudformation_backend.set_type_configuration(
+            type_arn, type_name, type_, configuration, configuration_alias
+        )
+        return ActionResult(result)
+
     def rollback_stack(self) -> ActionResult:
         stack_name = self._get_param("StackName")
         stack = self.cloudformation_backend.rollback_stack(stack_name)

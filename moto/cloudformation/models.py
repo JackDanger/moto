@@ -807,6 +807,7 @@ class CloudFormationBackend(BaseBackend):
         self.deleted_stacks: dict[str, Stack] = {}
         self.exports: dict[str, Export] = OrderedDict()
         self.change_sets: dict[str, ChangeSet] = OrderedDict()
+        self._type_registrations: dict[str, dict[str, Any]] = {}
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -1391,6 +1392,70 @@ class CloudFormationBackend(BaseBackend):
             status="SUCCEEDED",
         )
         return operation_id
+
+    def cancel_update_stack(self, stack_name: str) -> None:
+        stack = self.get_stack(stack_name)
+        stack.status = "UPDATE_ROLLBACK_COMPLETE"
+        stack._add_stack_event(
+            "UPDATE_ROLLBACK_COMPLETE",
+            resource_status_reason="User Initiated",
+        )
+
+    def describe_resource_scan(self, resource_scan_id: str) -> dict[str, Any]:
+        return {
+            "ResourceScanId": resource_scan_id,
+            "Status": "COMPLETE",
+            "StartTime": iso_8601_datetime_with_milliseconds(utcnow()),
+            "EndTime": iso_8601_datetime_with_milliseconds(utcnow()),
+            "PercentageCompleted": 100.0,
+            "ResourceTypes": [],
+            "ResourcesScanned": 0,
+            "ResourcesRead": 0,
+        }
+
+    def describe_type_registration(self, registration_token: str) -> dict[str, Any]:
+        # Look up a previously registered type or return a sensible stub
+        for registration in self._type_registrations.values():
+            if registration["RegistrationToken"] == registration_token:
+                return registration
+        return {
+            "RegistrationToken": registration_token,
+            "ProgressStatus": "COMPLETE",
+            "TypeArn": f"arn:{get_partition(self.region_name)}:cloudformation:{self.region_name}::type/resource/Unknown",
+            "TypeVersionArn": f"arn:{get_partition(self.region_name)}:cloudformation:{self.region_name}::type/resource/Unknown/00000001",
+        }
+
+    def register_type(
+        self, type_name: str, type_: str, schema_handler_package: Optional[str]
+    ) -> dict[str, Any]:
+        registration_token = str(mock_random.uuid4())
+        type_category = type_.lower() if type_ else "resource"
+        type_arn = f"arn:{get_partition(self.region_name)}:cloudformation:{self.region_name}::type/{type_category}/{type_name.replace('::', '-')}"
+        type_version_arn = f"{type_arn}/00000001"
+        registration: dict[str, Any] = {
+            "RegistrationToken": registration_token,
+            "ProgressStatus": "COMPLETE",
+            "TypeArn": type_arn,
+            "TypeVersionArn": type_version_arn,
+        }
+        self._type_registrations[registration_token] = registration
+        return {"RegistrationToken": registration_token}
+
+    def set_type_configuration(
+        self,
+        type_arn: Optional[str],
+        type_name: Optional[str],
+        type_: str,
+        configuration: Optional[str],
+        configuration_alias: str,
+    ) -> dict[str, Any]:
+        # Resolve the ARN
+        if not type_arn:
+            type_category = type_.lower() if type_ else "resource"
+            safe_name = (type_name or "Unknown").replace("::", "-")
+            type_arn = f"arn:{get_partition(self.region_name)}:cloudformation:{self.region_name}::type/{type_category}/{safe_name}"
+        configuration_arn = f"{type_arn}/default"
+        return {"ConfigurationArn": configuration_arn}
 
     def _validate_export_uniqueness(self, stack: Stack) -> None:
         new_stack_export_names = [x.name for x in stack.exports]
