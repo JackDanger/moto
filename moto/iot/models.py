@@ -4308,7 +4308,6 @@ class IoTBackend(BaseBackend):
         tasks = [
             {
                 "taskId": t["taskId"],
-                "startTime": t.get("startTime", ""),
                 "taskStatus": t.get("taskStatus", "IN_PROGRESS"),
             }
             for t in self.audit_mitigation_tasks.values()
