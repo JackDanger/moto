@@ -424,3 +424,8 @@ class AmiBackend:
         """Set image block public access state for the region."""
         self._image_block_public_access_state = state  # type: ignore[attr-defined]
         return {"ImageBlockPublicAccessState": state}
+
+    def reset_image_attribute(self, ami_id: str, attribute: str) -> None:
+        ami = self.describe_images(ami_ids=[ami_id])[0]
+        if attribute == "launchPermission":
+            ami.launch_permissions = []
