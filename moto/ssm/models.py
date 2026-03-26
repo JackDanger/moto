@@ -4132,5 +4132,119 @@ class SimpleSystemManagerBackend(BaseBackend):
     ) -> dict[str, str]:
         return {"AccessRequestId": str(random.uuid4())}
 
+    def update_maintenance_window(
+        self,
+        window_id: str,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        schedule: Optional[str] = None,
+        schedule_timezone: Optional[str] = None,
+        schedule_offset: Optional[int] = None,
+        duration: Optional[int] = None,
+        cutoff: Optional[int] = None,
+        enabled: Optional[bool] = None,
+        replace: Optional[bool] = None,
+    ) -> dict[str, Any]:
+        """Update fields on an existing maintenance window."""
+        window = self.get_maintenance_window(window_id)
+        if name is not None:
+            window.name = name
+        if description is not None:
+            window.description = description
+        if start_date is not None:
+            window.start_date = start_date
+        if end_date is not None:
+            window.end_date = end_date
+        if schedule is not None:
+            window.schedule = schedule
+        if schedule_timezone is not None:
+            window.schedule_timezone = schedule_timezone
+        if schedule_offset is not None:
+            window.schedule_offset = schedule_offset
+        if duration is not None:
+            window.duration = duration
+        if cutoff is not None:
+            window.cutoff = cutoff
+        result = window.to_json()
+        if enabled is not None:
+            result["Enabled"] = enabled
+        return result
+
+    def update_patch_baseline(
+        self,
+        baseline_id: str,
+        name: Optional[str] = None,
+        global_filters: Optional[dict[str, Any]] = None,
+        approval_rules: Optional[dict[str, Any]] = None,
+        approved_patches: Optional[list[str]] = None,
+        approved_patches_compliance_level: Optional[str] = None,
+        approved_patches_enable_non_security: Optional[bool] = None,
+        rejected_patches: Optional[list[str]] = None,
+        rejected_patches_action: Optional[str] = None,
+        description: Optional[str] = None,
+        sources: Optional[list[dict[str, Any]]] = None,
+        replace: Optional[bool] = None,
+    ) -> dict[str, Any]:
+        """Update fields on an existing patch baseline."""
+        if baseline_id not in self.baselines:
+            raise BaselineDoesNotExistException()
+        baseline = self.baselines[baseline_id]
+        if name is not None:
+            baseline.name = name
+        if global_filters is not None:
+            baseline.global_filters = global_filters
+        if approval_rules is not None:
+            baseline.approval_rules = approval_rules
+        if approved_patches is not None:
+            baseline.approved_patches = approved_patches
+        if approved_patches_compliance_level is not None:
+            baseline.approved_patches_compliance_level = approved_patches_compliance_level
+        if approved_patches_enable_non_security is not None:
+            baseline.approved_patches_enable_non_security = approved_patches_enable_non_security
+        if rejected_patches is not None:
+            baseline.rejected_patches = rejected_patches
+        if rejected_patches_action is not None:
+            baseline.rejected_patches_action = rejected_patches_action
+        if description is not None:
+            baseline.description = description
+        if sources is not None:
+            baseline.sources = sources
+        result = baseline.to_json()
+        result["Name"] = result.pop("BaselineName", baseline.name)
+        result["Description"] = result.pop("BaselineDescription", baseline.description)
+        result["CreatedDate"] = utcnow().isoformat()
+        result["ModifiedDate"] = utcnow().isoformat()
+        return result
+
+    def deregister_managed_instance(self, instance_id: str) -> None:
+        """Deregister a managed instance (activation-based)."""
+        # Managed instances use activation IDs; just accept any valid-looking ID
+        if not instance_id.startswith("mi-"):
+            raise ValidationException(
+                f"InstanceId {instance_id} is not a valid managed instance ID"
+            )
+
+    def start_associations_once(self, association_ids: list[str]) -> None:
+        """Trigger one-time execution of associations (no-op stub)."""
+        pass
+
+    def get_deployable_patch_snapshot_for_instance(
+        self,
+        instance_id: str,
+        snapshot_id: str,
+    ) -> dict[str, Any]:
+        """Return a deployable patch snapshot URL for the given instance."""
+        return {
+            "InstanceId": instance_id,
+            "SnapshotId": snapshot_id,
+            "SnapshotDownloadUrl": (
+                f"https://s3.amazonaws.com/aws-ssm-patch-snapshot"
+                f"/{self.region_name}/{instance_id}/{snapshot_id}"
+            ),
+            "Product": "WindowsServer2019",
+        }
+
 
 ssm_backends = BackendDict(SimpleSystemManagerBackend, "ssm")

@@ -1324,3 +1324,58 @@ class SimpleSystemManagerResponse(BaseResponse):
 
     def create_association_batch(self) -> ActionResult:
         return ActionResult({"Successful": [], "Failed": []})
+
+    def update_maintenance_window(self) -> ActionResult:
+        window_id = self._get_param("WindowId")
+        result = self.ssm_backend.update_maintenance_window(
+            window_id=window_id,
+            name=self._get_param("Name"),
+            description=self._get_param("Description"),
+            start_date=self._get_param("StartDate"),
+            end_date=self._get_param("EndDate"),
+            schedule=self._get_param("Schedule"),
+            schedule_timezone=self._get_param("ScheduleTimezone"),
+            schedule_offset=self._get_param("ScheduleOffset"),
+            duration=self._get_param("Duration"),
+            cutoff=self._get_param("Cutoff"),
+            enabled=self._get_param("Enabled"),
+            replace=self._get_param("Replace"),
+        )
+        return ActionResult(result)
+
+    def update_patch_baseline(self) -> ActionResult:
+        baseline_id = self._get_param("BaselineId")
+        result = self.ssm_backend.update_patch_baseline(
+            baseline_id=baseline_id,
+            name=self._get_param("Name"),
+            global_filters=self._get_param("GlobalFilters"),
+            approval_rules=self._get_param("ApprovalRules"),
+            approved_patches=self._get_param("ApprovedPatches"),
+            approved_patches_compliance_level=self._get_param("ApprovedPatchesComplianceLevel"),
+            approved_patches_enable_non_security=self._get_param("ApprovedPatchesEnableNonSecurity"),
+            rejected_patches=self._get_param("RejectedPatches"),
+            rejected_patches_action=self._get_param("RejectedPatchesAction"),
+            description=self._get_param("Description"),
+            sources=self._get_param("Sources"),
+            replace=self._get_param("Replace"),
+        )
+        return ActionResult(result)
+
+    def deregister_managed_instance(self) -> ActionResult:
+        instance_id = self._get_param("InstanceId")
+        self.ssm_backend.deregister_managed_instance(instance_id=instance_id)
+        return EmptyResult()
+
+    def start_associations_once(self) -> ActionResult:
+        association_ids = self._get_param("AssociationIds", [])
+        self.ssm_backend.start_associations_once(association_ids=association_ids)
+        return EmptyResult()
+
+    def get_deployable_patch_snapshot_for_instance(self) -> ActionResult:
+        instance_id = self._get_param("InstanceId")
+        snapshot_id = self._get_param("SnapshotId")
+        result = self.ssm_backend.get_deployable_patch_snapshot_for_instance(
+            instance_id=instance_id,
+            snapshot_id=snapshot_id,
+        )
+        return ActionResult(result)
