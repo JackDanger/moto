@@ -100,6 +100,29 @@ class StorageLensGroup(BaseModel):
         self.created_at = datetime.now(timezone.utc)
 
 
+class OutpostsBucket(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        bucket: str,
+        outpost_id: Optional[str] = None,
+    ):
+        self.bucket = bucket
+        self.account_id = account_id
+        self.region_name = region_name
+        self.outpost_id = outpost_id or "op-default"
+        self.creation_date = datetime.now(timezone.utc)
+
+    @property
+    def arn(self) -> str:
+        partition = get_partition(self.region_name)
+        return (
+            f"arn:{partition}:s3-outposts:{self.region_name}:{self.account_id}"
+            f":outpost/{self.outpost_id}/bucket/{self.bucket}"
+        )
+
+
 class S3Job(BaseModel):
     def __init__(
         self,
@@ -345,6 +368,7 @@ class S3ControlBackend(BaseBackend):
         self.object_lambda_access_point_policies: dict[str, dict[str, str]] = defaultdict(dict)
         self.access_point_scopes: dict[str, dict[str, dict[str, Any]]] = defaultdict(dict)
         self.job_tags: dict[str, list[dict[str, str]]] = {}
+        self.outposts_buckets: dict[str, OutpostsBucket] = {}
 
     def get_public_access_block(self, account_id: str) -> PublicAccessBlock:
         if account_id != self.account_id:
@@ -1255,6 +1279,39 @@ class S3ControlBackend(BaseBackend):
             for ap in self.object_lambda_access_points.get(account_id, {}).values()
         ]
         return access_points, None
+
+    def create_bucket(
+        self,
+        account_id: str,
+        bucket: str,
+        outpost_id: Optional[str] = None,
+    ) -> OutpostsBucket:
+        ob = OutpostsBucket(
+            account_id=account_id,
+            region_name=self.region_name,
+            bucket=bucket,
+            outpost_id=outpost_id,
+        )
+        self.outposts_buckets[bucket] = ob
+        return ob
+
+    def get_bucket(
+        self,
+        account_id: str,
+        bucket: str,
+    ) -> OutpostsBucket:
+        from .exceptions import InvalidRequestException
+
+        if bucket not in self.outposts_buckets:
+            raise InvalidRequestException(f"The specified bucket does not exist: {bucket}")
+        return self.outposts_buckets[bucket]
+
+    def delete_bucket(
+        self,
+        account_id: str,
+        bucket: str,
+    ) -> None:
+        self.outposts_buckets.pop(bucket, None)
 
     def list_regional_buckets(
         self,

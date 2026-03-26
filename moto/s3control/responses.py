@@ -833,6 +833,33 @@ class S3ControlResponse(BaseResponse):
         self.backend.delete_job_tagging(account_id=account_id, job_id=job_id)
         return 200, {}, ""
 
+    # CreateBucket / GetBucket / DeleteBucket (S3 on Outposts)
+
+    def create_bucket(self) -> TYPE_RESPONSE:
+        account_id = self.headers.get("x-amz-account-id")
+        outpost_id = self.headers.get("x-amz-outpost-id")
+        bucket = self.path.split("/")[-1]
+        ob = self.backend.create_bucket(
+            account_id=account_id,
+            bucket=bucket,
+            outpost_id=outpost_id,
+        )
+        location = f"/v20180820/bucket/{bucket}"
+        return 200, {"Location": location}, CREATE_BUCKET_TEMPLATE % {"bucket_arn": ob.arn}
+
+    def get_bucket(self) -> str:
+        account_id = self.headers.get("x-amz-account-id")
+        bucket = self.path.split("/")[-1]
+        ob = self.backend.get_bucket(account_id=account_id, bucket=bucket)
+        template = self.response_template(GET_BUCKET_TEMPLATE)
+        return template.render(ob=ob)
+
+    def delete_bucket(self) -> TYPE_RESPONSE:
+        account_id = self.headers.get("x-amz-account-id")
+        bucket = self.path.split("/")[-1]
+        self.backend.delete_bucket(account_id=account_id, bucket=bucket)
+        return 204, {"status": 204}, ""
+
     # Put/Delete bucket-level operations
 
     def put_bucket_versioning(self) -> str:
@@ -1727,6 +1754,18 @@ LIST_ACCESS_POINTS_FOR_OBJECT_LAMBDA_TEMPLATE = f"""<ListAccessPointsForObjectLa
   <NextToken>{{{{ next_token }}}}</NextToken>
   {{% endif %}}
 </ListAccessPointsForObjectLambdaResult>
+"""
+
+CREATE_BUCKET_TEMPLATE = f"""<CreateBucketResult {XMLNS}>
+  <BucketArn>%(bucket_arn)s</BucketArn>
+</CreateBucketResult>
+"""
+
+GET_BUCKET_TEMPLATE = f"""<GetBucketResult {XMLNS}>
+  <Bucket>{{{{ ob.bucket }}}}</Bucket>
+  <PublicAccessBlockEnabled>true</PublicAccessBlockEnabled>
+  <CreationDate>{{{{ ob.creation_date.strftime('%Y-%m-%dT%H:%M:%SZ') }}}}</CreationDate>
+</GetBucketResult>
 """
 
 LIST_REGIONAL_BUCKETS_TEMPLATE = f"""<ListRegionalBucketsResult {XMLNS}>

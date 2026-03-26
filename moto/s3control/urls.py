@@ -106,7 +106,9 @@ url_paths = {
     "/v20180820/jobs/<job_id>/tagging": S3ControlResponse.dispatch,
     # Regional Buckets (Outposts)
     r"{0}/v20180820/bucket$": S3ControlResponse.dispatch,
+    r"{0}/v20180820/bucket/(?P<bucket>[^/]+)$": S3ControlResponse.dispatch,
     "/v20180820/bucket": S3ControlResponse.dispatch,
+    "/v20180820/bucket/<bucket>": S3ControlResponse.dispatch,
     # Caller Access Grants
     r"{0}/v20180820/accessgrantsinstance/caller/grants$": S3ControlResponse.dispatch,
     "/v20180820/accessgrantsinstance/caller/grants": S3ControlResponse.dispatch,
