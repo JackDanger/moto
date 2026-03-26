@@ -2218,8 +2218,10 @@ class MediaLiveBackend(BaseBackend):
             if d.transfer_target_account_id is not None
         ]
 
-    def claim_device(self, **kwargs: Any) -> None:
-        pass  # No-op: device claiming is account-level, no local state needed
+    def claim_device(self, device_id: Optional[str] = None, **kwargs: Any) -> None:
+        """Claim a device and register it in local state so subsequent ops work."""
+        if device_id:
+            self._register_input_device(device_id)
 
     # ---- Offering ----
 

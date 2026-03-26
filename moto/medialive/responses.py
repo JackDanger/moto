@@ -1080,7 +1080,8 @@ class MediaLiveResponse(BaseResponse):
         )
 
     def claim_device(self) -> str:
-        self.medialive_backend.claim_device()
+        device_id = self._get_param("id")
+        self.medialive_backend.claim_device(device_id=device_id)
         return json.dumps({})
 
     # ---- Offering / Reservation ----
