@@ -563,3 +563,16 @@ class LakeFormationResponse(BaseResponse):
     def update_table_storage_optimizer(self) -> str:
         result = self.lakeformation_backend.update_table_storage_optimizer()
         return json.dumps(result)
+
+    def assume_decorated_role_with_saml(self) -> str:
+        role_arn = self._get_param("RoleArn", "")
+        principal_arn = self._get_param("PrincipalArn", "")
+        saml_assertion = self._get_param("SAMLAssertion", "")
+        duration_seconds = self._get_param("DurationSeconds")
+        creds = self.lakeformation_backend.assume_decorated_role_with_saml(
+            role_arn=role_arn,
+            principal_arn=principal_arn,
+            saml_assertion=saml_assertion,
+            duration_seconds=duration_seconds,
+        )
+        return json.dumps(creds)

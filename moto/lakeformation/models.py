@@ -1175,5 +1175,20 @@ class LakeFormationBackend(BaseBackend):
     def update_table_storage_optimizer(self, **kwargs: Any) -> dict[str, Any]:
         return {"Result": "Updated table storage optimizer configuration successfully"}
 
+    def assume_decorated_role_with_saml(
+        self,
+        role_arn: str,
+        principal_arn: str,
+        saml_assertion: str,
+        duration_seconds: Optional[int] = None,
+    ) -> dict[str, Any]:
+        expiry = time.time() + (duration_seconds or 3600)
+        return {
+            "AccessKeyId": f"ASIA{uuid.uuid4().hex[:16].upper()}",
+            "SecretAccessKey": uuid.uuid4().hex,
+            "SessionToken": uuid.uuid4().hex,
+            "Expiration": expiry,
+        }
+
 
 lakeformation_backends = BackendDict(LakeFormationBackend, "lakeformation")

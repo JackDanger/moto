@@ -73,4 +73,5 @@ url_paths = {
     "{0}/UpdateResource$": response.dispatch,
     "{0}/UpdateTableObjects$": response.dispatch,
     "{0}/UpdateTableStorageOptimizer$": response.dispatch,
+    "{0}/AssumeDecoratedRoleWithSAML$": response.dispatch,
 }
