@@ -965,6 +965,21 @@ class GapStubs(EC2BaseResponse):
         template = self.response_template(EC2_WITHDRAW_BYOIP_CIDR)
         return template.render(cidr=cidr)
 
+    def restore_image_from_recycle_bin(self) -> str:
+        image_id = self._get_param("ImageId", "")
+        template = self.response_template(EC2_RESTORE_IMAGE_FROM_RECYCLE_BIN)
+        return template.render(image_id=image_id)
+
+    def restore_snapshot_from_recycle_bin(self) -> str:
+        snapshot_id = self._get_param("SnapshotId", "")
+        template = self.response_template(EC2_RESTORE_SNAPSHOT_FROM_RECYCLE_BIN)
+        return template.render(snapshot_id=snapshot_id)
+
+    def restore_snapshot_tier(self) -> str:
+        snapshot_id = self._get_param("SnapshotId", "")
+        template = self.response_template(EC2_RESTORE_SNAPSHOT_TIER)
+        return template.render(snapshot_id=snapshot_id)
+
     def import_client_vpn_client_certificate_revocation_list(self) -> str:
         template = self.response_template(EC2_IMPORT_CLIENT_VPN_CLIENT_CERTIFICATE_REVOCATION_LIST)
         return template.render()
@@ -2572,3 +2587,20 @@ EC2_IMPORT_CLIENT_VPN_CLIENT_CERTIFICATE_REVOCATION_LIST = """<ImportClientVpnCl
     <requestId>{{ request_id }}</requestId>
     <return>true</return>
 </ImportClientVpnClientCertificateRevocationListResponse>"""
+
+EC2_RESTORE_IMAGE_FROM_RECYCLE_BIN = """<RestoreImageFromRecycleBinResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <return>true</return>
+</RestoreImageFromRecycleBinResponse>"""
+
+EC2_RESTORE_SNAPSHOT_FROM_RECYCLE_BIN = """<RestoreSnapshotFromRecycleBinResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <snapshotId>{{ snapshot_id }}</snapshotId>
+    <state>pending</state>
+</RestoreSnapshotFromRecycleBinResponse>"""
+
+EC2_RESTORE_SNAPSHOT_TIER = """<RestoreSnapshotTierResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <snapshotId>{{ snapshot_id }}</snapshotId>
+    <restoring>true</restoring>
+</RestoreSnapshotTierResponse>"""
