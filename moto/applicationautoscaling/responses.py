@@ -201,6 +201,7 @@ class ApplicationAutoScalingResponse(BaseResponse):
             service_namespace=params.get("ServiceNamespace"),
             resource_id=params.get("ResourceId"),
             scalable_dimension=params.get("ScalableDimension"),
+            policy_name=params.get("PolicyName"),
             start_time=params.get("StartTime"),
             end_time=params.get("EndTime"),
         )

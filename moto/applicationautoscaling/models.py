@@ -307,6 +307,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
         service_namespace: str,
         resource_id: str,
         scalable_dimension: str,
+        policy_name: str,
         start_time: str,
         end_time: str,
     ) -> dict[str, Any]:
