@@ -143,6 +143,76 @@ class VerifiedAccessResponse(EC2BaseResponse):
         template = self.response_template(DELETE_VERIFIED_ACCESS_ENDPOINT)
         return template.render(endpoint=endpoint)
 
+    def modify_verified_access_instance(self) -> str:
+        instance_id = self._get_param("VerifiedAccessInstanceId")
+        description = self._get_param("Description")
+        instance = self.ec2_backend.modify_verified_access_instance(
+            verified_access_instance_id=instance_id,
+            description=description,
+        )
+        template = self.response_template(MODIFY_VERIFIED_ACCESS_INSTANCE)
+        return template.render(instance=instance)
+
+    def modify_verified_access_instance_logging_configuration(self) -> str:
+        instance_id = self._get_param("VerifiedAccessInstanceId")
+        instance = self.ec2_backend.get_verified_access_instance(instance_id)
+        template = self.response_template(MODIFY_VERIFIED_ACCESS_INSTANCE_LOGGING)
+        return template.render(instance=instance)
+
+    def modify_verified_access_trust_provider(self) -> str:
+        provider_id = self._get_param("VerifiedAccessTrustProviderId")
+        description = self._get_param("Description")
+        provider = self.ec2_backend.modify_verified_access_trust_provider(
+            verified_access_trust_provider_id=provider_id,
+            description=description,
+        )
+        template = self.response_template(MODIFY_VERIFIED_ACCESS_TRUST_PROVIDER)
+        return template.render(provider=provider)
+
+    def modify_verified_access_group(self) -> str:
+        group_id = self._get_param("VerifiedAccessGroupId")
+        description = self._get_param("Description")
+        group = self.ec2_backend.modify_verified_access_group(
+            verified_access_group_id=group_id,
+            description=description,
+        )
+        template = self.response_template(MODIFY_VERIFIED_ACCESS_GROUP)
+        return template.render(group=group)
+
+    def modify_verified_access_group_policy(self) -> str:
+        group_id = self._get_param("VerifiedAccessGroupId")
+        policy_document = self._get_param("PolicyDocument", "")
+        policy_enabled = self._get_param("PolicyEnabled")
+        group = self.ec2_backend.modify_verified_access_group_policy(
+            verified_access_group_id=group_id,
+            policy_document=policy_document,
+            policy_enabled=policy_enabled,
+        )
+        template = self.response_template(MODIFY_VERIFIED_ACCESS_GROUP_POLICY)
+        return template.render(group=group)
+
+    def modify_verified_access_endpoint(self) -> str:
+        endpoint_id = self._get_param("VerifiedAccessEndpointId")
+        description = self._get_param("Description")
+        endpoint = self.ec2_backend.modify_verified_access_endpoint(
+            verified_access_endpoint_id=endpoint_id,
+            description=description,
+        )
+        template = self.response_template(MODIFY_VERIFIED_ACCESS_ENDPOINT)
+        return template.render(endpoint=endpoint)
+
+    def modify_verified_access_endpoint_policy(self) -> str:
+        endpoint_id = self._get_param("VerifiedAccessEndpointId")
+        policy_document = self._get_param("PolicyDocument", "")
+        policy_enabled = self._get_param("PolicyEnabled")
+        endpoint = self.ec2_backend.modify_verified_access_endpoint_policy(
+            verified_access_endpoint_id=endpoint_id,
+            policy_document=policy_document,
+            policy_enabled=policy_enabled,
+        )
+        template = self.response_template(MODIFY_VERIFIED_ACCESS_ENDPOINT_POLICY)
+        return template.render(endpoint=endpoint)
+
     def describe_verified_access_endpoints(self) -> str:
         endpoint_ids = self._get_param("VerifiedAccessEndpointIds", [])
         group_id = self._get_param("VerifiedAccessGroupId")
@@ -414,3 +484,83 @@ DESCRIBE_VERIFIED_ACCESS_ENDPOINTS = """<DescribeVerifiedAccessEndpointsResponse
     {% endfor %}
   </verifiedAccessEndpointSet>
 </DescribeVerifiedAccessEndpointsResponse>"""
+
+
+MODIFY_VERIFIED_ACCESS_INSTANCE = """<ModifyVerifiedAccessInstanceResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+  <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
+  <verifiedAccessInstance>
+    <verifiedAccessInstanceId>{{ instance.id }}</verifiedAccessInstanceId>
+    <description>{{ instance.description }}</description>
+    <fipsEnabled>{{ 'true' if instance.fips_enabled else 'false' }}</fipsEnabled>
+    <creationTime>{{ instance.creation_time }}</creationTime>
+    <lastUpdatedTime>{{ instance.last_updated_time }}</lastUpdatedTime>
+  </verifiedAccessInstance>
+</ModifyVerifiedAccessInstanceResponse>"""
+
+
+MODIFY_VERIFIED_ACCESS_INSTANCE_LOGGING = """<ModifyVerifiedAccessInstanceLoggingConfigurationResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+  <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
+  <loggingConfiguration>
+    <verifiedAccessInstanceId>{{ instance.id }}</verifiedAccessInstanceId>
+    <accessLogs>
+      <cloudWatchLogs><enabled>false</enabled></cloudWatchLogs>
+      <kinesisDataFirehose><enabled>false</enabled></kinesisDataFirehose>
+      <s3><enabled>false</enabled></s3>
+    </accessLogs>
+  </loggingConfiguration>
+</ModifyVerifiedAccessInstanceLoggingConfigurationResponse>"""
+
+
+MODIFY_VERIFIED_ACCESS_TRUST_PROVIDER = """<ModifyVerifiedAccessTrustProviderResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+  <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
+  <verifiedAccessTrustProvider>
+    <verifiedAccessTrustProviderId>{{ provider.id }}</verifiedAccessTrustProviderId>
+    <description>{{ provider.description }}</description>
+    <trustProviderType>{{ provider.trust_provider_type }}</trustProviderType>
+    <policyReferenceName>{{ provider.policy_reference_name }}</policyReferenceName>
+    <creationTime>{{ provider.creation_time }}</creationTime>
+    <lastUpdatedTime>{{ provider.last_updated_time }}</lastUpdatedTime>
+  </verifiedAccessTrustProvider>
+</ModifyVerifiedAccessTrustProviderResponse>"""
+
+
+MODIFY_VERIFIED_ACCESS_GROUP = """<ModifyVerifiedAccessGroupResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+  <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
+  <verifiedAccessGroup>
+    <verifiedAccessGroupId>{{ group.id }}</verifiedAccessGroupId>
+    <verifiedAccessGroupArn>{{ group.arn }}</verifiedAccessGroupArn>
+    <verifiedAccessInstanceId>{{ group.verified_access_instance_id }}</verifiedAccessInstanceId>
+    <description>{{ group.description }}</description>
+    <creationTime>{{ group.creation_time }}</creationTime>
+    <lastUpdatedTime>{{ group.last_updated_time }}</lastUpdatedTime>
+  </verifiedAccessGroup>
+</ModifyVerifiedAccessGroupResponse>"""
+
+
+MODIFY_VERIFIED_ACCESS_GROUP_POLICY = """<ModifyVerifiedAccessGroupPolicyResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+  <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
+  <policyEnabled>{{ 'true' if group.policy_enabled else 'false' }}</policyEnabled>
+  <policyDocument>{{ group.policy_document }}</policyDocument>
+</ModifyVerifiedAccessGroupPolicyResponse>"""
+
+
+MODIFY_VERIFIED_ACCESS_ENDPOINT = """<ModifyVerifiedAccessEndpointResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+  <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
+  <verifiedAccessEndpoint>
+    <verifiedAccessEndpointId>{{ endpoint.id }}</verifiedAccessEndpointId>
+    <verifiedAccessGroupId>{{ endpoint.verified_access_group_id }}</verifiedAccessGroupId>
+    <verifiedAccessInstanceId>{{ endpoint.verified_access_instance_id }}</verifiedAccessInstanceId>
+    <endpointType>{{ endpoint.endpoint_type }}</endpointType>
+    <description>{{ endpoint.description }}</description>
+    <status><code>{{ endpoint.state }}</code></status>
+    <creationTime>{{ endpoint.creation_time }}</creationTime>
+    <lastUpdatedTime>{{ endpoint.last_updated_time }}</lastUpdatedTime>
+  </verifiedAccessEndpoint>
+</ModifyVerifiedAccessEndpointResponse>"""
+
+
+MODIFY_VERIFIED_ACCESS_ENDPOINT_POLICY = """<ModifyVerifiedAccessEndpointPolicyResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+  <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
+  <policyEnabled>{{ 'true' if endpoint.policy_enabled else 'false' }}</policyEnabled>
+  <policyDocument>{{ endpoint.policy_document }}</policyDocument>
+</ModifyVerifiedAccessEndpointPolicyResponse>"""

@@ -165,3 +165,39 @@ class AmisResponse(EC2BaseResponse):
         self.ec2_backend.reset_image_attribute(ami_id=ami_id, attribute=attribute)
         result = {"Return": True}
         return ActionResult(result)
+
+    def disable_image(self) -> ActionResult:
+        ami_id = self._get_param("ImageId")
+        self.ec2_backend.disable_image(ami_id)
+        return ActionResult({"Return": True})
+
+    def enable_image(self) -> ActionResult:
+        ami_id = self._get_param("ImageId")
+        self.ec2_backend.enable_image(ami_id)
+        return ActionResult({"Return": True})
+
+    def disable_image_deprecation(self) -> ActionResult:
+        ami_id = self._get_param("ImageId")
+        self.ec2_backend.disable_image_deprecation(ami_id)
+        return ActionResult({"Return": True})
+
+    def enable_image_deprecation(self) -> ActionResult:
+        ami_id = self._get_param("ImageId")
+        deprecate_at = self._get_param("DeprecateAt")
+        self.ec2_backend.enable_image_deprecation(ami_id, deprecate_at)
+        return ActionResult({"Return": True})
+
+    def disable_image_deregistration_protection(self) -> ActionResult:
+        ami_id = self._get_param("ImageId")
+        self.ec2_backend.disable_image_deregistration_protection(ami_id)
+        return ActionResult({"Return": True})
+
+    def enable_image_deregistration_protection(self) -> ActionResult:
+        ami_id = self._get_param("ImageId")
+        self.ec2_backend.enable_image_deregistration_protection(ami_id)
+        return ActionResult({"Return": True})
+
+    def enable_image_block_public_access(self) -> ActionResult:
+        state = self._get_param("ImageBlockPublicAccessState")
+        result = self.ec2_backend.enable_image_block_public_access(state)
+        return ActionResult(result)

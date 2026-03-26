@@ -315,3 +315,90 @@ class TrafficMirrorBackend:
                 s for s in sessions if s.id in traffic_mirror_session_ids
             ]
         return sessions
+
+    def modify_traffic_mirror_filter_network_services(
+        self,
+        traffic_mirror_filter_id: str,
+        add_network_services: Optional[list[str]] = None,
+        remove_network_services: Optional[list[str]] = None,
+    ) -> TrafficMirrorFilter:
+        tmf = self.traffic_mirror_filters.get(traffic_mirror_filter_id)
+        if not tmf:
+            from ..exceptions import InvalidTrafficMirrorFilterIdError
+
+            raise InvalidTrafficMirrorFilterIdError(traffic_mirror_filter_id)
+        for svc in add_network_services or []:
+            if svc not in tmf.network_services:
+                tmf.network_services.append(svc)
+        for svc in remove_network_services or []:
+            if svc in tmf.network_services:
+                tmf.network_services.remove(svc)
+        return tmf
+
+    def modify_traffic_mirror_filter_rule(
+        self,
+        traffic_mirror_filter_rule_id: str,
+        traffic_direction: Optional[str] = None,
+        rule_number: Optional[int] = None,
+        rule_action: Optional[str] = None,
+        protocol: Optional[int] = None,
+        destination_cidr_block: Optional[str] = None,
+        source_cidr_block: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> TrafficMirrorFilterRule:
+        rule = None
+        for tmf in self.traffic_mirror_filters.values():
+            for r in tmf.ingress_rules + tmf.egress_rules:
+                if r.id == traffic_mirror_filter_rule_id:
+                    rule = r
+                    break
+            if rule:
+                break
+        if not rule:
+            from ..exceptions import InvalidTrafficMirrorFilterRuleIdError
+
+            raise InvalidTrafficMirrorFilterRuleIdError(traffic_mirror_filter_rule_id)
+        if traffic_direction is not None:
+            rule.traffic_direction = traffic_direction
+        if rule_number is not None:
+            rule.rule_number = rule_number
+        if rule_action is not None:
+            rule.rule_action = rule_action
+        if protocol is not None:
+            rule.protocol = protocol
+        if destination_cidr_block is not None:
+            rule.destination_cidr_block = destination_cidr_block
+        if source_cidr_block is not None:
+            rule.source_cidr_block = source_cidr_block
+        if description is not None:
+            rule.description = description
+        return rule
+
+    def modify_traffic_mirror_session(
+        self,
+        traffic_mirror_session_id: str,
+        traffic_mirror_target_id: Optional[str] = None,
+        traffic_mirror_filter_id: Optional[str] = None,
+        session_number: Optional[int] = None,
+        packet_length: Optional[int] = None,
+        virtual_network_id: Optional[int] = None,
+        description: Optional[str] = None,
+    ) -> TrafficMirrorSession:
+        session = self.traffic_mirror_sessions.get(traffic_mirror_session_id)
+        if not session:
+            from ..exceptions import InvalidTrafficMirrorSessionIdError
+
+            raise InvalidTrafficMirrorSessionIdError(traffic_mirror_session_id)
+        if traffic_mirror_target_id is not None:
+            session.traffic_mirror_target_id = traffic_mirror_target_id
+        if traffic_mirror_filter_id is not None:
+            session.traffic_mirror_filter_id = traffic_mirror_filter_id
+        if session_number is not None:
+            session.session_number = session_number
+        if packet_length is not None:
+            session.packet_length = packet_length
+        if virtual_network_id is not None:
+            session.virtual_network_id = virtual_network_id
+        if description is not None:
+            session.description = description
+        return session

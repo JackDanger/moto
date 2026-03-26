@@ -389,3 +389,38 @@ class AmiBackend:
 
     def describe_image_attribute(self, ami_id: str, attribute_name: str) -> Any:
         return self.amis[ami_id].__getattribute__(attribute_name)
+
+    def _get_ami_or_raise(self, ami_id: str) -> "Ami":
+        ami = self.amis.get(ami_id)
+        if not ami:
+            raise InvalidAMIIdError(ami_id)
+        return ami
+
+    def disable_image(self, ami_id: str) -> None:
+        ami = self._get_ami_or_raise(ami_id)
+        ami.state = "disabled"
+
+    def enable_image(self, ami_id: str) -> None:
+        ami = self._get_ami_or_raise(ami_id)
+        ami.state = "available"
+
+    def disable_image_deprecation(self, ami_id: str) -> None:
+        ami = self._get_ami_or_raise(ami_id)
+        ami.deprecation_time: Optional[str] = None  # type: ignore[assignment]
+
+    def enable_image_deprecation(self, ami_id: str, deprecate_at: str) -> None:
+        ami = self._get_ami_or_raise(ami_id)
+        ami.deprecation_time = deprecate_at  # type: ignore[attr-defined]
+
+    def disable_image_deregistration_protection(self, ami_id: str) -> None:
+        ami = self._get_ami_or_raise(ami_id)
+        ami.deregistration_protection = "disabled"  # type: ignore[attr-defined]
+
+    def enable_image_deregistration_protection(self, ami_id: str) -> None:
+        ami = self._get_ami_or_raise(ami_id)
+        ami.deregistration_protection = "enabled"  # type: ignore[attr-defined]
+
+    def enable_image_block_public_access(self, state: str) -> dict[str, str]:
+        """Set image block public access state for the region."""
+        self._image_block_public_access_state = state  # type: ignore[attr-defined]
+        return {"ImageBlockPublicAccessState": state}

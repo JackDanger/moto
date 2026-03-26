@@ -164,6 +164,60 @@ class TrafficMirrorResponse(EC2BaseResponse):
         template = self.response_template(DELETE_TRAFFIC_MIRROR_SESSION)
         return template.render(session_id=session_id)
 
+    def modify_traffic_mirror_filter_network_services(self) -> str:
+        filter_id = self._get_param("TrafficMirrorFilterId")
+        add_services = self._get_param("AddNetworkService", [])
+        remove_services = self._get_param("RemoveNetworkService", [])
+        tmf = self.ec2_backend.modify_traffic_mirror_filter_network_services(
+            traffic_mirror_filter_id=filter_id,
+            add_network_services=add_services or None,
+            remove_network_services=remove_services or None,
+        )
+        template = self.response_template(MODIFY_TRAFFIC_MIRROR_FILTER_NETWORK_SERVICES)
+        return template.render(tmf=tmf)
+
+    def modify_traffic_mirror_filter_rule(self) -> str:
+        rule_id = self._get_param("TrafficMirrorFilterRuleId")
+        traffic_direction = self._get_param("TrafficDirection")
+        rule_number = self._get_param("RuleNumber")
+        rule_action = self._get_param("RuleAction")
+        protocol = self._get_param("Protocol")
+        dst_cidr = self._get_param("DestinationCidrBlock")
+        src_cidr = self._get_param("SourceCidrBlock")
+        description = self._get_param("Description")
+        rule = self.ec2_backend.modify_traffic_mirror_filter_rule(
+            traffic_mirror_filter_rule_id=rule_id,
+            traffic_direction=traffic_direction,
+            rule_number=int(rule_number) if rule_number else None,
+            rule_action=rule_action,
+            protocol=int(protocol) if protocol else None,
+            destination_cidr_block=dst_cidr,
+            source_cidr_block=src_cidr,
+            description=description,
+        )
+        template = self.response_template(MODIFY_TRAFFIC_MIRROR_FILTER_RULE)
+        return template.render(rule=rule)
+
+    def modify_traffic_mirror_session(self) -> str:
+        session_id = self._get_param("TrafficMirrorSessionId")
+        target_id = self._get_param("TrafficMirrorTargetId")
+        filter_id = self._get_param("TrafficMirrorFilterId")
+        session_number = self._get_param("SessionNumber")
+        packet_length = self._get_param("PacketLength")
+        virtual_network_id = self._get_param("VirtualNetworkId")
+        description = self._get_param("Description")
+        session = self.ec2_backend.modify_traffic_mirror_session(
+            traffic_mirror_session_id=session_id,
+            traffic_mirror_target_id=target_id,
+            traffic_mirror_filter_id=filter_id,
+            session_number=int(session_number) if session_number else None,
+            packet_length=int(packet_length) if packet_length else None,
+            virtual_network_id=int(virtual_network_id) if virtual_network_id else None,
+            description=description,
+        )
+        template = self.response_template(MODIFY_TRAFFIC_MIRROR_SESSION)
+        return template.render(tms=session)
+
     def describe_traffic_mirror_sessions(self) -> str:
         session_ids = self._get_param("TrafficMirrorSessionId", [])
         sessions = self.ec2_backend.describe_traffic_mirror_sessions(
@@ -399,3 +453,46 @@ DESCRIBE_TRAFFIC_MIRROR_SESSIONS = """<DescribeTrafficMirrorSessionsResponse xml
     {% endfor %}
   </trafficMirrorSessionSet>
 </DescribeTrafficMirrorSessionsResponse>"""
+
+MODIFY_TRAFFIC_MIRROR_FILTER_NETWORK_SERVICES = """<ModifyTrafficMirrorFilterNetworkServicesResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+  <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
+  <trafficMirrorFilter>
+    <trafficMirrorFilterId>{{ tmf.id }}</trafficMirrorFilterId>
+    <description>{{ tmf.description }}</description>
+    <networkServiceSet>
+      {% for svc in tmf.network_services %}
+      <item>{{ svc }}</item>
+      {% endfor %}
+    </networkServiceSet>
+  </trafficMirrorFilter>
+</ModifyTrafficMirrorFilterNetworkServicesResponse>"""
+
+MODIFY_TRAFFIC_MIRROR_FILTER_RULE = """<ModifyTrafficMirrorFilterRuleResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+  <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
+  <trafficMirrorFilterRule>
+    <trafficMirrorFilterRuleId>{{ rule.id }}</trafficMirrorFilterRuleId>
+    <trafficMirrorFilterId>{{ rule.traffic_mirror_filter_id }}</trafficMirrorFilterId>
+    <trafficDirection>{{ rule.traffic_direction }}</trafficDirection>
+    <ruleNumber>{{ rule.rule_number }}</ruleNumber>
+    <ruleAction>{{ rule.rule_action }}</ruleAction>
+    {% if rule.protocol %}<protocol>{{ rule.protocol }}</protocol>{% endif %}
+    <destinationCidrBlock>{{ rule.destination_cidr_block }}</destinationCidrBlock>
+    <sourceCidrBlock>{{ rule.source_cidr_block }}</sourceCidrBlock>
+    <description>{{ rule.description }}</description>
+  </trafficMirrorFilterRule>
+</ModifyTrafficMirrorFilterRuleResponse>"""
+
+MODIFY_TRAFFIC_MIRROR_SESSION = """<ModifyTrafficMirrorSessionResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+  <requestId>7a62c49f-347e-4fc4-9331-6e8eEXAMPLE</requestId>
+  <trafficMirrorSession>
+    <trafficMirrorSessionId>{{ tms.id }}</trafficMirrorSessionId>
+    <trafficMirrorTargetId>{{ tms.traffic_mirror_target_id }}</trafficMirrorTargetId>
+    <trafficMirrorFilterId>{{ tms.traffic_mirror_filter_id }}</trafficMirrorFilterId>
+    <networkInterfaceId>{{ tms.network_interface_id }}</networkInterfaceId>
+    <ownerId>{{ tms.owner_id }}</ownerId>
+    <sessionNumber>{{ tms.session_number }}</sessionNumber>
+    {% if tms.packet_length %}<packetLength>{{ tms.packet_length }}</packetLength>{% endif %}
+    {% if tms.virtual_network_id %}<virtualNetworkId>{{ tms.virtual_network_id }}</virtualNetworkId>{% endif %}
+    <description>{{ tms.description }}</description>
+  </trafficMirrorSession>
+</ModifyTrafficMirrorSessionResponse>"""
