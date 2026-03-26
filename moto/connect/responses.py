@@ -3200,10 +3200,11 @@ class ConnectResponse(BaseResponse):
         instance_id = self._get_instance_id()
         email_address_id = self._get_param_from_path("EmailAddressId")
         params = json.loads(self.body) if self.body else {}
+        alias_config = params.get("AliasConfiguration", {})
         self.connect_backend.associate_email_address_alias(
             instance_id=instance_id,
             email_address_id=email_address_id,
-            alias_email_address_id=str(params["AliasEmailAddressId"]),
+            alias_email_address_id=str(alias_config.get("EmailAddressId", "")),
         )
         return "{}"
 
@@ -3225,7 +3226,7 @@ class ConnectResponse(BaseResponse):
         self.connect_backend.associate_hours_of_operations(
             instance_id=instance_id,
             hours_of_operation_id=hours_of_operation_id,
-            channel=str(params["Channel"]),
+            parent_hours_of_operation_configs=params.get("ParentHoursOfOperationConfigs", []),
         )
         return "{}"
 
@@ -3310,6 +3311,16 @@ class ConnectResponse(BaseResponse):
             instance_id=instance_id,
             data_set_ids=params.get("DataSetIds", []),
             target_account_id=params.get("TargetAccountId"),
+        )
+        return json.dumps(result)
+
+    def batch_get_flow_association(self) -> str:
+        instance_id = self._get_instance_id()
+        params = json.loads(self.body) if self.body else {}
+        result = self.connect_backend.batch_get_flow_association(
+            instance_id=instance_id,
+            resource_ids=params.get("ResourceIds", []),
+            resource_type=params.get("ResourceType"),
         )
         return json.dumps(result)
 

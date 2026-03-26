@@ -249,6 +249,7 @@ url_paths = {
     "{0}/default-vocabulary/(?P<InstanceId>[^/]+)/(?P<LanguageCode>[^/]+)$": ConnectResponse.dispatch,
     "{0}/email-addresses/(?P<InstanceId>[^/]+)/(?P<EmailAddressId>[^/]+)/associate-alias$": ConnectResponse.dispatch,
     "{0}/email-addresses/(?P<InstanceId>[^/]+)/(?P<EmailAddressId>[^/]+)/disassociate-alias$": ConnectResponse.dispatch,
+    "{0}/flow-associations-batch/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
     "{0}/flow-associations/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
     "{0}/flow-associations/(?P<InstanceId>[^/]+)/(?P<ResourceId>[^/]+)/(?P<ResourceType>[^/]+)$": ConnectResponse.dispatch,
     "{0}/hours-of-operations/(?P<InstanceId>[^/]+)/(?P<HoursOfOperationId>[^/]+)/associate-hours$": ConnectResponse.dispatch,

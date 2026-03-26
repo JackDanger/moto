@@ -5307,7 +5307,7 @@ class ConnectBackend(BaseBackend):
         self,
         instance_id: str,
         hours_of_operation_id: str,
-        channel: str,
+        parent_hours_of_operation_configs: Optional[list[dict[str, Any]]] = None,
     ) -> None:
         self._get_instance_or_raise(instance_id)
 
@@ -5389,6 +5389,15 @@ class ConnectBackend(BaseBackend):
     ) -> dict[str, Any]:
         self._get_instance_or_raise(instance_id)
         return {"Deleted": [], "Errors": []}
+
+    def batch_get_flow_association(
+        self,
+        instance_id: str,
+        resource_ids: list[str],
+        resource_type: Optional[str] = None,
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        return {"FlowAssociationSummaryList": []}
 
     def complete_attached_file_upload(
         self, instance_id: str, file_id: str, associated_resource_arn: str
