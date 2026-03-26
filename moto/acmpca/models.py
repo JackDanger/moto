@@ -22,9 +22,35 @@ from .exceptions import (
     InvalidS3ObjectAclInCrlConfiguration,
     InvalidStateException,
     MalformedCertificateAuthorityException,
+    PermissionAlreadyExistsException,
     RequestInProgressException,
     ResourceNotFoundException,
 )
+
+
+class Permission(BaseModel):
+    def __init__(
+        self,
+        ca_arn: str,
+        principal: str,
+        source_account: str,
+        actions: list[str],
+    ):
+        self.ca_arn = ca_arn
+        self.principal = principal
+        self.source_account = source_account
+        self.actions = actions
+        self.created_at = unix_time()
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "CertificateAuthorityArn": self.ca_arn,
+            "CreatedAt": self.created_at,
+            "Principal": self.principal,
+            "SourceAccount": self.source_account,
+            "Actions": self.actions,
+            "Policy": "",
+        }
 
 
 class CertificateAuthority(BaseModel):
@@ -54,6 +80,8 @@ class CertificateAuthority(BaseModel):
         self.security_standard = security_standard or "FIPS_140_2_LEVEL_3_OR_HIGHER"
         self.policy: Optional[str] = None
         self.revoked_certificates: dict[str, dict[str, Any]] = {}
+        self.permissions: dict[str, Permission] = {}  # keyed by principal
+        self.audit_reports: dict[str, dict[str, Any]] = {}  # keyed by audit report id
 
         self.password = str(mock_random.uuid4()).encode("utf-8")
 
@@ -547,6 +575,100 @@ class ACMPCABackend(BaseBackend):
         cas.sort(key=lambda x: x.created_at, reverse=True)
 
         return cas
+
+    def restore_certificate_authority(
+        self, certificate_authority_arn: str
+    ) -> None:
+        """
+        Restores a deleted certificate authority. The CA must be in DELETED status.
+        """
+        ca = self.describe_certificate_authority(certificate_authority_arn)
+        if ca.status != "DELETED":
+            raise InvalidStateException(certificate_authority_arn)
+        # Restore to DISABLED status (requires re-activation)
+        ca.status = "DISABLED"
+        ca.updated_at = unix_time()
+
+    def create_permission(
+        self,
+        certificate_authority_arn: str,
+        principal: str,
+        source_account: str,
+        actions: list[str],
+    ) -> None:
+        """
+        Grants one or more permissions on a private CA to the AWS Certificate Manager (ACM) service principal.
+        """
+        ca = self.describe_certificate_authority(certificate_authority_arn)
+        if principal in ca.permissions:
+            raise PermissionAlreadyExistsException(principal, certificate_authority_arn)
+        permission = Permission(
+            ca_arn=certificate_authority_arn,
+            principal=principal,
+            source_account=source_account,
+            actions=actions,
+        )
+        ca.permissions[principal] = permission
+
+    def delete_permission(
+        self,
+        certificate_authority_arn: str,
+        principal: str,
+        source_account: Optional[str],
+    ) -> None:
+        """
+        Revokes permissions on a private CA granted to the AWS Certificate Manager (ACM) service principal.
+        """
+        ca = self.describe_certificate_authority(certificate_authority_arn)
+        if principal not in ca.permissions:
+            raise ResourceNotFoundException(certificate_authority_arn)
+        del ca.permissions[principal]
+
+    def list_permissions(
+        self,
+        certificate_authority_arn: str,
+    ) -> list[Permission]:
+        """
+        Lists the permissions that have been applied to a private CA.
+        """
+        ca = self.describe_certificate_authority(certificate_authority_arn)
+        return list(ca.permissions.values())
+
+    def create_certificate_authority_audit_report(
+        self,
+        certificate_authority_arn: str,
+        s3_bucket_name: str,
+        audit_report_response_format: str,
+    ) -> tuple[str, str]:
+        """
+        Creates an audit report that lists every time that your CA private key is used.
+        """
+        ca = self.describe_certificate_authority(certificate_authority_arn)
+        if ca.status != "ACTIVE":
+            raise InvalidStateException(certificate_authority_arn)
+        audit_report_id = str(mock_random.uuid4())
+        s3_key = f"audit-report/{audit_report_id}"
+        ca.audit_reports[audit_report_id] = {
+            "AuditReportId": audit_report_id,
+            "S3BucketName": s3_bucket_name,
+            "S3Key": s3_key,
+            "CreatedAt": unix_time(),
+            "Status": "SUCCESS",
+        }
+        return audit_report_id, s3_key
+
+    def describe_certificate_authority_audit_report(
+        self,
+        certificate_authority_arn: str,
+        audit_report_id: str,
+    ) -> dict[str, Any]:
+        """
+        Lists information about a specific audit report created by calling the CreateCertificateAuthorityAuditReport action.
+        """
+        ca = self.describe_certificate_authority(certificate_authority_arn)
+        if audit_report_id not in ca.audit_reports:
+            raise ResourceNotFoundException(audit_report_id)
+        return ca.audit_reports[audit_report_id]
 
 
 acmpca_backends = BackendDict(ACMPCABackend, "acm-pca")

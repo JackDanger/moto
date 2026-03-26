@@ -68,3 +68,13 @@ class RequestInProgressException(JsonRESTError):
             "RequestInProgressException",
             message,
         )
+
+
+class PermissionAlreadyExistsException(JsonRESTError):
+    code = 409
+
+    def __init__(self, principal: str, ca_arn: str) -> None:
+        super().__init__(
+            "PermissionAlreadyExistsException",
+            f"A permission for principal {principal} already exists on the CA {ca_arn}.",
+        )
