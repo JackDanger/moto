@@ -729,7 +729,7 @@ class NetworkFirewallBackend(BaseBackend):
         self.tagger.tag_resource(resource_arn, tags)
 
     def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
-        self.tagger.untag_resource(resource_arn, tag_keys)
+        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
     def put_resource_policy(self, resource_arn: str, policy: str) -> None:
         self.resource_policies[resource_arn] = policy
