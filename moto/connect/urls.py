@@ -192,4 +192,53 @@ url_paths = {
     "{0}/test-cases/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
     # Tags
     "{0}/tags/(?P<resourceArn>.+)$": ConnectResponse.dispatch,
+    # Contact lifecycle (N-Z)
+    "{0}/contact/pause$": ConnectResponse.dispatch,
+    "{0}/contact/resume$": ConnectResponse.dispatch,
+    "{0}/contact/resume-recording$": ConnectResponse.dispatch,
+    "{0}/contact/chat$": ConnectResponse.dispatch,
+    "{0}/contact/start-recording$": ConnectResponse.dispatch,
+    "{0}/contact/start-streaming$": ConnectResponse.dispatch,
+    "{0}/contact/outbound-voice$": ConnectResponse.dispatch,
+    "{0}/contact/task$": ConnectResponse.dispatch,
+    "{0}/contact/stop-recording$": ConnectResponse.dispatch,
+    "{0}/contact/stop-streaming$": ConnectResponse.dispatch,
+    "{0}/contact/suspend-recording$": ConnectResponse.dispatch,
+    "{0}/contact/tags$": ConnectResponse.dispatch,
+    "{0}/contact/tags/(?P<InstanceId>[^/]+)/(?P<ContactId>[^/]+)$": ConnectResponse.dispatch,
+    "{0}/contact/transfer$": ConnectResponse.dispatch,
+    "{0}/contact/schedule$": ConnectResponse.dispatch,
+    "{0}/contact/update-participant-authentication$": ConnectResponse.dispatch,
+    "{0}/contacts/(?P<InstanceId>[^/]+)/(?P<ContactId>[^/]+)/routing-data$": ConnectResponse.dispatch,
+    # User status / proficiencies / notifications
+    "{0}/users/(?P<InstanceId>[^/]+)/(?P<UserId>[^/]+)/status$": ConnectResponse.dispatch,
+    "{0}/users/(?P<InstanceId>[^/]+)/(?P<UserId>[^/]+)/proficiencies$": ConnectResponse.dispatch,
+    "{0}/users/(?P<InstanceId>[^/]+)/(?P<UserId>[^/]+)/notifications/(?P<NotificationId>[^/]+)$": ConnectResponse.dispatch,
+    # Instance replicate
+    "{0}/instance/(?P<InstanceId>[^/]+)/replicate$": ConnectResponse.dispatch,
+    # Search (N-Z)
+    "{0}/search-contact-evaluations$": ConnectResponse.dispatch,
+    "{0}/search-contacts$": ConnectResponse.dispatch,
+    "{0}/search-data-tables$": ConnectResponse.dispatch,
+    "{0}/search-email-addresses$": ConnectResponse.dispatch,
+    "{0}/search-evaluation-forms$": ConnectResponse.dispatch,
+    "{0}/search-hours-of-operation-overrides$": ConnectResponse.dispatch,
+    "{0}/search-notifications$": ConnectResponse.dispatch,
+    "{0}/search-resource-tags$": ConnectResponse.dispatch,
+    "{0}/search-test-cases$": ConnectResponse.dispatch,
+    "{0}/search-views$": ConnectResponse.dispatch,
+    "{0}/search-workspace-associations$": ConnectResponse.dispatch,
+    "{0}/search-workspaces$": ConnectResponse.dispatch,
+    # Contact evaluation submit
+    "{0}/contact-evaluations/(?P<InstanceId>[^/]+)/(?P<EvaluationId>[^/]+)/submit$": ConnectResponse.dispatch,
+    # Phone number metadata
+    "{0}/phone-number/(?P<PhoneNumberId>[^/]+)/metadata$": ConnectResponse.dispatch,
+    # Queue outbound email config
+    "{0}/queues/(?P<InstanceId>[^/]+)/(?P<QueueId>[^/]+)/outbound-email-config$": ConnectResponse.dispatch,
+    # Routing profile agent availability timer
+    "{0}/routing-profiles/(?P<InstanceId>[^/]+)/(?P<RoutingProfileId>[^/]+)/agent-availability-timer$": ConnectResponse.dispatch,
+    # Workspace sub-resources
+    "{0}/workspaces/(?P<InstanceId>[^/]+)/(?P<WorkspaceId>[^/]+)/metadata$": ConnectResponse.dispatch,
+    "{0}/workspaces/(?P<InstanceId>[^/]+)/(?P<WorkspaceId>[^/]+)/theme$": ConnectResponse.dispatch,
+    "{0}/workspaces/(?P<InstanceId>[^/]+)/(?P<WorkspaceId>[^/]+)/visibility$": ConnectResponse.dispatch,
 }

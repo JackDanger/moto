@@ -4756,5 +4756,523 @@ class ConnectBackend(BaseBackend):
         profiles = self.authentication_profiles.get(instance_id, {})
         return [p.to_summary_dict() for p in profiles.values()]
 
+    # ---- Search operations (N-Z) ----
+
+    def search_contact_evaluations(
+        self,
+        instance_id: str,
+        search_criteria: Optional[dict[str, Any]] = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        evals = self.contact_evaluations.get(instance_id, {})
+        return [e.to_dict() for e in evals.values()]
+
+    def search_contacts(
+        self,
+        instance_id: str,
+        time_range: Optional[dict[str, Any]] = None,
+        search_criteria: Optional[dict[str, Any]] = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        contacts = self.contacts.get(instance_id, {})
+        return [c.to_dict() for c in contacts.values()]
+
+    def search_data_tables(
+        self,
+        instance_id: str,
+        search_criteria: Optional[dict[str, Any]] = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        tables = self.data_tables.get(instance_id, {})
+        return [t.to_dict() for t in tables.values()]
+
+    def search_email_addresses(
+        self,
+        instance_id: str,
+        search_criteria: Optional[dict[str, Any]] = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        emails = self.email_addresses.get(instance_id, {})
+        return [e.to_dict() for e in emails.values()]
+
+    def search_evaluation_forms(
+        self,
+        instance_id: str,
+        search_criteria: Optional[dict[str, Any]] = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        forms = self.evaluation_forms.get(instance_id, {})
+        return [f.to_dict() for f in forms.values()]
+
+    def search_hours_of_operation_overrides(
+        self,
+        instance_id: str,
+        hours_of_operation_id: Optional[str] = None,
+        search_criteria: Optional[dict[str, Any]] = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        results = []
+        for key, overrides in self.hours_of_operation_overrides.items():
+            if hours_of_operation_id and not key.startswith(
+                f"{instance_id}:{hours_of_operation_id}"
+            ):
+                continue
+            if key.startswith(f"{instance_id}:"):
+                results.extend(o.to_dict() for o in overrides.values())
+        return results
+
+    def search_notifications(
+        self,
+        instance_id: str,
+        search_criteria: Optional[dict[str, Any]] = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        notifications = self.notifications.get(instance_id, {})
+        return [n.to_dict() for n in notifications.values()]
+
+    def search_resource_tags(
+        self,
+        instance_id: str,
+        resource_types: Optional[list[str]] = None,
+    ) -> list[dict[str, str]]:
+        self._get_instance_or_raise(instance_id)
+        all_tags: dict[str, str] = {}
+        for resource_arn, tags in self.tagger.tags.items():
+            instance_prefix = f"arn:aws:connect:{self.region_name}:{self.account_id}:instance/{instance_id}"
+            if resource_arn.startswith(instance_prefix):
+                for tag in tags:
+                    key = tag.get("Key", "")
+                    val = tag.get("Value", "")
+                    if key and key not in all_tags:
+                        all_tags[key] = val
+        return [{"Key": k, "Value": v} for k, v in all_tags.items()]
+
+    def search_test_cases(
+        self,
+        instance_id: str,
+        search_criteria: Optional[dict[str, Any]] = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        cases = self.test_cases.get(instance_id, {})
+        return [c.to_dict() for c in cases.values()]
+
+    def search_views(
+        self,
+        instance_id: str,
+        search_criteria: Optional[dict[str, Any]] = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        views = self.views.get(instance_id, {})
+        return [v.to_dict() for v in views.values()]
+
+    def search_workspace_associations(
+        self,
+        instance_id: str,
+        search_criteria: Optional[dict[str, Any]] = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        workspaces = self.workspaces.get(instance_id, {})
+        return [w.to_dict() for w in workspaces.values()]
+
+    def search_workspaces(
+        self,
+        instance_id: str,
+        search_criteria: Optional[dict[str, Any]] = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        workspaces = self.workspaces.get(instance_id, {})
+        return [w.to_dict() for w in workspaces.values()]
+
+    # ---- Contact recording / streaming / lifecycle ----
+
+    def pause_contact(self, instance_id: str, contact_id: str) -> None:
+        self._get_instance_or_raise(instance_id)
+        contacts = self.contacts.get(instance_id, {})
+        if contact_id not in contacts:
+            raise ResourceNotFoundException(f"Contact {contact_id} not found")
+
+    def put_user_status(
+        self, instance_id: str, user_id: str, agent_status_id: str
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        users = self.users.get(instance_id, {})
+        if user_id not in users:
+            raise ResourceNotFoundException(f"User {user_id} not found")
+
+    def replicate_instance(
+        self,
+        instance_id: str,
+        replica_region: str,
+        replica_alias: str,
+        client_token: Optional[str] = None,
+    ) -> dict[str, str]:
+        instance = self._get_instance_or_raise(instance_id)
+        return {"Id": instance.id, "Arn": instance.arn}
+
+    def resume_contact(self, instance_id: str, contact_id: str) -> None:
+        self._get_instance_or_raise(instance_id)
+        contacts = self.contacts.get(instance_id, {})
+        if contact_id not in contacts:
+            raise ResourceNotFoundException(f"Contact {contact_id} not found")
+
+    def resume_contact_recording(
+        self,
+        instance_id: str,
+        contact_id: str,
+        initial_contact_id: str,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+
+    def start_contact_recording(
+        self,
+        instance_id: str,
+        contact_id: str,
+        initial_contact_id: str,
+        voice_recording_configuration: Optional[dict[str, Any]] = None,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+
+    def start_contact_streaming(
+        self,
+        instance_id: str,
+        contact_id: str,
+        chat_streaming_configuration: dict[str, Any],
+        client_token: Optional[str] = None,
+    ) -> dict[str, str]:
+        self._get_instance_or_raise(instance_id)
+        import uuid
+
+        return {"StreamingId": str(uuid.uuid4())}
+
+    def start_chat_contact(
+        self,
+        instance_id: str,
+        contact_flow_id: str,
+        participant_details: dict[str, Any],
+        attributes: Optional[dict[str, str]] = None,
+        initial_message: Optional[dict[str, Any]] = None,
+        client_token: Optional[str] = None,
+        chat_duration_in_minutes: Optional[int] = None,
+        supported_messaging_content_types: Optional[list[str]] = None,
+        persistent_chat: Optional[dict[str, Any]] = None,
+        related_contact_id: Optional[str] = None,
+        segment_attributes: Optional[dict[str, Any]] = None,
+    ) -> dict[str, str]:
+        self._get_instance_or_raise(instance_id)
+        import uuid
+
+        contact_id = str(uuid.uuid4())
+        participant_id = str(uuid.uuid4())
+        participant_token = str(uuid.uuid4())
+        return {
+            "ContactId": contact_id,
+            "ParticipantId": participant_id,
+            "ParticipantToken": participant_token,
+        }
+
+    def start_outbound_voice_contact(
+        self,
+        instance_id: str,
+        contact_flow_id: str,
+        destination_phone_number: str,
+        queue_id: Optional[str] = None,
+        source_phone_number: Optional[str] = None,
+        attributes: Optional[dict[str, str]] = None,
+        answer_machine_detection_config: Optional[dict[str, Any]] = None,
+        campaign_id: Optional[str] = None,
+        traffic_type: Optional[str] = None,
+        client_token: Optional[str] = None,
+    ) -> dict[str, str]:
+        self._get_instance_or_raise(instance_id)
+        import uuid
+
+        return {"ContactId": str(uuid.uuid4())}
+
+    def start_task_contact(
+        self,
+        instance_id: str,
+        contact_flow_id: str,
+        name: str,
+        previous_contact_id: Optional[str] = None,
+        attributes: Optional[dict[str, str]] = None,
+        references: Optional[dict[str, Any]] = None,
+        description: Optional[str] = None,
+        related_contact_id: Optional[str] = None,
+        scheduled_time: Optional[str] = None,
+        task_template_id: Optional[str] = None,
+        quick_connect_id: Optional[str] = None,
+        client_token: Optional[str] = None,
+    ) -> dict[str, str]:
+        self._get_instance_or_raise(instance_id)
+        import uuid
+
+        return {"ContactId": str(uuid.uuid4())}
+
+    def stop_contact_recording(
+        self,
+        instance_id: str,
+        contact_id: str,
+        initial_contact_id: str,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+
+    def stop_contact_streaming(
+        self,
+        instance_id: str,
+        contact_id: str,
+        streaming_id: str,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+
+    def submit_contact_evaluation(
+        self,
+        instance_id: str,
+        evaluation_id: str,
+        answers: Optional[dict[str, Any]] = None,
+        notes: Optional[str] = None,
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        evals = self.contact_evaluations.get(instance_id, {})
+        if evaluation_id not in evals:
+            raise ResourceNotFoundException(
+                f"Contact evaluation {evaluation_id} not found"
+            )
+        ev = evals[evaluation_id]
+        ev.status = "SUBMITTED"
+        if answers is not None:
+            ev.answers = answers
+        if notes is not None:
+            ev.notes = notes
+        ev.modified_timestamp = _now_iso()
+        return {"EvaluationId": ev.evaluation_id, "EvaluationArn": ev.arn}
+
+    def suspend_contact_recording(
+        self,
+        instance_id: str,
+        contact_id: str,
+        initial_contact_id: str,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+
+    def tag_contact(
+        self,
+        instance_id: str,
+        contact_id: str,
+        tags: dict[str, str],
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        contacts = self.contacts.get(instance_id, {})
+        if contact_id not in contacts:
+            raise ResourceNotFoundException(f"Contact {contact_id} not found")
+        c = contacts[contact_id]
+        if not hasattr(c, "tags"):
+            c.tags: dict[str, str] = {}  # type: ignore[assignment]
+        c.tags = {**c.tags, **tags}
+
+    def untag_contact(
+        self,
+        instance_id: str,
+        contact_id: str,
+        tag_keys: list[str],
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        contacts = self.contacts.get(instance_id, {})
+        if contact_id not in contacts:
+            raise ResourceNotFoundException(f"Contact {contact_id} not found")
+        c = contacts[contact_id]
+        existing = getattr(c, "tags", {}) or {}
+        for k in tag_keys:
+            existing.pop(k, None)
+        c.tags = existing  # type: ignore[assignment]
+
+    def transfer_contact(
+        self,
+        instance_id: str,
+        contact_id: str,
+        contact_flow_id: str,
+        queue_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+        client_token: Optional[str] = None,
+    ) -> dict[str, str]:
+        self._get_instance_or_raise(instance_id)
+        contacts = self.contacts.get(instance_id, {})
+        if contact_id not in contacts:
+            raise ResourceNotFoundException(f"Contact {contact_id} not found")
+        return {
+            "ContactId": contact_id,
+            "ContactArn": f"arn:aws:connect:{self.region_name}:{self.account_id}:instance/{instance_id}/contact/{contact_id}",
+        }
+
+    # ---- Update operations (N-Z) ----
+
+    def update_contact_routing_data(
+        self,
+        instance_id: str,
+        contact_id: str,
+        queue_time_adjustment_seconds: Optional[int] = None,
+        queue_priority: Optional[int] = None,
+        routing_criteria: Optional[dict[str, Any]] = None,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        contacts = self.contacts.get(instance_id, {})
+        if contact_id not in contacts:
+            raise ResourceNotFoundException(f"Contact {contact_id} not found")
+
+    def update_contact_schedule(
+        self,
+        instance_id: str,
+        contact_id: str,
+        scheduled_time: str,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        contacts = self.contacts.get(instance_id, {})
+        if contact_id not in contacts:
+            raise ResourceNotFoundException(f"Contact {contact_id} not found")
+
+    def update_email_address_metadata(
+        self,
+        instance_id: str,
+        email_address_id: str,
+        description: Optional[str] = None,
+        display_name: Optional[str] = None,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        emails = self.email_addresses.get(instance_id, {})
+        if email_address_id not in emails:
+            raise ResourceNotFoundException(
+                f"Email address {email_address_id} not found"
+            )
+        email = emails[email_address_id]
+        if description is not None:
+            email.description = description
+        if display_name is not None:
+            email.display_name = display_name
+
+    def update_notification_content(
+        self,
+        instance_id: str,
+        notification_id: str,
+        content: dict[str, Any],
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        notifications = self.notifications.get(instance_id, {})
+        if notification_id not in notifications:
+            raise ResourceNotFoundException(f"Notification {notification_id} not found")
+        notifications[notification_id].content = content
+
+    def update_participant_authentication(
+        self,
+        instance_id: str,
+        state: str,
+        code: Optional[str] = None,
+        error: Optional[str] = None,
+        error_description: Optional[str] = None,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+
+    def update_phone_number_metadata(
+        self,
+        phone_number_id: str,
+        phone_number_description: Optional[str] = None,
+        client_token: Optional[str] = None,
+    ) -> None:
+        if phone_number_id not in self.phone_numbers:
+            raise ResourceNotFoundException(
+                f"Phone number {phone_number_id} not found"
+            )
+        pn = self.phone_numbers[phone_number_id]
+        if phone_number_description is not None:
+            pn.description = phone_number_description
+
+    def update_queue_outbound_email_config(
+        self,
+        instance_id: str,
+        queue_id: str,
+        outbound_email_config: dict[str, Any],
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        queues = self.queues.get(instance_id, {})
+        if queue_id not in queues:
+            raise ResourceNotFoundException(f"Queue {queue_id} not found")
+        queues[queue_id].outbound_email_config = outbound_email_config  # type: ignore[attr-defined]
+
+    def update_routing_profile_agent_availability_timer(
+        self,
+        instance_id: str,
+        routing_profile_id: str,
+        agent_availability_timer: str,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        rps = self.routing_profiles.get(instance_id, {})
+        if routing_profile_id not in rps:
+            raise ResourceNotFoundException(
+                f"Routing profile {routing_profile_id} not found"
+            )
+        rps[routing_profile_id].agent_availability_timer = agent_availability_timer  # type: ignore[attr-defined]
+
+    def update_user_notification_status(
+        self,
+        instance_id: str,
+        user_id: str,
+        notification_id: str,
+        status: str,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        users = self.users.get(instance_id, {})
+        if user_id not in users:
+            raise ResourceNotFoundException(f"User {user_id} not found")
+
+    def update_user_proficiencies(
+        self,
+        instance_id: str,
+        user_id: str,
+        user_proficiencies: list[dict[str, Any]],
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        users = self.users.get(instance_id, {})
+        if user_id not in users:
+            raise ResourceNotFoundException(f"User {user_id} not found")
+        users[user_id].proficiencies = user_proficiencies  # type: ignore[attr-defined]
+
+    def update_workspace_metadata(
+        self,
+        instance_id: str,
+        workspace_id: str,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        workspaces = self.workspaces.get(instance_id, {})
+        if workspace_id not in workspaces:
+            raise ResourceNotFoundException(f"Workspace {workspace_id} not found")
+        ws = workspaces[workspace_id]
+        if name is not None:
+            ws.name = name
+        if description is not None:
+            ws.description = description
+
+    def update_workspace_theme(
+        self,
+        instance_id: str,
+        workspace_id: str,
+        theme: Optional[dict[str, Any]] = None,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        workspaces = self.workspaces.get(instance_id, {})
+        if workspace_id not in workspaces:
+            raise ResourceNotFoundException(f"Workspace {workspace_id} not found")
+
+    def update_workspace_visibility(
+        self,
+        instance_id: str,
+        workspace_id: str,
+        visibility: str,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        workspaces = self.workspaces.get(instance_id, {})
+        if workspace_id not in workspaces:
+            raise ResourceNotFoundException(f"Workspace {workspace_id} not found")
+        workspaces[workspace_id].visibility = visibility  # type: ignore[attr-defined]
+
 
 connect_backends = BackendDict(ConnectBackend, "connect")
