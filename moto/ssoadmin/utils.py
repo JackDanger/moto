@@ -128,4 +128,11 @@ PAGINATION_MODEL = {
         "result_key": "ApplicationProviders",
         "unique_attribute": "ApplicationProviderArn",
     },
+    "list_regions": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "result_key": "Regions",
+        "unique_attribute": "Region",
+    },
 }

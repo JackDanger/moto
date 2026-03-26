@@ -928,3 +928,46 @@ class SSOAdminResponse(BaseResponse):
             application_provider_arn=application_provider_arn
         )
         return json.dumps(provider)
+
+    # --- Region management ---
+
+    def add_region(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        region_to_add = self._get_param("RegionToAdd")
+        client_token = self._get_param("ClientToken")
+        self.ssoadmin_backend.add_region(
+            instance_arn=instance_arn,
+            region_to_add=region_to_add,
+            client_token=client_token,
+        )
+        return json.dumps({})
+
+    def remove_region(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        region_to_remove = self._get_param("RegionToRemove")
+        client_token = self._get_param("ClientToken")
+        self.ssoadmin_backend.remove_region(
+            instance_arn=instance_arn,
+            region_to_remove=region_to_remove,
+            client_token=client_token,
+        )
+        return json.dumps({})
+
+    def list_regions(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        regions, next_token = self.ssoadmin_backend.list_regions(
+            instance_arn=instance_arn,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return json.dumps({"Regions": regions, "NextToken": next_token})
+
+    def describe_region(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        region = self._get_param("Region")
+        result = self.ssoadmin_backend.describe_region(
+            instance_arn=instance_arn, region=region
+        )
+        return json.dumps(result)

@@ -1353,5 +1353,49 @@ class SSOAdminBackend(BaseBackend):
             f"ApplicationProvider {application_provider_arn} not found"
         )
 
+    # --- Region management ---
+
+    def _get_instance_regions(self, instance: "Instance") -> list[str]:
+        if not hasattr(instance, "_enabled_regions"):
+            instance._enabled_regions: list[str] = []  # type: ignore[attr-defined]
+        return instance._enabled_regions  # type: ignore[attr-defined]
+
+    def add_region(
+        self,
+        instance_arn: str,
+        region_to_add: str,
+        client_token: Optional[str] = None,
+    ) -> None:
+        instance = self._find_instance(instance_arn)
+        regions = self._get_instance_regions(instance)
+        if region_to_add not in regions:
+            regions.append(region_to_add)
+
+    def remove_region(
+        self,
+        instance_arn: str,
+        region_to_remove: str,
+        client_token: Optional[str] = None,
+    ) -> None:
+        instance = self._find_instance(instance_arn)
+        regions = self._get_instance_regions(instance)
+        if region_to_remove in regions:
+            regions.remove(region_to_remove)
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_regions(self, instance_arn: str) -> list[dict[str, Any]]:
+        instance = self._find_instance(instance_arn)
+        regions = self._get_instance_regions(instance)
+        return [{"Region": region, "RegionScope": "ENABLED"} for region in regions]
+
+    def describe_region(self, instance_arn: str, region: str) -> dict[str, Any]:
+        instance = self._find_instance(instance_arn)
+        regions = self._get_instance_regions(instance)
+        if region in regions:
+            return {"Region": region, "RegionScope": "ENABLED"}
+        raise ResourceNotFoundException(
+            f"Region {region} not enabled for instance {instance_arn}"
+        )
+
 
 ssoadmin_backends = BackendDict(SSOAdminBackend, "sso-admin")
