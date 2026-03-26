@@ -174,6 +174,58 @@ class ApplicationAutoScalingResponse(BaseResponse):
         )
         return json.dumps({})
 
+    def describe_scaling_activities(self) -> str:
+        params = json.loads(self.body)
+        service_namespace = params.get("ServiceNamespace")
+        resource_id = params.get("ResourceId")
+        scalable_dimension = params.get("ScalableDimension")
+        max_results = params.get("MaxResults")
+        next_token = params.get("NextToken")
+        new_next_token, activities = (
+            self.applicationautoscaling_backend.describe_scaling_activities(
+                service_namespace=service_namespace,
+                resource_id=resource_id,
+                scalable_dimension=scalable_dimension,
+                max_results=max_results,
+                next_token=next_token,
+            )
+        )
+        resp: dict[str, Any] = {"ScalingActivities": activities}
+        if new_next_token:
+            resp["NextToken"] = new_next_token
+        return json.dumps(resp)
+
+    def get_predictive_scaling_forecast(self) -> str:
+        params = json.loads(self.body)
+        forecast = self.applicationautoscaling_backend.get_predictive_scaling_forecast(
+            service_namespace=params.get("ServiceNamespace"),
+            resource_id=params.get("ResourceId"),
+            scalable_dimension=params.get("ScalableDimension"),
+            start_time=params.get("StartTime"),
+            end_time=params.get("EndTime"),
+        )
+        return json.dumps(forecast)
+
+    def list_tags_for_resource(self) -> str:
+        params = json.loads(self.body)
+        resource_arn = params.get("ResourceARN")
+        tags = self.applicationautoscaling_backend.list_tags_for_resource(resource_arn)
+        return json.dumps({"Tags": tags})
+
+    def tag_resource(self) -> str:
+        params = json.loads(self.body)
+        resource_arn = params.get("ResourceARN")
+        tags = params.get("Tags", {})
+        self.applicationautoscaling_backend.tag_resource(resource_arn, tags)
+        return json.dumps({})
+
+    def untag_resource(self) -> str:
+        params = json.loads(self.body)
+        resource_arn = params.get("ResourceARN")
+        tag_keys = params.get("TagKeys", [])
+        self.applicationautoscaling_backend.untag_resource(resource_arn, tag_keys)
+        return json.dumps({})
+
     def describe_scheduled_actions(self) -> str:
         params = json.loads(self.body)
         scheduled_action_names = params.get("ScheduledActionNames")

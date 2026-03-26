@@ -291,6 +291,59 @@ class ApplicationAutoscalingBackend(BaseBackend):
             result = [a for a in result if a.scalable_dimension == scalable_dimension]
         return result
 
+    def describe_scaling_activities(
+        self,
+        service_namespace: str,
+        resource_id: Optional[str],
+        scalable_dimension: Optional[str],
+        max_results: Optional[int],
+        next_token: Optional[str],
+    ) -> tuple[Optional[str], list[dict[str, Any]]]:
+        """Returns an empty list of scaling activities (activities require real scaling events)."""
+        return None, []
+
+    def get_predictive_scaling_forecast(
+        self,
+        service_namespace: str,
+        resource_id: str,
+        scalable_dimension: str,
+        start_time: str,
+        end_time: str,
+    ) -> dict[str, Any]:
+        """Returns an empty forecast (predictive scaling requires historical metrics)."""
+        return {"LoadForecast": [], "CapacityForecast": {"Timestamps": [], "Values": []}}
+
+    def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
+        """Return tags for a scalable target by ARN."""
+        for dimension_targets in self.targets.values():
+            for target in dimension_targets.values():
+                if target.arn == resource_arn:
+                    return target.tags
+        return {}
+
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
+        """Add or update tags on a scalable target."""
+        for dimension_targets in self.targets.values():
+            for target in dimension_targets.values():
+                if target.arn == resource_arn:
+                    target.tags.update(tags)
+                    return
+        raise AWSValidationException(
+            f"Resource ARN '{resource_arn}' does not exist."
+        )
+
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
+        """Remove tags from a scalable target."""
+        for dimension_targets in self.targets.values():
+            for target in dimension_targets.values():
+                if target.arn == resource_arn:
+                    for key in tag_keys:
+                        target.tags.pop(key, None)
+                    return
+        raise AWSValidationException(
+            f"Resource ARN '{resource_arn}' does not exist."
+        )
+
     def put_scheduled_action(
         self,
         service_namespace: str,
@@ -419,6 +472,7 @@ class FakeScalableTarget(BaseModel):
         self.suspended_state = suspended_state
         self.creation_time = time.time()
         self.arn = f"arn:{get_partition(backend.region_name)}:application-autoscaling:{backend.region_name}:{backend.account_id}:scalable-target/{mock_random.get_random_string(length=36, lower_case=True)}"
+        self.tags: dict[str, str] = {}
 
     def update(
         self,
