@@ -158,7 +158,11 @@ class EMRContainersResponse(BaseResponse):
             tags=tags,
             kms_key_arn=kms_key_arn,
         )
-        return 200, {}, json.dumps({"id": template.id, "name": template.name, "arn": template.arn})
+        return (
+            200,
+            {},
+            json.dumps({"id": template.id, "name": template.name, "arn": template.arn}),
+        )
 
     def delete_job_template(self) -> TYPE_RESPONSE:
         template_id = self._get_param("templateId")
@@ -212,12 +216,18 @@ class EMRContainersResponse(BaseResponse):
             configuration_overrides=configuration_overrides,
             tags=tags,
         )
-        return 200, {}, json.dumps({
-            "id": endpoint.id,
-            "name": endpoint.name,
-            "arn": endpoint.arn,
-            "virtualClusterId": endpoint.virtual_cluster_id,
-        })
+        return (
+            200,
+            {},
+            json.dumps(
+                {
+                    "id": endpoint.id,
+                    "name": endpoint.name,
+                    "arn": endpoint.arn,
+                    "virtualClusterId": endpoint.virtual_cluster_id,
+                }
+            ),
+        )
 
     def delete_managed_endpoint(self) -> TYPE_RESPONSE:
         endpoint_id = self._get_param("endpointId")
@@ -226,7 +236,13 @@ class EMRContainersResponse(BaseResponse):
         endpoint = self.emrcontainers_backend.delete_managed_endpoint(
             endpoint_id=endpoint_id, virtual_cluster_id=virtual_cluster_id
         )
-        return 200, {}, json.dumps({"id": endpoint.id, "virtualClusterId": endpoint.virtual_cluster_id})
+        return (
+            200,
+            {},
+            json.dumps(
+                {"id": endpoint.id, "virtualClusterId": endpoint.virtual_cluster_id}
+            ),
+        )
 
     def describe_managed_endpoint(self) -> TYPE_RESPONSE:
         endpoint_id = self._get_param("endpointId")
@@ -269,7 +285,11 @@ class EMRContainersResponse(BaseResponse):
             security_configuration_data=security_configuration_data or {},
             tags=tags,
         )
-        return 200, {}, json.dumps({"id": config.id, "name": config.name, "arn": config.arn})
+        return (
+            200,
+            {},
+            json.dumps({"id": config.id, "name": config.name, "arn": config.arn}),
+        )
 
     def delete_security_configuration(self) -> TYPE_RESPONSE:
         security_configuration_id = self._get_param("securityConfigurationId")
@@ -297,4 +317,8 @@ class EMRContainersResponse(BaseResponse):
             max_results=max_results,
             next_token=next_token,
         )
-        return 200, {}, json.dumps({"securityConfigurations": configs, "nextToken": next_token})
+        return (
+            200,
+            {},
+            json.dumps({"securityConfigurations": configs, "nextToken": next_token}),
+        )
