@@ -141,3 +141,160 @@ class EMRContainersResponse(BaseResponse):
 
         response = {"jobRun": job_run}
         return 200, {}, json.dumps(response)
+
+    # --- JobTemplate ---
+
+    def create_job_template(self) -> TYPE_RESPONSE:
+        name = self._get_param("name")
+        client_token = self._get_param("clientToken")
+        job_template_data = self._get_param("jobTemplateData")
+        tags = self._get_param("tags")
+        kms_key_arn = self._get_param("kmsKeyArn")
+
+        template = self.emrcontainers_backend.create_job_template(
+            name=name,
+            client_token=client_token,
+            job_template_data=job_template_data or {},
+            tags=tags,
+            kms_key_arn=kms_key_arn,
+        )
+        return 200, {}, json.dumps({"id": template.id, "name": template.name, "arn": template.arn})
+
+    def delete_job_template(self) -> TYPE_RESPONSE:
+        template_id = self._get_param("templateId")
+        template = self.emrcontainers_backend.delete_job_template(
+            template_id=template_id
+        )
+        return 200, {}, json.dumps({"id": template.id})
+
+    def describe_job_template(self) -> TYPE_RESPONSE:
+        template_id = self._get_param("templateId")
+        template = self.emrcontainers_backend.describe_job_template(
+            template_id=template_id
+        )
+        return 200, {}, json.dumps({"jobTemplate": template})
+
+    def list_job_templates(self) -> TYPE_RESPONSE:
+        created_after = self._get_param("createdAfter")
+        created_before = self._get_param("createdBefore")
+        max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
+        next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
+
+        templates, next_token = self.emrcontainers_backend.list_job_templates(
+            created_after=created_after,
+            created_before=created_before,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return 200, {}, json.dumps({"templates": templates, "nextToken": next_token})
+
+    # --- ManagedEndpoint ---
+
+    def create_managed_endpoint(self) -> TYPE_RESPONSE:
+        name = self._get_param("name")
+        virtual_cluster_id = self._get_param("virtualClusterId")
+        endpoint_type = self._get_param("type")
+        release_label = self._get_param("releaseLabel")
+        execution_role_arn = self._get_param("executionRoleArn")
+        client_token = self._get_param("clientToken")
+        certificate_arn = self._get_param("certificateArn")
+        configuration_overrides = self._get_param("configurationOverrides")
+        tags = self._get_param("tags")
+
+        endpoint = self.emrcontainers_backend.create_managed_endpoint(
+            name=name,
+            virtual_cluster_id=virtual_cluster_id,
+            endpoint_type=endpoint_type,
+            release_label=release_label,
+            execution_role_arn=execution_role_arn,
+            client_token=client_token,
+            certificate_arn=certificate_arn,
+            configuration_overrides=configuration_overrides,
+            tags=tags,
+        )
+        return 200, {}, json.dumps({
+            "id": endpoint.id,
+            "name": endpoint.name,
+            "arn": endpoint.arn,
+            "virtualClusterId": endpoint.virtual_cluster_id,
+        })
+
+    def delete_managed_endpoint(self) -> TYPE_RESPONSE:
+        endpoint_id = self._get_param("endpointId")
+        virtual_cluster_id = self._get_param("virtualClusterId")
+
+        endpoint = self.emrcontainers_backend.delete_managed_endpoint(
+            endpoint_id=endpoint_id, virtual_cluster_id=virtual_cluster_id
+        )
+        return 200, {}, json.dumps({"id": endpoint.id, "virtualClusterId": endpoint.virtual_cluster_id})
+
+    def describe_managed_endpoint(self) -> TYPE_RESPONSE:
+        endpoint_id = self._get_param("endpointId")
+        virtual_cluster_id = self._get_param("virtualClusterId")
+
+        endpoint = self.emrcontainers_backend.describe_managed_endpoint(
+            endpoint_id=endpoint_id, virtual_cluster_id=virtual_cluster_id
+        )
+        return 200, {}, json.dumps({"endpoint": endpoint})
+
+    def list_managed_endpoints(self) -> TYPE_RESPONSE:
+        virtual_cluster_id = self._get_param("virtualClusterId")
+        created_after = self._get_param("createdAfter")
+        created_before = self._get_param("createdBefore")
+        states = self.querystring.get("states", [])
+        max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
+        next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
+
+        endpoints, next_token = self.emrcontainers_backend.list_managed_endpoints(
+            virtual_cluster_id=virtual_cluster_id,
+            created_after=created_after,
+            created_before=created_before,
+            states=states,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return 200, {}, json.dumps({"endpoints": endpoints, "nextToken": next_token})
+
+    # --- SecurityConfiguration ---
+
+    def create_security_configuration(self) -> TYPE_RESPONSE:
+        name = self._get_param("name")
+        client_token = self._get_param("clientToken")
+        security_configuration_data = self._get_param("securityConfigurationData")
+        tags = self._get_param("tags")
+
+        config = self.emrcontainers_backend.create_security_configuration(
+            name=name,
+            client_token=client_token,
+            security_configuration_data=security_configuration_data or {},
+            tags=tags,
+        )
+        return 200, {}, json.dumps({"id": config.id, "name": config.name, "arn": config.arn})
+
+    def delete_security_configuration(self) -> TYPE_RESPONSE:
+        security_configuration_id = self._get_param("securityConfigurationId")
+        config = self.emrcontainers_backend.delete_security_configuration(
+            security_configuration_id=security_configuration_id
+        )
+        return 200, {}, json.dumps({"id": config.id})
+
+    def describe_security_configuration(self) -> TYPE_RESPONSE:
+        security_configuration_id = self._get_param("securityConfigurationId")
+        config = self.emrcontainers_backend.describe_security_configuration(
+            security_configuration_id=security_configuration_id
+        )
+        return 200, {}, json.dumps({"securityConfiguration": config})
+
+    def list_security_configurations(self) -> TYPE_RESPONSE:
+        created_after = self._get_param("createdAfter")
+        created_before = self._get_param("createdBefore")
+        max_results = self._get_int_param("maxResults", DEFAULT_MAX_RESULTS)
+        next_token = self._get_param("nextToken", DEFAULT_NEXT_TOKEN)
+
+        configs, next_token = self.emrcontainers_backend.list_security_configurations(
+            created_after=created_after,
+            created_before=created_before,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return 200, {}, json.dumps({"securityConfigurations": configs, "nextToken": next_token})
