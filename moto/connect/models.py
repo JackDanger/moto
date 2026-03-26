@@ -5274,5 +5274,718 @@ class ConnectBackend(BaseBackend):
             raise ResourceNotFoundException(f"Workspace {workspace_id} not found")
         workspaces[workspace_id].visibility = visibility  # type: ignore[attr-defined]
 
+    # ---- A-M operations (first-half batch) ----
+
+    def associate_contact_with_user(
+        self, instance_id: str, contact_id: str, user_id: str
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+
+    def associate_default_vocabulary(
+        self,
+        instance_id: str,
+        language_code: str,
+        vocabulary_id: Optional[str] = None,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+
+    def associate_email_address_alias(
+        self, instance_id: str, email_address_id: str, alias_email_address_id: str
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+
+    def associate_flow(
+        self,
+        instance_id: str,
+        resource_id: str,
+        contact_flow_id: str,
+        resource_type: str,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+
+    def associate_hours_of_operations(
+        self,
+        instance_id: str,
+        hours_of_operation_id: str,
+        channel: str,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+
+    def associate_lex_bot(
+        self, instance_id: str, lex_bot: dict[str, Any]
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        if instance_id not in self.bots:
+            self.bots[instance_id] = []
+        self.bots[instance_id].append({"LexBot": lex_bot})
+
+    def associate_phone_number_contact_flow(
+        self,
+        phone_number_id: str,
+        instance_id: str,
+        contact_flow_id: str,
+    ) -> None:
+        if phone_number_id not in self.phone_numbers:
+            raise ResourceNotFoundException(
+                f"Phone number {phone_number_id} not found"
+            )
+
+    def associate_traffic_distribution_group_user(
+        self,
+        traffic_distribution_group_id: str,
+        user_id: str,
+        instance_id: str,
+    ) -> None:
+        if traffic_distribution_group_id not in self.traffic_distribution_groups:
+            raise ResourceNotFoundException(
+                f"Traffic distribution group {traffic_distribution_group_id} not found"
+            )
+
+    def associate_user_proficiencies(
+        self,
+        instance_id: str,
+        user_id: str,
+        user_proficiencies: list[dict[str, Any]],
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        users = self.users.get(instance_id, {})
+        if user_id not in users:
+            raise ResourceNotFoundException(f"User {user_id} not found")
+        existing: list[dict[str, Any]] = getattr(users[user_id], "proficiencies", [])
+        users[user_id].proficiencies = existing + user_proficiencies  # type: ignore[attr-defined]
+
+    def batch_associate_analytics_data_set(
+        self,
+        instance_id: str,
+        data_set_ids: list[str],
+        target_account_id: Optional[str] = None,
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        return {"Created": [], "Errors": []}
+
+    def batch_delete_data_table_value(
+        self,
+        instance_id: str,
+        data_table_id: str,
+        resource_ids: list[str],
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        return {"FailedItems": []}
+
+    def batch_describe_data_table_value(
+        self,
+        instance_id: str,
+        data_table_id: str,
+        resource_ids: list[str],
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        return {"Items": [], "NotFoundResourceIds": []}
+
+    def batch_disassociate_analytics_data_set(
+        self,
+        instance_id: str,
+        data_set_ids: list[str],
+        target_account_id: Optional[str] = None,
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        return {"Deleted": [], "Errors": []}
+
+    def complete_attached_file_upload(
+        self, instance_id: str, file_id: str, associated_resource_arn: str
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+
+    def create_contact_flow_module_version(
+        self,
+        instance_id: str,
+        contact_flow_module_id: str,
+        description: Optional[str] = None,
+    ) -> dict[str, str]:
+        self._get_instance_or_raise(instance_id)
+        return {"Version": "1"}
+
+    def create_contact_flow_version(
+        self,
+        instance_id: str,
+        contact_flow_id: str,
+        description: Optional[str] = None,
+    ) -> dict[str, str]:
+        self._get_instance_or_raise(instance_id)
+        flows = self.contact_flows.get(instance_id, {})
+        if contact_flow_id not in flows:
+            raise ResourceNotFoundException(
+                f"Contact flow {contact_flow_id} not found"
+            )
+        return {"ContactFlowId": contact_flow_id, "ContactFlowVersion": "1"}
+
+    def create_participant(
+        self,
+        instance_id: str,
+        contact_id: str,
+        client_token: Optional[str] = None,
+        participant_details: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        return {
+            "ParticipantCredentials": {
+                "ParticipantToken": str(uuid.uuid4()),
+                "Expiry": _now_iso(),
+            },
+            "ParticipantId": str(uuid.uuid4()),
+        }
+
+    def create_persistent_contact_association(
+        self,
+        instance_id: str,
+        initial_contact_id: str,
+        rehydration_type: str,
+        source_contact_id: Optional[str] = None,
+        client_token: Optional[str] = None,
+    ) -> dict[str, str]:
+        self._get_instance_or_raise(instance_id)
+        return {"ContinuedFromContactId": initial_contact_id}
+
+    def create_push_notification_registration(
+        self,
+        instance_id: str,
+        client_token: Optional[str] = None,
+        pinpoint_app_arn: Optional[str] = None,
+        device_token: Optional[str] = None,
+        device_type: Optional[str] = None,
+        contact_configuration: Optional[dict[str, Any]] = None,
+    ) -> dict[str, str]:
+        self._get_instance_or_raise(instance_id)
+        return {"RegistrationId": str(uuid.uuid4())}
+
+    def create_view_version(
+        self,
+        instance_id: str,
+        view_id: str,
+        version_description: Optional[str] = None,
+        view_content_sha256: Optional[str] = None,
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        views = self.views.get(instance_id, {})
+        if view_id not in views:
+            raise ResourceNotFoundException(f"View {view_id} not found")
+        return {"View": {"Id": view_id, "Version": 1}}
+
+    def create_workspace_page(
+        self,
+        instance_id: str,
+        workspace_id: str,
+        name: str,
+        content: Optional[dict[str, Any]] = None,
+    ) -> dict[str, str]:
+        self._get_instance_or_raise(instance_id)
+        return {"PageId": str(uuid.uuid4())}
+
+    def delete_attached_file(
+        self, instance_id: str, file_id: str, associated_resource_arn: str
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+
+    def delete_contact_flow_module_version(
+        self,
+        instance_id: str,
+        contact_flow_module_id: str,
+        contact_flow_module_version: str,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+
+    def delete_contact_flow_version(
+        self,
+        instance_id: str,
+        contact_flow_id: str,
+        contact_flow_version: str,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+
+    def delete_push_notification_registration(
+        self,
+        instance_id: str,
+        registration_id: str,
+        device_token: str,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+
+    def delete_view_version(
+        self,
+        instance_id: str,
+        view_id: str,
+        view_version: str,
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+
+    def delete_workspace_media(self, instance_id: str, workspace_id: str) -> None:
+        self._get_instance_or_raise(instance_id)
+
+    def delete_workspace_page(
+        self, instance_id: str, workspace_id: str, page: str
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+
+    def describe_instance_storage_config(
+        self,
+        instance_id: str,
+        association_id: str,
+        resource_type: str,
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        configs = self.instance_storage_configs.get(instance_id, [])
+        for config in configs:
+            if config.get("AssociationId") == association_id:
+                return config
+        raise ResourceNotFoundException(
+            f"Instance storage config {association_id} not found"
+        )
+
+    def disassociate_email_address_alias(
+        self, instance_id: str, email_address_id: str, alias_email_address_id: str
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+
+    def disassociate_flow(
+        self, instance_id: str, resource_id: str, resource_type: str
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+
+    def disassociate_lex_bot(
+        self, instance_id: str, bot_name: str, lex_region: str
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        bots = self.bots.get(instance_id, [])
+        self.bots[instance_id] = [
+            b
+            for b in bots
+            if not (
+                b.get("LexBot", {}).get("Name") == bot_name
+                and b.get("LexBot", {}).get("LexRegion") == lex_region
+            )
+        ]
+
+    def disassociate_phone_number_contact_flow(
+        self, phone_number_id: str, instance_id: str
+    ) -> None:
+        if phone_number_id not in self.phone_numbers:
+            raise ResourceNotFoundException(
+                f"Phone number {phone_number_id} not found"
+            )
+
+    def disassociate_traffic_distribution_group_user(
+        self,
+        traffic_distribution_group_id: str,
+        user_id: str,
+        instance_id: str,
+    ) -> None:
+        if traffic_distribution_group_id not in self.traffic_distribution_groups:
+            raise ResourceNotFoundException(
+                f"Traffic distribution group {traffic_distribution_group_id} not found"
+            )
+
+    def disassociate_user_proficiencies(
+        self,
+        instance_id: str,
+        user_id: str,
+        user_proficiencies: list[dict[str, Any]],
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+        users = self.users.get(instance_id, {})
+        if user_id not in users:
+            raise ResourceNotFoundException(f"User {user_id} not found")
+
+    def dismiss_user_contact(
+        self, instance_id: str, user_id: str, contact_id: str
+    ) -> None:
+        self._get_instance_or_raise(instance_id)
+
+    def evaluate_data_table_values(
+        self,
+        instance_id: str,
+        data_table_id: str,
+        row_id: str,
+        input_data: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        return {"Items": []}
+
+    def get_attached_file(
+        self,
+        instance_id: str,
+        file_id: str,
+        associated_resource_arn: str,
+        url_expiry_in_seconds: Optional[int] = None,
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        return {
+            "FileId": file_id,
+            "FileArn": f"arn:aws:connect:{self.region_name}:{self.account_id}:instance/{instance_id}/file/{file_id}",
+            "FileName": "unknown",
+            "FileSizeInBytes": 0,
+            "FileStatus": "APPROVED",
+        }
+
+    def get_current_metric_data(
+        self,
+        instance_id: str,
+        filters: dict[str, Any],
+        current_metrics: list[dict[str, Any]],
+        groupings: Optional[list[str]] = None,
+        sort_criteria: Optional[list[dict[str, Any]]] = None,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        return {"MetricResults": [], "DataSnapshotTime": _now_iso()}
+
+    def get_current_user_data(
+        self,
+        instance_id: str,
+        filters: dict[str, Any],
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        return {"UserDataList": []}
+
+    def get_effective_hours_of_operations(
+        self,
+        instance_id: str,
+        hours_of_operation_id: str,
+        from_date: str,
+        to_date: str,
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        return {"EffectiveHoursOfOperationList": [], "TimeZone": "UTC"}
+
+    def get_federation_token(self, instance_id: str) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        return {
+            "Credentials": {
+                "AccessToken": str(uuid.uuid4()),
+                "AccessTokenExpiration": _now_iso(),
+                "RefreshToken": str(uuid.uuid4()),
+                "RefreshTokenExpiration": _now_iso(),
+            }
+        }
+
+    def get_flow_association(
+        self,
+        instance_id: str,
+        resource_id: str,
+        resource_type: str,
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        return {
+            "ResourceId": resource_id,
+            "ResourceType": resource_type,
+            "FlowId": "",
+        }
+
+    def get_metric_data(
+        self,
+        instance_id: str,
+        start_time: str,
+        end_time: str,
+        filters: dict[str, Any],
+        historical_metrics: list[dict[str, Any]],
+        groupings: Optional[list[str]] = None,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        return {"MetricResults": []}
+
+    def get_prompt_file(self, instance_id: str, prompt_id: str) -> dict[str, str]:
+        self._get_instance_or_raise(instance_id)
+        prompts = self.prompts.get(instance_id, {})
+        if prompt_id not in prompts:
+            raise ResourceNotFoundException(f"Prompt {prompt_id} not found")
+        return {
+            "PromptPresignedUrl": f"https://s3.amazonaws.com/prompts/{prompt_id}"
+        }
+
+    def get_test_case_execution_summary(
+        self,
+        instance_id: str,
+        test_case_id: str,
+        test_case_execution_id: str,
+    ) -> dict[str, Any]:
+        self._get_instance_or_raise(instance_id)
+        return {
+            "TestExecutionId": test_case_execution_id,
+            "ExecutionStatus": "COMPLETED",
+            "StartTime": _now_iso(),
+            "EndTime": _now_iso(),
+        }
+
+    def get_traffic_distribution(self, id: str) -> dict[str, Any]:
+        if id not in self.traffic_distribution_groups:
+            raise ResourceNotFoundException(
+                f"Traffic distribution group {id} not found"
+            )
+        tdg = self.traffic_distribution_groups[id]
+        return {
+            "Id": tdg.tdg_id,
+            "Arn": tdg.arn,
+            "TelephonyConfig": {"Distributions": []},
+            "AgentConfig": {"Distributions": []},
+            "SignInConfig": {"Distributions": []},
+        }
+
+    def import_phone_number(
+        self,
+        instance_id: str,
+        source_phone_number_arn: str,
+        phone_number_description: Optional[str] = None,
+        tags: Optional[dict[str, str]] = None,
+    ) -> dict[str, str]:
+        self._get_instance_or_raise(instance_id)
+        phone_number_id = str(uuid.uuid4())
+        return {
+            "PhoneNumberId": phone_number_id,
+            "PhoneNumberArn": f"arn:aws:connect:{self.region_name}:{self.account_id}:phone-number/{phone_number_id}",
+        }
+
+    def import_workspace_media(
+        self,
+        instance_id: str,
+        workspace_id: str,
+        file_name: Optional[str] = None,
+        media_type: Optional[str] = None,
+    ) -> dict[str, str]:
+        self._get_instance_or_raise(instance_id)
+        return {"MediaId": str(uuid.uuid4())}
+
+    def list_analytics_data_lake_data_sets(
+        self,
+        instance_id: str,
+        next_token: Optional[str] = None,
+        max_results: Optional[int] = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_associated_contacts(
+        self,
+        instance_id: str,
+        contact_id: Optional[str] = None,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_child_hours_of_operations(
+        self,
+        instance_id: str,
+        hours_of_operation_id: str,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_contact_flow_module_versions(
+        self,
+        instance_id: str,
+        contact_flow_module_id: str,
+        contact_flow_module_state: Optional[str] = None,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_data_table_primary_values(
+        self,
+        instance_id: str,
+        data_table_id: str,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_data_table_values(
+        self,
+        instance_id: str,
+        data_table_id: str,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_entity_security_profiles(
+        self,
+        instance_id: str,
+        entity_type: str,
+        entity_id: Optional[str] = None,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_lex_bots(
+        self,
+        instance_id: str,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        bots = self.bots.get(instance_id, [])
+        return [b.get("LexBot", {}) for b in bots if "LexBot" in b]
+
+    def list_queue_email_addresses(
+        self,
+        instance_id: str,
+        queue_id: str,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_realtime_contact_analysis_segments_v2(
+        self,
+        instance_id: str,
+        contact_id: str,
+        segment_types: list[str],
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_routing_profile_manual_assignment_queues(
+        self,
+        instance_id: str,
+        routing_profile_id: str,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_security_profile_flow_modules(
+        self,
+        instance_id: str,
+        security_profile_id: str,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_test_case_execution_records(
+        self,
+        instance_id: str,
+        test_case_id: str,
+        test_case_execution_id: str,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_test_case_executions(
+        self,
+        instance_id: str,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_traffic_distribution_group_users(
+        self,
+        traffic_distribution_group_id: str,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        if traffic_distribution_group_id not in self.traffic_distribution_groups:
+            raise ResourceNotFoundException(
+                f"Traffic distribution group {traffic_distribution_group_id} not found"
+            )
+        return []
+
+    def list_user_notifications(
+        self,
+        instance_id: str,
+        user_id: str,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_user_proficiencies(
+        self,
+        instance_id: str,
+        user_id: str,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        users = self.users.get(instance_id, {})
+        if user_id not in users:
+            raise ResourceNotFoundException(f"User {user_id} not found")
+        return getattr(users[user_id], "proficiencies", [])
+
+    def list_view_versions(
+        self,
+        instance_id: str,
+        view_id: str,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_workspace_media(
+        self,
+        instance_id: str,
+        workspace_id: str,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def list_workspace_pages(
+        self,
+        instance_id: str,
+        workspace_id: str,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        self._get_instance_or_raise(instance_id)
+        return []
+
+    def monitor_contact(
+        self,
+        instance_id: str,
+        contact_id: str,
+        user_id: str,
+        allowed_monitor_capabilities: Optional[list[str]] = None,
+        client_token: Optional[str] = None,
+    ) -> dict[str, str]:
+        self._get_instance_or_raise(instance_id)
+        return {"ContactId": contact_id, "ContactArn": ""}
+
+    def update_traffic_distribution(
+        self,
+        id: str,
+        telephony_config: Optional[dict[str, Any]] = None,
+        agent_config: Optional[dict[str, Any]] = None,
+        sign_in_config: Optional[dict[str, Any]] = None,
+    ) -> None:
+        if id not in self.traffic_distribution_groups:
+            raise ResourceNotFoundException(
+                f"Traffic distribution group {id} not found"
+            )
+
 
 connect_backends = BackendDict(ConnectBackend, "connect")
