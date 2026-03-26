@@ -205,8 +205,9 @@ class SimpleDBBackend(BaseBackend):
         """
         expr = select_expression.strip()
         # Parse: SELECT <output_list> FROM `domain_name` [WHERE ...]
+        # Domain names can contain letters, digits, hyphens, underscores and dots.
         match = re.match(
-            r"(?i)select\s+(.+?)\s+from\s+[`'\"]?(\w+)[`'\"]?(?:\s+.*)?$", expr
+            r"(?i)select\s+(.+?)\s+from\s+[`'\"]?([\w.-]+)[`'\"]?(?:\s+.*)?$", expr
         )
         if not match:
             return []
