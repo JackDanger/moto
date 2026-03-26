@@ -4304,8 +4304,16 @@ class IoTBackend(BaseBackend):
         max_results: Optional[int],
         next_token: Optional[str],
     ) -> dict[str, Any]:
-        """Return empty audit mitigation actions tasks list."""
-        return {"tasks": [], "nextToken": None}
+        """Return stored audit mitigation actions tasks."""
+        tasks = [
+            {
+                "taskId": t["taskId"],
+                "startTime": t.get("startTime", ""),
+                "taskStatus": t.get("taskStatus", "IN_PROGRESS"),
+            }
+            for t in self.audit_mitigation_tasks.values()
+        ]
+        return {"tasks": tasks, "nextToken": None}
 
     def list_audit_suppressions(
         self,
@@ -4341,8 +4349,16 @@ class IoTBackend(BaseBackend):
         max_results: Optional[int],
         next_token: Optional[str],
     ) -> dict[str, Any]:
-        """Return empty detect mitigation actions tasks list."""
-        return {"tasks": [], "nextToken": None}
+        """Return stored detect mitigation actions tasks."""
+        tasks = [
+            {
+                "taskId": t["taskSummary"]["taskId"],
+                "taskStatus": t["taskSummary"].get("taskStatus", "IN_PROGRESS"),
+                "target": t["taskSummary"].get("target", {}),
+            }
+            for t in self.detect_mitigation_tasks.values()
+        ]
+        return {"tasks": tasks, "nextToken": None}
 
     # --- Streams ---
 
@@ -5292,7 +5308,12 @@ class IoTBackend(BaseBackend):
         return task_id
 
     def cancel_audit_mitigation_actions_task(self, task_id: str) -> None:
-        pass
+        if task_id in self.audit_mitigation_tasks:
+            self.audit_mitigation_tasks[task_id]["taskStatus"] = "CANCELED"
+
+    def cancel_detect_mitigation_actions_task(self, task_id: str) -> None:
+        if task_id in self.detect_mitigation_tasks:
+            self.detect_mitigation_tasks[task_id]["taskSummary"]["taskStatus"] = "CANCELED"
 
     # --- Misc ---
 

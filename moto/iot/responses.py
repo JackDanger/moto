@@ -2351,10 +2351,9 @@ class IoTResponse(BaseResponse):
         return ActionResult({"summaries": [], "nextToken": None})
 
     def cancel_detect_mitigation_actions_task(self) -> EmptyResult:
+        task_id = self._get_param("taskId")
+        self.iot_backend.cancel_detect_mitigation_actions_task(task_id=task_id)
         return EmptyResult()
-
-    def start_detect_mitigation_actions_task(self) -> ActionResult:
-        return ActionResult({"taskId": self._get_param("taskId") or "stub-task"})
 
     def list_thing_registration_tasks(self) -> ActionResult:
         return ActionResult({"taskIds": [], "nextToken": None})
