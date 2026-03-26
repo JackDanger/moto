@@ -429,3 +429,31 @@ class AmiBackend:
         ami = self.describe_images(ami_ids=[ami_id])[0]
         if attribute == "launchPermission":
             ami.launch_permissions = []
+
+    def export_image(
+        self,
+        image_id: str,
+        disk_image_format: str,
+        s3_export_location: dict[str, Any],
+        description: str = "",
+    ) -> dict[str, Any]:
+        """Export an AMI to S3 (stub implementation - returns a fake export task)."""
+        import uuid
+
+        ami = self._get_ami_or_raise(image_id)
+        export_task_id = f"export-ami-{uuid.uuid4().hex[:17]}"
+        s3_bucket = s3_export_location.get("S3Bucket", "")
+        s3_prefix = s3_export_location.get("S3Prefix", "")
+        return {
+            "ExportImageTaskId": export_task_id,
+            "ImageId": ami.id,
+            "Description": description,
+            "DiskImageFormat": disk_image_format,
+            "Progress": "0",
+            "S3ExportLocation": {
+                "S3Bucket": s3_bucket,
+                "S3Prefix": s3_prefix,
+            },
+            "Status": "active",
+            "StatusMessage": "Export in progress",
+        }

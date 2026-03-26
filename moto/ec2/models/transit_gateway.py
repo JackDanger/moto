@@ -168,3 +168,33 @@ class TransitGatewayBackend:
         if options:
             transit_gateway.options.update(options)
         return transit_gateway
+
+    def disassociate_transit_gateway_multicast_domain(
+        self,
+        transit_gateway_multicast_domain_id: str,
+        transit_gateway_attachment_id: str,
+        subnet_ids: list[str],
+    ) -> dict[str, Any]:
+        """Disassociate subnets from a transit gateway multicast domain (stub implementation)."""
+        return {
+            "TransitGatewayMulticastDomainId": transit_gateway_multicast_domain_id,
+            "TransitGatewayAttachmentId": transit_gateway_attachment_id,
+            "ResourceId": transit_gateway_attachment_id,
+            "ResourceType": "vpc",
+            "State": "disassociated",
+            "Subnets": [{"SubnetId": s, "State": "disassociated"} for s in subnet_ids],
+        }
+
+    def disassociate_transit_gateway_policy_table(
+        self,
+        transit_gateway_policy_table_id: str,
+        transit_gateway_attachment_id: str,
+    ) -> dict[str, Any]:
+        """Disassociate a transit gateway policy table from an attachment (stub implementation)."""
+        return {
+            "TransitGatewayPolicyTableId": transit_gateway_policy_table_id,
+            "TransitGatewayAttachmentId": transit_gateway_attachment_id,
+            "ResourceId": transit_gateway_attachment_id,
+            "ResourceType": "vpc",
+            "State": "disassociated",
+        }

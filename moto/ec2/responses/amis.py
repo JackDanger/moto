@@ -201,3 +201,16 @@ class AmisResponse(EC2BaseResponse):
         state = self._get_param("ImageBlockPublicAccessState")
         result = self.ec2_backend.enable_image_block_public_access(state)
         return ActionResult(result)
+
+    def export_image(self) -> ActionResult:
+        image_id = self._get_param("ImageId")
+        disk_image_format = self._get_param("DiskImageFormat")
+        s3_export_location = self._get_param("S3ExportLocation", {})
+        description = self._get_param("Description", "")
+        result = self.ec2_backend.export_image(
+            image_id=image_id,
+            disk_image_format=disk_image_format,
+            s3_export_location=s3_export_location,
+            description=description,
+        )
+        return ActionResult({"ExportImageTask": result})

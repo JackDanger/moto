@@ -1,4 +1,6 @@
 """Stub responses for EC2 operations not yet fully implemented in Moto."""
+from moto.core.responses import ActionResult
+
 from ._base_response import EC2BaseResponse
 
 class GapStubs(EC2BaseResponse):
@@ -1015,6 +1017,10 @@ class GapStubs(EC2BaseResponse):
     def associate_enclave_certificate_iam_role(self) -> str:
         template = self.response_template(EC2_ASSOCIATE_ENCLAVE_CERTIFICATE_IAM_ROLE)
         return template.render()
+
+    def disassociate_enclave_certificate_iam_role(self) -> ActionResult:
+        # Both params accepted but not persisted - EC2-Classic enclave feature stub
+        return ActionResult({"Return": True})
 
     def associate_ipam_byoasn(self) -> str:
         template = self.response_template(EC2_ASSOCIATE_IPAM_BYOASN)

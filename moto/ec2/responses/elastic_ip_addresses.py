@@ -88,6 +88,15 @@ class ElasticIPAddresses(EC2BaseResponse):
         template = self.response_template(DESCRIBE_ADDRESS_ATTRIBUTE_RESPONSE)
         return template.render(addresses=addresses)
 
+    def enable_address_transfer(self) -> ActionResult:
+        allocation_id = self._get_param("AllocationId")
+        transfer_account_id = self._get_param("TransferAccountId")
+        transfer = self.ec2_backend.enable_address_transfer(
+            allocation_id=allocation_id,
+            transfer_account_id=transfer_account_id,
+        )
+        return ActionResult({"AddressTransfer": transfer})
+
     def disassociate_address(self) -> ActionResult:
         if (
             "PublicIp" not in self._get_params()

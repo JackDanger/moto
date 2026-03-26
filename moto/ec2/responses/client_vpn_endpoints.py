@@ -1,3 +1,4 @@
+from moto.core.responses import ActionResult
 from moto.ec2.utils import add_tag_specification
 from moto.utilities.utils import str2bool
 
@@ -77,6 +78,15 @@ class ClientVpnEndpoints(EC2BaseResponse):
             security_group_ids=security_group_ids,
         )
         return MODIFY_CLIENT_VPN_ENDPOINT
+
+    def disassociate_client_vpn_target_network(self) -> ActionResult:
+        client_vpn_endpoint_id = self._get_param("ClientVpnEndpointId")
+        association_id = self._get_param("AssociationId")
+        result = self.ec2_backend.disassociate_client_vpn_target_network(
+            client_vpn_endpoint_id=client_vpn_endpoint_id,
+            association_id=association_id,
+        )
+        return ActionResult(result)
 
 
 CREATE_CLIENT_VPN_ENDPOINT = """<CreateClientVpnEndpointResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">

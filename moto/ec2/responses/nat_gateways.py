@@ -1,3 +1,4 @@
+from moto.core.responses import ActionResult
 from moto.ec2.utils import add_tag_specification
 
 from ._base_response import EC2BaseResponse
@@ -31,6 +32,15 @@ class NatGateways(EC2BaseResponse):
         nat_gateways = self.ec2_backend.describe_nat_gateways(filters, nat_gateway_ids)
         template = self.response_template(DESCRIBE_NAT_GATEWAYS_RESPONSE)
         return template.render(nat_gateways=nat_gateways)
+
+    def disassociate_nat_gateway_address(self) -> ActionResult:
+        nat_gateway_id = self._get_param("NatGatewayId")
+        association_ids = self._get_param("AssociationIds", [])
+        result = self.ec2_backend.disassociate_nat_gateway_address(
+            nat_gateway_id=nat_gateway_id,
+            association_ids=association_ids,
+        )
+        return ActionResult(result)
 
 
 DESCRIBE_NAT_GATEWAYS_RESPONSE = """<DescribeNatGatewaysResponse xmlns="http://ec2.amazonaws.com/doc/2015-10-01/">

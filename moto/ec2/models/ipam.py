@@ -504,3 +504,29 @@ class IpamBackend:
                     }
                 )
         return results
+
+    def disable_ipam_organization_admin_account(
+        self, delegated_admin_account_id: str
+    ) -> bool:
+        """Remove delegated IPAM admin account. Returns True for success."""
+        return True
+
+    def enable_ipam_organization_admin_account(
+        self, delegated_admin_account_id: str
+    ) -> bool:
+        """Delegate an account as IPAM admin. Returns True for success."""
+        return True
+
+    def disassociate_ipam_byoasn(self, asn: str, cidr: str) -> dict[str, Any]:  # type: ignore[name-defined]
+        """Disassociate a BYOASN from a CIDR. Returns association info."""
+        return {"Asn": asn, "Cidr": cidr, "State": "disassociated"}
+
+    def disassociate_ipam_resource_discovery(
+        self, ipam_resource_discovery_association_id: str
+    ) -> dict[str, Any]:  # type: ignore[name-defined]
+        """Disassociate a resource discovery from an IPAM."""
+        return {
+            "IpamResourceDiscoveryAssociationId": ipam_resource_discovery_association_id,
+            "IpamResourceDiscoveryAssociationArn": f"arn:aws:ec2:{self.region_name}:{self.account_id}:ipam-resource-discovery-association/{ipam_resource_discovery_association_id}",  # type: ignore[attr-defined]
+            "State": "disassociated",
+        }

@@ -917,6 +917,21 @@ class VPCBackend:
         vpc = self.get_vpc(vpc_id)
         return vpc.disable_vpc_classic_link_dns_support()
 
+    def attach_classic_link_vpc(
+        self,
+        instance_id: str,
+        vpc_id: str,
+        security_group_ids: list[str],
+    ) -> None:
+        """Attach a ClassicLink-enabled VPC to an EC2-Classic instance (stub)."""
+        # EC2-Classic is deprecated by AWS; this is a stub that accepts the call
+        pass
+
+    def detach_classic_link_vpc(self, instance_id: str, vpc_id: str) -> None:
+        """Detach a ClassicLink-enabled VPC from an EC2-Classic instance (stub)."""
+        # EC2-Classic is deprecated by AWS; this is a stub that accepts the call
+        pass
+
     def modify_vpc_attribute(
         self, vpc_id: str, attr_name: str, attr_value: str
     ) -> None:

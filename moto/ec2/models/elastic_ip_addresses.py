@@ -276,3 +276,16 @@ class ElasticAddressBackend:
         self.disassociate_address(address=eip.public_ip)
         eip.allocation_id = None
         self.addresses.remove(eip)
+
+    def enable_address_transfer(
+        self, allocation_id: str, transfer_account_id: str
+    ) -> dict[str, Any]:
+        """Initiate a transfer of an Elastic IP to another account."""
+        addrs = self.address_by_allocation([allocation_id])
+        addr = addrs[0]
+        return {
+            "PublicIp": addr.public_ip,
+            "AllocationId": allocation_id,
+            "TransferAccountId": transfer_account_id,
+            "AddressTransferStatus": "pending",
+        }

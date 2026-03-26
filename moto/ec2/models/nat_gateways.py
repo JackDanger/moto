@@ -148,3 +148,28 @@ class NatGatewayBackend:
             raise InvalidNatGatewayIdError(nat_gateway_id)
         nat_gw.state = "deleted"
         return nat_gw
+
+    def disassociate_nat_gateway_address(
+        self,
+        nat_gateway_id: str,
+        association_ids: list[str],
+    ) -> dict[str, Any]:
+        """Disassociate secondary EIP associations from a NAT gateway (stub implementation)."""
+        nat_gw = self.nat_gateways.get(nat_gateway_id)
+        if not nat_gw:
+            from ..exceptions import InvalidNatGatewayIdError
+
+            raise InvalidNatGatewayIdError(nat_gateway_id)
+        # Remove matching address associations from the address set
+        nat_gw.address_set = [
+            addr
+            for addr in nat_gw.address_set
+            if addr.get("associationId") not in association_ids
+        ]
+        return {
+            "NatGatewayId": nat_gateway_id,
+            "NatGatewayAddresses": [
+                {"AssociationId": assoc_id, "Status": "disassociating"}
+                for assoc_id in association_ids
+            ],
+        }

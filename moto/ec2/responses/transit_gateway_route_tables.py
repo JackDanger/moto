@@ -101,3 +101,14 @@ class TransitGatewayRouteTable(EC2BaseResponse):
                 "transitGatewayRouteTablePropagations": transit_gateway_route_table_propagations
             }
         )
+
+    def export_transit_gateway_routes(self) -> ActionResult:
+        transit_gateway_route_table_id = self._get_param("TransitGatewayRouteTableId")
+        s3_bucket = self._get_param("S3Bucket")
+        filters = self._filters_from_querystring()
+        s3_location = self.ec2_backend.export_transit_gateway_routes(
+            transit_gateway_route_table_id=transit_gateway_route_table_id,
+            s3_bucket=s3_bucket,
+            filters=filters,
+        )
+        return ActionResult({"S3Location": s3_location})

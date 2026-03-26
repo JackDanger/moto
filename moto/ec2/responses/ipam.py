@@ -1,3 +1,4 @@
+from moto.core.responses import ActionResult
 from moto.ec2.utils import add_tag_specification
 from moto.utilities.utils import str2bool
 
@@ -223,6 +224,31 @@ class IpamResponse(EC2BaseResponse):
         )
         template = self.response_template(GET_IPAM_RESOURCE_CIDRS)
         return template.render(resources=resources)
+
+    def disable_ipam_organization_admin_account(self) -> ActionResult:
+        delegated_admin_account_id = self._get_param("DelegatedAdminAccountId")
+        success = self.ec2_backend.disable_ipam_organization_admin_account(
+            delegated_admin_account_id
+        )
+        return ActionResult({"Success": success})
+
+    def enable_ipam_organization_admin_account(self) -> ActionResult:
+        delegated_admin_account_id = self._get_param("DelegatedAdminAccountId")
+        success = self.ec2_backend.enable_ipam_organization_admin_account(
+            delegated_admin_account_id
+        )
+        return ActionResult({"Success": success})
+
+    def disassociate_ipam_byoasn(self) -> ActionResult:
+        asn = self._get_param("Asn")
+        cidr = self._get_param("Cidr")
+        result = self.ec2_backend.disassociate_ipam_byoasn(asn=asn, cidr=cidr)
+        return ActionResult({"Ipv4IpamByoasn": result})
+
+    def disassociate_ipam_resource_discovery(self) -> ActionResult:
+        assoc_id = self._get_param("IpamResourceDiscoveryAssociationId")
+        result = self.ec2_backend.disassociate_ipam_resource_discovery(assoc_id)
+        return ActionResult({"IpamResourceDiscoveryAssociation": result})
 
 
 CREATE_IPAM = """<CreateIpamResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">

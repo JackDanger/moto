@@ -414,3 +414,20 @@ class TransitGatewayRouteTableBackend:
         self.unset_attachment_association(tgw_attach_id)  # type: ignore[attr-defined]
 
         return tgw_association
+
+    def export_transit_gateway_routes(
+        self,
+        transit_gateway_route_table_id: str,
+        s3_bucket: str,
+        filters: Any = None,
+    ) -> str:
+        """Export transit gateway routes to S3 (simulated - returns a fake S3 location)."""
+        # In a real environment, this would export routes to S3 as a JSON file.
+        # We simulate by returning a plausible S3 location.
+        routes = self.search_transit_gateway_routes(
+            transit_gateway_route_table_id=transit_gateway_route_table_id,
+            filters=filters or {},
+        )
+        import json
+        _ = json.dumps(routes)  # validate routes are serializable
+        return f"s3://{s3_bucket}/{transit_gateway_route_table_id}/routes.json"

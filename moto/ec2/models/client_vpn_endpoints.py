@@ -144,3 +144,19 @@ class ClientVpnEndpointBackend:
         if security_group_ids is not None:
             endpoint.security_group_ids = security_group_ids
         return True
+
+    def disassociate_client_vpn_target_network(
+        self,
+        client_vpn_endpoint_id: str,
+        association_id: str,
+    ) -> dict[str, Any]:
+        """Disassociate a target network from a Client VPN endpoint (stub implementation)."""
+        endpoint = self.client_vpn_endpoints.get(client_vpn_endpoint_id)
+        if not endpoint:
+            from ..exceptions import InvalidClientVpnEndpointIdError
+
+            raise InvalidClientVpnEndpointIdError(client_vpn_endpoint_id)
+        return {
+            "AssociationId": association_id,
+            "Status": {"Code": "disassociating"},
+        }

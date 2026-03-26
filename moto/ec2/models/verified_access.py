@@ -512,3 +512,65 @@ class VerifiedAccessBackend:
         if policy_document is not None:
             endpoint.policy_document = policy_document
         return endpoint
+
+    def attach_verified_access_trust_provider(
+        self,
+        verified_access_instance_id: str,
+        verified_access_trust_provider_id: str,
+    ) -> dict[str, Any]:
+        instance = self.get_verified_access_instance(verified_access_instance_id)
+        provider = self.verified_access_trust_providers.get(
+            verified_access_trust_provider_id
+        )
+        if not provider:
+            from ..exceptions import EC2ClientError
+
+            raise EC2ClientError(
+                "InvalidVerifiedAccessTrustProviderId.NotFound",
+                f"The verified access trust provider ID '{verified_access_trust_provider_id}' does not exist",
+            )
+        if verified_access_trust_provider_id not in instance.verified_access_trust_provider_ids:
+            instance.verified_access_trust_provider_ids.append(verified_access_trust_provider_id)
+        return {
+            "VerifiedAccessTrustProvider": {
+                "VerifiedAccessTrustProviderId": provider.id,
+                "TrustProviderType": provider.trust_provider_type,
+                "PolicyReferenceName": provider.policy_reference_name,
+                "Description": provider.description,
+            },
+            "VerifiedAccessInstance": {
+                "VerifiedAccessInstanceId": instance.id,
+                "Description": instance.description,
+            },
+        }
+
+    def detach_verified_access_trust_provider(
+        self,
+        verified_access_instance_id: str,
+        verified_access_trust_provider_id: str,
+    ) -> dict[str, Any]:
+        instance = self.get_verified_access_instance(verified_access_instance_id)
+        provider = self.verified_access_trust_providers.get(
+            verified_access_trust_provider_id
+        )
+        if not provider:
+            from ..exceptions import EC2ClientError
+
+            raise EC2ClientError(
+                "InvalidVerifiedAccessTrustProviderId.NotFound",
+                f"The verified access trust provider ID '{verified_access_trust_provider_id}' does not exist",
+            )
+        if verified_access_trust_provider_id in instance.verified_access_trust_provider_ids:
+            instance.verified_access_trust_provider_ids.remove(verified_access_trust_provider_id)
+        return {
+            "VerifiedAccessTrustProvider": {
+                "VerifiedAccessTrustProviderId": provider.id,
+                "TrustProviderType": provider.trust_provider_type,
+                "PolicyReferenceName": provider.policy_reference_name,
+                "Description": provider.description,
+            },
+            "VerifiedAccessInstance": {
+                "VerifiedAccessInstanceId": instance.id,
+                "Description": instance.description,
+            },
+        }

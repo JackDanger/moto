@@ -1,3 +1,4 @@
+from moto.core.responses import ActionResult
 from moto.ec2.utils import add_tag_specification
 from moto.utilities.utils import str2bool
 
@@ -226,6 +227,28 @@ class VerifiedAccessResponse(EC2BaseResponse):
         )
         template = self.response_template(DESCRIBE_VERIFIED_ACCESS_ENDPOINTS)
         return template.render(endpoints=endpoints)
+
+    def attach_verified_access_trust_provider(self) -> ActionResult:
+        verified_access_instance_id = self._get_param("VerifiedAccessInstanceId")
+        verified_access_trust_provider_id = self._get_param(
+            "VerifiedAccessTrustProviderId"
+        )
+        result = self.ec2_backend.attach_verified_access_trust_provider(
+            verified_access_instance_id=verified_access_instance_id,
+            verified_access_trust_provider_id=verified_access_trust_provider_id,
+        )
+        return ActionResult(result)
+
+    def detach_verified_access_trust_provider(self) -> ActionResult:
+        verified_access_instance_id = self._get_param("VerifiedAccessInstanceId")
+        verified_access_trust_provider_id = self._get_param(
+            "VerifiedAccessTrustProviderId"
+        )
+        result = self.ec2_backend.detach_verified_access_trust_provider(
+            verified_access_instance_id=verified_access_instance_id,
+            verified_access_trust_provider_id=verified_access_trust_provider_id,
+        )
+        return ActionResult(result)
 
 
 CREATE_VERIFIED_ACCESS_INSTANCE = """<CreateVerifiedAccessInstanceResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
