@@ -52,8 +52,12 @@ class BedrockRuntimeResponse(BaseResponse):
         messages = self._get_param("messages")
         system = self._get_param("system")
         inference_config = self._get_param("inferenceConfig")
-        additional_model_request_fields = self._get_param("additionalModelRequestFields")
-        additional_model_response_field_paths = self._get_param("additionalModelResponseFieldPaths")
+        additional_model_request_fields = self._get_param(
+            "additionalModelRequestFields"
+        )
+        additional_model_response_field_paths = self._get_param(
+            "additionalModelResponseFieldPaths"
+        )
         tool_config = self._get_param("toolConfig")
         guardrail_config = self._get_param("guardrailConfig")
         prompt_variables = self._get_param("promptVariables")
@@ -79,8 +83,12 @@ class BedrockRuntimeResponse(BaseResponse):
         messages = self._get_param("messages")
         system = self._get_param("system")
         inference_config = self._get_param("inferenceConfig")
-        additional_model_request_fields = self._get_param("additionalModelRequestFields")
-        additional_model_response_field_paths = self._get_param("additionalModelResponseFieldPaths")
+        additional_model_request_fields = self._get_param(
+            "additionalModelRequestFields"
+        )
+        additional_model_response_field_paths = self._get_param(
+            "additionalModelResponseFieldPaths"
+        )
         tool_config = self._get_param("toolConfig")
         guardrail_config = self._get_param("guardrailConfig")
         prompt_variables = self._get_param("promptVariables")
@@ -170,10 +178,6 @@ class BedrockRuntimeResponse(BaseResponse):
 
     def invoke_model_with_response_stream(self) -> ActionResult:
         """Stub for InvokeModelWithResponseStream - returns basic response."""
-        model_id = self._get_param("modelId")
-        body = self._get_param("body")
-        content_type = self._get_param("contentType", APPLICATION_JSON)
-        accept = self._get_param("accept", APPLICATION_JSON)
         result = {
             "body": json.dumps({}),
             "contentType": "application/json",

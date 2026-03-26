@@ -288,7 +288,9 @@ class CognitoIdentityBackend(BaseBackend):
         return json.dumps(
             {
                 "IdentityId": resolved_id,
-                "DeveloperUserIdentifierList": [developer_user_identifier] if developer_user_identifier else [],
+                "DeveloperUserIdentifierList": [developer_user_identifier]
+                if developer_user_identifier
+                else [],
             }
         )
 
@@ -356,7 +358,9 @@ class CognitoIdentityBackend(BaseBackend):
             pool.use_defaults = use_defaults  # type: ignore[attr-defined]
         if principal_tags is not None:
             pool.principal_tags = principal_tags  # type: ignore[attr-defined]
-        return self.get_principal_tag_attribute_map(identity_pool_id, identity_provider_name)
+        return self.get_principal_tag_attribute_map(
+            identity_pool_id, identity_provider_name
+        )
 
 
 cognitoidentity_backends = BackendDict(CognitoIdentityBackend, "cognito-identity")

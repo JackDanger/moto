@@ -79,7 +79,9 @@ class BedrockRuntimeBackend(BaseBackend):
             "output": {
                 "message": {
                     "role": "assistant",
-                    "content": [{"text": "This is a mock response from bedrock-runtime."}],
+                    "content": [
+                        {"text": "This is a mock response from bedrock-runtime."}
+                    ],
                 }
             },
             "stopReason": "end_turn",
@@ -191,7 +193,9 @@ class BedrockRuntimeBackend(BaseBackend):
         if invocation is None:
             from moto.core.exceptions import JsonRESTError
 
-            raise JsonRESTError("ResourceNotFoundException", f"Invocation not found: {invocation_arn}")
+            raise JsonRESTError(
+                "ResourceNotFoundException", f"Invocation not found: {invocation_arn}"
+            )
         return invocation.to_dict()
 
     def list_async_invokes(

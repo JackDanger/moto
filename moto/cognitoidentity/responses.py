@@ -98,7 +98,9 @@ class CognitoIdentityResponse(BaseResponse):
 
     def delete_identities(self) -> str:
         identity_ids_to_delete = self._get_param("IdentityIdsToDelete") or []
-        return self.backend.delete_identities(identity_ids_to_delete=identity_ids_to_delete)
+        return self.backend.delete_identities(
+            identity_ids_to_delete=identity_ids_to_delete
+        )
 
     def get_identity_pool_roles(self) -> str:
         identity_pool_id = self._get_param("IdentityPoolId")
