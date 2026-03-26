@@ -240,6 +240,15 @@ class TimestreamWriteResponse(BaseResponse):
         settings = self.timestreamquery_backend.describe_account_settings()
         return json.dumps(settings)
 
+    def update_account_settings(self) -> str:
+        max_query_tcu = self._get_param("MaxQueryTCU")
+        query_pricing_model = self._get_param("QueryPricingModel")
+        result = self.timestreamquery_backend.update_account_settings(
+            max_query_tcu=max_query_tcu,
+            query_pricing_model=query_pricing_model,
+        )
+        return json.dumps(result)
+
     def prepare_query(self) -> str:
         query_string = self._get_param("QueryString")
         result = self.timestreamquery_backend.prepare_query(query_string=query_string)

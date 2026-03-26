@@ -916,6 +916,10 @@ class GlueBackend(BaseBackend):
         self, registry_id: dict[str, Any], description: str
     ) -> dict[str, Any]:
         registry_name = validate_registry_id(registry_id, self.registries)
+        if registry_name not in self.registries:
+            raise EntityNotFoundException(
+                f"Registry is not found. RegistryName: {registry_name}"
+            )
         registry = self.registries[registry_name]
         registry.description = description
         registry.updated_time = utcnow()
@@ -2343,13 +2347,26 @@ class GlueBackend(BaseBackend):
         return udfs[function_name]
 
     def get_user_defined_functions(
-        self, database_name: str, pattern: str
+        self, database_name: Optional[str], pattern: str
     ) -> list[dict[str, Any]]:
+        import fnmatch
+
+        if database_name is None:
+            # Return UDFs across all databases
+            all_udfs: list[dict[str, Any]] = []
+            for database in self.databases.values():
+                udfs = getattr(database, "user_defined_functions", {})
+                if pattern and pattern != "*":
+                    all_udfs.extend(
+                        v for k, v in udfs.items() if fnmatch.fnmatch(k, pattern)
+                    )
+                else:
+                    all_udfs.extend(udfs.values())
+            return all_udfs
+
         database = self.get_database(database_name)
         udfs = getattr(database, "user_defined_functions", {})
         if pattern and pattern != "*":
-            import fnmatch
-
             return [v for k, v in udfs.items() if fnmatch.fnmatch(k, pattern)]
         return list(udfs.values())
 

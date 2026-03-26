@@ -482,6 +482,98 @@ class TimestreamInfluxDBBackend(BaseBackend):
 
         return cluster
 
+    def delete_db_cluster(self, db_cluster_id: str) -> Cluster:
+        cluster = self.db_clusters.get(db_cluster_id)
+        if not cluster:
+            raise ResourceNotFoundException(
+                f"DB cluster with ID {db_cluster_id} not found"
+            )
+        cluster.status = "DELETING"
+        self.db_clusters.pop(db_cluster_id)
+        return cluster
+
+    def list_db_instances_for_cluster(
+        self, db_cluster_id: str
+    ) -> list[dict[str, Any]]:
+        cluster = self.db_clusters.get(db_cluster_id)
+        if not cluster:
+            raise ResourceNotFoundException(
+                f"DB cluster with ID {db_cluster_id} not found"
+            )
+        # Return instances that belong to this cluster - simplified implementation
+        return []
+
+    def reboot_db_cluster(self, db_cluster_id: str) -> Cluster:
+        cluster = self.db_clusters.get(db_cluster_id)
+        if not cluster:
+            raise ResourceNotFoundException(
+                f"DB cluster with ID {db_cluster_id} not found"
+            )
+        return cluster
+
+    def reboot_db_instance(self, db_instance_id: str) -> DBInstance:
+        instance = self.db_instances.get(db_instance_id)
+        if not instance:
+            raise ResourceNotFoundException(
+                f"DB Instance with id {db_instance_id} not found"
+            )
+        return instance
+
+    def update_db_cluster(
+        self,
+        db_cluster_id: str,
+        db_instance_type: Optional[str] = None,
+        port: Optional[int] = None,
+        db_parameter_group_identifier: Optional[str] = None,
+        failover_mode: Optional[str] = None,
+        log_delivery_configuration: Optional[dict[str, Any]] = None,
+    ) -> Cluster:
+        cluster = self.db_clusters.get(db_cluster_id)
+        if not cluster:
+            raise ResourceNotFoundException(
+                f"DB cluster with ID {db_cluster_id} not found"
+            )
+        if db_instance_type is not None:
+            cluster.db_instance_type = db_instance_type
+        if port is not None:
+            cluster.port = port
+        if db_parameter_group_identifier is not None:
+            cluster.db_parameter_group_identifier = db_parameter_group_identifier
+        if failover_mode is not None:
+            cluster.failover_mode = failover_mode
+        if log_delivery_configuration is not None:
+            cluster.log_delivery_configuration = log_delivery_configuration
+        return cluster
+
+    def update_db_instance(
+        self,
+        db_instance_id: str,
+        db_instance_type: Optional[str] = None,
+        allocated_storage: Optional[int] = None,
+        db_parameter_group_identifier: Optional[str] = None,
+        deployment_type: Optional[str] = None,
+        log_delivery_configuration: Optional[dict[str, Any]] = None,
+        port: Optional[int] = None,
+    ) -> DBInstance:
+        instance = self.db_instances.get(db_instance_id)
+        if not instance:
+            raise ResourceNotFoundException(
+                f"DB Instance with id {db_instance_id} not found"
+            )
+        if db_instance_type is not None:
+            instance.db_instance_type = db_instance_type
+        if allocated_storage is not None:
+            instance.allocated_storage = allocated_storage
+        if db_parameter_group_identifier is not None:
+            instance.db_parameter_group_id = db_parameter_group_identifier
+        if deployment_type is not None:
+            instance.deployment_type = deployment_type
+        if log_delivery_configuration is not None:
+            instance.log_delivery_configuration = log_delivery_configuration
+        if port is not None:
+            instance.port = port
+        return instance
+
     def create_db_cluster(
         self,
         name: str,

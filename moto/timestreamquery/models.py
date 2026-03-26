@@ -70,6 +70,9 @@ class TimestreamQueryBackend(BaseBackend):
         self.query_result_queue: dict[Optional[str], list[dict[str, Any]]] = {}
         self.query_results: dict[str, dict[str, Any]] = {}
 
+        self._max_query_tcu: int = 1000
+        self._query_pricing_model: str = "BYTES_SCANNED"
+
     def create_scheduled_query(
         self,
         name: str,
@@ -107,6 +110,8 @@ class TimestreamQueryBackend(BaseBackend):
         return self.scheduled_queries[scheduled_query_arn]
 
     def update_scheduled_query(self, scheduled_query_arn: str, state: str) -> None:
+        if scheduled_query_arn not in self.scheduled_queries:
+            raise ResourceNotFound(scheduled_query_arn)
         query = self.scheduled_queries[scheduled_query_arn]
         query.state = state
 
@@ -170,8 +175,22 @@ class TimestreamQueryBackend(BaseBackend):
 
     def describe_account_settings(self) -> dict[str, Any]:
         return {
-            "MaxQueryTCU": 1000,
-            "QueryPricingModel": "BYTES_SCANNED",
+            "MaxQueryTCU": self._max_query_tcu,
+            "QueryPricingModel": self._query_pricing_model,
+        }
+
+    def update_account_settings(
+        self,
+        max_query_tcu: Optional[int],
+        query_pricing_model: Optional[str],
+    ) -> dict[str, Any]:
+        if max_query_tcu is not None:
+            self._max_query_tcu = max_query_tcu
+        if query_pricing_model is not None:
+            self._query_pricing_model = query_pricing_model
+        return {
+            "MaxQueryTCU": self._max_query_tcu,
+            "QueryPricingModel": self._query_pricing_model,
         }
 
     def prepare_query(self, query_string: str) -> dict[str, Any]:

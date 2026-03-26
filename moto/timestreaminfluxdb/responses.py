@@ -166,6 +166,76 @@ class TimestreamInfluxDBResponse(BaseResponse):
 
         return json.dumps(cluster.to_dict())
 
+    def delete_db_cluster(self) -> str:
+        params = json.loads(self.body)
+        db_cluster_id = params.get("dbClusterId")
+        cluster = self.timestreaminfluxdb_backend.delete_db_cluster(
+            db_cluster_id=db_cluster_id
+        )
+        return json.dumps(cluster.to_dict())
+
+    def list_db_instances_for_cluster(self) -> str:
+        params = json.loads(self.body)
+        db_cluster_id = params.get("dbClusterId")
+        items = self.timestreaminfluxdb_backend.list_db_instances_for_cluster(
+            db_cluster_id=db_cluster_id
+        )
+        return json.dumps({"items": items})
+
+    def reboot_db_cluster(self) -> str:
+        params = json.loads(self.body)
+        db_cluster_id = params.get("dbClusterId")
+        cluster = self.timestreaminfluxdb_backend.reboot_db_cluster(
+            db_cluster_id=db_cluster_id
+        )
+        return json.dumps(cluster.to_dict())
+
+    def reboot_db_instance(self) -> str:
+        params = json.loads(self.body)
+        db_instance_id = params.get("identifier")
+        instance = self.timestreaminfluxdb_backend.reboot_db_instance(
+            db_instance_id=db_instance_id
+        )
+        return json.dumps(instance.to_dict())
+
+    def update_db_cluster(self) -> str:
+        params = json.loads(self.body)
+        db_cluster_id = params.get("dbClusterId")
+        db_instance_type = params.get("dbInstanceType")
+        port = params.get("port")
+        db_parameter_group_identifier = params.get("dbParameterGroupIdentifier")
+        failover_mode = params.get("failoverMode")
+        log_delivery_configuration = params.get("logDeliveryConfiguration")
+        cluster = self.timestreaminfluxdb_backend.update_db_cluster(
+            db_cluster_id=db_cluster_id,
+            db_instance_type=db_instance_type,
+            port=port,
+            db_parameter_group_identifier=db_parameter_group_identifier,
+            failover_mode=failover_mode,
+            log_delivery_configuration=log_delivery_configuration,
+        )
+        return json.dumps(cluster.to_dict())
+
+    def update_db_instance(self) -> str:
+        params = json.loads(self.body)
+        db_instance_id = params.get("identifier")
+        db_instance_type = params.get("dbInstanceType")
+        allocated_storage = params.get("allocatedStorage")
+        db_parameter_group_identifier = params.get("dbParameterGroupIdentifier")
+        deployment_type = params.get("deploymentType")
+        log_delivery_configuration = params.get("logDeliveryConfiguration")
+        port = params.get("port")
+        instance = self.timestreaminfluxdb_backend.update_db_instance(
+            db_instance_id=db_instance_id,
+            db_instance_type=db_instance_type,
+            allocated_storage=allocated_storage,
+            db_parameter_group_identifier=db_parameter_group_identifier,
+            deployment_type=deployment_type,
+            log_delivery_configuration=log_delivery_configuration,
+            port=port,
+        )
+        return json.dumps(instance.to_dict())
+
     def create_db_cluster(self) -> str:
         params = json.loads(self.body)
         name = params.get("name")

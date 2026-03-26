@@ -1892,7 +1892,7 @@ class GlueResponse(BaseResponse):
 
     def get_user_defined_functions(self) -> ActionResult:
         udfs = self.glue_backend.get_user_defined_functions(
-            database_name=self.parameters["DatabaseName"],
+            database_name=self.parameters.get("DatabaseName"),
             pattern=self.parameters.get("Pattern", "*"),
         )
         return ActionResult({"UserDefinedFunctions": udfs})
