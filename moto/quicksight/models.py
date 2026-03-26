@@ -61,6 +61,10 @@ class QuickSightBackend(BaseBackend):
         self.account_customization: Optional[QuicksightAccountCustomization] = None
         self.ip_restriction: dict[str, Any] = {}
         self.tagger = TaggingService()
+        # role -> namespace -> set of member names
+        self.role_memberships: dict[str, dict[str, set[str]]] = {}
+        # role -> namespace -> custom_permissions_name
+        self.role_custom_permissions: dict[str, dict[str, str]] = {}
 
     # --- DataSet ---
 
@@ -1586,32 +1590,40 @@ class QuickSightBackend(BaseBackend):
     def create_role_membership(
         self, namespace: str, role: str, member_name: str
     ) -> None:
-        pass  # Stub - roles are not fully modeled
+        if role not in self.role_memberships:
+            self.role_memberships[role] = {}
+        if namespace not in self.role_memberships[role]:
+            self.role_memberships[role][namespace] = set()
+        self.role_memberships[role][namespace].add(member_name)
 
     def delete_role_membership(
         self, namespace: str, role: str, member_name: str
     ) -> None:
-        pass
+        members = self.role_memberships.get(role, {}).get(namespace, set())
+        members.discard(member_name)
 
     def list_role_memberships(
         self, namespace: str, role: str
     ) -> list[str]:
-        return []
+        return sorted(self.role_memberships.get(role, {}).get(namespace, set()))
 
     def describe_role_custom_permission(
         self, namespace: str, role: str
     ) -> Optional[str]:
-        return None
+        return self.role_custom_permissions.get(role, {}).get(namespace)
 
     def update_role_custom_permission(
         self, namespace: str, role: str, custom_permissions_name: str
     ) -> None:
-        pass
+        if role not in self.role_custom_permissions:
+            self.role_custom_permissions[role] = {}
+        self.role_custom_permissions[role][namespace] = custom_permissions_name
 
     def delete_role_custom_permission(
         self, namespace: str, role: str
     ) -> None:
-        pass
+        if role in self.role_custom_permissions:
+            self.role_custom_permissions[role].pop(namespace, None)
 
     # --- Tagging ---
 
