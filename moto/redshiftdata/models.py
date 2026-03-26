@@ -117,6 +117,7 @@ class RedshiftDataAPIServiceBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.statements: dict[str, Statement] = {}
+        self.sub_statement_ids: dict[str, list[str]] = {}
 
     @staticmethod
     def default_vpc_endpoint_service(
@@ -178,6 +179,95 @@ class RedshiftDataAPIServiceBackend(BaseBackend):
         )
         self.statements[statement.id] = statement
         return statement
+
+    def batch_execute_statement(
+        self,
+        cluster_identifier: str,
+        database: str,
+        db_user: str,
+        sqls: list[str],
+        secret_arn: str,
+        statement_name: str,
+        workgroup_name: str,
+    ) -> Statement:
+        """Execute multiple SQL statements as a batch."""
+        statement = Statement(
+            cluster_identifier=cluster_identifier,
+            database=database,
+            db_user=db_user,
+            query_parameters=[],
+            query_string=sqls[0] if sqls else "",
+            secret_arn=secret_arn,
+        )
+        statement.sub_statements = [str(random.uuid4()) for _ in sqls]
+        self.statements[statement.id] = statement
+        self.sub_statement_ids[statement.id] = statement.sub_statements
+        return statement
+
+    def describe_table(
+        self,
+        database: str,
+        schema: Optional[str],
+        table: Optional[str],
+    ) -> dict[str, Any]:
+        """Return mock table column info."""
+        return {
+            "ColumnList": [],
+            "TableName": {"schema": schema or "public", "name": table or ""},
+        }
+
+    def list_databases(
+        self,
+        database: str,
+        cluster_identifier: str,
+    ) -> list[str]:
+        """Return a list containing the requested database name."""
+        return [database]
+
+    def list_schemas(
+        self,
+        database: str,
+        schema_pattern: Optional[str],
+    ) -> list[str]:
+        """Return a list of schemas (mock: always returns public)."""
+        return ["public"]
+
+    def list_statements(
+        self,
+        statement_name: Optional[str],
+        status: Optional[str],
+    ) -> list[Statement]:
+        """Return list of statements, optionally filtered."""
+        statements = list(self.statements.values())
+        if statement_name:
+            statements = [s for s in statements if s.query_string == statement_name]
+        if status:
+            statements = [s for s in statements if s.status == status]
+        return statements
+
+    def list_tables(
+        self,
+        database: str,
+        schema_pattern: Optional[str],
+        table_pattern: Optional[str],
+    ) -> list[dict[str, str]]:
+        """Return mock list of tables (always empty)."""
+        return []
+
+    def get_statement_result_v2(self, statement_id: str) -> dict[str, Any]:
+        """Return statement result in V2 format."""
+        _validate_uuid(statement_id)
+        if statement_id not in self.statements:
+            raise ResourceNotFoundException()
+        return {
+            "Records": [
+                {"stringValues": ["10", "Alpha st", "Vancouver"]},
+                {"stringValues": ["50", "Beta st", "Toronto"]},
+                {"stringValues": ["100", "Gamma av", "Seattle"]},
+            ],
+            "ResultFormat": "JSON",
+            "TotalNumRows": 3,
+        }
 
     def get_statement_result(self, statement_id: str) -> StatementResult:
         """
