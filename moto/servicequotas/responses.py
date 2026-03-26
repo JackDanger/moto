@@ -179,7 +179,9 @@ class ServiceQuotasResponse(BaseResponse):
     def tag_resource(self) -> str:
         params = json.loads(self.body)
         resource_arn = str(params.get("ResourceARN"))
-        tags = params.get("Tags") or {}
+        # Tags come as list of {Key, Value} dicts; convert to plain dict
+        tags_input = params.get("Tags") or []
+        tags = {t["Key"]: t["Value"] for t in tags_input} if isinstance(tags_input, list) else tags_input
         self.backend.tag_resource(resource_arn=resource_arn, tags=tags)
         return json.dumps({})
 
@@ -193,7 +195,9 @@ class ServiceQuotasResponse(BaseResponse):
     def list_tags_for_resource(self) -> str:
         params = json.loads(self.body)
         resource_arn = str(params.get("ResourceARN"))
-        tags = self.backend.list_tags_for_resource(resource_arn=resource_arn)
+        tags_dict = self.backend.list_tags_for_resource(resource_arn=resource_arn)
+        # Return as list of {Key, Value} dicts per AWS API spec
+        tags = [{"Key": k, "Value": v} for k, v in tags_dict.items()]
         return json.dumps({"Tags": tags})
 
     def get_quota_utilization_report(self) -> str:
