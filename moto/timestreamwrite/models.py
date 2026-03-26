@@ -1,5 +1,6 @@
 from collections.abc import Iterable
 from typing import Any
+import uuid
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -143,6 +144,53 @@ class TimestreamDatabase(BaseModel):
         }
 
 
+class BatchLoadTask(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        target_database_name: str,
+        target_table_name: str,
+        data_model_configuration: dict[str, Any],
+        data_source_configuration: dict[str, Any],
+        report_configuration: dict[str, Any],
+        record_version: int,
+        client_token: str,
+    ):
+        self.task_id = str(uuid.uuid4())
+        self.account_id = account_id
+        self.region_name = region_name
+        self.target_database_name = target_database_name
+        self.target_table_name = target_table_name
+        self.data_model_configuration = data_model_configuration
+        self.data_source_configuration = data_source_configuration
+        self.report_configuration = report_configuration
+        self.record_version = record_version
+        self.client_token = client_token
+        self.task_status = "PENDING_RESUME"
+        self.arn = f"arn:{get_partition(region_name)}:timestream:{region_name}:{account_id}:batch-load/{self.task_id}"
+        self.creation_time = unix_time()
+        self.last_updated_time = unix_time()
+
+    def description(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "TaskId": self.task_id,
+            "Arn": self.arn,
+            "TaskStatus": self.task_status,
+            "TargetDatabaseName": self.target_database_name,
+            "TargetTableName": self.target_table_name,
+            "DataSourceConfiguration": self.data_source_configuration,
+            "ReportConfiguration": self.report_configuration,
+            "CreationTime": self.creation_time,
+            "LastUpdatedTime": self.last_updated_time,
+        }
+        if self.data_model_configuration:
+            result["DataModelConfiguration"] = self.data_model_configuration
+        if self.record_version:
+            result["RecordVersion"] = self.record_version
+        return result
+
+
 class TimestreamWriteBackend(BaseBackend):
     """
     When using the decorators, you can use the following internal API to verify records have arrived:
@@ -161,6 +209,7 @@ class TimestreamWriteBackend(BaseBackend):
         super().__init__(region_name, account_id)
         self.databases: dict[str, TimestreamDatabase] = {}
         self.tagging_service = TaggingService()
+        self.batch_load_tasks: dict[str, BatchLoadTask] = {}
 
     def create_database(
         self, database_name: str, kms_key_id: str, tags: list[dict[str, str]]
@@ -275,6 +324,46 @@ class TimestreamWriteBackend(BaseBackend):
 
     def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         self.tagging_service.untag_resource_using_names(resource_arn, tag_keys)
+
+    def create_batch_load_task(
+        self,
+        target_database_name: str,
+        target_table_name: str,
+        data_model_configuration: dict[str, Any],
+        data_source_configuration: dict[str, Any],
+        report_configuration: dict[str, Any],
+        record_version: int,
+        client_token: str,
+    ) -> BatchLoadTask:
+        task = BatchLoadTask(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            target_database_name=target_database_name,
+            target_table_name=target_table_name,
+            data_model_configuration=data_model_configuration,
+            data_source_configuration=data_source_configuration,
+            report_configuration=report_configuration,
+            record_version=record_version,
+            client_token=client_token,
+        )
+        self.batch_load_tasks[task.task_id] = task
+        return task
+
+    def describe_batch_load_task(self, task_id: str) -> BatchLoadTask:
+        if task_id not in self.batch_load_tasks:
+            raise ResourceNotFound(f"The batch load task {task_id} does not exist.")
+        return self.batch_load_tasks[task_id]
+
+    def list_batch_load_tasks(self, task_status: str) -> list[BatchLoadTask]:
+        tasks = list(self.batch_load_tasks.values())
+        if task_status:
+            tasks = [t for t in tasks if t.task_status == task_status]
+        return tasks
+
+    def resume_batch_load_task(self, task_id: str) -> None:
+        task = self.describe_batch_load_task(task_id)
+        task.task_status = "IN_PROGRESS"
+        task.last_updated_time = unix_time()
 
 
 # Boto does not return any regions at the time of writing (20/10/2021)

@@ -197,3 +197,37 @@ class TimestreamWriteResponse(BaseResponse):
             scheduled_query_arn=scheduled_query_arn,
         )
         return json.dumps({"ScheduledQuery": scheduled_query.description()})
+
+    def create_batch_load_task(self) -> str:
+        target_database_name = self._get_param("TargetDatabaseName")
+        target_table_name = self._get_param("TargetTableName")
+        data_model_configuration = self._get_param("DataModelConfiguration")
+        data_source_configuration = self._get_param("DataSourceConfiguration")
+        report_configuration = self._get_param("ReportConfiguration")
+        record_version = self._get_param("RecordVersion")
+        client_token = self._get_param("ClientToken")
+        task = self.timestreamwrite_backend.create_batch_load_task(
+            target_database_name=target_database_name,
+            target_table_name=target_table_name,
+            data_model_configuration=data_model_configuration,
+            data_source_configuration=data_source_configuration,
+            report_configuration=report_configuration,
+            record_version=record_version,
+            client_token=client_token,
+        )
+        return json.dumps({"TaskId": task.task_id})
+
+    def describe_batch_load_task(self) -> str:
+        task_id = self._get_param("TaskId")
+        task = self.timestreamwrite_backend.describe_batch_load_task(task_id)
+        return json.dumps({"BatchLoadTaskDescription": task.description()})
+
+    def list_batch_load_tasks(self) -> str:
+        task_status = self._get_param("TaskStatus")
+        tasks = self.timestreamwrite_backend.list_batch_load_tasks(task_status)
+        return json.dumps({"BatchLoadTasks": [t.description() for t in tasks]})
+
+    def resume_batch_load_task(self) -> str:
+        task_id = self._get_param("TaskId")
+        self.timestreamwrite_backend.resume_batch_load_task(task_id)
+        return "{}"
