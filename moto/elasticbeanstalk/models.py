@@ -596,8 +596,10 @@ class EBBackend(BaseBackend):
         environment_name: Optional[str] = None,
         environment_id: Optional[str] = None,
     ) -> None:
-        """Restart the app server (no-op in mock)."""
-        pass
+        """Restart the app server for an environment."""
+        env = self._find_environment(environment_name, environment_id)
+        if env:
+            env.date_updated = utcnow()
 
     def update_application(
         self,

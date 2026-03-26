@@ -2328,7 +2328,14 @@ class ServiceCatalogBackend(BaseBackend):
         outputs: Optional[list[dict[str, str]]],
         idempotency_token: Optional[str],
     ) -> None:
-        pass
+        record = self.records.get(record_id)
+        if record:
+            record.status = status
+            record.updated_time = utcnow()
+            if outputs:
+                record.record_outputs = outputs
+            if failure_reason:
+                record.record_errors = [{"Code": "FAILED", "Description": failure_reason}]
 
     def notify_terminate_provisioned_product_engine_workflow_result(
         self,
@@ -2338,7 +2345,12 @@ class ServiceCatalogBackend(BaseBackend):
         failure_reason: Optional[str],
         idempotency_token: Optional[str],
     ) -> None:
-        pass
+        record = self.records.get(record_id)
+        if record:
+            record.status = status
+            record.updated_time = utcnow()
+            if failure_reason:
+                record.record_errors = [{"Code": "FAILED", "Description": failure_reason}]
 
     def notify_update_provisioned_product_engine_workflow_result(
         self,
@@ -2349,7 +2361,14 @@ class ServiceCatalogBackend(BaseBackend):
         outputs: Optional[list[dict[str, str]]],
         idempotency_token: Optional[str],
     ) -> None:
-        pass
+        record = self.records.get(record_id)
+        if record:
+            record.status = status
+            record.updated_time = utcnow()
+            if outputs:
+                record.record_outputs = outputs
+            if failure_reason:
+                record.record_errors = [{"Code": "FAILED", "Description": failure_reason}]
 
 
 servicecatalog_backends = BackendDict(ServiceCatalogBackend, "servicecatalog")
