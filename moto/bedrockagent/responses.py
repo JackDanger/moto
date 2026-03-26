@@ -105,7 +105,7 @@ class AgentsforBedrockResponse(BaseResponse):
         return json.dumps({"agentVersion": version_dict})
 
     def list_agent_versions(self) -> str:
-        agent_id = self.path.split("/")[3]
+        agent_id = self.path.split("/")[2]
         params = json.loads(self.body) if self.body else {}
         max_results = params.get("maxResults")
         next_token = params.get("nextToken")
@@ -131,7 +131,7 @@ class AgentsforBedrockResponse(BaseResponse):
     # ========== Agent Alias handlers ==========
 
     def create_agent_alias(self) -> str:
-        agent_id = self.path.split("/")[3]
+        agent_id = self.path.split("/")[2]
         params = json.loads(self.body)
         alias = self.bedrockagent_backend.create_agent_alias(
             agent_id=agent_id,
@@ -153,7 +153,7 @@ class AgentsforBedrockResponse(BaseResponse):
         return json.dumps({"agentAlias": alias.to_dict()})
 
     def list_agent_aliases(self) -> str:
-        agent_id = self.path.split("/")[3]
+        agent_id = self.path.split("/")[2]
         params = json.loads(self.body) if self.body else {}
         max_results = params.get("maxResults")
         next_token = params.get("nextToken")
