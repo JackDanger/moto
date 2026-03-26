@@ -596,6 +596,10 @@ class GapStubs(EC2BaseResponse):
         template = self.response_template(EC2_RESET_EBS_DEFAULT_KMS_KEY_ID)
         return template.render()
 
+    def accept_address_transfer(self) -> str:
+        template = self.response_template(EC2_ACCEPT_ADDRESS_TRANSFER)
+        return template.render()
+
     def accept_capacity_reservation_billing_ownership(self) -> str:
         template = self.response_template(EC2_ACCEPT_CAPACITY_RESERVATION_BILLING_OWNERSHIP)
         return template.render()
@@ -1679,3 +1683,11 @@ EC2_CREATE_TRANSIT_GATEWAY_POLICY_TABLE = """<CreateTransitGatewayPolicyTableRes
         <state>pending</state>
     </transitGatewayPolicyTable>
 </CreateTransitGatewayPolicyTableResponse>"""
+
+EC2_ACCEPT_ADDRESS_TRANSFER = """<AcceptAddressTransferResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>{{ request_id }}</requestId>
+    <addressTransfer>
+        <publicIp></publicIp>
+        <addressTransferStatus>accepted</addressTransferStatus>
+    </addressTransfer>
+</AcceptAddressTransferResponse>"""
