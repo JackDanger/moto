@@ -31,3 +31,13 @@ class ServiceQuotaExceededException(JsonRESTError):
             error_type="ServiceQuotaExceededException",
             message=message,
         )
+
+
+class ValidationException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message: str = "") -> None:
+        super().__init__(
+            error_type="ValidationException",
+            message=message,
+        )

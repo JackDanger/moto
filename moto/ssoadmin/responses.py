@@ -380,3 +380,551 @@ class SSOAdminResponse(BaseResponse):
             )
         )
         return json.dumps({"AccountIds": account_ids})
+
+    # --- Tagging ---
+
+    def tag_resource(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        resource_arn = self._get_param("ResourceArn")
+        tags = self._get_param("Tags", [])
+        self.ssoadmin_backend.tag_resource(
+            instance_arn=instance_arn, resource_arn=resource_arn, tags=tags
+        )
+        return json.dumps({})
+
+    def untag_resource(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        resource_arn = self._get_param("ResourceArn")
+        tag_keys = self._get_param("TagKeys", [])
+        self.ssoadmin_backend.untag_resource(
+            instance_arn=instance_arn, resource_arn=resource_arn, tag_keys=tag_keys
+        )
+        return json.dumps({})
+
+    def list_tags_for_resource(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        resource_arn = self._get_param("ResourceArn")
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        tags, next_token = self.ssoadmin_backend.list_tags_for_resource(
+            instance_arn=instance_arn,
+            resource_arn=resource_arn,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return json.dumps({"Tags": tags, "NextToken": next_token})
+
+    # --- Permissions Boundary ---
+
+    def put_permissions_boundary_to_permission_set(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        permission_set_arn = self._get_param("PermissionSetArn")
+        permissions_boundary = self._get_param("PermissionsBoundary")
+        self.ssoadmin_backend.put_permissions_boundary_to_permission_set(
+            instance_arn=instance_arn,
+            permission_set_arn=permission_set_arn,
+            permissions_boundary=permissions_boundary,
+        )
+        return json.dumps({})
+
+    def get_permissions_boundary_for_permission_set(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        permission_set_arn = self._get_param("PermissionSetArn")
+        boundary = self.ssoadmin_backend.get_permissions_boundary_for_permission_set(
+            instance_arn=instance_arn,
+            permission_set_arn=permission_set_arn,
+        )
+        return json.dumps({"PermissionsBoundary": boundary})
+
+    def delete_permissions_boundary_from_permission_set(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        permission_set_arn = self._get_param("PermissionSetArn")
+        self.ssoadmin_backend.delete_permissions_boundary_from_permission_set(
+            instance_arn=instance_arn,
+            permission_set_arn=permission_set_arn,
+        )
+        return json.dumps({})
+
+    # --- Instance CRUD ---
+
+    def create_instance(self) -> str:
+        client_token = self._get_param("ClientToken")
+        name = self._get_param("Name")
+        tags = self._get_param("Tags", [])
+        instance = self.ssoadmin_backend.create_instance(
+            client_token=client_token, name=name, tags=tags
+        )
+        return json.dumps({"InstanceArn": instance.instance_arn})
+
+    def delete_instance(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        self.ssoadmin_backend.delete_instance(instance_arn=instance_arn)
+        return json.dumps({})
+
+    def describe_instance(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        instance = self.ssoadmin_backend.describe_instance(instance_arn=instance_arn)
+        return json.dumps({"InstanceMetadata": instance.to_json()})
+
+    # --- Instance Access Control Attribute Configuration ---
+
+    def create_instance_access_control_attribute_configuration(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        config = self._get_param("InstanceAccessControlAttributeConfiguration")
+        self.ssoadmin_backend.create_instance_access_control_attribute_configuration(
+            instance_arn=instance_arn,
+            instance_access_control_attribute_configuration=config,
+        )
+        return json.dumps({})
+
+    def describe_instance_access_control_attribute_configuration(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        config = self.ssoadmin_backend.describe_instance_access_control_attribute_configuration(
+            instance_arn=instance_arn
+        )
+        return json.dumps(
+            {"InstanceAccessControlAttributeConfiguration": config, "Status": config["Status"]}
+        )
+
+    def update_instance_access_control_attribute_configuration(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        config = self._get_param("InstanceAccessControlAttributeConfiguration")
+        self.ssoadmin_backend.update_instance_access_control_attribute_configuration(
+            instance_arn=instance_arn,
+            instance_access_control_attribute_configuration=config,
+        )
+        return json.dumps({})
+
+    def delete_instance_access_control_attribute_configuration(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        self.ssoadmin_backend.delete_instance_access_control_attribute_configuration(
+            instance_arn=instance_arn
+        )
+        return json.dumps({})
+
+    # --- Account assignment status lists ---
+
+    def list_account_assignment_creation_status(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        filter_ = self._get_param("Filter")
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        statuses, next_token = self.ssoadmin_backend.list_account_assignment_creation_status(
+            instance_arn=instance_arn,
+            filter_=filter_,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return json.dumps(
+            {"AccountAssignmentsCreationStatus": statuses, "NextToken": next_token}
+        )
+
+    def list_account_assignment_deletion_status(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        filter_ = self._get_param("Filter")
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        statuses, next_token = self.ssoadmin_backend.list_account_assignment_deletion_status(
+            instance_arn=instance_arn,
+            filter_=filter_,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return json.dumps(
+            {"AccountAssignmentsDeletionStatus": statuses, "NextToken": next_token}
+        )
+
+    def list_permission_set_provisioning_status(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        filter_ = self._get_param("Filter")
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        statuses, next_token = self.ssoadmin_backend.list_permission_set_provisioning_status(
+            instance_arn=instance_arn,
+            filter_=filter_,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return json.dumps(
+            {"PermissionSetsProvisioningStatus": statuses, "NextToken": next_token}
+        )
+
+    # --- Applications ---
+
+    def create_application(self) -> str:
+        application_provider_arn = self._get_param("ApplicationProviderArn")
+        instance_arn = self._get_param("InstanceArn")
+        name = self._get_param("Name")
+        description = self._get_param("Description")
+        portal_options = self._get_param("PortalOptions")
+        status = self._get_param("Status", "ENABLED")
+        tags = self._get_param("Tags", [])
+        client_token = self._get_param("ClientToken")
+        application = self.ssoadmin_backend.create_application(
+            application_provider_arn=application_provider_arn,
+            instance_arn=instance_arn,
+            name=name,
+            description=description,
+            portal_options=portal_options,
+            status=status,
+            tags=tags,
+            client_token=client_token,
+        )
+        return json.dumps({"ApplicationArn": application.application_arn})
+
+    def delete_application(self) -> str:
+        application_arn = self._get_param("ApplicationArn")
+        self.ssoadmin_backend.delete_application(application_arn=application_arn)
+        return json.dumps({})
+
+    def describe_application(self) -> str:
+        application_arn = self._get_param("ApplicationArn")
+        application = self.ssoadmin_backend.describe_application(
+            application_arn=application_arn
+        )
+        return json.dumps(application.to_json())
+
+    def update_application(self) -> str:
+        application_arn = self._get_param("ApplicationArn")
+        description = self._get_param("Description")
+        name = self._get_param("Name")
+        portal_options = self._get_param("PortalOptions")
+        status = self._get_param("Status")
+        self.ssoadmin_backend.update_application(
+            application_arn=application_arn,
+            description=description,
+            name=name,
+            portal_options=portal_options,
+            status=status,
+        )
+        return json.dumps({})
+
+    def list_applications(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        filter_ = self._get_param("Filter")
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        applications, next_token = self.ssoadmin_backend.list_applications(
+            instance_arn=instance_arn,
+            filter_=filter_,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return json.dumps(
+            {
+                "Applications": [a.to_json() for a in applications],
+                "NextToken": next_token,
+            }
+        )
+
+    # --- Application Access Scopes ---
+
+    def put_application_access_scope(self) -> str:
+        application_arn = self._get_param("ApplicationArn")
+        scope = self._get_param("Scope")
+        authorized_targets = self._get_param("AuthorizedTargets")
+        self.ssoadmin_backend.put_application_access_scope(
+            application_arn=application_arn,
+            scope=scope,
+            authorized_targets=authorized_targets,
+        )
+        return json.dumps({})
+
+    def get_application_access_scope(self) -> str:
+        application_arn = self._get_param("ApplicationArn")
+        scope = self._get_param("Scope")
+        result = self.ssoadmin_backend.get_application_access_scope(
+            application_arn=application_arn, scope=scope
+        )
+        return json.dumps(result)
+
+    def delete_application_access_scope(self) -> str:
+        application_arn = self._get_param("ApplicationArn")
+        scope = self._get_param("Scope")
+        self.ssoadmin_backend.delete_application_access_scope(
+            application_arn=application_arn, scope=scope
+        )
+        return json.dumps({})
+
+    def list_application_access_scopes(self) -> str:
+        application_arn = self._get_param("ApplicationArn")
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        scopes, next_token = self.ssoadmin_backend.list_application_access_scopes(
+            application_arn=application_arn,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return json.dumps({"Scopes": scopes, "NextToken": next_token})
+
+    # --- Application Assignments ---
+
+    def create_application_assignment(self) -> str:
+        application_arn = self._get_param("ApplicationArn")
+        principal_type = self._get_param("PrincipalType")
+        principal_id = self._get_param("PrincipalId")
+        self.ssoadmin_backend.create_application_assignment(
+            application_arn=application_arn,
+            principal_type=principal_type,
+            principal_id=principal_id,
+        )
+        return json.dumps({})
+
+    def delete_application_assignment(self) -> str:
+        application_arn = self._get_param("ApplicationArn")
+        principal_type = self._get_param("PrincipalType")
+        principal_id = self._get_param("PrincipalId")
+        self.ssoadmin_backend.delete_application_assignment(
+            application_arn=application_arn,
+            principal_type=principal_type,
+            principal_id=principal_id,
+        )
+        return json.dumps({})
+
+    def describe_application_assignment(self) -> str:
+        application_arn = self._get_param("ApplicationArn")
+        principal_type = self._get_param("PrincipalType")
+        principal_id = self._get_param("PrincipalId")
+        assignment = self.ssoadmin_backend.describe_application_assignment(
+            application_arn=application_arn,
+            principal_type=principal_type,
+            principal_id=principal_id,
+        )
+        return json.dumps(assignment.to_json())
+
+    def list_application_assignments(self) -> str:
+        application_arn = self._get_param("ApplicationArn")
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        assignments, next_token = self.ssoadmin_backend.list_application_assignments(
+            application_arn=application_arn,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return json.dumps(
+            {
+                "ApplicationAssignments": [a.to_json() for a in assignments],
+                "NextToken": next_token,
+            }
+        )
+
+    def list_application_assignments_for_principal(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        principal_type = self._get_param("PrincipalType")
+        principal_id = self._get_param("PrincipalId")
+        filter_ = self._get_param("Filter")
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        assignments, next_token = self.ssoadmin_backend.list_application_assignments_for_principal(
+            instance_arn=instance_arn,
+            principal_type=principal_type,
+            principal_id=principal_id,
+            filter_=filter_,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return json.dumps(
+            {"ApplicationAssignments": assignments, "NextToken": next_token}
+        )
+
+    # --- Application Assignment Configuration ---
+
+    def put_application_assignment_configuration(self) -> str:
+        application_arn = self._get_param("ApplicationArn")
+        assignment_required = self._get_param("AssignmentRequired", False)
+        self.ssoadmin_backend.put_application_assignment_configuration(
+            application_arn=application_arn,
+            assignment_required=assignment_required,
+        )
+        return json.dumps({})
+
+    def get_application_assignment_configuration(self) -> str:
+        application_arn = self._get_param("ApplicationArn")
+        config = self.ssoadmin_backend.get_application_assignment_configuration(
+            application_arn=application_arn
+        )
+        return json.dumps(config)
+
+    # --- Application Authentication Methods ---
+
+    def put_application_authentication_method(self) -> str:
+        application_arn = self._get_param("ApplicationArn")
+        authentication_method_type = self._get_param("AuthenticationMethodType")
+        authentication_method = self._get_param("AuthenticationMethod")
+        self.ssoadmin_backend.put_application_authentication_method(
+            application_arn=application_arn,
+            authentication_method_type=authentication_method_type,
+            authentication_method=authentication_method,
+        )
+        return json.dumps({})
+
+    def get_application_authentication_method(self) -> str:
+        application_arn = self._get_param("ApplicationArn")
+        authentication_method_type = self._get_param("AuthenticationMethodType")
+        result = self.ssoadmin_backend.get_application_authentication_method(
+            application_arn=application_arn,
+            authentication_method_type=authentication_method_type,
+        )
+        return json.dumps(result)
+
+    def delete_application_authentication_method(self) -> str:
+        application_arn = self._get_param("ApplicationArn")
+        authentication_method_type = self._get_param("AuthenticationMethodType")
+        self.ssoadmin_backend.delete_application_authentication_method(
+            application_arn=application_arn,
+            authentication_method_type=authentication_method_type,
+        )
+        return json.dumps({})
+
+    def list_application_authentication_methods(self) -> str:
+        application_arn = self._get_param("ApplicationArn")
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        methods, next_token = self.ssoadmin_backend.list_application_authentication_methods(
+            application_arn=application_arn,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return json.dumps({"AuthenticationMethods": methods, "NextToken": next_token})
+
+    # --- Application Grants ---
+
+    def put_application_grant(self) -> str:
+        application_arn = self._get_param("ApplicationArn")
+        grant_type = self._get_param("GrantType")
+        grant = self._get_param("Grant")
+        self.ssoadmin_backend.put_application_grant(
+            application_arn=application_arn,
+            grant_type=grant_type,
+            grant=grant,
+        )
+        return json.dumps({})
+
+    def get_application_grant(self) -> str:
+        application_arn = self._get_param("ApplicationArn")
+        grant_type = self._get_param("GrantType")
+        result = self.ssoadmin_backend.get_application_grant(
+            application_arn=application_arn,
+            grant_type=grant_type,
+        )
+        return json.dumps(result)
+
+    def delete_application_grant(self) -> str:
+        application_arn = self._get_param("ApplicationArn")
+        grant_type = self._get_param("GrantType")
+        self.ssoadmin_backend.delete_application_grant(
+            application_arn=application_arn,
+            grant_type=grant_type,
+        )
+        return json.dumps({})
+
+    def list_application_grants(self) -> str:
+        application_arn = self._get_param("ApplicationArn")
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        grants, next_token = self.ssoadmin_backend.list_application_grants(
+            application_arn=application_arn,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return json.dumps({"Grants": grants, "NextToken": next_token})
+
+    # --- Application Session Configuration ---
+
+    def put_application_session_configuration(self) -> str:
+        application_arn = self._get_param("ApplicationArn")
+        session_configuration = self._get_param("SessionConfiguration")
+        self.ssoadmin_backend.put_application_session_configuration(
+            application_arn=application_arn,
+            session_configuration=session_configuration,
+        )
+        return json.dumps({})
+
+    def get_application_session_configuration(self) -> str:
+        application_arn = self._get_param("ApplicationArn")
+        config = self.ssoadmin_backend.get_application_session_configuration(
+            application_arn=application_arn
+        )
+        return json.dumps(config)
+
+    # --- Trusted Token Issuers ---
+
+    def create_trusted_token_issuer(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        name = self._get_param("Name")
+        trusted_token_issuer_type = self._get_param("TrustedTokenIssuerType")
+        trusted_token_issuer_configuration = self._get_param(
+            "TrustedTokenIssuerConfiguration"
+        )
+        tags = self._get_param("Tags", [])
+        client_token = self._get_param("ClientToken")
+        tti = self.ssoadmin_backend.create_trusted_token_issuer(
+            instance_arn=instance_arn,
+            name=name,
+            trusted_token_issuer_type=trusted_token_issuer_type,
+            trusted_token_issuer_configuration=trusted_token_issuer_configuration,
+            tags=tags,
+            client_token=client_token,
+        )
+        return json.dumps({"TrustedTokenIssuerArn": tti.trusted_token_issuer_arn})
+
+    def delete_trusted_token_issuer(self) -> str:
+        trusted_token_issuer_arn = self._get_param("TrustedTokenIssuerArn")
+        self.ssoadmin_backend.delete_trusted_token_issuer(
+            trusted_token_issuer_arn=trusted_token_issuer_arn
+        )
+        return json.dumps({})
+
+    def describe_trusted_token_issuer(self) -> str:
+        trusted_token_issuer_arn = self._get_param("TrustedTokenIssuerArn")
+        tti = self.ssoadmin_backend.describe_trusted_token_issuer(
+            trusted_token_issuer_arn=trusted_token_issuer_arn
+        )
+        return json.dumps(tti.to_json())
+
+    def update_trusted_token_issuer(self) -> str:
+        trusted_token_issuer_arn = self._get_param("TrustedTokenIssuerArn")
+        name = self._get_param("Name")
+        trusted_token_issuer_configuration = self._get_param(
+            "TrustedTokenIssuerConfiguration"
+        )
+        self.ssoadmin_backend.update_trusted_token_issuer(
+            trusted_token_issuer_arn=trusted_token_issuer_arn,
+            name=name,
+            trusted_token_issuer_configuration=trusted_token_issuer_configuration,
+        )
+        return json.dumps({})
+
+    def list_trusted_token_issuers(self) -> str:
+        instance_arn = self._get_param("InstanceArn")
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        issuers, next_token = self.ssoadmin_backend.list_trusted_token_issuers(
+            instance_arn=instance_arn,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return json.dumps(
+            {
+                "TrustedTokenIssuers": [tti.to_json() for tti in issuers],
+                "NextToken": next_token,
+            }
+        )
+
+    # --- Application Providers ---
+
+    def list_application_providers(self) -> str:
+        max_results = self._get_int_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        providers, next_token = self.ssoadmin_backend.list_application_providers(
+            max_results=max_results,
+            next_token=next_token,
+        )
+        return json.dumps({"ApplicationProviders": providers, "NextToken": next_token})
+
+    def describe_application_provider(self) -> str:
+        application_provider_arn = self._get_param("ApplicationProviderArn")
+        provider = self.ssoadmin_backend.describe_application_provider(
+            application_provider_arn=application_provider_arn
+        )
+        return json.dumps(provider)

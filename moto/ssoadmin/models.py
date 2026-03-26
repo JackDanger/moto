@@ -13,6 +13,7 @@ from .exceptions import (
     ConflictException,
     ResourceNotFoundException,
     ServiceQuotaExceededException,
+    ValidationException,
 )
 from .utils import PAGINATION_MODEL
 
@@ -120,6 +121,121 @@ class CustomerManagedPolicy(BaseModel):
         return f"{self.path}{self.name}" == f"{other.path}{other.name}"
 
 
+class InstanceAccessControlAttributeConfiguration:
+    def __init__(self, access_control_attributes: list[dict[str, Any]]):
+        self.access_control_attributes = access_control_attributes
+        self.status = "ENABLED"
+        self.status_reason: Optional[str] = None
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "AccessControlAttributes": self.access_control_attributes,
+            "Status": self.status,
+            "StatusReason": self.status_reason,
+        }
+
+
+class Application:
+    def __init__(
+        self,
+        application_provider_arn: str,
+        instance_arn: str,
+        name: str,
+        description: Optional[str],
+        portal_options: Optional[dict[str, Any]],
+        status: str,
+        tags: list[dict[str, str]],
+        client_token: Optional[str],
+        region: str,
+        account_id: str,
+    ):
+        self.application_provider_arn = application_provider_arn
+        self.instance_arn = instance_arn
+        self.name = name
+        self.description = description
+        self.portal_options = portal_options or {}
+        self.status = status
+        self.tags = tags or []
+        self.created_date = unix_time()
+        self.application_arn = (
+            f"arn:{get_partition(region)}:sso::{account_id}:application/"
+            f"ssoins-{random.get_random_string(length=16, lower_case=True)}/"
+            f"apl-{random.get_random_string(length=16, lower_case=True)}"
+        )
+        self.assignments: list[ApplicationAssignment] = []
+        self.access_scopes: dict[str, dict[str, Any]] = {}
+        self.authentication_methods: dict[str, dict[str, Any]] = {}
+        self.grants: dict[str, dict[str, Any]] = {}
+        self.assignment_required: bool = False
+        self.session_configuration: Optional[dict[str, Any]] = None
+
+    def to_json(self, include_all: bool = False) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "ApplicationArn": self.application_arn,
+            "ApplicationProviderArn": self.application_provider_arn,
+            "InstanceArn": self.instance_arn,
+            "Name": self.name,
+            "Status": self.status,
+            "CreatedDate": self.created_date,
+        }
+        if self.description is not None:
+            result["Description"] = self.description
+        if self.portal_options:
+            result["PortalOptions"] = self.portal_options
+        return result
+
+
+class ApplicationAssignment:
+    def __init__(
+        self,
+        application_arn: str,
+        principal_type: str,
+        principal_id: str,
+    ):
+        self.application_arn = application_arn
+        self.principal_type = principal_type
+        self.principal_id = principal_id
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "ApplicationArn": self.application_arn,
+            "PrincipalType": self.principal_type,
+            "PrincipalId": self.principal_id,
+        }
+
+
+class TrustedTokenIssuer:
+    def __init__(
+        self,
+        name: str,
+        trusted_token_issuer_type: str,
+        trusted_token_issuer_configuration: dict[str, Any],
+        instance_arn: str,
+        tags: list[dict[str, str]],
+        region: str,
+        account_id: str,
+        client_token: Optional[str] = None,
+    ):
+        self.name = name
+        self.trusted_token_issuer_type = trusted_token_issuer_type
+        self.trusted_token_issuer_configuration = trusted_token_issuer_configuration
+        self.instance_arn = instance_arn
+        self.tags = tags or []
+        self.trusted_token_issuer_arn = (
+            f"arn:{get_partition(region)}:sso::{account_id}:trustedTokenIssuer/"
+            f"ssoins-{random.get_random_string(length=16, lower_case=True)}/"
+            f"tti-{random.get_random_string(length=16, lower_case=True)}"
+        )
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "TrustedTokenIssuerArn": self.trusted_token_issuer_arn,
+            "Name": self.name,
+            "TrustedTokenIssuerType": self.trusted_token_issuer_type,
+            "TrustedTokenIssuerConfiguration": self.trusted_token_issuer_configuration,
+        }
+
+
 class Instance:
     def __init__(self, account_id: str, region: str):
         self.created_date = unix_time()
@@ -132,6 +248,10 @@ class Instance:
         self.name: Optional[str] = None
 
         self.provisioned_permission_sets: list[PermissionSet] = []
+        self.tags: list[dict[str, str]] = []
+        self.access_control_attribute_config: Optional[
+            InstanceAccessControlAttributeConfiguration
+        ] = None
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -154,6 +274,10 @@ class SSOAdminBackend(BaseBackend):
         self.permission_sets: list[PermissionSet] = []
         self.aws_managed_policies: Optional[dict[str, Any]] = None
         self.instances: list[Instance] = []
+        self.applications: list[Application] = []
+        self.trusted_token_issuers: list[TrustedTokenIssuer] = []
+        # tag store: resource_arn -> list of tags
+        self._tags: dict[str, list[dict[str, str]]] = {}
 
         self.instances.append(Instance(self.account_id, self.region_name))
 
@@ -613,6 +737,621 @@ class SSOAdminBackend(BaseBackend):
                     if ps.permission_set_arn == permission_set_arn:
                         return [self.account_id]
         return []
+
+    # --- Tagging ---
+
+    def tag_resource(
+        self, instance_arn: str, resource_arn: str, tags: list[dict[str, str]]
+    ) -> None:
+        existing = self._tags.get(resource_arn, [])
+        # merge: overwrite existing keys, add new
+        existing_map = {t["Key"]: t for t in existing}
+        for tag in tags:
+            existing_map[tag["Key"]] = tag
+        self._tags[resource_arn] = list(existing_map.values())
+
+    def untag_resource(
+        self, instance_arn: str, resource_arn: str, tag_keys: list[str]
+    ) -> None:
+        existing = self._tags.get(resource_arn, [])
+        self._tags[resource_arn] = [t for t in existing if t["Key"] not in tag_keys]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_tags_for_resource(
+        self, instance_arn: str, resource_arn: str
+    ) -> list[dict[str, str]]:
+        return self._tags.get(resource_arn, [])
+
+    # --- Permissions Boundary ---
+
+    def put_permissions_boundary_to_permission_set(
+        self,
+        instance_arn: str,
+        permission_set_arn: str,
+        permissions_boundary: dict[str, Any],
+    ) -> None:
+        permission_set = self._find_permission_set(instance_arn, permission_set_arn)
+        permission_set.permissions_boundary = permissions_boundary  # type: ignore[attr-defined]
+
+    def get_permissions_boundary_for_permission_set(
+        self, instance_arn: str, permission_set_arn: str
+    ) -> dict[str, Any]:
+        permission_set = self._find_permission_set(instance_arn, permission_set_arn)
+        boundary = getattr(permission_set, "permissions_boundary", None)
+        if boundary is None:
+            raise ResourceNotFoundException(
+                f"PermissionSet {permission_set_arn} has no permissions boundary"
+            )
+        return boundary
+
+    def delete_permissions_boundary_from_permission_set(
+        self, instance_arn: str, permission_set_arn: str
+    ) -> None:
+        permission_set = self._find_permission_set(instance_arn, permission_set_arn)
+        permission_set.permissions_boundary = None  # type: ignore[attr-defined]
+
+    # --- Instance CRUD ---
+
+    def create_instance(
+        self,
+        client_token: Optional[str],
+        name: Optional[str],
+        tags: list[dict[str, str]],
+    ) -> Instance:
+        instance = Instance(self.account_id, self.region_name)
+        instance.name = name
+        instance.tags = tags or []
+        instance.status = "ACTIVE"
+        self.instances.append(instance)
+        return instance
+
+    def delete_instance(self, instance_arn: str) -> None:
+        instance = self._find_instance(instance_arn)
+        self.instances.remove(instance)
+
+    def describe_instance(self, instance_arn: str) -> Instance:
+        return self._find_instance(instance_arn)
+
+    def _find_instance(self, instance_arn: str) -> Instance:
+        for instance in self.instances:
+            if instance.instance_arn == instance_arn:
+                return instance
+        raise ResourceNotFoundException(f"Instance {instance_arn} not found")
+
+    # --- Instance Access Control Attribute Configuration ---
+
+    def create_instance_access_control_attribute_configuration(
+        self,
+        instance_arn: str,
+        instance_access_control_attribute_configuration: dict[str, Any],
+    ) -> None:
+        instance = self._find_instance(instance_arn)
+        if instance.access_control_attribute_config is not None:
+            raise ConflictException(
+                f"Instance {instance_arn} already has access control attribute configuration"
+            )
+        access_control_attributes = instance_access_control_attribute_configuration.get(
+            "AccessControlAttributes", []
+        )
+        instance.access_control_attribute_config = (
+            InstanceAccessControlAttributeConfiguration(access_control_attributes)
+        )
+
+    def describe_instance_access_control_attribute_configuration(
+        self, instance_arn: str
+    ) -> dict[str, Any]:
+        instance = self._find_instance(instance_arn)
+        if instance.access_control_attribute_config is None:
+            raise ResourceNotFoundException(
+                f"Instance {instance_arn} has no access control attribute configuration"
+            )
+        return instance.access_control_attribute_config.to_json()
+
+    def update_instance_access_control_attribute_configuration(
+        self,
+        instance_arn: str,
+        instance_access_control_attribute_configuration: dict[str, Any],
+    ) -> None:
+        instance = self._find_instance(instance_arn)
+        if instance.access_control_attribute_config is None:
+            raise ResourceNotFoundException(
+                f"Instance {instance_arn} has no access control attribute configuration"
+            )
+        access_control_attributes = instance_access_control_attribute_configuration.get(
+            "AccessControlAttributes", []
+        )
+        instance.access_control_attribute_config.access_control_attributes = (
+            access_control_attributes
+        )
+
+    def delete_instance_access_control_attribute_configuration(
+        self, instance_arn: str
+    ) -> None:
+        instance = self._find_instance(instance_arn)
+        if instance.access_control_attribute_config is None:
+            raise ResourceNotFoundException(
+                f"Instance {instance_arn} has no access control attribute configuration"
+            )
+        instance.access_control_attribute_config = None
+
+    # --- Account assignment status lists ---
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_account_assignment_creation_status(
+        self,
+        instance_arn: str,
+        filter_: Optional[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        results = []
+        for assignment in self.account_assignments:
+            if assignment.instance_arn == instance_arn:
+                results.append(
+                    {
+                        "RequestId": assignment.request_id,
+                        "Status": "SUCCEEDED",
+                        "CreatedDate": assignment.created_date,
+                    }
+                )
+        return results
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_account_assignment_deletion_status(
+        self,
+        instance_arn: str,
+        filter_: Optional[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        results = []
+        for assignment in self.deleted_account_assignments:
+            if assignment.instance_arn == instance_arn:
+                results.append(
+                    {
+                        "RequestId": assignment.request_id,
+                        "Status": "SUCCEEDED",
+                        "CreatedDate": assignment.created_date,
+                    }
+                )
+        return results
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_permission_set_provisioning_status(
+        self,
+        instance_arn: str,
+        filter_: Optional[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        instance = self._find_instance(instance_arn)
+        results = []
+        for ps in instance.provisioned_permission_sets:
+            results.append(
+                {
+                    "RequestId": str(random.uuid4()),
+                    "Status": "SUCCEEDED",
+                    "PermissionSetArn": ps.permission_set_arn,
+                    "CreatedDate": ps.created_date,
+                }
+            )
+        return results
+
+    # --- Applications ---
+
+    def create_application(
+        self,
+        application_provider_arn: str,
+        instance_arn: str,
+        name: str,
+        description: Optional[str],
+        portal_options: Optional[dict[str, Any]],
+        status: str,
+        tags: list[dict[str, str]],
+        client_token: Optional[str],
+    ) -> Application:
+        application = Application(
+            application_provider_arn=application_provider_arn,
+            instance_arn=instance_arn,
+            name=name,
+            description=description,
+            portal_options=portal_options,
+            status=status or "ENABLED",
+            tags=tags or [],
+            client_token=client_token,
+            region=self.region_name,
+            account_id=self.account_id,
+        )
+        self.applications.append(application)
+        return application
+
+    def delete_application(self, application_arn: str) -> None:
+        application = self._find_application(application_arn)
+        self.applications.remove(application)
+
+    def describe_application(self, application_arn: str) -> Application:
+        return self._find_application(application_arn)
+
+    def update_application(
+        self,
+        application_arn: str,
+        description: Optional[str],
+        name: Optional[str],
+        portal_options: Optional[dict[str, Any]],
+        status: Optional[str],
+    ) -> None:
+        application = self._find_application(application_arn)
+        if description is not None:
+            application.description = description
+        if name is not None:
+            application.name = name
+        if portal_options is not None:
+            application.portal_options = portal_options
+        if status is not None:
+            application.status = status
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_applications(
+        self,
+        instance_arn: str,
+        filter_: Optional[dict[str, Any]],
+    ) -> list[Application]:
+        apps = [a for a in self.applications if a.instance_arn == instance_arn]
+        if filter_:
+            app_provider_arn = filter_.get("ApplicationProviderArn")
+            if app_provider_arn:
+                apps = [
+                    a for a in apps if a.application_provider_arn == app_provider_arn
+                ]
+        return apps
+
+    def _find_application(self, application_arn: str) -> Application:
+        for app in self.applications:
+            if app.application_arn == application_arn:
+                return app
+        raise ResourceNotFoundException(f"Application {application_arn} not found")
+
+    # --- Application Access Scopes ---
+
+    def put_application_access_scope(
+        self,
+        application_arn: str,
+        scope: str,
+        authorized_targets: Optional[list[str]],
+    ) -> None:
+        application = self._find_application(application_arn)
+        application.access_scopes[scope] = {
+            "Scope": scope,
+            "AuthorizedTargets": authorized_targets or [],
+        }
+
+    def get_application_access_scope(
+        self, application_arn: str, scope: str
+    ) -> dict[str, Any]:
+        application = self._find_application(application_arn)
+        if scope not in application.access_scopes:
+            raise ResourceNotFoundException(
+                f"Application {application_arn} has no access scope {scope}"
+            )
+        return application.access_scopes[scope]
+
+    def delete_application_access_scope(
+        self, application_arn: str, scope: str
+    ) -> None:
+        application = self._find_application(application_arn)
+        if scope not in application.access_scopes:
+            raise ResourceNotFoundException(
+                f"Application {application_arn} has no access scope {scope}"
+            )
+        del application.access_scopes[scope]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_application_access_scopes(
+        self, application_arn: str
+    ) -> list[dict[str, Any]]:
+        application = self._find_application(application_arn)
+        return list(application.access_scopes.values())
+
+    # --- Application Assignments ---
+
+    def create_application_assignment(
+        self,
+        application_arn: str,
+        principal_type: str,
+        principal_id: str,
+    ) -> None:
+        application = self._find_application(application_arn)
+        # Check for duplicate
+        for assignment in application.assignments:
+            if (
+                assignment.principal_type == principal_type
+                and assignment.principal_id == principal_id
+            ):
+                raise ConflictException(
+                    f"Application {application_arn} already has assignment for {principal_type}/{principal_id}"
+                )
+        application.assignments.append(
+            ApplicationAssignment(application_arn, principal_type, principal_id)
+        )
+
+    def delete_application_assignment(
+        self,
+        application_arn: str,
+        principal_type: str,
+        principal_id: str,
+    ) -> None:
+        application = self._find_application(application_arn)
+        for assignment in application.assignments:
+            if (
+                assignment.principal_type == principal_type
+                and assignment.principal_id == principal_id
+            ):
+                application.assignments.remove(assignment)
+                return
+        raise ResourceNotFoundException(
+            f"Application {application_arn} has no assignment for {principal_type}/{principal_id}"
+        )
+
+    def describe_application_assignment(
+        self,
+        application_arn: str,
+        principal_type: str,
+        principal_id: str,
+    ) -> ApplicationAssignment:
+        application = self._find_application(application_arn)
+        for assignment in application.assignments:
+            if (
+                assignment.principal_type == principal_type
+                and assignment.principal_id == principal_id
+            ):
+                return assignment
+        raise ResourceNotFoundException(
+            f"Application {application_arn} has no assignment for {principal_type}/{principal_id}"
+        )
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_application_assignments(
+        self, application_arn: str
+    ) -> list[ApplicationAssignment]:
+        application = self._find_application(application_arn)
+        return application.assignments
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_application_assignments_for_principal(
+        self,
+        instance_arn: str,
+        principal_type: str,
+        principal_id: str,
+        filter_: Optional[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        results = []
+        for application in self.applications:
+            if application.instance_arn != instance_arn:
+                continue
+            for assignment in application.assignments:
+                if (
+                    assignment.principal_type == principal_type
+                    and assignment.principal_id == principal_id
+                ):
+                    results.append(
+                        {
+                            "ApplicationArn": application.application_arn,
+                            "PrincipalType": assignment.principal_type,
+                            "PrincipalId": assignment.principal_id,
+                        }
+                    )
+        return results
+
+    # --- Application Assignment Configuration ---
+
+    def put_application_assignment_configuration(
+        self,
+        application_arn: str,
+        assignment_required: bool,
+    ) -> None:
+        application = self._find_application(application_arn)
+        application.assignment_required = assignment_required
+
+    def get_application_assignment_configuration(
+        self, application_arn: str
+    ) -> dict[str, Any]:
+        application = self._find_application(application_arn)
+        return {"AssignmentRequired": application.assignment_required}
+
+    # --- Application Authentication Methods ---
+
+    def put_application_authentication_method(
+        self,
+        application_arn: str,
+        authentication_method_type: str,
+        authentication_method: dict[str, Any],
+    ) -> None:
+        application = self._find_application(application_arn)
+        application.authentication_methods[authentication_method_type] = {
+            "AuthenticationMethodType": authentication_method_type,
+            "AuthenticationMethod": authentication_method,
+        }
+
+    def get_application_authentication_method(
+        self,
+        application_arn: str,
+        authentication_method_type: str,
+    ) -> dict[str, Any]:
+        application = self._find_application(application_arn)
+        if authentication_method_type not in application.authentication_methods:
+            raise ResourceNotFoundException(
+                f"Application {application_arn} has no authentication method {authentication_method_type}"
+            )
+        return application.authentication_methods[authentication_method_type]
+
+    def delete_application_authentication_method(
+        self,
+        application_arn: str,
+        authentication_method_type: str,
+    ) -> None:
+        application = self._find_application(application_arn)
+        if authentication_method_type not in application.authentication_methods:
+            raise ResourceNotFoundException(
+                f"Application {application_arn} has no authentication method {authentication_method_type}"
+            )
+        del application.authentication_methods[authentication_method_type]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_application_authentication_methods(
+        self, application_arn: str
+    ) -> list[dict[str, Any]]:
+        application = self._find_application(application_arn)
+        return list(application.authentication_methods.values())
+
+    # --- Application Grants ---
+
+    def put_application_grant(
+        self,
+        application_arn: str,
+        grant_type: str,
+        grant: dict[str, Any],
+    ) -> None:
+        application = self._find_application(application_arn)
+        application.grants[grant_type] = {
+            "GrantType": grant_type,
+            "Grant": grant,
+        }
+
+    def get_application_grant(
+        self,
+        application_arn: str,
+        grant_type: str,
+    ) -> dict[str, Any]:
+        application = self._find_application(application_arn)
+        if grant_type not in application.grants:
+            raise ResourceNotFoundException(
+                f"Application {application_arn} has no grant {grant_type}"
+            )
+        return application.grants[grant_type]
+
+    def delete_application_grant(
+        self,
+        application_arn: str,
+        grant_type: str,
+    ) -> None:
+        application = self._find_application(application_arn)
+        if grant_type not in application.grants:
+            raise ResourceNotFoundException(
+                f"Application {application_arn} has no grant {grant_type}"
+            )
+        del application.grants[grant_type]
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_application_grants(self, application_arn: str) -> list[dict[str, Any]]:
+        application = self._find_application(application_arn)
+        return list(application.grants.values())
+
+    # --- Application Session Configuration ---
+
+    def put_application_session_configuration(
+        self,
+        application_arn: str,
+        session_configuration: dict[str, Any],
+    ) -> None:
+        application = self._find_application(application_arn)
+        application.session_configuration = session_configuration
+
+    def get_application_session_configuration(
+        self, application_arn: str
+    ) -> dict[str, Any]:
+        application = self._find_application(application_arn)
+        if application.session_configuration is None:
+            raise ResourceNotFoundException(
+                f"Application {application_arn} has no session configuration"
+            )
+        return application.session_configuration
+
+    # --- Trusted Token Issuers ---
+
+    def create_trusted_token_issuer(
+        self,
+        instance_arn: str,
+        name: str,
+        trusted_token_issuer_type: str,
+        trusted_token_issuer_configuration: dict[str, Any],
+        tags: list[dict[str, str]],
+        client_token: Optional[str],
+    ) -> TrustedTokenIssuer:
+        tti = TrustedTokenIssuer(
+            name=name,
+            trusted_token_issuer_type=trusted_token_issuer_type,
+            trusted_token_issuer_configuration=trusted_token_issuer_configuration,
+            instance_arn=instance_arn,
+            tags=tags or [],
+            region=self.region_name,
+            account_id=self.account_id,
+            client_token=client_token,
+        )
+        self.trusted_token_issuers.append(tti)
+        return tti
+
+    def delete_trusted_token_issuer(self, trusted_token_issuer_arn: str) -> None:
+        tti = self._find_trusted_token_issuer(trusted_token_issuer_arn)
+        self.trusted_token_issuers.remove(tti)
+
+    def describe_trusted_token_issuer(
+        self, trusted_token_issuer_arn: str
+    ) -> TrustedTokenIssuer:
+        return self._find_trusted_token_issuer(trusted_token_issuer_arn)
+
+    def update_trusted_token_issuer(
+        self,
+        trusted_token_issuer_arn: str,
+        name: Optional[str],
+        trusted_token_issuer_configuration: Optional[dict[str, Any]],
+    ) -> None:
+        tti = self._find_trusted_token_issuer(trusted_token_issuer_arn)
+        if name is not None:
+            tti.name = name
+        if trusted_token_issuer_configuration is not None:
+            tti.trusted_token_issuer_configuration = trusted_token_issuer_configuration
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_trusted_token_issuers(
+        self, instance_arn: str
+    ) -> list[TrustedTokenIssuer]:
+        return [
+            tti
+            for tti in self.trusted_token_issuers
+            if tti.instance_arn == instance_arn
+        ]
+
+    def _find_trusted_token_issuer(
+        self, trusted_token_issuer_arn: str
+    ) -> TrustedTokenIssuer:
+        for tti in self.trusted_token_issuers:
+            if tti.trusted_token_issuer_arn == trusted_token_issuer_arn:
+                return tti
+        raise ResourceNotFoundException(
+            f"TrustedTokenIssuer {trusted_token_issuer_arn} not found"
+        )
+
+    # --- Application Providers (static/read-only) ---
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_application_providers(self) -> list[dict[str, Any]]:
+        # Return a minimal set of well-known application providers
+        return [
+            {
+                "ApplicationProviderArn": "arn:aws:sso::aws:applicationProvider/custom",
+                "DisplayData": {
+                    "Description": "Custom SAML 2.0 Application",
+                    "DisplayName": "Custom SAML 2.0 Application",
+                },
+                "FederationProtocol": "SAML",
+                "ResourceServerConfig": {},
+            }
+        ]
+
+    def describe_application_provider(
+        self, application_provider_arn: str
+    ) -> dict[str, Any]:
+        providers = self.list_application_providers()
+        for provider in providers[0]:  # list_application_providers returns (items, token)
+            if provider.get("ApplicationProviderArn") == application_provider_arn:
+                return provider
+        raise ResourceNotFoundException(
+            f"ApplicationProvider {application_provider_arn} not found"
+        )
 
 
 ssoadmin_backends = BackendDict(SSOAdminBackend, "sso-admin")
