@@ -60,6 +60,8 @@ class ForecastResponse(BaseResponse):
         return 200, {}, ""
 
     def list_dataset_groups(self) -> TYPE_RESPONSE:
+        max_results = self._get_param("MaxResults")
+        next_token = self._get_param("NextToken")
         list_all = sorted(
             [
                 {
@@ -73,7 +75,15 @@ class ForecastResponse(BaseResponse):
             key=lambda x: x["LastModificationTime"],
             reverse=True,
         )
-        response = {"DatasetGroups": list_all}
+        start = int(next_token) if next_token else 0
+        if max_results:
+            end = start + int(max_results)
+            page = list_all[start:end]
+            response: dict = {"DatasetGroups": page}
+            if end < len(list_all):
+                response["NextToken"] = str(end)
+        else:
+            response = {"DatasetGroups": list_all[start:]}
         return 200, {}, json.dumps(response)
 
     # ---- Dataset ----

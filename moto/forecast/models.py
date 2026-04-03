@@ -205,6 +205,8 @@ class ForecastBackend(BaseBackend):
 
     def create_dataset(self, name: str, data: dict[str, Any]) -> str:
         arn = self._make_arn("dataset", name)
+        if arn in self.datasets:
+            raise ResourceAlreadyExistsException(f"Dataset already exists: {name}")
         self.datasets[arn] = ForecastResource(arn=arn, name=name, data=data)
         return arn
 
