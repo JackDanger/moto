@@ -579,7 +579,7 @@ class CodeCommitBackend(BaseBackend):
 
     def batch_get_commits(
         self, repository_name: str, commit_ids: list[str]
-    ) -> tuple[list[dict[str, Any]], list[str]]:
+    ) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
         repo = self._get_repo(repository_name)
         commits = []
         errors = []
@@ -588,7 +588,13 @@ class CodeCommitBackend(BaseBackend):
             if commit:
                 commits.append(commit.to_dict())
             else:
-                errors.append(cid)
+                errors.append(
+                    {
+                        "commitId": cid,
+                        "errorCode": "CommitDoesNotExistException",
+                        "errorMessage": f"Commit '{cid}' does not exist.",
+                    }
+                )
         return commits, errors
 
     # ── File/Tree operations (stubs) ──
@@ -903,10 +909,20 @@ class CodeCommitBackend(BaseBackend):
         destination_commit_specifier: str,
         target_branch: Optional[str] = None,
     ) -> dict[str, str]:
-        self._get_repo(repository_name)
-        commit_id = str(mock_random.uuid4()).replace("-", "")[:40]
-        tree_id = str(mock_random.uuid4()).replace("-", "")[:40]
-        return {"commitId": commit_id, "treeId": tree_id}
+        repo = self._get_repo(repository_name)
+        # Resolve source to a commit ID
+        if source_commit_specifier in repo.branches:
+            source_commit_id = repo.branches[source_commit_specifier].commit_id
+        else:
+            source_commit_id = source_commit_specifier
+        # Update destination branch to point to source commit (fast-forward)
+        dest_branch_name = target_branch or destination_commit_specifier
+        if dest_branch_name in repo.branches:
+            repo.branches[dest_branch_name].commit_id = source_commit_id
+        # Return the resulting commit ID and its tree ID
+        commit = repo.commits.get(source_commit_id)
+        tree_id = commit.tree_id if commit else str(mock_random.uuid4()).replace("-", "")[:40]
+        return {"commitId": source_commit_id, "treeId": tree_id}
 
     def merge_branches_by_squash(
         self,
@@ -1390,14 +1406,33 @@ class CodeCommitBackend(BaseBackend):
         pr = self.pull_requests.get(pull_request_id)
         if not pr:
             raise PullRequestDoesNotExistException(pull_request_id)
+        import json as _json
+
+        num_approvals = len(pr.approval_states)
+        satisfied = []
+        not_satisfied = []
+        for r in pr.approval_rules.values():
+            # Parse NumberOfApprovalsNeeded from rule content if present
+            needed = 1
+            try:
+                content = _json.loads(r.approval_rule_content)
+                for stmt in content.get("Statements", []):
+                    if "NumberOfApprovalsNeeded" in stmt:
+                        needed = int(stmt["NumberOfApprovalsNeeded"])
+                        break
+            except Exception:
+                pass
+            if num_approvals >= needed:
+                satisfied.append(r.approval_rule_name)
+            else:
+                not_satisfied.append(r.approval_rule_name)
+        all_rules_satisfied = len(not_satisfied) == 0
         return {
             "evaluation": {
-                "approved": len(pr.approval_states) > 0,
+                "approved": all_rules_satisfied or pr.override_status == "OVERRIDE",
                 "overridden": pr.override_status == "OVERRIDE",
-                "approvalRulesSatisfied": [
-                    r.approval_rule_name for r in pr.approval_rules.values()
-                ],
-                "approvalRulesNotSatisfied": [],
+                "approvalRulesSatisfied": satisfied,
+                "approvalRulesNotSatisfied": not_satisfied,
             }
         }
 
