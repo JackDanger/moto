@@ -17,5 +17,13 @@ class InvalidCluster(InvalidRequestException):
         super().__init__(message)
 
 
+class InvalidStep(InvalidRequestException):
+    error_code = "NoSuchStep"
+
+    def __init__(self, step_id: str) -> None:
+        message = f"No step found with id: {step_id}"
+        super().__init__(message)
+
+
 class ValidationException(ServiceException):
     code = "ValidationException"

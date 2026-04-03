@@ -11,6 +11,7 @@ from moto.ec2.models.instances import Instance as EC2Instance
 from moto.emr.exceptions import (
     InvalidCluster,
     InvalidRequestException,
+    InvalidStep,
     ResourceNotFoundException,
     ValidationException,
 )
@@ -1111,12 +1112,12 @@ class ElasticMapReduceBackend(BaseBackend):
         # Amazon EMR can return a maximum of 512 job flow descriptions
         return sorted(clusters, key=lambda x: x.id)[:512]
 
-    def describe_step(self, cluster_id: str, step_id: str) -> Optional[Step]:
+    def describe_step(self, cluster_id: str, step_id: str) -> Step:
         cluster = self.describe_cluster(cluster_id)
         for step in cluster.steps:
             if step.id == step_id:
                 return step
-        return None
+        raise InvalidStep(step_id)
 
     def describe_cluster(self, cluster_id: str) -> Cluster:
         if cluster_id in self.clusters:
