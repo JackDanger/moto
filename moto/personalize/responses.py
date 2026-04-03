@@ -62,7 +62,9 @@ class PersonalizeResponse(BaseResponse):
         params = json.loads(self.body)
         arn = params.get("datasetGroupArn")
         resource = self.personalize_backend.describe_dataset_group(arn)
-        return json.dumps({"datasetGroup": resource.to_dict()})
+        d = resource.to_dict()
+        d["datasetGroupArn"] = d.pop("arn")
+        return json.dumps({"datasetGroup": d})
 
     def delete_dataset_group(self) -> str:
         params = json.loads(self.body)
@@ -97,7 +99,9 @@ class PersonalizeResponse(BaseResponse):
         params = json.loads(self.body)
         arn = params.get("datasetArn")
         resource = self.personalize_backend.describe_dataset(arn)
-        return json.dumps({"dataset": resource.to_dict()})
+        d = resource.to_dict()
+        d["datasetArn"] = d.pop("arn")
+        return json.dumps({"dataset": d})
 
     def delete_dataset(self) -> str:
         params = json.loads(self.body)
@@ -139,7 +143,10 @@ class PersonalizeResponse(BaseResponse):
         params = json.loads(self.body)
         arn = params.get("datasetImportJobArn")
         resource = self.personalize_backend.describe_dataset_import_job(arn)
-        return json.dumps({"datasetImportJob": resource.to_dict()})
+        d = resource.to_dict()
+        d["jobName"] = d.pop("name")
+        d["datasetImportJobArn"] = d.pop("arn")
+        return json.dumps({"datasetImportJob": d})
 
     def list_dataset_import_jobs(self) -> str:
         resources = list(self.personalize_backend.dataset_import_jobs.values())
@@ -168,7 +175,10 @@ class PersonalizeResponse(BaseResponse):
         params = json.loads(self.body)
         arn = params.get("datasetExportJobArn")
         resource = self.personalize_backend.describe_dataset_export_job(arn)
-        return json.dumps({"datasetExportJob": resource.to_dict()})
+        d = resource.to_dict()
+        d["jobName"] = d.pop("name")
+        d["datasetExportJobArn"] = d.pop("arn")
+        return json.dumps({"datasetExportJob": d})
 
     def list_dataset_export_jobs(self) -> str:
         resources = list(self.personalize_backend.dataset_export_jobs.values())
@@ -197,7 +207,10 @@ class PersonalizeResponse(BaseResponse):
         params = json.loads(self.body)
         arn = params.get("batchInferenceJobArn")
         resource = self.personalize_backend.describe_batch_inference_job(arn)
-        return json.dumps({"batchInferenceJob": resource.to_dict()})
+        d = resource.to_dict()
+        d["jobName"] = d.pop("name")
+        d["batchInferenceJobArn"] = d.pop("arn")
+        return json.dumps({"batchInferenceJob": d})
 
     def list_batch_inference_jobs(self) -> str:
         resources = list(self.personalize_backend.batch_inference_jobs.values())
@@ -226,7 +239,10 @@ class PersonalizeResponse(BaseResponse):
         params = json.loads(self.body)
         arn = params.get("batchSegmentJobArn")
         resource = self.personalize_backend.describe_batch_segment_job(arn)
-        return json.dumps({"batchSegmentJob": resource.to_dict()})
+        d = resource.to_dict()
+        d["jobName"] = d.pop("name")
+        d["batchSegmentJobArn"] = d.pop("arn")
+        return json.dumps({"batchSegmentJob": d})
 
     def list_batch_segment_jobs(self) -> str:
         resources = list(self.personalize_backend.batch_segment_jobs.values())
@@ -255,7 +271,9 @@ class PersonalizeResponse(BaseResponse):
         params = json.loads(self.body)
         arn = params.get("campaignArn")
         resource = self.personalize_backend.describe_campaign(arn)
-        return json.dumps({"campaign": resource.to_dict()})
+        d = resource.to_dict()
+        d["campaignArn"] = d.pop("arn")
+        return json.dumps({"campaign": d})
 
     def delete_campaign(self) -> str:
         params = json.loads(self.body)
@@ -297,7 +315,10 @@ class PersonalizeResponse(BaseResponse):
         params = json.loads(self.body)
         arn = params.get("dataDeletionJobArn")
         resource = self.personalize_backend.describe_data_deletion_job(arn)
-        return json.dumps({"dataDeletionJob": resource.to_dict()})
+        d = resource.to_dict()
+        d["jobName"] = d.pop("name")
+        d["dataDeletionJobArn"] = d.pop("arn")
+        return json.dumps({"dataDeletionJob": d})
 
     def list_data_deletion_jobs(self) -> str:
         resources = list(self.personalize_backend.data_deletion_jobs.values())
@@ -328,7 +349,9 @@ class PersonalizeResponse(BaseResponse):
         params = json.loads(self.body)
         arn = params.get("eventTrackerArn")
         resource = self.personalize_backend.describe_event_tracker(arn)
-        return json.dumps({"eventTracker": resource.to_dict()})
+        d = resource.to_dict()
+        d["eventTrackerArn"] = d.pop("arn")
+        return json.dumps({"eventTracker": d})
 
     def delete_event_tracker(self) -> str:
         params = json.loads(self.body)
@@ -363,7 +386,9 @@ class PersonalizeResponse(BaseResponse):
         params = json.loads(self.body)
         arn = params.get("filterArn")
         resource = self.personalize_backend.describe_filter(arn)
-        return json.dumps({"filter": resource.to_dict()})
+        d = resource.to_dict()
+        d["filterArn"] = d.pop("arn")
+        return json.dumps({"filter": d})
 
     def delete_filter(self) -> str:
         params = json.loads(self.body)
@@ -398,7 +423,9 @@ class PersonalizeResponse(BaseResponse):
         params = json.loads(self.body)
         arn = params.get("metricAttributionArn")
         resource = self.personalize_backend.describe_metric_attribution(arn)
-        return json.dumps({"metricAttribution": resource.to_dict()})
+        d = resource.to_dict()
+        d["metricAttributionArn"] = d.pop("arn")
+        return json.dumps({"metricAttribution": d})
 
     def delete_metric_attribution(self) -> str:
         params = json.loads(self.body)
@@ -445,7 +472,9 @@ class PersonalizeResponse(BaseResponse):
         params = json.loads(self.body)
         arn = params.get("recommenderArn")
         resource = self.personalize_backend.describe_recommender(arn)
-        return json.dumps({"recommender": resource.to_dict()})
+        d = resource.to_dict()
+        d["recommenderArn"] = d.pop("arn")
+        return json.dumps({"recommender": d})
 
     def delete_recommender(self) -> str:
         params = json.loads(self.body)
@@ -499,7 +528,9 @@ class PersonalizeResponse(BaseResponse):
         params = json.loads(self.body)
         arn = params.get("solutionArn")
         resource = self.personalize_backend.describe_solution(arn)
-        return json.dumps({"solution": resource.to_dict()})
+        d = resource.to_dict()
+        d["solutionArn"] = d.pop("arn")
+        return json.dumps({"solution": d})
 
     def delete_solution(self) -> str:
         params = json.loads(self.body)
@@ -543,7 +574,10 @@ class PersonalizeResponse(BaseResponse):
         params = json.loads(self.body)
         arn = params.get("solutionVersionArn")
         resource = self.personalize_backend.describe_solution_version(arn)
-        return json.dumps({"solutionVersion": resource.to_dict()})
+        d = resource.to_dict()
+        d["solutionVersionArn"] = d.pop("arn")
+        d.pop("name", None)
+        return json.dumps({"solutionVersion": d})
 
     def get_solution_metrics(self) -> str:
         params = json.loads(self.body)
