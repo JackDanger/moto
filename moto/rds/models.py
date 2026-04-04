@@ -3453,7 +3453,7 @@ class RDSBackend(BaseBackend):
     ) -> DBSubnetGroup:
         if subnet_name not in self.subnet_groups:
             raise DBSubnetGroupNotFoundError(subnet_name)
-        subnet_group = self.subnet_groups.pop(subnet_name)
+        subnet_group = self.subnet_groups[subnet_name]
         subnet_group.name = subnet_name
         subnet_group.subnets = subnets  # type: ignore[assignment]
         if description is not None:
