@@ -130,14 +130,18 @@ class PollyBackend(BaseBackend):
         self._lexicons: dict[str, Lexicon] = {}
         self._speech_synthesis_tasks: dict[str, SpeechSynthesisTask] = {}
 
-    def describe_voices(self, language_code: str) -> list[dict[str, Any]]:
+    def describe_voices(
+        self, language_code: Optional[str], engine: Optional[str] = None
+    ) -> list[dict[str, Any]]:
         """
         Pagination is not yet implemented
         """
-        if language_code is None:
-            return VOICE_DATA
-
-        return [item for item in VOICE_DATA if item["LanguageCode"] == language_code]
+        voices = VOICE_DATA
+        if language_code is not None:
+            voices = [v for v in voices if v["LanguageCode"] == language_code]
+        if engine is not None:
+            voices = [v for v in voices if engine in v.get("SupportedEngines", [])]
+        return voices
 
     def delete_lexicon(self, name: str) -> None:
         # implement here
