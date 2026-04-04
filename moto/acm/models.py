@@ -136,6 +136,7 @@ class CertBundle(BaseModel):
         cert_status: str = "ISSUED",
         cert_authority_arn: Optional[str] = None,
         cert_options: Optional[dict[str, Any]] = None,
+        validation_method: str = "DNS",
     ):
         self.created_at = utcnow()
         self.cert = certificate
@@ -146,6 +147,7 @@ class CertBundle(BaseModel):
         self.type = cert_type  # Should really be an enum
         self.status = cert_status  # Should really be an enum
         self.cert_authority_arn = cert_authority_arn
+        self.validation_method = validation_method
         self.in_use_by: list[str] = []
         self.revocation_reason: Optional[str] = None
         self.revoked_at: Optional[datetime.datetime] = None
@@ -179,6 +181,7 @@ class CertBundle(BaseModel):
         region: str,
         sans: Optional[list[str]] = None,
         cert_authority_arn: Optional[str] = None,
+        validation_method: str = "DNS",
     ) -> "CertBundle":
         unique_sans: set[str] = set(sans) if sans else set()
 
@@ -248,6 +251,7 @@ class CertBundle(BaseModel):
             cert_authority_arn=cert_authority_arn,
             account_id=account_id,
             region=region,
+            validation_method=validation_method,
         )
 
     def validate_pk(self) -> Any:
@@ -417,15 +421,15 @@ class CertBundle(BaseModel):
                 "Type": "CNAME",
                 "Value": "_c9edd76ee4a0e2a74388032f3861cc50.ykybfrwcxw.acm-validations.aws.",
             }
-            validation_options.append(
-                {
-                    "DomainName": san,
-                    "ValidationDomain": san,
-                    "ValidationStatus": domain_name_status,
-                    "ValidationMethod": "DNS",
-                    "ResourceRecord": resource_record,
-                }
-            )
+            entry: dict[str, Any] = {
+                "DomainName": san,
+                "ValidationDomain": san,
+                "ValidationStatus": domain_name_status,
+                "ValidationMethod": self.validation_method,
+            }
+            if self.validation_method == "DNS":
+                entry["ResourceRecord"] = resource_record
+            validation_options.append(entry)
 
         if self.type == "AMAZON_ISSUED":
             result["Certificate"]["DomainValidationOptions"] = validation_options
@@ -602,6 +606,7 @@ class AWSCertificateManagerBackend(BaseBackend):
         tags: list[dict[str, str]],
         cert_authority_arn: Optional[str] = None,
         cert_options: Optional[dict[str, Any]] = None,
+        validation_method: str = "DNS",
     ) -> str:
         """
         The parameter DomainValidationOptions has not yet been implemented
@@ -617,6 +622,7 @@ class AWSCertificateManagerBackend(BaseBackend):
             region=self.region_name,
             sans=subject_alt_names,
             cert_authority_arn=cert_authority_arn,
+            validation_method=validation_method,
         )
         if idempotency_token is not None:
             self._set_idempotency_token_arn(idempotency_token, cert.arn)

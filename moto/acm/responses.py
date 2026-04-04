@@ -205,6 +205,7 @@ class AWSCertificateManagerResponse(BaseResponse):
         tags = self._get_param("Tags")  # Optional
         cert_authority_arn = self._get_param("CertificateAuthorityArn")  # Optional
         cert_options = self._get_param("Options")
+        validation_method = self._get_param("ValidationMethod") or "DNS"
 
         if subject_alt_names is not None and len(subject_alt_names) > 10:
             # There is initial AWS limit of 10
@@ -223,6 +224,7 @@ class AWSCertificateManagerResponse(BaseResponse):
             tags,
             cert_authority_arn,
             cert_options,
+            validation_method,
         )
 
         return json.dumps({"CertificateArn": arn})
