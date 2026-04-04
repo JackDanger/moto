@@ -657,7 +657,10 @@ class ForecastResponse(BaseResponse):
         resource_arn = self._get_param("ResourceArn")
         tags = self._get_param("Tags") or []
         store = self._tags_store()
-        store[resource_arn] = store.get(resource_arn, []) + tags
+        existing = {t["Key"]: t for t in store.get(resource_arn, [])}
+        for tag in tags:
+            existing[tag["Key"]] = tag
+        store[resource_arn] = list(existing.values())
         return 200, {}, json.dumps({})
 
     def untag_resource(self) -> TYPE_RESPONSE:

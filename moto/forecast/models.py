@@ -441,6 +441,10 @@ class ForecastBackend(BaseBackend):
             self.monitors,
             self.predictors,
             self.auto_predictors,
+            self.explainabilities,
+            self.what_if_analyses,
+            self.what_if_forecasts,
+            self.forecasts,
         ]:
             if resource_arn in store:
                 store[resource_arn].status = "ACTIVE"
