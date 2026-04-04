@@ -973,14 +973,12 @@ class S3ControlBackend(BaseBackend):
         self,
         account_id: str,
         bucket: str,
-    ) -> Optional[list[dict[str, Any]]]:
+    ) -> list[Any]:
         backend: S3Backend = s3_backends[self.account_id][self.partition]
         bucket_obj = backend.get_bucket(bucket)
-        rules = []
         if hasattr(bucket_obj, "rules") and bucket_obj.rules:
-            for rule in bucket_obj.rules:
-                rules.append(rule.to_config_dict() if hasattr(rule, "to_config_dict") else {})
-        return rules
+            return list(bucket_obj.rules)
+        return []
 
     def get_bucket_policy(
         self,
@@ -988,10 +986,7 @@ class S3ControlBackend(BaseBackend):
         bucket: str,
     ) -> Optional[str]:
         backend: S3Backend = s3_backends[self.account_id][self.partition]
-        try:
-            return backend.get_bucket_policy(bucket)
-        except Exception:
-            return None
+        return backend.get_bucket_policy(bucket)
 
     def get_bucket_replication(
         self,
