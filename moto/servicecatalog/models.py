@@ -567,10 +567,11 @@ class ServiceCatalogBackend(BaseBackend):
         return [{"account_id": account_id} for account_id in account_ids]
 
     def delete_portfolio(self, accept_language: Optional[str], portfolio_id: str) -> None:
+        if portfolio_id not in self.portfolios:
+            raise ResourceNotFoundException(f"Portfolio {portfolio_id} not found.")
         if portfolio_id in self.portfolio_access:
             del self.portfolio_access[portfolio_id]
-        if portfolio_id in self.portfolios:
-            del self.portfolios[portfolio_id]
+        del self.portfolios[portfolio_id]
 
     def delete_portfolio_share(
         self,
