@@ -1991,7 +1991,8 @@ class APIGatewayBackend(BaseBackend):
         return list(self.apis.values())
 
     def delete_rest_api(self, function_id: str) -> RestAPI:
-        rest_api = self.apis.pop(function_id)
+        rest_api = self.get_rest_api(function_id)
+        self.apis.pop(function_id)
         return rest_api
 
     def get_resources(self, function_id: str) -> list[Resource]:
@@ -2537,6 +2538,8 @@ class APIGatewayBackend(BaseBackend):
             raise InvalidModelName
 
         api = self.get_rest_api(rest_api_id)
+        if name in api.models:
+            raise ConflictException(f"Model with name {name!r} already exists for REST API {rest_api_id!r}")
         new_model = api.add_model(
             name=name,
             description=description,
