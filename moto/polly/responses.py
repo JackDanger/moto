@@ -265,7 +265,11 @@ class PollyResponse(BaseResponse):
         elif args["output_format"] == "pcm":
             content_type = "audio/pcm"
 
-        request_characters = len(args["text"])  # type: ignore[arg-type]
+        text = args["text"]  # type: ignore[arg-type]
+        if args.get("text_type") == "ssml":
+            import re as _re
+            text = _re.sub(r"<[^>]+>", "", text)
+        request_characters = len(text)
         headers = {
             "Content-Type": content_type,
             "x-amzn-RequestCharacters": str(request_characters),
