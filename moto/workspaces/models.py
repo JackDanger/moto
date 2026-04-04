@@ -406,7 +406,7 @@ class ConnectClientAddIn(BaseModel):
         name: str,
         url: str,
     ):
-        self.add_in_id = f"wsca-{mock_random.get_random_hex(9)}"
+        self.add_in_id = str(mock_random.uuid4())
         self.resource_id = resource_id
         self.name = name
         self.url = url
