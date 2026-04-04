@@ -17,6 +17,16 @@ class EngineTypeNotFoundException(JsonRESTError):
         )
 
 
+class ResourceAlreadyExistsException(JsonRESTError):
+    code = 409
+
+    def __init__(self, name: str):
+        super().__init__(
+            "ResourceAlreadyExistsException",
+            f"Domain already exists: {name}",
+        )
+
+
 class ConflictException(JsonRESTError):
     code = 409
 

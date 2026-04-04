@@ -18,6 +18,7 @@ from .data import (
 )
 from .exceptions import (
     EngineTypeNotFoundException,
+    ResourceAlreadyExistsException,
     ResourceNotFoundException,
 )
 
@@ -323,7 +324,11 @@ class OpenSearchDomain(BaseModel):
         self.software_update_options = (
             software_update_options or default_software_update_options
         )
-        self.engine_type = "Elasticsearch" if is_es else "OpenSearch"
+        self.engine_type = (
+            "Elasticsearch"
+            if is_es or engine_version.startswith("Elasticsearch_")
+            else "OpenSearch"
+        )
         self.is_es = is_es
         self.elasticsearch_version = elasticsearch_version
         self.elasticsearch_cluster_config = elasticsearch_cluster_config
@@ -572,6 +577,8 @@ class OpenSearchServiceBackend(BaseBackend):
         elasticsearch_version: Optional[str],
         elasticsearch_cluster_config: Optional[str],
     ) -> OpenSearchDomain:
+        if domain_name in self.domains:
+            raise ResourceAlreadyExistsException(domain_name)
         domain = OpenSearchDomain(
             account_id=self.account_id,
             region=self.region_name,
