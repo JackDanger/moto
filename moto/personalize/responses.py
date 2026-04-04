@@ -626,7 +626,9 @@ class PersonalizeResponse(BaseResponse):
     def create_solution_version(self) -> str:
         params = json.loads(self.body)
         solution_arn = params.get("solutionArn")
+        # Include solutionArn in data so describe_solution_version can return it
         data = {k: v for k, v in params.items() if k != "solutionArn"}
+        data["solutionArn"] = solution_arn
         arn = self.personalize_backend.create_solution_version(
             solution_arn=solution_arn, data=data
         )
