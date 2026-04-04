@@ -326,7 +326,7 @@ class OpenSearchDomain(BaseModel):
         )
         self.engine_type = (
             "Elasticsearch"
-            if is_es or engine_version.startswith("Elasticsearch_")
+            if is_es or (engine_version or "").startswith("Elasticsearch_")
             else "OpenSearch"
         )
         self.is_es = is_es
