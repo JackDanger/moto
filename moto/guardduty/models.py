@@ -131,9 +131,24 @@ class GuardDutyBackend(BaseBackend):
         detector = self.get_detector(detector_id)
         return detector.get_filter(filter_name)
 
-    def list_filters(self, detector_id: str) -> list[str]:
+    def list_filters(
+        self,
+        detector_id: str,
+        max_results: int | None = None,
+        next_token: str | None = None,
+    ) -> tuple[list[str], str | None]:
         detector = self.get_detector(detector_id)
-        return list(detector.filters.keys())
+        all_names = list(detector.filters.keys())
+        start = 0
+        if next_token:
+            try:
+                start = all_names.index(next_token)
+            except ValueError:
+                start = 0
+        limit = int(max_results) if max_results else len(all_names)
+        page = all_names[start : start + limit]
+        new_next_token = all_names[start + limit] if start + limit < len(all_names) else None
+        return page, new_next_token
 
     def update_detector(
         self,
@@ -216,9 +231,24 @@ class GuardDutyBackend(BaseBackend):
             raise IPSetNotFoundException
         del detector.ip_sets[ip_set_id]
 
-    def list_ip_sets(self, detector_id: str) -> list[str]:
+    def list_ip_sets(
+        self,
+        detector_id: str,
+        max_results: int | None = None,
+        next_token: str | None = None,
+    ) -> tuple[list[str], str | None]:
         detector = self.get_detector(detector_id)
-        return list(detector.ip_sets.keys())
+        all_ids = list(detector.ip_sets.keys())
+        start = 0
+        if next_token:
+            try:
+                start = all_ids.index(next_token)
+            except ValueError:
+                start = 0
+        limit = int(max_results) if max_results else len(all_ids)
+        page = all_ids[start : start + limit]
+        new_next_token = all_ids[start + limit] if start + limit < len(all_ids) else None
+        return page, new_next_token
 
     # ThreatIntelSet operations
     def create_threat_intel_set(
@@ -276,9 +306,24 @@ class GuardDutyBackend(BaseBackend):
             raise ThreatIntelSetNotFoundException
         del detector.threat_intel_sets[threat_intel_set_id]
 
-    def list_threat_intel_sets(self, detector_id: str) -> list[str]:
+    def list_threat_intel_sets(
+        self,
+        detector_id: str,
+        max_results: int | None = None,
+        next_token: str | None = None,
+    ) -> tuple[list[str], str | None]:
         detector = self.get_detector(detector_id)
-        return list(detector.threat_intel_sets.keys())
+        all_ids = list(detector.threat_intel_sets.keys())
+        start = 0
+        if next_token:
+            try:
+                start = all_ids.index(next_token)
+            except ValueError:
+                start = 0
+        limit = int(max_results) if max_results else len(all_ids)
+        page = all_ids[start : start + limit]
+        new_next_token = all_ids[start + limit] if start + limit < len(all_ids) else None
+        return page, new_next_token
 
     # Tagging operations
     def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
@@ -328,9 +373,24 @@ class GuardDutyBackend(BaseBackend):
                 results.append(detector.findings[fid])
         return results
 
-    def list_findings(self, detector_id: str) -> list[str]:
+    def list_findings(
+        self,
+        detector_id: str,
+        max_results: int | None = None,
+        next_token: str | None = None,
+    ) -> tuple[list[str], str | None]:
         detector = self.get_detector(detector_id)
-        return list(detector.findings.keys())
+        all_ids = list(detector.findings.keys())
+        start = 0
+        if next_token:
+            try:
+                start = all_ids.index(next_token)
+            except ValueError:
+                start = 0
+        limit = int(max_results) if max_results else len(all_ids)
+        page = all_ids[start : start + limit]
+        new_next_token = all_ids[start + limit] if start + limit < len(all_ids) else None
+        return page, new_next_token
 
     def get_findings_statistics(self, detector_id: str) -> dict[str, Any]:
         detector = self.get_detector(detector_id)

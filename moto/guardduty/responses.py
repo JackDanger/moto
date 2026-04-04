@@ -1,4 +1,5 @@
 import json
+from typing import Any
 from urllib.parse import unquote
 
 from moto.core.responses import BaseResponse
@@ -93,8 +94,15 @@ class GuardDutyResponse(BaseResponse):
 
     def list_filters(self) -> str:
         detector_id = self.path.split("/")[-2]
-        filter_names = self.guardduty_backend.list_filters(detector_id)
-        return json.dumps({"filterNames": filter_names})
+        max_results = self._get_param("maxResults")
+        next_token = self._get_param("nextToken")
+        filter_names, new_next_token = self.guardduty_backend.list_filters(
+            detector_id, max_results=max_results, next_token=next_token
+        )
+        result: dict[str, Any] = {"filterNames": filter_names}
+        if new_next_token:
+            result["nextToken"] = new_next_token
+        return json.dumps(result)
 
     def update_detector(self) -> str:
         detector_id = self.path.split("/")[-1]
@@ -179,8 +187,15 @@ class GuardDutyResponse(BaseResponse):
 
     def list_ip_sets(self) -> str:
         detector_id = self.path.split("/")[-2]
-        ip_set_ids = self.guardduty_backend.list_ip_sets(detector_id)
-        return json.dumps({"ipSetIds": ip_set_ids})
+        max_results = self._get_param("maxResults")
+        next_token = self._get_param("nextToken")
+        ip_set_ids, new_next_token = self.guardduty_backend.list_ip_sets(
+            detector_id, max_results=max_results, next_token=next_token
+        )
+        result: dict[str, Any] = {"ipSetIds": ip_set_ids}
+        if new_next_token:
+            result["nextToken"] = new_next_token
+        return json.dumps(result)
 
     # ThreatIntelSet operations
     def create_threat_intel_set(self) -> str:
@@ -231,10 +246,15 @@ class GuardDutyResponse(BaseResponse):
 
     def list_threat_intel_sets(self) -> str:
         detector_id = self.path.split("/")[-2]
-        threat_intel_set_ids = self.guardduty_backend.list_threat_intel_sets(
-            detector_id
+        max_results = self._get_param("maxResults")
+        next_token = self._get_param("nextToken")
+        threat_intel_set_ids, new_next_token = self.guardduty_backend.list_threat_intel_sets(
+            detector_id, max_results=max_results, next_token=next_token
         )
-        return json.dumps({"threatIntelSetIds": threat_intel_set_ids})
+        result: dict[str, Any] = {"threatIntelSetIds": threat_intel_set_ids}
+        if new_next_token:
+            result["nextToken"] = new_next_token
+        return json.dumps(result)
 
     # Tagging operations
     def tag_resource(self) -> str:
@@ -263,8 +283,15 @@ class GuardDutyResponse(BaseResponse):
 
     def list_findings(self) -> str:
         detector_id = self.path.split("/")[-2]
-        finding_ids = self.guardduty_backend.list_findings(detector_id)
-        return json.dumps({"findingIds": finding_ids})
+        max_results = self._get_param("maxResults")
+        next_token = self._get_param("nextToken")
+        finding_ids, new_next_token = self.guardduty_backend.list_findings(
+            detector_id, max_results=max_results, next_token=next_token
+        )
+        result: dict[str, Any] = {"findingIds": finding_ids}
+        if new_next_token:
+            result["nextToken"] = new_next_token
+        return json.dumps(result)
 
     def get_findings_statistics(self) -> str:
         detector_id = self.path.split("/")[-3]
