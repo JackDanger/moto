@@ -38,6 +38,7 @@ class PollyResponse(BaseResponse):
     # DescribeVoices
     def voices(self) -> Union[str, tuple[str, dict[str, int]]]:
         language_code = self._get_param("LanguageCode")
+        engine = self._get_param("Engine")
 
         if language_code is not None and language_code not in LANGUAGE_CODES:
             all_codes = ", ".join(LANGUAGE_CODES)  # type: ignore
@@ -47,7 +48,7 @@ class PollyResponse(BaseResponse):
             )
             return msg, {"status": 400}
 
-        voices = self.polly_backend.describe_voices(language_code)
+        voices = self.polly_backend.describe_voices(language_code, engine=engine)
 
         return json.dumps({"Voices": voices})
 
@@ -264,6 +265,10 @@ class PollyResponse(BaseResponse):
         elif args["output_format"] == "pcm":
             content_type = "audio/pcm"
 
-        headers = {"Content-Type": content_type}
+        request_characters = len(args["text"])  # type: ignore[arg-type]
+        headers = {
+            "Content-Type": content_type,
+            "x-amzn-RequestCharacters": str(request_characters),
+        }
 
         return "\x00\x00\x00\x00\x00\x00\x00\x00", headers

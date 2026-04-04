@@ -897,10 +897,11 @@ class S3ControlResponse(BaseResponse):
     def put_bucket_tagging(self) -> str:
         account_id = self.headers.get("x-amz-account-id")
         bucket = self.path.split("/")[-2]
-        params = xmltodict.parse(self.body, force_list={"Tag": True})
-        tagging = params.get("PutBucketTaggingRequest", {}).get("Tagging", {})
+        params = xmltodict.parse(self.body, force_list={"member": True})
+        members = params.get("Tagging", {}).get("TagSet", {}).get("member", [])
+        tags = {m["Key"]: m["Value"] for m in members if isinstance(m, dict)}
         self.backend.put_bucket_tagging(
-            account_id=account_id, bucket=bucket, tagging=tagging
+            account_id=account_id, bucket=bucket, tagging=tags
         )
         return ""
 
@@ -915,8 +916,7 @@ class S3ControlResponse(BaseResponse):
         bucket = self.path.split("/")[-2]
         params = xmltodict.parse(self.body, force_list={"Rule": True})
         rules = (
-            params.get("PutBucketLifecycleConfigurationRequest", {})
-            .get("LifecycleConfiguration", {})
+            params.get("LifecycleConfiguration", {})
             .get("Rules", {})
             .get("Rule", [])
         )
@@ -934,10 +934,8 @@ class S3ControlResponse(BaseResponse):
     def put_bucket_replication(self) -> str:
         account_id = self.headers.get("x-amz-account-id")
         bucket = self.path.split("/")[-2]
-        params = xmltodict.parse(self.body)
-        replication = params.get("PutBucketReplicationRequest", {}).get(
-            "ReplicationConfiguration", {}
-        )
+        params = xmltodict.parse(self.body, force_list={"Rule": True})
+        replication = params.get("ReplicationConfiguration", {})
         self.backend.put_bucket_replication(
             account_id=account_id, bucket=bucket, replication=replication
         )
@@ -977,9 +975,10 @@ class S3ControlResponse(BaseResponse):
     def get_bucket_tagging(self) -> str:
         account_id = self.headers.get("x-amz-account-id")
         bucket = self.path.split("/")[-2]
-        tags = self.backend.get_bucket_tagging(account_id=account_id, bucket=bucket)
+        tag_dict = self.backend.get_bucket_tagging(account_id=account_id, bucket=bucket)
+        tag_list = tag_dict.get("Tags", []) if isinstance(tag_dict, dict) else []
         template = self.response_template(GET_BUCKET_TAGGING_TEMPLATE)
-        return template.render(tags=tags)
+        return template.render(tags=tag_list)
 
     def get_bucket_versioning(self) -> str:
         account_id = self.headers.get("x-amz-account-id")
@@ -1579,7 +1578,19 @@ LIST_JOBS_TEMPLATE = f"""<ListJobsResult {XMLNS}>
 GET_BUCKET_LIFECYCLE_CONFIGURATION_TEMPLATE = f"""<GetBucketLifecycleConfigurationResult {XMLNS}>
   <Rules>
     {{% for rule in rules %}}
-    <Rule/>
+    <Rule>
+      {{% if rule.id %}}<ID>{{{{ rule.id }}}}</ID>{{% endif %}}
+      <Status>{{{{ rule.status }}}}</Status>
+      {{% if rule.prefix is not none %}}
+      <Prefix>{{{{ rule.prefix }}}}</Prefix>
+      {{% elif rule.filter %}}
+      <Filter>
+        {{% if rule.filter.prefix is not none %}}<Prefix>{{{{ rule.filter.prefix }}}}</Prefix>{{% endif %}}
+      </Filter>
+      {{% else %}}
+      <Filter/>
+      {{% endif %}}
+    </Rule>
     {{% endfor %}}
   </Rules>
 </GetBucketLifecycleConfigurationResult>
@@ -1592,7 +1603,32 @@ GET_BUCKET_POLICY_TEMPLATE = f"""<GetBucketPolicyResult {XMLNS}>
 
 GET_BUCKET_REPLICATION_TEMPLATE = f"""<GetBucketReplicationResult {XMLNS}>
   {{% if replication %}}
-  <ReplicationConfiguration/>
+  <ReplicationConfiguration>
+    {{% if replication.Role %}}<Role>{{{{ replication.Role }}}}</Role>{{% endif %}}
+    {{% if replication.Rules %}}
+    <Rules>
+      {{% for rule in replication.Rules.Rule %}}
+      <Rule>
+        {{% if rule.ID %}}<ID>{{{{ rule.ID }}}}</ID>{{% endif %}}
+        {{% if rule.Status %}}<Status>{{{{ rule.Status }}}}</Status>{{% endif %}}
+        {{% if rule.Priority %}}<Priority>{{{{ rule.Priority }}}}</Priority>{{% endif %}}
+        {{% if rule.Bucket %}}<Bucket>{{{{ rule.Bucket }}}}</Bucket>{{% endif %}}
+        {{% if rule.Destination %}}
+        <Destination>
+          {{% if rule.Destination.Bucket %}}<Bucket>{{{{ rule.Destination.Bucket }}}}</Bucket>{{% endif %}}
+          {{% if rule.Destination.Account %}}<Account>{{{{ rule.Destination.Account }}}}</Account>{{% endif %}}
+        </Destination>
+        {{% endif %}}
+        {{% if rule.DeleteMarkerReplication %}}
+        <DeleteMarkerReplication>
+          <Status>{{{{ rule.DeleteMarkerReplication.Status }}}}</Status>
+        </DeleteMarkerReplication>
+        {{% endif %}}
+      </Rule>
+      {{% endfor %}}
+    </Rules>
+    {{% endif %}}
+  </ReplicationConfiguration>
   {{% endif %}}
 </GetBucketReplicationResult>
 """
