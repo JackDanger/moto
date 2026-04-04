@@ -1,6 +1,8 @@
 """Handles incoming personalize requests, invokes methods, returns responses."""
 
+import base64
 import json
+from typing import Any, Optional
 
 from moto.core.responses import BaseResponse
 
@@ -17,6 +19,32 @@ class PersonalizeResponse(BaseResponse):
     def personalize_backend(self) -> PersonalizeBackend:
         """Return backend instance specific for this region."""
         return personalize_backends[self.current_account][self.region]
+
+    @staticmethod
+    def _paginate(
+        items: list[Any],
+        max_results: Optional[int],
+        next_token: Optional[str],
+    ) -> tuple[list[Any], Optional[str]]:
+        """Apply maxResults/nextToken pagination to a list of items.
+
+        The nextToken is a base64-encoded integer offset into the items list.
+        Returns (page, next_token_or_None).
+        """
+        offset = 0
+        if next_token:
+            try:
+                offset = int(base64.b64decode(next_token).decode())
+            except Exception:
+                offset = 0
+
+        limit = int(max_results) if max_results else len(items)
+        page = items[offset : offset + limit]
+        new_offset = offset + limit
+        new_token: Optional[str] = None
+        if new_offset < len(items):
+            new_token = base64.b64encode(str(new_offset).encode()).decode()
+        return page, new_token
 
     # ---- Schema ----
 
@@ -45,8 +73,14 @@ class PersonalizeResponse(BaseResponse):
         return json.dumps({"schema": schema.to_dict()})
 
     def list_schemas(self) -> str:
-        schemas = self.personalize_backend.list_schemas()
-        resp = {"schemas": [s.to_dict(full=False) for s in schemas]}
+        params = json.loads(self.body)
+        max_results = params.get("maxResults")
+        next_token = params.get("nextToken")
+        all_schemas = [s.to_dict(full=False) for s in self.personalize_backend.list_schemas()]
+        page, new_token = self._paginate(all_schemas, max_results, next_token)
+        resp: dict[str, Any] = {"schemas": page}
+        if new_token:
+            resp["nextToken"] = new_token
         return json.dumps(resp)
 
     # ---- Dataset Group ----
@@ -73,8 +107,11 @@ class PersonalizeResponse(BaseResponse):
         return "{}"
 
     def list_dataset_groups(self) -> str:
+        params = json.loads(self.body)
+        max_results = params.get("maxResults")
+        next_token = params.get("nextToken")
         resources = list(self.personalize_backend.dataset_groups.values())
-        items = [
+        all_items = [
             {
                 "datasetGroupArn": r.arn,
                 "name": r.name,
@@ -84,7 +121,11 @@ class PersonalizeResponse(BaseResponse):
             }
             for r in resources
         ]
-        return json.dumps({"datasetGroups": items})
+        page, new_token = self._paginate(all_items, max_results, next_token)
+        resp: dict[str, Any] = {"datasetGroups": page}
+        if new_token:
+            resp["nextToken"] = new_token
+        return json.dumps(resp)
 
     # ---- Dataset ----
 
@@ -289,8 +330,11 @@ class PersonalizeResponse(BaseResponse):
         return json.dumps({"campaignArn": result_arn})
 
     def list_campaigns(self) -> str:
+        params = json.loads(self.body)
+        max_results = params.get("maxResults")
+        next_token = params.get("nextToken")
         resources = list(self.personalize_backend.campaigns.values())
-        items = [
+        all_items = [
             {
                 "campaignArn": r.arn,
                 "name": r.name,
@@ -300,7 +344,11 @@ class PersonalizeResponse(BaseResponse):
             }
             for r in resources
         ]
-        return json.dumps({"campaigns": items})
+        page, new_token = self._paginate(all_items, max_results, next_token)
+        resp: dict[str, Any] = {"campaigns": page}
+        if new_token:
+            resp["nextToken"] = new_token
+        return json.dumps(resp)
 
     # ---- Data Deletion Job ----
 
@@ -397,8 +445,11 @@ class PersonalizeResponse(BaseResponse):
         return "{}"
 
     def list_filters(self) -> str:
+        params = json.loads(self.body)
+        max_results = params.get("maxResults")
+        next_token = params.get("nextToken")
         resources = list(self.personalize_backend.filters.values())
-        items = [
+        all_items = [
             {
                 "filterArn": r.arn,
                 "name": r.name,
@@ -408,7 +459,11 @@ class PersonalizeResponse(BaseResponse):
             }
             for r in resources
         ]
-        return json.dumps({"Filters": items})
+        page, new_token = self._paginate(all_items, max_results, next_token)
+        resp: dict[str, Any] = {"Filters": page}
+        if new_token:
+            resp["nextToken"] = new_token
+        return json.dumps(resp)
 
     # ---- Metric Attribution ----
 
@@ -546,8 +601,11 @@ class PersonalizeResponse(BaseResponse):
         return json.dumps({"solutionArn": result_arn})
 
     def list_solutions(self) -> str:
+        params = json.loads(self.body)
+        max_results = params.get("maxResults")
+        next_token = params.get("nextToken")
         resources = list(self.personalize_backend.solutions.values())
-        items = [
+        all_items = [
             {
                 "solutionArn": r.arn,
                 "name": r.name,
@@ -557,7 +615,11 @@ class PersonalizeResponse(BaseResponse):
             }
             for r in resources
         ]
-        return json.dumps({"solutions": items})
+        page, new_token = self._paginate(all_items, max_results, next_token)
+        resp: dict[str, Any] = {"solutions": page}
+        if new_token:
+            resp["nextToken"] = new_token
+        return json.dumps(resp)
 
     # ---- Solution Version ----
 
