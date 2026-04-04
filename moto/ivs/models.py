@@ -154,7 +154,14 @@ class IVSBackend(BaseBackend):
     def batch_get_channel(
         self, arns: list[str]
     ) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
-        return [channel for channel in self.channels if channel["arn"] in arns], []
+        found = [channel for channel in self.channels if channel["arn"] in arns]
+        found_arns = {ch["arn"] for ch in found}
+        errors = [
+            {"arn": arn, "code": "ChannelNotBroadcasting", "message": "Channel does not exist"}
+            for arn in arns
+            if arn not in found_arns
+        ]
+        return found, errors
 
     def update_channel(
         self,
