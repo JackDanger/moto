@@ -599,6 +599,8 @@ class QuickSightBackend(BaseBackend):
         ssl_properties: Optional[dict[str, Any]] = None,
         tags: Optional[list[dict[str, str]]] = None,
     ) -> QuickSightDataSource:
+        if data_source_id in self.data_sources:
+            raise ResourceExistsException(f"DataSource {data_source_id} already exists")
         data_source = QuickSightDataSource(
             account_id=aws_account_id,
             region=self.region_name,
