@@ -130,6 +130,9 @@ class AWSCertificateManagerResponse(BaseResponse):
         certs = []
         statuses = self._get_param("CertificateStatuses")
         includes = self._get_param("Includes")
+        max_items = self._get_param("MaxItems")
+        next_token = self._get_param("NextToken")
+
         for cert_bundle in self.acm_backend.list_certificates(statuses, includes):
             _cert = cert_bundle.describe()["Certificate"]
             _in_use_by = _cert.pop("InUseBy", [])
@@ -137,7 +140,26 @@ class AWSCertificateManagerResponse(BaseResponse):
             _cert["Exported"] = cert_bundle.cert_options["Export"] == "ENABLED"
             certs.append(_cert)
 
-        result = {"CertificateSummaryList": certs}
+        # Apply token-based pagination
+        if next_token:
+            try:
+                start = next((i for i, c in enumerate(certs) if c["CertificateArn"] == next_token), len(certs))
+            except StopIteration:
+                start = len(certs)
+        else:
+            start = 0
+
+        if max_items:
+            page = certs[start : start + max_items]
+            end = start + max_items
+            new_next_token = certs[end]["CertificateArn"] if end < len(certs) else None
+        else:
+            page = certs[start:]
+            new_next_token = None
+
+        result: dict[str, object] = {"CertificateSummaryList": page}
+        if new_next_token:
+            result["NextToken"] = new_next_token
         return json.dumps(result)
 
     def list_tags_for_certificate(self) -> GENERIC_RESPONSE_TYPE:
