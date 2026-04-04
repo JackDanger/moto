@@ -3218,7 +3218,22 @@ class SimpleSystemManagerBackend(BaseBackend):
         return [item.summary() for item in self.ops_items.values()]
 
     def describe_patch_groups(self) -> list[Any]:
-        return []
+        mappings = []
+        for pg_name, pg in self.patch_groups.items():
+            for os_name, baseline_id in pg.associations.items():
+                if baseline_id in self.baselines:
+                    baseline = self.baselines[baseline_id]
+                    mappings.append({
+                        "PatchGroup": pg_name,
+                        "BaselineIdentity": {
+                            "BaselineId": baseline_id,
+                            "BaselineName": baseline.name,
+                            "OperatingSystem": baseline.operating_system,
+                            "BaselineDescription": baseline.description,
+                            "DefaultBaseline": baseline.default_baseline,
+                        },
+                    })
+        return mappings
 
     def get_default_patch_baseline(self, operating_system: Optional[str] = None) -> dict[str, str]:
         os_name = operating_system or "WINDOWS"
