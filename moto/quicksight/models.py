@@ -27,7 +27,7 @@ from .data_models import (
     QuicksightUser,
     QuicksightVPCConnection,
 )
-from .exceptions import ResourceNotFoundException
+from .exceptions import ResourceExistsException, ResourceNotFoundException
 from .utils import PAGINATION_MODEL, QuicksightSearchFilterFactory
 
 
@@ -124,6 +124,9 @@ class QuickSightBackend(BaseBackend):
     def create_group(
         self, group_name: str, description: str, aws_account_id: str, namespace: str
     ) -> QuicksightGroup:
+        _id = _create_id(aws_account_id, namespace, group_name)
+        if _id in self.groups:
+            raise ResourceExistsException(f"Group {group_name} already exists")
         group = QuicksightGroup(
             region=self.region_name,
             group_name=group_name,
@@ -131,7 +134,6 @@ class QuickSightBackend(BaseBackend):
             aws_account_id=aws_account_id,
             namespace=namespace,
         )
-        _id = _create_id(aws_account_id, namespace, group_name)
         self.groups[_id] = group
         return group
 
@@ -145,7 +147,9 @@ class QuickSightBackend(BaseBackend):
         self, aws_account_id: str, namespace: str, group_name: str
     ) -> None:
         _id = _create_id(aws_account_id, namespace, group_name)
-        self.groups.pop(_id, None)
+        if _id not in self.groups:
+            raise ResourceNotFoundException(f"Group {group_name} not found")
+        self.groups.pop(_id)
 
     def delete_group_membership(
         self, aws_account_id: str, namespace: str, group_name: str, member_name: str
@@ -217,6 +221,9 @@ class QuickSightBackend(BaseBackend):
         user_name: str,
         tags: Optional[list[dict[str, str]]] = None,
     ) -> QuicksightUser:
+        _id = _create_id(aws_account_id, namespace, user_name)
+        if _id in self.users:
+            raise ResourceExistsException(f"User {user_name} already exists")
         user = QuicksightUser(
             account_id=aws_account_id,
             region=self.region_name,
@@ -225,7 +232,6 @@ class QuickSightBackend(BaseBackend):
             user_role=user_role,
             username=user_name,
         )
-        _id = _create_id(aws_account_id, namespace, user_name)
         if tags:
             self.tagger.tag_resource(arn=user.arn, tags=tags)
         self.users[_id] = user
@@ -253,10 +259,12 @@ class QuickSightBackend(BaseBackend):
         return user
 
     def delete_user(self, aws_account_id: str, namespace: str, user_name: str) -> None:
+        _id = _create_id(aws_account_id, namespace, user_name)
+        if _id not in self.users:
+            raise ResourceNotFoundException(f"User {user_name} not found")
         for group in self.groups.values():
             group.delete_member(user_name)
-        _id = _create_id(aws_account_id, namespace, user_name)
-        self.users.pop(_id, None)
+        self.users.pop(_id)
 
     def delete_user_by_principal_id(
         self, aws_account_id: str, namespace: str, principal_id: str
