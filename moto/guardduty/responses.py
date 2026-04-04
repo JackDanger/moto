@@ -68,9 +68,15 @@ class GuardDutyResponse(BaseResponse):
         return json.dumps({"adminAccounts": accounts})
 
     def list_detectors(self) -> str:
-        detector_ids = self.guardduty_backend.list_detectors()
-
-        return json.dumps({"detectorIds": detector_ids})
+        max_results = self._get_param("maxResults")
+        next_token = self._get_param("nextToken")
+        detector_ids, next_token = self.guardduty_backend.list_detectors(
+            max_results=max_results, next_token=next_token
+        )
+        result: dict = {"detectorIds": detector_ids}
+        if next_token:
+            result["nextToken"] = next_token
+        return json.dumps(result)
 
     def get_detector(self) -> str:
         detector_id = self.path.split("/")[-1]

@@ -82,14 +82,22 @@ class GuardDutyBackend(BaseBackend):
         """
         return self.admin_account_ids
 
-    def list_detectors(self) -> list[str]:
-        """
-        The MaxResults and NextToken-parameter have not yet been implemented.
-        """
-        detectorids = []
-        for detector in self.detectors:
-            detectorids.append(self.detectors[detector].id)
-        return detectorids
+    def list_detectors(
+        self,
+        max_results: int | None = None,
+        next_token: str | None = None,
+    ) -> tuple[list[str], str | None]:
+        all_ids = [d.id for d in self.detectors.values()]
+        start = 0
+        if next_token:
+            try:
+                start = all_ids.index(next_token)
+            except ValueError:
+                start = 0
+        limit = int(max_results) if max_results else len(all_ids)
+        page = all_ids[start : start + limit]
+        new_next_token = all_ids[start + limit] if start + limit < len(all_ids) else None
+        return page, new_next_token
 
     def get_detector(self, detector_id: str) -> "Detector":
         if detector_id not in self.detectors:
