@@ -822,8 +822,10 @@ class S3ControlResponse(BaseResponse):
     def put_job_tagging(self) -> str:
         account_id = self.headers.get("x-amz-account-id")
         job_id = self.path.split("/")[-2]
-        params = xmltodict.parse(self.body, force_list={"Tag": True})
-        tags = params.get("PutJobTaggingRequest", {}).get("Tags", {}).get("Tag", [])
+        params = xmltodict.parse(self.body, force_list={"Tag": True, "member": True})
+        tags_container = params.get("PutJobTaggingRequest", {}).get("Tags", {}) or {}
+        # boto3 serializes list items as <member>, AWS SDKs may use <Tag>
+        tags = tags_container.get("Tag", []) or tags_container.get("member", [])
         self.backend.put_job_tagging(account_id=account_id, job_id=job_id, tags=tags)
         return ""
 
