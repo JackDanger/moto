@@ -338,9 +338,11 @@ class IVSResponse(BaseResponse):
             resource_arn = (
                 self.path.split("/tags/")[-1] if "/tags/" in self.path else ""
             )
-        tag_keys = self._get_param("tagKeys", [])
+        # tagKeys is a repeated query param (e.g. ?tagKeys=a&tagKeys=b).
+        # _get_param only returns the first value, so read all values from querystring.
+        tag_keys = self.querystring.get("tagKeys", [])
         if not tag_keys:
-            tag_keys = self.querystring.get("tagKeys", [])
+            tag_keys = self._get_param("tagKeys", [])
         self.ivs_backend.untag_resource(resource_arn=resource_arn, tag_keys=tag_keys)
 
     def list_tags_for_resource(self) -> str:
