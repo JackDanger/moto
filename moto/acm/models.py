@@ -613,7 +613,7 @@ class AWSCertificateManagerBackend(BaseBackend):
         """
         if idempotency_token is not None:
             arn = self._get_arn_from_idempotency_token(idempotency_token)
-            if arn and self._certificates[arn].tags.equals(tags):
+            if arn and arn in self._certificates and self._certificates[arn].tags.equals(tags):
                 return arn
 
         cert = CertBundle.generate_cert(
