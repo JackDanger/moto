@@ -2223,19 +2223,23 @@ class BedrockBackend(BaseBackend):
             self.tag_resource(pr.prompt_router_arn, tags)
         return pr.prompt_router_arn
 
+    def _find_prompt_router(self, prompt_router_arn: str) -> "PromptRouter":
+        if prompt_router_arn in self.prompt_routers:
+            return self.prompt_routers[prompt_router_arn]
+        # URL path parsing may extract just the ID suffix; search by ARN suffix
+        for arn, router in self.prompt_routers.items():
+            if arn.endswith(f"/{prompt_router_arn}") or arn == prompt_router_arn:
+                return router
+        raise ResourceNotFoundException(
+            f"Could not find prompt router {prompt_router_arn}"
+        )
+
     def get_prompt_router(self, prompt_router_arn: str) -> dict[str, Any]:
-        if prompt_router_arn not in self.prompt_routers:
-            raise ResourceNotFoundException(
-                f"Could not find prompt router {prompt_router_arn}"
-            )
-        return self.prompt_routers[prompt_router_arn].to_dict()
+        return self._find_prompt_router(prompt_router_arn).to_dict()
 
     def delete_prompt_router(self, prompt_router_arn: str) -> None:
-        if prompt_router_arn not in self.prompt_routers:
-            raise ResourceNotFoundException(
-                f"Could not find prompt router {prompt_router_arn}"
-            )
-        del self.prompt_routers[prompt_router_arn]
+        router = self._find_prompt_router(prompt_router_arn)
+        del self.prompt_routers[router.prompt_router_arn]
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_prompt_routers(
@@ -2395,6 +2399,10 @@ class BedrockBackend(BaseBackend):
     def _find_ar_policy(self, policy_arn: str) -> AutomatedReasoningPolicy:
         if policy_arn in self.automated_reasoning_policies:
             return self.automated_reasoning_policies[policy_arn]
+        # URL path parsing may extract just the ID suffix; search by ARN suffix
+        for arn, policy in self.automated_reasoning_policies.items():
+            if arn.endswith(f"/{policy_arn}") or arn == policy_arn:
+                return policy
         raise ResourceNotFoundException(
             f"Could not find automated reasoning policy {policy_arn}"
         )
@@ -2420,8 +2428,8 @@ class BedrockBackend(BaseBackend):
         return policy.to_dict()
 
     def delete_automated_reasoning_policy(self, policy_arn: str) -> None:
-        self._find_ar_policy(policy_arn)
-        del self.automated_reasoning_policies[policy_arn]
+        policy = self._find_ar_policy(policy_arn)
+        del self.automated_reasoning_policies[policy.policy_arn]
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_automated_reasoning_policies(self) -> list[AutomatedReasoningPolicy]:
