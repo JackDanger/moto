@@ -1331,7 +1331,7 @@ class BedrockBackend(BaseBackend):
     # -------------------------------------------------------------------
 
     def get_custom_model(self, model_identifier: str) -> CustomModel:
-        if model_identifier[:3] == "arn":
+        if model_identifier.startswith("arn:"):
             for model in self.custom_models.values():
                 if model.model_arn == model_identifier:
                     return model
