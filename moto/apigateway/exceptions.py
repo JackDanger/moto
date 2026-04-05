@@ -185,8 +185,8 @@ class RestAPINotFound(NotFoundException):
         super().__init__("Invalid Rest API Id specified")
 
 
-class RequestValidatorNotFound(BadRequestException):
-    code = 400
+class RequestValidatorNotFound(NotFoundException):
+    code = 404
 
     def __init__(self) -> None:
         super().__init__("Invalid Request Validator Id specified")

@@ -650,6 +650,8 @@ class Stage(BaseModel):
         self.description = description
         self.cache_cluster_enabled = cacheClusterEnabled
         self.cache_cluster_status = "AVAILABLE" if cacheClusterEnabled else None
+        self.created_date = datetime.now()
+        self.last_updated_date = self.created_date
         self.cache_cluster_size = (
             str(cacheClusterSize) if cacheClusterSize is not None else None
         )
@@ -667,6 +669,8 @@ class Stage(BaseModel):
             "description": self.description,
             "cacheClusterEnabled": self.cache_cluster_enabled,
             "accessLogSettings": self.access_log_settings,
+            "createdDate": self.created_date,
+            "lastUpdatedDate": self.last_updated_date,
         }
         if self.cache_cluster_status is not None:
             dct["cacheClusterStatus"] = self.cache_cluster_status
