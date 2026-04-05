@@ -1260,6 +1260,7 @@ class Detector(BaseModel):
             self.datasources = data_sources
         if features is not None:
             self.features = features
+        self.updated_at = datetime.now()
 
     def to_json(self) -> dict[str, Any]:
         data_sources = {
