@@ -912,11 +912,11 @@ class CustomModelDeployment(BaseModel):
         d: dict[str, Any] = {
             "customModelDeploymentIdentifier": self.deployment_id,
             "customModelDeploymentArn": self.deployment_arn,
-            "modelDeploymentName": self.model_deployment_name,
-            "modelId": self.model_id,
+            "customModelDeploymentName": self.model_deployment_name,
+            "modelArn": self.model_id,
             "status": self.status,
             "createdAt": self.created_at,
-            "lastModifiedTime": self.last_modified_time,
+            "lastUpdatedAt": self.last_modified_time,
         }
         if self.failure_message:
             d["failureMessage"] = self.failure_message

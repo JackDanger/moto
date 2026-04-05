@@ -770,7 +770,7 @@ class BedrockResponse(BaseResponse):
             next_token=next_token,
         )
         summaries = [d.summary() for d in deployments]
-        return json.dumps({"customModelDeploymentSummaries": summaries, "nextToken": next_token})
+        return json.dumps({"modelDeploymentSummaries": summaries, "nextToken": next_token})
 
     # -------------------------------------------------------------------
     # Foundation Model Agreements (stub)
