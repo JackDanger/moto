@@ -219,7 +219,14 @@ class IVSBackend(BaseBackend):
     def batch_get_stream_key(
         self, arns: list[str]
     ) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
-        return [sk for sk in self.stream_keys if sk["arn"] in arns], []
+        found = [sk for sk in self.stream_keys if sk["arn"] in arns]
+        found_arns = {sk["arn"] for sk in found}
+        errors = [
+            {"arn": arn, "code": "StreamKeyNotFound", "message": "Stream key does not exist"}
+            for arn in arns
+            if arn not in found_arns
+        ]
+        return found, errors
 
     @paginate(pagination_model=PAGINATION_MODEL)  # type: ignore[misc]
     def list_stream_keys(  # type: ignore[misc]
