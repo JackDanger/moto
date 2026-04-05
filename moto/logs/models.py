@@ -2588,8 +2588,32 @@ class LogsBackend(BaseBackend):
         filter_pattern: str,
         log_event_messages: list[str],
     ) -> list[dict[str, Any]]:
-        # Stub: metric filter testing not yet modeled
-        return []
+        """Test a metric filter pattern against sample log event messages.
+
+        Supports simple term matching: a bare term like "ERROR" matches any
+        message containing that term (case-sensitive substring match).
+        JSON-structured patterns ({$.key = "value"}) are not yet implemented
+        and return no matches.
+        """
+        import re
+
+        matches = []
+        # Skip JSON/structured patterns (start with '{')
+        if filter_pattern.strip().startswith("{"):
+            return []
+
+        # Simple space-delimited terms: each term must appear in the message
+        terms = filter_pattern.split()
+        for i, message in enumerate(log_event_messages):
+            if all(term in message for term in terms):
+                matches.append(
+                    {
+                        "eventNumber": i + 1,
+                        "eventMessage": message,
+                        "extractedValues": {},
+                    }
+                )
+        return matches
 
     def cancel_import_task(
         self,
