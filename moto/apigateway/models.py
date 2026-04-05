@@ -1348,7 +1348,7 @@ class RestAPI(CloudFormationModel):
         authorizer_uri: Optional[str],
         authorizer_credentials: Optional[str],
         identity_source: Optional[str],
-        identiy_validation_expression: Optional[str],
+        identity_validation_expression: Optional[str],
         authorizer_result_ttl: Optional[int],
     ) -> Authorizer:
         authorizer = Authorizer(
@@ -1360,7 +1360,7 @@ class RestAPI(CloudFormationModel):
             authorizer_uri=authorizer_uri,
             authorizer_credentials=authorizer_credentials,
             identity_source=identity_source,
-            identiy_validation_expression=identiy_validation_expression,
+            identity_validation_expression=identity_validation_expression,
             authorizer_result_ttl=authorizer_result_ttl,
         )
         self.authorizers[authorizer_id] = authorizer
@@ -2088,7 +2088,7 @@ class APIGatewayBackend(BaseBackend):
             authorizer_uri=kwargs.get("authorizer_uri"),
             authorizer_credentials=kwargs.get("authorizer_credentials"),
             identity_source=kwargs.get("identity_source"),
-            identiy_validation_expression=kwargs.get("identiy_validation_expression"),
+            identity_validation_expression=kwargs.get("identity_validation_expression"),
             authorizer_result_ttl=kwargs.get("authorizer_result_ttl"),
         )
 

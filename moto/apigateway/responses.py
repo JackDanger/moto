@@ -284,7 +284,7 @@ class APIGatewayResponse(BaseResponse):
         authorizer_uri = self._get_param("authorizerUri")
         authorizer_credentials = self._get_param("authorizerCredentials")
         identity_source = self._get_param("identitySource")
-        identiy_validation_expression = self._get_param("identityValidationExpression")
+        identity_validation_expression = self._get_param("identityValidationExpression")
         authorizer_result_ttl = self._get_param(
             "authorizerResultTtlInSeconds", if_none=300
         )
@@ -310,7 +310,7 @@ class APIGatewayResponse(BaseResponse):
             authorizer_uri=authorizer_uri,
             authorizer_credentials=authorizer_credentials,
             identity_source=identity_source,
-            identiy_validation_expression=identiy_validation_expression,
+            identity_validation_expression=identity_validation_expression,
             authorizer_result_ttl=authorizer_result_ttl,
         )
         return 201, {"status": 201}, json.dumps(authorizer_response.to_json())
