@@ -122,13 +122,20 @@ class Ami(TaggedEC2Resource):
         self.ec2_backend.delete_volume(volume.id)
 
         if self.root_device_type is None:
-            # Derived last: block_device_mappings reads self.ebs_snapshot. An Ebs
-            # entry means the image is EBS-backed; "standard" is the legacy
+            # Derived last: block_device_mappings reads self.ebs_snapshot. Only the
+            # root device's mapping decides — a secondary EBS volume does not make
+            # an instance-store image EBS-backed. "standard" is the legacy
             # instance-store value that Packer's amazon-ebs builder rejects.
+            root_mapping = next(
+                (
+                    mapping
+                    for mapping in self.block_device_mappings
+                    if mapping.get("DeviceName") == self.root_device_name
+                ),
+                None,
+            )
             self.root_device_type = (
-                "ebs"
-                if any("Ebs" in mapping for mapping in self.block_device_mappings)
-                else "standard"
+                "ebs" if root_mapping and "Ebs" in root_mapping else "standard"
             )
 
     @property
