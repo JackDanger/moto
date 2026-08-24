@@ -49,7 +49,7 @@ class Ami(TaggedEC2Resource):
         image_type: str = "machine",
         image_location: Optional[str] = None,
         hypervisor: Optional[str] = None,
-        root_device_type: str = "standard",
+        root_device_type: Optional[str] = None,
         root_device_name: str = "/dev/sda1",
         sriov: str = "simple",
         region_name: str = "us-east-1a",
@@ -120,6 +120,23 @@ class Ami(TaggedEC2Resource):
             volume.id, snapshot_description, self.owner_id, from_ami=ami_id
         )
         self.ec2_backend.delete_volume(volume.id)
+
+        if self.root_device_type is None:
+            # Derived last: block_device_mappings reads self.ebs_snapshot. Only the
+            # root device's mapping decides — a secondary EBS volume does not make
+            # an instance-store image EBS-backed. "standard" is the legacy
+            # instance-store value that Packer's amazon-ebs builder rejects.
+            root_mapping = next(
+                (
+                    mapping
+                    for mapping in self.block_device_mappings
+                    if mapping.get("DeviceName") == self.root_device_name
+                ),
+                None,
+            )
+            self.root_device_type = (
+                "ebs" if root_mapping and "Ebs" in root_mapping else "standard"
+            )
 
     @property
     def is_public(self) -> bool:
