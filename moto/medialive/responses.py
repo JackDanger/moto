@@ -1,5 +1,6 @@
 import json
 
+from moto.core.common_types import TYPE_RESPONSE
 from moto.core.responses import BaseResponse
 
 from .models import MediaLiveBackend, medialive_backends
@@ -15,7 +16,7 @@ class MediaLiveResponse(BaseResponse):
 
     # ---- Channel ----
 
-    def create_channel(self) -> str:
+    def create_channel(self) -> TYPE_RESPONSE:
         cdi_input_specification = self._get_param("cdiInputSpecification")
         channel_class = self._get_param("channelClass")
         destinations = self._get_param("destinations")
@@ -39,8 +40,10 @@ class MediaLiveResponse(BaseResponse):
             tags=tags,
         )
 
-        return json.dumps(
-            {"channel": channel.to_dict(exclude=["pipelinesRunningCount"])}
+        return (
+            201,
+            {"status": 201},
+            json.dumps({"channel": channel.to_dict(exclude=["pipelinesRunningCount"])}),
         )
 
     def list_channels(self) -> str:
@@ -120,7 +123,7 @@ class MediaLiveResponse(BaseResponse):
 
     # ---- Input ----
 
-    def create_input(self) -> str:
+    def create_input(self) -> TYPE_RESPONSE:
         destinations = self._get_param("destinations")
         input_devices = self._get_param("inputDevices")
         input_security_groups = self._get_param("inputSecurityGroups")
@@ -141,7 +144,7 @@ class MediaLiveResponse(BaseResponse):
             tags=tags,
             input_type=input_type,
         )
-        return json.dumps({"input": a_input.to_dict()})
+        return 201, {"status": 201}, json.dumps({"input": a_input.to_dict()})
 
     def describe_input(self) -> str:
         input_id = self._get_param("inputId")

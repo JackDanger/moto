@@ -25,7 +25,7 @@ class Container(BaseModel):
         self.metric_policy: str | None = None
         self.cors_policy: Optional[list[dict[str, Any]]] = None
         self.access_logging_enabled: bool = False
-        self.tags = kwargs.get("tags") or []
+        self.tags = kwargs.get("tags")
 
     def to_dict(self, exclude: list[str] | None = None) -> dict[str, Any]:
         data = {
@@ -48,7 +48,7 @@ class MediaStoreBackend(BaseBackend):
         self._containers: dict[str, Container] = OrderedDict()
 
     def create_container(self, name: str, tags: dict[str, str]) -> Container:
-        arn = f"arn:{get_partition(self.region_name)}:mediastore:{self.region_name}:{self.account_id}:container/{name}"
+        arn = f"arn:{get_partition(self.region_name)}:mediastore:container:{name}"
         container = Container(
             arn=arn,
             name=name,
