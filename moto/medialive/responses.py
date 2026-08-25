@@ -56,7 +56,10 @@ class MediaLiveResponse(BaseResponse):
             c.to_dict(exclude=["encoderSettings", "pipelineDetails"]) for c in channels
         ]
 
-        return json.dumps({"channels": channel_dicts, "nextToken": next_token})
+        result = {"channels": channel_dicts}
+        if next_token is not None:
+            result["nextToken"] = next_token
+        return json.dumps(result)
 
     def describe_channel(self) -> str:
         channel_id = self._get_param("channelId")
@@ -158,9 +161,10 @@ class MediaLiveResponse(BaseResponse):
             max_results=max_results, next_token=next_token
         )
 
-        return json.dumps(
-            {"inputs": [i.to_dict() for i in inputs], "nextToken": next_token}
-        )
+        result = {"inputs": [i.to_dict() for i in inputs]}
+        if next_token is not None:
+            result["nextToken"] = next_token
+        return json.dumps(result)
 
     def delete_input(self) -> str:
         input_id = self._get_param("inputId")
@@ -221,12 +225,10 @@ class MediaLiveResponse(BaseResponse):
         groups, next_token = self.medialive_backend.list_input_security_groups(
             max_results=max_results, next_token=next_token
         )
-        return json.dumps(
-            {
-                "inputSecurityGroups": [g.to_dict() for g in groups],
-                "nextToken": next_token,
-            }
-        )
+        result = {"inputSecurityGroups": [g.to_dict() for g in groups]}
+        if next_token is not None:
+            result["nextToken"] = next_token
+        return json.dumps(result)
 
     def delete_input_security_group(self) -> str:
         group_id = self._get_param("inputSecurityGroupId")
@@ -270,12 +272,10 @@ class MediaLiveResponse(BaseResponse):
         multiplexes, next_token = self.medialive_backend.list_multiplexes(
             max_results=max_results, next_token=next_token
         )
-        return json.dumps(
-            {
-                "multiplexes": [m.to_dict() for m in multiplexes],
-                "nextToken": next_token,
-            }
-        )
+        result = {"multiplexes": [m.to_dict() for m in multiplexes]}
+        if next_token is not None:
+            result["nextToken"] = next_token
+        return json.dumps(result)
 
     def delete_multiplex(self) -> str:
         multiplex_id = self._get_param("multiplexId")
@@ -382,9 +382,10 @@ class MediaLiveResponse(BaseResponse):
         clusters, next_token = self.medialive_backend.list_clusters(
             max_results=max_results, next_token=next_token
         )
-        return json.dumps(
-            {"clusters": [c.to_dict() for c in clusters], "nextToken": next_token}
-        )
+        result = {"clusters": [c.to_dict() for c in clusters]}
+        if next_token is not None:
+            result["nextToken"] = next_token
+        return json.dumps(result)
 
     def delete_cluster(self) -> str:
         cluster_id = self._get_param("clusterId")
@@ -428,9 +429,10 @@ class MediaLiveResponse(BaseResponse):
         networks, next_token = self.medialive_backend.list_networks(
             max_results=max_results, next_token=next_token
         )
-        return json.dumps(
-            {"networks": [n.to_dict() for n in networks], "nextToken": next_token}
-        )
+        result = {"networks": [n.to_dict() for n in networks]}
+        if next_token is not None:
+            result["nextToken"] = next_token
+        return json.dumps(result)
 
     def delete_network(self) -> str:
         network_id = self._get_param("networkId")
@@ -605,9 +607,10 @@ class MediaLiveResponse(BaseResponse):
         sources, next_token = self.medialive_backend.list_sdi_sources(
             max_results=max_results, next_token=next_token
         )
-        return json.dumps(
-            {"sdiSources": [s.to_dict() for s in sources], "nextToken": next_token}
-        )
+        result = {"sdiSources": [s.to_dict() for s in sources]}
+        if next_token is not None:
+            result["nextToken"] = next_token
+        return json.dumps(result)
 
     def delete_sdi_source(self) -> str:
         sdi_source_id = self._get_param("sdiSourceId")
@@ -653,12 +656,10 @@ class MediaLiveResponse(BaseResponse):
                 max_results=max_results, next_token=next_token
             )
         )
-        return json.dumps(
-            {
-                "cloudWatchAlarmTemplateGroups": [g.to_dict() for g in groups],
-                "nextToken": next_token,
-            }
-        )
+        result = {"cloudWatchAlarmTemplateGroups": [g.to_dict() for g in groups]}
+        if next_token is not None:
+            result["nextToken"] = next_token
+        return json.dumps(result)
 
     def delete_cloud_watch_alarm_template_group(self) -> str:
         identifier = self._get_param("identifier")
@@ -708,12 +709,10 @@ class MediaLiveResponse(BaseResponse):
         templates, next_token = self.medialive_backend.list_cloud_watch_alarm_templates(
             max_results=max_results, next_token=next_token
         )
-        return json.dumps(
-            {
-                "cloudWatchAlarmTemplates": [t.to_dict() for t in templates],
-                "nextToken": next_token,
-            }
-        )
+        result = {"cloudWatchAlarmTemplates": [t.to_dict() for t in templates]}
+        if next_token is not None:
+            result["nextToken"] = next_token
+        return json.dumps(result)
 
     def delete_cloud_watch_alarm_template(self) -> str:
         identifier = self._get_param("identifier")
@@ -764,12 +763,10 @@ class MediaLiveResponse(BaseResponse):
                 max_results=max_results, next_token=next_token
             )
         )
-        return json.dumps(
-            {
-                "eventBridgeRuleTemplateGroups": [g.to_dict() for g in groups],
-                "nextToken": next_token,
-            }
-        )
+        result = {"eventBridgeRuleTemplateGroups": [g.to_dict() for g in groups]}
+        if next_token is not None:
+            result["nextToken"] = next_token
+        return json.dumps(result)
 
     def delete_event_bridge_rule_template_group(self) -> str:
         identifier = self._get_param("identifier")
@@ -812,12 +809,10 @@ class MediaLiveResponse(BaseResponse):
         templates, next_token = self.medialive_backend.list_event_bridge_rule_templates(
             max_results=max_results, next_token=next_token
         )
-        return json.dumps(
-            {
-                "eventBridgeRuleTemplates": [t.to_dict() for t in templates],
-                "nextToken": next_token,
-            }
-        )
+        result = {"eventBridgeRuleTemplates": [t.to_dict() for t in templates]}
+        if next_token is not None:
+            result["nextToken"] = next_token
+        return json.dumps(result)
 
     def delete_event_bridge_rule_template(self) -> str:
         identifier = self._get_param("identifier")
@@ -863,12 +858,10 @@ class MediaLiveResponse(BaseResponse):
         signal_maps, next_token = self.medialive_backend.list_signal_maps(
             max_results=max_results, next_token=next_token
         )
-        return json.dumps(
-            {
-                "signalMaps": [sm.to_dict() for sm in signal_maps],
-                "nextToken": next_token,
-            }
-        )
+        result = {"signalMaps": [sm.to_dict() for sm in signal_maps]}
+        if next_token is not None:
+            result["nextToken"] = next_token
+        return json.dumps(result)
 
     def delete_signal_map(self) -> str:
         identifier = self._get_param("identifier")

@@ -347,3 +347,18 @@ class SyntheticsResponse(BaseResponse):
         resource_arn = unquote(self.path).split("tags/")[-1]
         tags = self.synthetics_backend.list_tags_for_resource(resource_arn)
         return json.dumps({"Tags": tags})
+
+    def _get_action(self) -> str:
+        """
+        Override to provide a default action for the root endpoint.
+        """
+        action = super()._get_action()
+        if action is None and self.path == "/":
+            return "GetHealthCheck"
+        return action or "Unknown"
+
+    def get_health_check(self) -> str:
+        """
+        Handle root endpoint requests.
+        """
+        return "What would you like to do?"
