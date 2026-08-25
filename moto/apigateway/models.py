@@ -9,15 +9,27 @@ from urllib.parse import urlparse
 import requests
 import responses
 
+# openapi-spec-validator ships in the apigateway/all extras rather than the base
+# install, and is only needed when a caller asks for fail_on_warnings. Import it
+# defensively so a base install can still import this module.
 try:
     # Recommended as of 0.7.x
     from openapi_spec_validator import validate  # type: ignore
 except ImportError:
-    # Only used in < 0.7.x
-    # (Also exists in 0.7.0, but throws a warning)
-    from openapi_spec_validator import validate_spec as validate  # type: ignore
+    try:
+        # Only used in < 0.7.x
+        # (Also exists in 0.7.0, but throws a warning)
+        from openapi_spec_validator import validate_spec as validate  # type: ignore
+    except ImportError:
+        validate = None  # type: ignore[assignment]
 
-from openapi_spec_validator.validation.exceptions import OpenAPIValidationError
+try:
+    from openapi_spec_validator.validation.exceptions import OpenAPIValidationError
+except ImportError:
+
+    class OpenAPIValidationError(Exception):  # type: ignore[no-redef]
+        """Stand-in used when openapi-spec-validator is not installed."""
+
 
 from moto.apigateway.exceptions import MethodNotFoundException
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -1827,6 +1839,11 @@ class APIGatewayBackend(BaseBackend):
         Only a subset of the OpenAPI spec 3.x is currently implemented.
         """
         if fail_on_warnings:
+            if validate is None:
+                raise RuntimeError(
+                    "fail_on_warnings requires openapi-spec-validator: "
+                    "pip install moto[apigateway]"
+                )
             try:
                 validate(api_doc)  # type: ignore[arg-type]
             except OpenAPIValidationError as e:
@@ -1898,6 +1915,11 @@ class APIGatewayBackend(BaseBackend):
             raise InvalidOpenApiDocVersionException()
 
         if fail_on_warnings:
+            if validate is None:
+                raise RuntimeError(
+                    "fail_on_warnings requires openapi-spec-validator: "
+                    "pip install moto[apigateway]"
+                )
             try:
                 validate(api_doc)  # type: ignore[arg-type]
             except OpenAPIValidationError as e:

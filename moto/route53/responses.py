@@ -4,7 +4,20 @@ import re
 from urllib.parse import parse_qs
 
 import xmltodict
-from jinja2 import Template
+
+# jinja2 arrives with the server/all extras (via Flask) rather than the base
+# install. Import it lazily so route53 still loads without it; only the handlers
+# that render XML templates below actually need it.
+try:
+    from jinja2 import Template
+except ImportError:  # pragma: no cover
+
+    def Template(*args, **kwargs):  # type: ignore[misc,no-untyped-def]
+        raise RuntimeError(
+            "This route53 operation renders an XML template and requires jinja2: "
+            "pip install moto[server]"
+        )
+
 
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult, TYPE_RESPONSE
 from moto.core.utils import utcnow

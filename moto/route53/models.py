@@ -36,7 +36,6 @@ from moto.utilities.utils import PARTITION_NAMES, get_partition
 
 from ..utilities.id_generator import ExistingIds, ResourceIdentifier, Tags, moto_id
 from .utils import PAGINATION_MODEL, validate_domain_name
-from jinja2 import Template
 
 ROUTE53_ID_CHOICE = string.ascii_uppercase + string.digits
 LOGS_GROUP_REGION = "us-east-1"
@@ -545,15 +544,12 @@ class CidrCollection(BaseModel):
         ] = {}  # location_name -> list of CIDR blocks
 
     def to_xml(self) -> str:
-        template = Template(
-            """<CidrCollection>
-            <Arn>{{ collection.arn }}</Arn>
-            <Id>{{ collection.id }}</Id>
-            <Name>{{ collection.name }}</Name>
-            <Version>{{ collection.version }}</Version>
+        return f"""<CidrCollection>
+            <Arn>{self.arn}</Arn>
+            <Id>{self.id}</Id>
+            <Name>{self.name}</Name>
+            <Version>{self.version}</Version>
         </CidrCollection>"""
-        )
-        return template.render(collection=self)
 
 
 class Route53Backend(BaseBackend):
