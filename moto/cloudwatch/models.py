@@ -31,12 +31,7 @@ from .utils import (
     make_arn_for_dashboard,
     make_arn_for_rule,
 )
-from .utils import (
-    make_arn_for_alarm,
-    make_arn_for_dashboard,
-    make_arn_for_metric_stream,
-    make_arn_for_rule,
-)
+from .utils import make_arn_for_metric_stream
 
 _EMPTY_LIST: Any = ()
 

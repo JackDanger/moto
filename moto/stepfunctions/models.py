@@ -32,20 +32,7 @@ from .exceptions import (
 )
 from .parser.api import EncryptionType
 from .utils import PAGINATION_MODEL, api_to_cfn_tags, cfn_to_api_tags
-from .exceptions import (
-    ActivityAlreadyExists,
-    ActivityDoesNotExist,
-    ConflictException,
-    ExecutionAlreadyExists,
-    ExecutionDoesNotExist,
-    InvalidArn,
-    InvalidEncryptionConfiguration,
-    InvalidExecutionInput,
-    InvalidName,
-    NameTooLongException,
-    ResourceNotFound,
-    StateMachineDoesNotExist,
-)
+from .exceptions import ConflictException
 
 
 class StateMachineInstance:

@@ -18,8 +18,7 @@ import zipfile
 from collections import defaultdict
 from collections.abc import Iterable, Iterator
 from datetime import datetime
-from collections.abc import Iterable
-from datetime import datetime, timezone
+from datetime import timezone
 from gzip import GzipFile
 from sys import platform
 from typing import Any, TypedDict

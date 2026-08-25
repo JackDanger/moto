@@ -22,32 +22,9 @@ from .exceptions import (
 )
 import datetime
 from collections.abc import Iterable
-from typing import Any, Optional
+from typing import Optional
 from moto.core.utils import iso_8601_datetime_with_milliseconds
-from .exceptions import (
-    DistributionAlreadyExists,
-    DomainNameNotAnS3Bucket,
-    FunctionAlreadyExists,
-    InvalidIfMatchVersion,
-    NoSuchCachePolicy,
-    NoSuchCloudFrontOriginAccessIdentity,
-    NoSuchContinuousDeploymentPolicy,
-    NoSuchDistribution,
-    NoSuchFieldLevelEncryptionConfig,
-    NoSuchFieldLevelEncryptionProfile,
-    NoSuchFunctionExists,
-    NoSuchInvalidation,
-    NoSuchKeyGroup,
-    NoSuchMonitoringSubscription,
-    NoSuchOriginAccessControl,
-    NoSuchOriginRequestPolicy,
-    NoSuchPublicKey,
-    NoSuchRealtimeLogConfig,
-    NoSuchResource,
-    NoSuchResponseHeadersPolicy,
-    NoSuchStreamingDistribution,
-    OriginDoesNotExist,
-)
+from .exceptions import (FunctionAlreadyExists, NoSuchCachePolicy, NoSuchCloudFrontOriginAccessIdentity, NoSuchContinuousDeploymentPolicy, NoSuchFieldLevelEncryptionConfig, NoSuchFieldLevelEncryptionProfile, NoSuchFunctionExists, NoSuchKeyGroup, NoSuchMonitoringSubscription, NoSuchOriginRequestPolicy, NoSuchPublicKey, NoSuchRealtimeLogConfig, NoSuchResource, NoSuchResponseHeadersPolicy, NoSuchStreamingDistribution)
 
 
 def random_id(uppercase: bool = True, length: int = 13) -> str:
@@ -956,6 +933,8 @@ class CloudFrontBackend(BaseBackend, TaggableResourcesMixin):
         """
         The IfMatch-parameter is not yet implemented
         """
+        if control_id not in self.origin_access_controls:
+            raise NoSuchOriginAccessControl
         self.origin_access_controls.pop(control_id)
 
     def create_public_key(
@@ -966,6 +945,8 @@ class CloudFrontBackend(BaseBackend, TaggableResourcesMixin):
         return key
 
     def get_public_key(self, key_id: str) -> PublicKey:
+        if key_id not in self.public_keys:
+            raise NoSuchPublicKey
         return self.public_keys[key_id]
 
     def delete_public_key(self, key_id: str) -> None:
@@ -986,6 +967,8 @@ class CloudFrontBackend(BaseBackend, TaggableResourcesMixin):
         return key_group
 
     def get_key_group(self, group_id: str) -> KeyGroup:
+        if group_id not in self.key_groups:
+            raise NoSuchKeyGroup
         return self.key_groups[group_id]
 
     def list_key_groups(self) -> list[KeyGroup]:

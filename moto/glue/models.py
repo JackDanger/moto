@@ -63,35 +63,7 @@ from .glue_schema_registry_utils import (
     validate_schema_version_params,
 )
 from .utils import Action, CrawlFilter, FilterField, FilterOperator, Predicate
-from .exceptions import (
-    AlreadyExistsException,
-    ConcurrentRunsExceededException,
-    CrawlerAlreadyExistsException,
-    CrawlerNotFoundException,
-    CrawlerNotRunningException,
-    CrawlerRunningException,
-    DatabaseAlreadyExistsException,
-    DatabaseNotFoundException,
-    EntityNotFoundException,
-    IllegalSessionStateException,
-    InvalidInputException,
-    JobNotFoundException,
-    JobRunNotFoundException,
-    JsonRESTError,
-    NoCrawlsEntryForCrawler,
-    PartitionAlreadyExistsException,
-    PartitionNotFoundException,
-    SchemaNotFoundException,
-    SchemaVersionMetadataAlreadyExistsException,
-    SchemaVersionNotFoundFromSchemaIdException,
-    SchemaVersionNotFoundFromSchemaVersionIdException,
-    SessionAlreadyExistsException,
-    SessionNotFoundException,
-    TableAlreadyExistsException,
-    TableNotFoundException,
-    TriggerNotFoundException,
-    VersionNotFoundException,
-)
+from .exceptions import InvalidInputException
 
 
 class FakeDevEndpoint(BaseModel):

@@ -14,12 +14,7 @@ from ..exceptions import (
 from ..utils import describe_tag_filter, random_transit_gateway_attachment_id
 from .core import TaggedEC2Resource
 from .vpc_peering_connections import PeeringConnectionStatus
-from ..exceptions import (
-    DuplicateTransitGatewayAttachmentError,
-    InvalidParameterValueErrorPeeringAttachment,
-    InvalidTransitGatewayAttachmentIdError,
-    InvalidTransitGatewayID,
-)
+from ..exceptions import InvalidTransitGatewayAttachmentIdError
 
 if TYPE_CHECKING:
     from .transit_gateway import TransitGateway

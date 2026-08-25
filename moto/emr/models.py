@@ -22,23 +22,8 @@ from .utils import (
     random_instance_group_id,
     random_step_id,
 )
-from moto.emr.exceptions import (
-    InvalidCluster,
-    InvalidRequestException,
-    InvalidStep,
-    ResourceNotFoundException,
-    ValidationException,
-)
-from .utils import (
-    EmrSecurityGroupManager,
-    random_cluster_id,
-    random_instance_fleet_id,
-    random_instance_group_id,
-    random_notebook_execution_id,
-    random_persistent_app_ui_id,
-    random_step_id,
-    random_studio_id,
-)
+from moto.emr.exceptions import InvalidStep
+from .utils import (random_instance_fleet_id, random_notebook_execution_id, random_persistent_app_ui_id, random_studio_id)
 
 if TYPE_CHECKING:
     from moto.ec2.models import EC2Backend

@@ -21,19 +21,9 @@ from ..ses.models import (
 )
 from ..ses.utils import get_arn
 import uuid
-from typing import Any, Optional
+from typing import Optional
 from moto.core.common_models import BaseModel
-from ..ses.models import (
-    ConfigurationSet,
-    CustomVerificationEmailTemplate,
-    Contact,
-    ContactList,
-    DedicatedIpPool,
-    EmailIdentity,
-    Message,
-    RawMessage,
-    ses_backends,
-)
+from ..ses.models import CustomVerificationEmailTemplate
 from .exceptions import AlreadyExistsException, SESV2NotFoundException
 
 PAGINATION_MODEL = {

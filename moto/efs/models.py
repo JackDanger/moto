@@ -34,21 +34,7 @@ from moto.efs.exceptions import (
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition, md5_hash
-from moto.efs.exceptions import (
-    AccessPointNotFound,
-    BadRequest,
-    FileSystemAlreadyExists,
-    FileSystemInUse,
-    FileSystemNotFound,
-    MountTargetConflict,
-    MountTargetNotFound,
-    PolicyNotFound,
-    ReplicationAlreadyExists,
-    ReplicationNotFound,
-    SecurityGroupLimitExceeded,
-    SecurityGroupNotFound,
-    SubnetNotFound,
-)
+from moto.efs.exceptions import ReplicationAlreadyExists, ReplicationNotFound
 
 
 def _lookup_az_id(account_id: str, az_name: str) -> str | None:
