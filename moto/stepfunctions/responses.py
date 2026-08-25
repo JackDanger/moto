@@ -352,39 +352,55 @@ class StepFunctionResponse(BaseResponse):
 
     def create_state_machine_alias(self) -> ActionResult:
         name = self._get_param("name")
-        description = self._get_param("description")
         routing_configuration = self._get_param("routingConfiguration")
+        description = self._get_param("description")
+
+        # Validate routing configuration
+        self._validate_routing_configuration(routing_configuration)
+
         alias = self.stepfunction_backend.create_state_machine_alias(
-            name=name,
-            description=description,
-            routing_configuration=routing_configuration,
+            name, routing_configuration, description
         )
-        return ActionResult(
-            {
-                "stateMachineAliasArn": alias.arn,
-                "creationDate": alias.creation_date,
-            }
-        )
+        response = {
+            "creationDate": alias.creation_date,
+            "stateMachineAliasArn": alias.arn,
+        }
+        return ActionResult(response)
 
     def describe_state_machine_alias(self) -> ActionResult:
         arn = self._get_param("stateMachineAliasArn")
         alias = self.stepfunction_backend.describe_state_machine_alias(arn)
-        return ActionResult(alias.to_dict())
+        response = {
+            "stateMachineAliasArn": alias.arn,
+            "name": alias.name,
+            "routingConfiguration": alias.routing_configuration,
+            "creationDate": alias.creation_date,
+            "updateDate": alias.update_date,
+        }
+        if alias.description:
+            response["description"] = alias.description
+        return ActionResult(response)
 
     def list_state_machine_aliases(self) -> ActionResult:
-        sm_arn = self._get_param("stateMachineArn")
-        aliases = self.stepfunction_backend.list_state_machine_aliases(sm_arn)
-        return ActionResult(
-            {
-                "stateMachineAliases": [
-                    {
-                        "stateMachineAliasArn": a.arn,
-                        "creationDate": a.creation_date,
-                    }
-                    for a in aliases
-                ]
-            }
+        state_machine_arn = self._get_param("stateMachineArn")
+        max_results = self._get_int_param("maxResults")
+        next_token = self._get_param("nextToken")
+        results, next_token = self.stepfunction_backend.list_state_machine_aliases(
+            arn=state_machine_arn, max_results=max_results, next_token=next_token
         )
+        state_machine_aliases = [
+            {
+                "creationDate": sm_alias.creation_date,
+                "stateMachineAliasArn": sm_alias.arn,
+            }
+            for sm_alias in results
+        ]
+
+        response = {
+            "stateMachineAliases": state_machine_aliases,
+            "nextToken": next_token,
+        }
+        return ActionResult(response)
 
     def delete_state_machine_alias(self) -> ActionResult:
         arn = self._get_param("stateMachineAliasArn")
@@ -395,15 +411,24 @@ class StepFunctionResponse(BaseResponse):
         arn = self._get_param("stateMachineAliasArn")
         description = self._get_param("description")
         routing_configuration = self._get_param("routingConfiguration")
-        alias = self.stepfunction_backend.update_state_machine_alias(
-            arn, description=description, routing_configuration=routing_configuration
+
+        if description is None and routing_configuration is None:
+            raise ValidationException(
+                "You must provide at least one of routingConfiguration or description"
+            )
+
+        if routing_configuration:
+            self._validate_routing_configuration(routing_configuration)
+
+        state_machine_alias = self.stepfunction_backend.update_state_machine_alias(
+            arn=arn,
+            description=description,
+            routing_configuration=routing_configuration,
         )
-        return ActionResult(
-            {
-                "stateMachineAliasArn": alias.arn,
-                "updateDate": alias.update_date,
-            }
-        )
+
+        response = {"updateDate": state_machine_alias.update_date}
+
+        return ActionResult(response)
 
     def create_activity(self) -> ActionResult:
         name = self._get_param("name")
