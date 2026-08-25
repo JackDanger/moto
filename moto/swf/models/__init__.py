@@ -580,8 +580,12 @@ class SWFBackend(BaseBackend, TaggableResourcesMixin):
         wfe.cancel_activity_task(activity_task.task_token, details=details)
 
     def list_tags_for_resource(self, resource_arn: str) -> list[dict[str, str]]:
-        domain = self._find_domain_by_arn(resource_arn)
-        return domain.tags
+        self._find_domain_by_arn(resource_arn)
+        # SWF spells tag pairs in lowercase, unlike the shared TaggingService
+        return [
+            {"key": tag["Key"], "value": tag["Value"]}
+            for tag in self.tagger.list_tags_for_resource(resource_arn)["Tags"]
+        ]
 
     def _find_domain_by_arn(self, arn: str) -> Domain:
         from moto.utilities.utils import get_partition

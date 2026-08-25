@@ -632,8 +632,9 @@ class SWFResponse(BaseResponse):
 
     def tag_resource(self) -> str:
         resource_arn = self._params["resourceArn"]
-        tags = self._params["tags"]
         self._check_string(resource_arn)
+        # SWF spells tag pairs in lowercase, unlike the shared TaggingService
+        tags = {t["key"]: t["value"] for t in self._params.get("tags", [])}
         self.swf_backend.tag_resource(resource_arn, tags)
         return ""
 
