@@ -486,7 +486,13 @@ class SyntheticsBackend(BaseBackend):
                 return
 
     def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
-        return self.tagger.get_tag_dict_for_resource(resource_arn)
+        # This API is keyed by canary/group name rather than a full ARN
+        tags = dict(self.tagger.get_tag_dict_for_resource(resource_arn))
+        resource = self.canaries.get(resource_arn) or self.groups.get(resource_arn)
+        if resource is not None:
+            tags.update(self.tagger.get_tag_dict_for_resource(resource.arn))
+            tags.update(resource.tags or {})
+        return tags
 
 
 # Exported backend dict for Moto Synthetics

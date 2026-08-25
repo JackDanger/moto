@@ -1336,8 +1336,10 @@ class WorkSpacesWebBackend(BaseBackend, TaggableResourcesMixin):
             self.sessions[key].status = "Expired"
 
     # Tags
-    def tag_resource(self, client_token: str, resource_arn: str, tags: Any) -> None:
-        self.tagger.tag_resource(resource_arn, tags)
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
+        self.tagger.tag_resource(
+            resource_arn, self.tagger.convert_dict_to_tags_input(tags)
+        )
 
     def untag_resource(self, resource_arn: str, tag_keys: Any) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
