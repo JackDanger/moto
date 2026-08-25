@@ -128,7 +128,10 @@ class SecurityGroups(EC2BaseResponse):
         elif sg_id:
             self.ec2_backend.delete_security_group(group_id=sg_id)
 
-        return EmptyResult()
+        result = {"Return": True}
+        if sg_id:
+            result["GroupId"] = sg_id
+        return ActionResult(result)
 
     def describe_security_groups(self) -> ActionResult:
         groupnames = self._get_param("GroupNames", [])
@@ -186,7 +189,7 @@ class SecurityGroups(EC2BaseResponse):
             # we don't need this parameter to revoke
             del args["sgrule_tags"]
             self.ec2_backend.update_security_group_rule_descriptions_ingress(**args)
-        return EmptyResult()
+        return ActionResult({"Return": True})
 
     def get_security_groups_for_vpc(self) -> ActionResult:
         vpc_id = self._get_param("VpcId")
@@ -202,4 +205,4 @@ class SecurityGroups(EC2BaseResponse):
             # we don't need this parameter to revoke
             del args["sgrule_tags"]
             self.ec2_backend.update_security_group_rule_descriptions_egress(**args)
-        return EmptyResult()
+        return ActionResult({"Return": True})

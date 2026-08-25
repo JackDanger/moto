@@ -68,4 +68,4 @@ class FlowLogs(EC2BaseResponse):
         self.error_on_dryrun()
 
         self.ec2_backend.delete_flow_logs(flow_log_ids)
-        return EmptyResult()
+        return ActionResult({"Unsuccessful": []})

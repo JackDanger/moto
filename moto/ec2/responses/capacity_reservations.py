@@ -91,7 +91,7 @@ class CapacityReservations(EC2BaseResponse):
             }
         )
 
-    def modify_capacity_reservation(self) -> EmptyResult:
+    def modify_capacity_reservation(self) -> ActionResult:
         cr_id = self._get_param("CapacityReservationId")
         instance_count = self._get_param("InstanceCount")
         end_date = self._get_param("EndDate")
@@ -102,14 +102,14 @@ class CapacityReservations(EC2BaseResponse):
             end_date=end_date,
             end_date_type=end_date_type,
         )
-        return EmptyResult()
+        return ActionResult({"Return": True})
 
-    def cancel_capacity_reservation(self) -> EmptyResult:
+    def cancel_capacity_reservation(self) -> ActionResult:
         cr_id = self._get_param("CapacityReservationId")
         self.ec2_backend.cancel_capacity_reservation(
             capacity_reservation_id=cr_id,
         )
-        return EmptyResult()
+        return ActionResult({"Return": True})
 
     def create_capacity_reservation_fleet(self) -> ActionResult:
         specs = self._get_param("InstanceTypeSpecification", [])
@@ -162,7 +162,7 @@ class CapacityReservations(EC2BaseResponse):
             }
         )
 
-    def modify_capacity_reservation_fleet(self) -> EmptyResult:
+    def modify_capacity_reservation_fleet(self) -> ActionResult:
         fleet_id = self._get_param("CapacityReservationFleetId")
         total = self._get_param("TotalTargetCapacity")
         end_date = self._get_param("EndDate")
@@ -171,7 +171,7 @@ class CapacityReservations(EC2BaseResponse):
             total_target_capacity=(int(total) if total else None),
             end_date=end_date,
         )
-        return EmptyResult()
+        return ActionResult({"Return": True})
 
     def cancel_capacity_reservation_fleets(self) -> ActionResult:
         fleet_ids = self._get_param("CapacityReservationFleetId", [])

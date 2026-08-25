@@ -54,7 +54,7 @@ class VPCs(EC2BaseResponse):
         vpc_id = self._get_param("VpcId")
         tenancy = self._get_param("InstanceTenancy")
         self.ec2_backend.modify_vpc_tenancy(vpc_id, tenancy)
-        return EmptyResult()
+        return ActionResult({"ReturnValue": True})
 
     def describe_vpc_attribute(self) -> ActionResult:
         vpc_id = self._get_param("VpcId")
