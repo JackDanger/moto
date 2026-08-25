@@ -1,5 +1,7 @@
 """Handles incoming identitystore requests, invokes methods, returns responses."""
 
+from __future__ import annotations
+
 import json
 from typing import Any, NamedTuple
 
