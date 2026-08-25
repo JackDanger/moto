@@ -235,7 +235,6 @@ class Experiment(ManagedState, BaseModel):
             "logConfiguration": self.log_configuration,
             "experimentOptions": self.experiment_options,
             "targetAccountConfigurationsCount": len(self.target_account_configurations),
-            "targetAccountConfigurationsCount": 0,
             "experimentReportConfiguration": self.experiment_report_configuration,
         }
         return {k: v for k, v in dct.items() if v is not None}

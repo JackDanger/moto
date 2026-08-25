@@ -124,7 +124,6 @@ url_paths = {
     # Traffic distribution group
     "{0}/traffic-distribution-group$": ConnectResponse.dispatch,
     "{0}/traffic-distribution-group/(?P<TrafficDistributionGroupId>[^/]+)$": ConnectResponse.dispatch,
-    "{0}/traffic-distribution-groups$": ConnectResponse.dispatch,
     # Users
     "{0}/users/(?P<InstanceId>[^/]+)$": ConnectResponse.dispatch,
     "{0}/users/(?P<InstanceId>[^/]+)/(?P<UserId>[^/]+)$": ConnectResponse.dispatch,

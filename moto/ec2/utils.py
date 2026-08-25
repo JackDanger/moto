@@ -56,8 +56,6 @@ EC2_RESOURCE_TO_PREFIX = {
     "subnet": "subnet",
     "subnet-ipv6-cidr-block-association": "subnet-cidr-assoc",
     "reservation": "r",
-    "traffic-mirror-filter": "traf-mir-fil",
-    "traffic-mirror-target": "traf-mir-tar",
     "volume": "vol",
     "vpc": "vpc",
     "vpc-endpoint": "vpce",
