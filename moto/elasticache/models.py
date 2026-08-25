@@ -1287,29 +1287,8 @@ class ElastiCacheBackend(BaseBackend, TaggableResourcesMixin):
         self,
         cache_parameter_group_name: Optional[str] = None,
     ) -> list[dict[str, Any]]:
-        groups = [
-            {
-                "CacheParameterGroupName": "default.redis7",
-                "CacheParameterGroupFamily": "redis7",
-                "Description": "Default parameter group for redis7",
-                "IsGlobal": False,
-                "ARN": f"arn:{get_partition(self.region_name)}:elasticache:{self.region_name}:{self.account_id}:parametergroup:default.redis7",
-            },
-            {
-                "CacheParameterGroupName": "default.redis6.x",
-                "CacheParameterGroupFamily": "redis6.x",
-                "Description": "Default parameter group for redis6.x",
-                "IsGlobal": False,
-                "ARN": f"arn:{get_partition(self.region_name)}:elasticache:{self.region_name}:{self.account_id}:parametergroup:default.redis6.x",
-            },
-            {
-                "CacheParameterGroupName": "default.memcached1.6",
-                "CacheParameterGroupFamily": "memcached1.6",
-                "Description": "Default parameter group for memcached1.6",
-                "IsGlobal": False,
-                "ARN": f"arn:{get_partition(self.region_name)}:elasticache:{self.region_name}:{self.account_id}:parametergroup:default.memcached1.6",
-            },
-        ]
+        groups = [g.to_dict() for g in self._default_parameter_groups()]
+        groups += [g.to_dict() for g in self.cache_parameter_groups.values()]
         if cache_parameter_group_name:
             groups = [
                 g
@@ -1509,7 +1488,12 @@ class ElastiCacheBackend(BaseBackend, TaggableResourcesMixin):
         self,
         user_group_id: Optional[str] = None,
     ) -> list[dict[str, Any]]:
-        return []
+        groups = list(self.user_groups.values())
+        if user_group_id:
+            if user_group_id not in self.user_groups:
+                raise UserGroupNotFound(user_group_id)
+            groups = [self.user_groups[user_group_id]]
+        return [g.to_dict() for g in groups]
 
     def create_cache_parameter_group(
         self,
@@ -2331,6 +2315,15 @@ class CacheParameterGroup(BaseModel):
         # User-modified parameters (key -> value)
         self.parameters: dict[str, str] = {}
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "CacheParameterGroupName": self.cache_parameter_group_name,
+            "CacheParameterGroupFamily": self.cache_parameter_group_family,
+            "Description": self.description,
+            "IsGlobal": self.is_global,
+            "ARN": self.arn,
+        }
+
 
 class CacheSecurityGroup(BaseModel):
     def __init__(
@@ -2368,6 +2361,18 @@ class UserGroup(BaseModel):
         self.serverless_caches: list[str] = []
         self.arn = f"arn:{get_partition(region)}:elasticache:{region}:{account_id}:usergroup:{user_group_id}"
         self.tags = tags or []
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "UserGroupId": self.user_group_id,
+            "Status": self.status,
+            "Engine": self.engine,
+            "UserIds": self.user_ids,
+            "MinimumEngineVersion": self.minimum_engine_version,
+            "ReplicationGroups": self.replication_groups,
+            "ServerlessCaches": self.serverless_caches,
+            "ARN": self.arn,
+        }
 
 
 class ServerlessCache(BaseModel):
