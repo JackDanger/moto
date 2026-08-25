@@ -73,10 +73,10 @@ class Route53(BaseResponse):
         )
         result = {
             "HostedZones": zone_page,
-            "Marker": marker or "",
+            "Marker": marker,
             "IsTruncated": True if next_marker else False,
             "NextMarker": next_marker,
-            "MaxItems": str(max_items),
+            "MaxItems": max_items,
         }
         return ActionResult(result)
 
