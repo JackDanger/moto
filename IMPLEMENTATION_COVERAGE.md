@@ -24,6 +24,7 @@
 ## acm
 <details>
 <summary>32% implemented</summary>
+<summary>64% implemented</summary>
 
 - [X] add_tags_to_certificate
 - [ ] create_acme_domain_validation
@@ -1121,6 +1122,7 @@
 
 - [ ] add_dataset_examples
 - [ ] batch_put_gateway_rate_limits
+<summary>19% implemented</summary>
 - [X] create_agent_runtime
 - [X] create_agent_runtime_endpoint
 - [ ] create_api_key_credential_provider
@@ -1289,6 +1291,7 @@
 ## bedrock-runtime
 <details>
 <summary>9% implemented</summary>
+<summary>10% implemented</summary>
 
 - [ ] apply_guardrail
 - [ ] converse
@@ -1391,6 +1394,7 @@
 ## cleanrooms
 <details>
 <summary>18% implemented</summary>
+<summary>19% implemented</summary>
 
 - [ ] batch_get_collaboration_analysis_template
 - [ ] batch_get_schema
@@ -1931,6 +1935,7 @@
 ## cloudwatch
 <details>
 <summary>44% implemented</summary>
+<summary>43% implemented</summary>
 
 - [ ] associate_dataset_kms_key
 - [ ] delete_alarm_mute_rule
@@ -2270,6 +2275,7 @@
 ## cognito-idp
 <details>
 <summary>48% implemented</summary>
+<summary>49% implemented</summary>
 
 - [X] add_custom_attributes
 - [ ] add_user_pool_client_secret
@@ -3455,6 +3461,7 @@
 ## ds
 <details>
 <summary>31% implemented</summary>
+<summary>100% implemented</summary>
 
 - [ ] accept_shared_directory
 - [ ] add_ip_routes
@@ -3541,6 +3548,7 @@
 ## dsql
 <details>
 <summary>100% implemented</summary>
+<summary>31% implemented</summary>
 
 - [X] create_cluster
 - [X] create_stream
@@ -3648,7 +3656,7 @@
 
 ## ec2
 <details>
-<summary>28% implemented</summary>
+<summary>29% implemented</summary>
 
 - [ ] accept_address_transfer
 - [ ] accept_capacity_reservation_billing_ownership
@@ -5244,6 +5252,22 @@
 - [X] update_experiment_template
 - [ ] update_safety_lever_state
 - [X] update_target_account_configuration
+<summary>19% implemented</summary>
+- [ ] create_target_account_configuration
+- [ ] delete_target_account_configuration
+- [ ] get_experiment
+- [ ] get_experiment_target_account_configuration
+- [ ] get_experiment_template
+- [ ] get_target_account_configuration
+- [ ] list_experiment_resolved_targets
+- [ ] list_experiment_target_account_configurations
+- [ ] list_experiment_templates
+- [ ] list_experiments
+- [ ] list_target_account_configurations
+- [ ] start_experiment
+- [ ] stop_experiment
+- [ ] update_experiment_template
+- [ ] update_target_account_configuration
 </details>
 
 ## forecast
@@ -5411,6 +5435,7 @@
 ## glue
 <details>
 <summary>33% implemented</summary>
+<summary>35% implemented</summary>
 
 - [ ] associate_glossary_terms
 - [X] batch_create_partition
@@ -6550,6 +6575,7 @@
 ## kafka
 <details>
 <summary>20% implemented</summary>
+<summary>22% implemented</summary>
 
 - [ ] batch_associate_scram_secret
 - [ ] batch_disassociate_scram_secret
@@ -7088,6 +7114,7 @@
 ## logs
 <details>
 <summary>44% implemented</summary>
+<summary>46% implemented</summary>
 
 - [ ] associate_kms_key
 - [ ] associate_source_to_s3_table_integration
@@ -8008,6 +8035,7 @@
 ## opensearch
 <details>
 <summary>11% implemented</summary>
+<summary>12% implemented</summary>
 
 - [ ] accept_inbound_connection
 - [ ] add_data_source
@@ -8534,6 +8562,7 @@
 ## quicksight
 <details>
 <summary>10% implemented</summary>
+<summary>11% implemented</summary>
 
 - [ ] batch_create_topic_reviewed_answer
 - [ ] batch_delete_knowledge_base
@@ -9921,6 +9950,7 @@
 ## sagemaker
 <details>
 <summary>28% implemented</summary>
+<summary>27% implemented</summary>
 
 - [ ] add_association
 - [X] add_tags
@@ -10804,6 +10834,7 @@
 ## sesv2
 <details>
 <summary>26% implemented</summary>
+<summary>27% implemented</summary>
 
 - [ ] batch_get_metric_data
 - [ ] cancel_export_job
@@ -12097,6 +12128,7 @@
 - deadline
 - detective
 - devicefarm
+- devops-agent
 - devops-guru
 - discovery
 - dlm
@@ -12252,6 +12284,7 @@
 - signer-data
 - signin
 - simpledbv2
+- simspaceweaver
 - sms-voice
 - snow-device-management
 - snowball

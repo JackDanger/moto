@@ -76,6 +76,9 @@ class RouteTable(TaggedEC2Resource, CloudFormationModel):
                 item["SubnetId"] = target_id
             result.append(item)
         return result
+        self.associations: dict[str, str] = {}
+        self.routes: dict[str, Route] = {}
+        self.propagating_vgws: list[str] = []
 
     @property
     def owner_id(self) -> str:
@@ -371,6 +374,20 @@ class RouteBackend:
                 raise InvalidRouteTableIdError(invalid_id)
 
         return generic_filter(filters, route_tables)
+
+    def enable_vgw_route_propagation(
+        self, gateway_id: str, route_table_id: str
+    ) -> None:
+        route_table = self.get_route_table(route_table_id)
+        if gateway_id not in route_table.propagating_vgws:
+            route_table.propagating_vgws.append(gateway_id)
+
+    def disable_vgw_route_propagation(
+        self, gateway_id: str, route_table_id: str
+    ) -> None:
+        route_table = self.get_route_table(route_table_id)
+        if gateway_id in route_table.propagating_vgws:
+            route_table.propagating_vgws.remove(gateway_id)
 
     def delete_route_table(self, route_table_id: str) -> None:
         route_table = self.get_route_table(route_table_id)

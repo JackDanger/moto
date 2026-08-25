@@ -158,7 +158,59 @@ class AmisResponse(EC2BaseResponse):
         result = {"ImageId": image.id}
         return ActionResult(result)
 
-    def reset_image_attribute(self) -> str:
+    def reset_image_attribute(self) -> ActionResult:
         self.error_on_dryrun()
+        ami_id = self._get_param("ImageId")
+        attribute = self._get_param("Attribute")
+        self.ec2_backend.reset_image_attribute(ami_id=ami_id, attribute=attribute)
+        result = {"Return": True}
+        return ActionResult(result)
 
-        raise NotImplementedError("AMIs.reset_image_attribute is not yet implemented")
+    def disable_image(self) -> ActionResult:
+        ami_id = self._get_param("ImageId")
+        self.ec2_backend.disable_image(ami_id)
+        return ActionResult({"Return": True})
+
+    def enable_image(self) -> ActionResult:
+        ami_id = self._get_param("ImageId")
+        self.ec2_backend.enable_image(ami_id)
+        return ActionResult({"Return": True})
+
+    def disable_image_deprecation(self) -> ActionResult:
+        ami_id = self._get_param("ImageId")
+        self.ec2_backend.disable_image_deprecation(ami_id)
+        return ActionResult({"Return": True})
+
+    def enable_image_deprecation(self) -> ActionResult:
+        ami_id = self._get_param("ImageId")
+        deprecate_at = self._get_param("DeprecateAt")
+        self.ec2_backend.enable_image_deprecation(ami_id, deprecate_at)
+        return ActionResult({"Return": True})
+
+    def disable_image_deregistration_protection(self) -> ActionResult:
+        ami_id = self._get_param("ImageId")
+        self.ec2_backend.disable_image_deregistration_protection(ami_id)
+        return ActionResult({"Return": True})
+
+    def enable_image_deregistration_protection(self) -> ActionResult:
+        ami_id = self._get_param("ImageId")
+        self.ec2_backend.enable_image_deregistration_protection(ami_id)
+        return ActionResult({"Return": True})
+
+    def enable_image_block_public_access(self) -> ActionResult:
+        state = self._get_param("ImageBlockPublicAccessState")
+        result = self.ec2_backend.enable_image_block_public_access(state)
+        return ActionResult(result)
+
+    def export_image(self) -> ActionResult:
+        image_id = self._get_param("ImageId")
+        disk_image_format = self._get_param("DiskImageFormat")
+        s3_export_location = self._get_param("S3ExportLocation", {})
+        description = self._get_param("Description", "")
+        result = self.ec2_backend.export_image(
+            image_id=image_id,
+            disk_image_format=disk_image_format,
+            s3_export_location=s3_export_location,
+            description=description,
+        )
+        return ActionResult(result)

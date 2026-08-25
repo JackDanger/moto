@@ -185,8 +185,8 @@ class RestAPINotFound(NotFoundException):
         super().__init__("Invalid Rest API Id specified")
 
 
-class RequestValidatorNotFound(BadRequestException):
-    code = 400
+class RequestValidatorNotFound(NotFoundException):
+    code = 404
 
     def __init__(self) -> None:
         super().__init__("Invalid Request Validator Id specified")
@@ -285,3 +285,24 @@ class StageStillActive(BadRequestException):
 class GatewayResponseNotFound(NotFoundException):
     def __init__(self) -> None:
         super().__init__("GatewayResponse not found")
+
+
+class DocumentationPartNotFoundException(NotFoundException):
+    code = 404
+
+    def __init__(self) -> None:
+        super().__init__("Invalid Documentation part identifier specified")
+
+
+class DocumentationVersionNotFoundException(NotFoundException):
+    code = 404
+
+    def __init__(self) -> None:
+        super().__init__("Invalid Documentation version specified")
+
+
+class ClientCertificateNotFoundException(NotFoundException):
+    code = 404
+
+    def __init__(self) -> None:
+        super().__init__("Invalid client certificate identifier specified")

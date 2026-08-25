@@ -40,3 +40,27 @@ class TransitGateways(EC2BaseResponse):
             options=options,
         )
         return ActionResult({"TransitGateway": transit_gateway})
+
+    def disassociate_transit_gateway_multicast_domain(self) -> ActionResult:
+        transit_gateway_multicast_domain_id = self._get_param(
+            "TransitGatewayMulticastDomainId"
+        )
+        transit_gateway_attachment_id = self._get_param("TransitGatewayAttachmentId")
+        subnet_ids = self._get_param("SubnetIds", [])
+        result = self.ec2_backend.disassociate_transit_gateway_multicast_domain(
+            transit_gateway_multicast_domain_id=transit_gateway_multicast_domain_id,
+            transit_gateway_attachment_id=transit_gateway_attachment_id,
+            subnet_ids=subnet_ids,
+        )
+        return ActionResult({"Associations": result})
+
+    def disassociate_transit_gateway_policy_table(self) -> ActionResult:
+        transit_gateway_policy_table_id = self._get_param(
+            "TransitGatewayPolicyTableId"
+        )
+        transit_gateway_attachment_id = self._get_param("TransitGatewayAttachmentId")
+        result = self.ec2_backend.disassociate_transit_gateway_policy_table(
+            transit_gateway_policy_table_id=transit_gateway_policy_table_id,
+            transit_gateway_attachment_id=transit_gateway_attachment_id,
+        )
+        return ActionResult({"Association": result})

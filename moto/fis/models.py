@@ -5,6 +5,8 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, ClassVar, Optional
+from dataclasses import dataclass
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -235,6 +237,7 @@ class Experiment(ManagedState, BaseModel):
             "logConfiguration": self.log_configuration,
             "experimentOptions": self.experiment_options,
             "targetAccountConfigurationsCount": len(self.target_account_configurations),
+            "targetAccountConfigurationsCount": 0,
             "experimentReportConfiguration": self.experiment_report_configuration,
         }
         return {k: v for k, v in dct.items() if v is not None}

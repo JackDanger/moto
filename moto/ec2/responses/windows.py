@@ -1,4 +1,4 @@
-from moto.core.responses import ActionResult
+from moto.core.responses import ActionResult, EmptyResult
 from moto.core.utils import utcnow
 
 from ._base_response import EC2BaseResponse
@@ -11,10 +11,8 @@ class Windows(EC2BaseResponse):
     def cancel_bundle_task(self) -> str:
         raise NotImplementedError("Windows.cancel_bundle_task is not yet implemented")
 
-    def describe_bundle_tasks(self) -> str:
-        raise NotImplementedError(
-            "Windows.describe_bundle_tasks is not yet implemented"
-        )
+    def describe_bundle_tasks(self) -> ActionResult:
+        return ActionResult({"BundleInstanceTasks": []})
 
     def get_password_data(self) -> ActionResult:
         instance_id = self._get_param("InstanceId")

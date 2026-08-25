@@ -146,6 +146,10 @@ class TransitGatewayBackend:
         return result
 
     def delete_transit_gateway(self, transit_gateway_id: str) -> TransitGateway:
+        if transit_gateway_id not in self.transit_gateways:
+            from ..exceptions import InvalidTransitGatewayID
+
+            raise InvalidTransitGatewayID(transit_gateway_id)
         return self.transit_gateways.pop(transit_gateway_id)
 
     def modify_transit_gateway(
@@ -154,9 +158,43 @@ class TransitGatewayBackend:
         description: str | None = None,
         options: dict[str, str] | None = None,
     ) -> TransitGateway:
-        transit_gateway = self.transit_gateways[transit_gateway_id]
+        transit_gateway = self.transit_gateways.get(transit_gateway_id)
+        if not transit_gateway:
+            from ..exceptions import InvalidTransitGatewayID
+
+            raise InvalidTransitGatewayID(transit_gateway_id)
         if description:
             transit_gateway.description = description
         if options:
             transit_gateway.options.update(options)
         return transit_gateway
+
+    def disassociate_transit_gateway_multicast_domain(
+        self,
+        transit_gateway_multicast_domain_id: str,
+        transit_gateway_attachment_id: str,
+        subnet_ids: list[str],
+    ) -> dict[str, Any]:
+        """Disassociate subnets from a transit gateway multicast domain (stub implementation)."""
+        return {
+            "TransitGatewayMulticastDomainId": transit_gateway_multicast_domain_id,
+            "TransitGatewayAttachmentId": transit_gateway_attachment_id,
+            "ResourceId": transit_gateway_attachment_id,
+            "ResourceType": "vpc",
+            "State": "disassociated",
+            "Subnets": [{"SubnetId": s, "State": "disassociated"} for s in subnet_ids],
+        }
+
+    def disassociate_transit_gateway_policy_table(
+        self,
+        transit_gateway_policy_table_id: str,
+        transit_gateway_attachment_id: str,
+    ) -> dict[str, Any]:
+        """Disassociate a transit gateway policy table from an attachment (stub implementation)."""
+        return {
+            "TransitGatewayPolicyTableId": transit_gateway_policy_table_id,
+            "TransitGatewayAttachmentId": transit_gateway_attachment_id,
+            "ResourceId": transit_gateway_attachment_id,
+            "ResourceType": "vpc",
+            "State": "disassociated",
+        }

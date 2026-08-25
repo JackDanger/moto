@@ -3260,5 +3260,51 @@ class S3Response(BaseResponse):
                     return True
         return False
 
+    def list_directory_buckets(self) -> TYPE_RESPONSE:
+        self.data["Action"] = "ListDirectoryBuckets"
+        self._authenticate_and_authorize_s3_action()
+
+        continuation_token = self.querystring.get("continuation-token", [None])[0]
+        max_buckets_str = self.querystring.get("max-directory-buckets", ["1000"])[0]
+        max_buckets = int(max_buckets_str) if max_buckets_str else 1000
+
+        buckets, next_token = self.backend.list_directory_buckets(
+            continuation_token=continuation_token,
+            max_buckets=max_buckets,
+        )
+        result = {
+            "Buckets": [
+                {
+                    "Name": bucket.name,
+                    "CreationDate": bucket.creation_date_ISO8601,
+                    "BucketRegion": bucket.region_name,
+                    "BucketArn": bucket.arn,
+                }
+                for bucket in buckets
+            ],
+        }
+        if next_token:
+            result["ContinuationToken"] = next_token
+        return self.serialized(ActionResult(result))
+
+    def get_object_retention(self) -> TYPE_RESPONSE:
+        key_name = self.parse_key_name()
+        version_id = self._get_param("versionId")
+        mode, until = self.backend.get_object_retention(
+            self.bucket_name, key_name, version_id
+        )
+        response_headers = self._get_cors_headers_other()
+        if mode is None and until is None:
+            error_xml = '<?xml version="1.0" encoding="UTF-8"?>\n<Error>\n  <Code>NoSuchObjectLockConfiguration</Code>\n  <Message>The specified object does not have a ObjectLock configuration</Message>\n</Error>'
+            return 404, response_headers, error_xml
+        self.data["Action"] = "GetObjectRetention"
+        result = {
+            "Mode": mode,
+            "RetainUntilDate": until,
+        }
+        status, headers, body = self.serialized(ActionResult(result))
+        headers.update(response_headers)
+        return status, headers, body
+
 
 S3ResponseInstance = S3Response()

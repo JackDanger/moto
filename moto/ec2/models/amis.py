@@ -53,7 +53,7 @@ class Ami(TaggedEC2Resource):
         image_type: str = "machine",
         image_location: str | None = None,
         hypervisor: str | None = None,
-        root_device_type: str = "standard",
+        root_device_type: str | None = None,
         root_device_name: str = "/dev/sda1",
         sriov: str = "simple",
         region_name: str = "us-east-1a",
@@ -124,6 +124,23 @@ class Ami(TaggedEC2Resource):
             volume.id, snapshot_description, self.owner_id, from_ami=ami_id
         )
         self.ec2_backend.delete_volume(volume.id)
+
+        if self.root_device_type is None:
+            # Derived last: block_device_mappings reads self.ebs_snapshot. Only the
+            # root device's mapping decides — a secondary EBS volume does not make
+            # an instance-store image EBS-backed. "standard" is the legacy
+            # instance-store value that Packer's amazon-ebs builder rejects.
+            root_mapping = next(
+                (
+                    mapping
+                    for mapping in self.block_device_mappings
+                    if mapping.get("DeviceName") == self.root_device_name
+                ),
+                None,
+            )
+            self.root_device_type = (
+                "ebs" if root_mapping and "Ebs" in root_mapping else "standard"
+            )
 
     @property
     def is_public(self) -> bool:
@@ -394,3 +411,71 @@ class AmiBackend:
 
     def describe_image_attribute(self, ami_id: str, attribute_name: str) -> Any:
         return self.amis[ami_id].__getattribute__(attribute_name)
+
+    def _get_ami_or_raise(self, ami_id: str) -> "Ami":
+        ami = self.amis.get(ami_id)
+        if not ami:
+            raise InvalidAMIIdError(ami_id)
+        return ami
+
+    def disable_image(self, ami_id: str) -> None:
+        ami = self._get_ami_or_raise(ami_id)
+        ami.state = "disabled"
+
+    def enable_image(self, ami_id: str) -> None:
+        ami = self._get_ami_or_raise(ami_id)
+        ami.state = "available"
+
+    def disable_image_deprecation(self, ami_id: str) -> None:
+        ami = self._get_ami_or_raise(ami_id)
+        ami.deprecation_time: Optional[str] = None  # type: ignore[assignment]
+
+    def enable_image_deprecation(self, ami_id: str, deprecate_at: str) -> None:
+        ami = self._get_ami_or_raise(ami_id)
+        ami.deprecation_time = deprecate_at  # type: ignore[attr-defined]
+
+    def disable_image_deregistration_protection(self, ami_id: str) -> None:
+        ami = self._get_ami_or_raise(ami_id)
+        ami.deregistration_protection = "disabled"  # type: ignore[attr-defined]
+
+    def enable_image_deregistration_protection(self, ami_id: str) -> None:
+        ami = self._get_ami_or_raise(ami_id)
+        ami.deregistration_protection = "enabled"  # type: ignore[attr-defined]
+
+    def enable_image_block_public_access(self, state: str) -> dict[str, str]:
+        """Set image block public access state for the region."""
+        self._image_block_public_access_state = state  # type: ignore[attr-defined]
+        return {"ImageBlockPublicAccessState": state}
+
+    def reset_image_attribute(self, ami_id: str, attribute: str) -> None:
+        ami = self.describe_images(ami_ids=[ami_id])[0]
+        if attribute == "launchPermission":
+            ami.launch_permissions = []
+
+    def export_image(
+        self,
+        image_id: str,
+        disk_image_format: str,
+        s3_export_location: dict[str, Any],
+        description: str = "",
+    ) -> dict[str, Any]:
+        """Export an AMI to S3 (stub implementation - returns a fake export task)."""
+        import uuid
+
+        ami = self._get_ami_or_raise(image_id)
+        export_task_id = f"export-ami-{uuid.uuid4().hex[:17]}"
+        s3_bucket = s3_export_location.get("S3Bucket", "")
+        s3_prefix = s3_export_location.get("S3Prefix", "")
+        return {
+            "ExportImageTaskId": export_task_id,
+            "ImageId": ami.id,
+            "Description": description,
+            "DiskImageFormat": disk_image_format,
+            "Progress": "0",
+            "S3ExportLocation": {
+                "S3Bucket": s3_bucket,
+                "S3Prefix": s3_prefix,
+            },
+            "Status": "active",
+            "StatusMessage": "Export in progress",
+        }

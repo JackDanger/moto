@@ -32,6 +32,20 @@ from .exceptions import (
 )
 from .parser.api import EncryptionType
 from .utils import PAGINATION_MODEL, api_to_cfn_tags, cfn_to_api_tags
+from .exceptions import (
+    ActivityAlreadyExists,
+    ActivityDoesNotExist,
+    ConflictException,
+    ExecutionAlreadyExists,
+    ExecutionDoesNotExist,
+    InvalidArn,
+    InvalidEncryptionConfiguration,
+    InvalidExecutionInput,
+    InvalidName,
+    NameTooLongException,
+    ResourceNotFound,
+    StateMachineDoesNotExist,
+)
 
 
 class StateMachineInstance:
@@ -83,6 +97,19 @@ class StateMachineAlias(CloudFormationModel):
             if value is not None:
                 setattr(self, key, value)
         self.update_date = utcnow()
+
+    def to_dict(self) -> dict[str, Any]:
+        def _fmt(dt: datetime) -> str:
+            return dt.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+
+        return {
+            "stateMachineAliasArn": self.arn,
+            "name": self.name,
+            "description": self.description,
+            "routingConfiguration": self.routing_configuration,
+            "creationDate": _fmt(self.creation_date),
+            "updateDate": _fmt(self.update_date),
+        }
 
 
 class StateMachineVersion(StateMachineInstance, CloudFormationModel):
@@ -621,6 +648,7 @@ class StepFunctionBackend(BaseBackend, TaggableResourcesMixin):
         self.state_machines: list[StateMachine] = []
         self.activities: dict[str, Activity] = {}
         self._account_id = None
+        self.aliases: dict[str, StateMachineAlias] = {}
 
     def create_state_machine(
         self,
@@ -1028,6 +1056,93 @@ class StepFunctionBackend(BaseBackend, TaggableResourcesMixin):
 
     def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(arn, tag_keys)
+
+    def validate_state_machine_definition(
+        self, definition: str, type: Optional[str] = None
+    ) -> dict[str, Any]:
+        # Basic validation: try to parse as JSON
+        result = "OK"
+        diagnostics: list[dict[str, str]] = []
+        try:
+            json.loads(definition)
+        except Exception:
+            result = "FAIL"
+            diagnostics.append(
+                {
+                    "severity": "ERROR",
+                    "code": "INVALID_JSON_DESCRIPTION",
+                    "message": "Could not parse the state machine definition.",
+                }
+            )
+        return {"result": result, "diagnostics": diagnostics, "truncated": False}
+
+    def publish_state_machine_version(
+        self, arn: str, description: Optional[str] = None
+    ) -> dict[str, Any]:
+        sm = self.describe_state_machine(arn)
+        sm.publish(description=description)
+        version = sm.latest_version
+        return {
+            "creationDate": version.creation_date,
+            "stateMachineVersionArn": version.arn,
+        }
+
+    def list_state_machine_versions(
+        self,
+        arn: str,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> dict[str, Any]:
+        sm = self.describe_state_machine(arn)
+        versions = sorted(
+            sm.versions.values(), key=lambda v: v.creation_date, reverse=True
+        )
+        items = [
+            {
+                "stateMachineVersionArn": v.arn,
+                "creationDate": v.creation_date,
+            }
+            for v in versions
+        ]
+        return {"stateMachineVersions": items}
+
+    def delete_state_machine_version(self, version_arn: str) -> None:
+        self._validate_machine_arn(version_arn)
+        # Parse the version ARN: arn:...:stateMachine:name:version_number
+        arn_parts = version_arn.split(":")
+        if len(arn_parts) <= 7 or not arn_parts[-1].isnumeric():
+            raise StateMachineDoesNotExist(
+                f"State Machine Does Not Exist: '{version_arn}'"
+            )
+        source_arn = ":".join(arn_parts[:-1])
+        version_number = int(arn_parts[-1])
+        sm = next((x for x in self.state_machines if x.arn == source_arn), None)
+        if not sm:
+            return  # Idempotent — AWS doesn't error if already gone
+        sm.versions.pop(version_number, None)
+
+    def get_activity_task(self, activity_arn: str, worker_name: Optional[str] = None) -> dict[str, Any]:
+        self._validate_activity_arn(activity_arn)
+        if activity_arn not in self.activities:
+            raise ActivityDoesNotExist(activity_arn)
+        # Return an empty task token response (no tasks queued)
+        return {"taskToken": "", "input": ""}
+
+    def redrive_execution(self, execution_arn: str, client_token: Optional[str] = None) -> dict[str, Any]:
+        self._validate_execution_arn(execution_arn)
+        execution = None
+        for sm in self.state_machines:
+            for ex in sm.executions:
+                if ex.execution_arn == execution_arn:
+                    execution = ex
+                    break
+            if execution:
+                break
+        if execution is None:
+            from .exceptions import ExecutionDoesNotExist
+            raise ExecutionDoesNotExist(f"Execution Does Not Exist: '{execution_arn}'")
+        import datetime
+        return {"redriveDate": datetime.datetime.now(datetime.timezone.utc).timestamp()}
 
 
 stepfunctions_backends = BackendDict(StepFunctionBackend, "stepfunctions")

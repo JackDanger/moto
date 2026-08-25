@@ -197,6 +197,78 @@ class ACMPCAResponse(BaseResponse):
         self.acmpca_backend.delete_policy(resource_arn=resource_arn)
         return "{}"
 
+    def restore_certificate_authority(self) -> str:
+        params = json.loads(self.body)
+        certificate_authority_arn = params.get("CertificateAuthorityArn")
+        self.acmpca_backend.restore_certificate_authority(
+            certificate_authority_arn=certificate_authority_arn,
+        )
+        return "{}"
+
+    def create_permission(self) -> str:
+        params = json.loads(self.body)
+        certificate_authority_arn = params.get("CertificateAuthorityArn")
+        principal = params.get("Principal")
+        source_account = params.get("SourceAccount", "")
+        actions = params.get("Actions", [])
+        self.acmpca_backend.create_permission(
+            certificate_authority_arn=certificate_authority_arn,
+            principal=principal,
+            source_account=source_account,
+            actions=actions,
+        )
+        return "{}"
+
+    def delete_permission(self) -> str:
+        params = json.loads(self.body)
+        certificate_authority_arn = params.get("CertificateAuthorityArn")
+        principal = params.get("Principal")
+        source_account = params.get("SourceAccount")
+        self.acmpca_backend.delete_permission(
+            certificate_authority_arn=certificate_authority_arn,
+            principal=principal,
+            source_account=source_account,
+        )
+        return "{}"
+
+    def list_permissions(self) -> str:
+        params = json.loads(self.body)
+        certificate_authority_arn = params.get("CertificateAuthorityArn")
+        permissions = self.acmpca_backend.list_permissions(
+            certificate_authority_arn=certificate_authority_arn,
+        )
+        return json.dumps({"Permissions": [p.to_json() for p in permissions]})
+
+    def create_certificate_authority_audit_report(self) -> str:
+        params = json.loads(self.body)
+        certificate_authority_arn = params.get("CertificateAuthorityArn")
+        s3_bucket_name = params.get("S3BucketName")
+        audit_report_response_format = params.get("AuditReportResponseFormat")
+        audit_report_id, s3_key = (
+            self.acmpca_backend.create_certificate_authority_audit_report(
+                certificate_authority_arn=certificate_authority_arn,
+                s3_bucket_name=s3_bucket_name,
+                audit_report_response_format=audit_report_response_format,
+            )
+        )
+        return json.dumps({"AuditReportId": audit_report_id, "S3Key": s3_key})
+
+    def describe_certificate_authority_audit_report(self) -> str:
+        params = json.loads(self.body)
+        certificate_authority_arn = params.get("CertificateAuthorityArn")
+        audit_report_id = params.get("AuditReportId")
+        report = self.acmpca_backend.describe_certificate_authority_audit_report(
+            certificate_authority_arn=certificate_authority_arn,
+            audit_report_id=audit_report_id,
+        )
+        return json.dumps({
+            "AuditReportId": report["AuditReportId"],
+            "S3BucketName": report["S3BucketName"],
+            "S3Key": report["S3Key"],
+            "CreatedAt": report["CreatedAt"],
+            "AuditReportStatus": report["Status"],
+        })
+
     def list_certificate_authorities(self) -> str:
         """
         Handler for ListCertificateAuthorities API request

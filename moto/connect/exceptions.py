@@ -15,3 +15,10 @@ class InvalidParameterException(JsonRESTError):
 
     def __init__(self, message: str) -> None:
         super().__init__("InvalidParameterException", message)
+
+
+class DuplicateResourceException(JsonRESTError):
+    code = 409
+
+    def __init__(self, message: str) -> None:
+        super().__init__("DuplicateResourceException", message)

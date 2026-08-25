@@ -8,7 +8,11 @@ from typing import Any
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
 from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
-from moto.kafka.exceptions import BadRequestException, NotFoundException
+from moto.kafka.exceptions import (
+    BadRequestException,
+    ConflictException,
+    NotFoundException,
+)
 from moto.utilities.utils import get_partition
 
 from ..utilities.tagging_service import TaggingService
@@ -68,6 +72,12 @@ class FakeKafkaCluster(BaseModel):
 
         # Attributes specific to SERVERLESS clusters
         self.serverless_config = serverless_config
+        self.connectivity_info: Optional[dict[str, Any]] = None
+        self.scram_secrets: list[str] = []
+        self.cluster_policy: Optional[str] = None
+        self.cluster_policy_version: str = "1"
+        self.topics: dict[str, FakeTopic] = {}
+        self.client_vpc_connections: list[str] = []
 
     def _generate_arn(self) -> str:
         resource_type = (
@@ -75,6 +85,14 @@ class FakeKafkaCluster(BaseModel):
         )
         partition = get_partition(self.region_name)
         return f"arn:{partition}:kafka:{self.region_name}:{self.account_id}:{resource_type}/{self.cluster_id}"
+
+    def _increment_version(self) -> str:
+        try:
+            ver = int(self.current_version)
+            self.current_version = str(ver + 1)
+        except ValueError:
+            self.current_version = "2"
+        return self.current_version
 
 
 class KafkaBackend(BaseBackend, TaggableResourcesMixin):
@@ -87,6 +105,10 @@ class KafkaBackend(BaseBackend, TaggableResourcesMixin):
         self.clusters: dict[str, FakeKafkaCluster] = {}
         self.policies: dict[str, dict[str, str]] = {}
         self.tagger = TaggingService()
+        self.configurations: dict[str, FakeConfiguration] = {}
+        self.replicators: dict[str, FakeReplicator] = {}
+        self.vpc_connections: dict[str, FakeVpcConnection] = {}
+        self.cluster_operations: dict[str, FakeClusterOperation] = {}
 
     def create_cluster_v2(
         self,
@@ -379,5 +401,407 @@ class KafkaBackend(BaseBackend, TaggableResourcesMixin):
     def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
+    def _get_cluster(self, cluster_arn: str) -> FakeKafkaCluster:
+        if cluster_arn not in self.clusters:
+            raise NotFoundException(f"The cluster with the Amazon Resource Name (ARN) {cluster_arn} was not found.")
+        return self.clusters[cluster_arn]
 
+    def _get_configuration(self, arn: str) -> FakeConfiguration:
+        if arn not in self.configurations:
+            raise NotFoundException(f"The configuration with the Amazon Resource Name (ARN) {arn} was not found.")
+        return self.configurations[arn]
+
+    def _create_operation(self, cluster_arn: str, operation_type: str) -> FakeClusterOperation:
+        operation = FakeClusterOperation(cluster_arn=cluster_arn, account_id=self.account_id, region_name=self.region_name, operation_type=operation_type)
+        self.cluster_operations[operation.arn] = operation
+        return operation
+
+    def create_configuration(self, name: str, description: str, kafka_versions: list[str], server_properties: str) -> dict[str, Any]:
+        config = FakeConfiguration(name=name, account_id=self.account_id, region_name=self.region_name, description=description, kafka_versions=kafka_versions or [], server_properties=server_properties)
+        self.configurations[config.arn] = config
+        return {"arn": config.arn, "creationTime": config.creation_time, "latestRevision": {"creationTime": config.latest_revision["creationTime"], "description": config.latest_revision["description"], "revision": config.latest_revision["revision"]}, "name": config.name, "state": config.state}
+
+    def describe_configuration(self, arn: str) -> dict[str, Any]:
+        config = self._get_configuration(arn)
+        return {"arn": config.arn, "creationTime": config.creation_time, "description": config.description, "kafkaVersions": config.kafka_versions, "latestRevision": {"creationTime": config.latest_revision["creationTime"], "description": config.latest_revision["description"], "revision": config.latest_revision["revision"]}, "name": config.name, "state": config.state}
+
+    def delete_configuration(self, arn: str) -> dict[str, Any]:
+        self._get_configuration(arn)
+        self.configurations.pop(arn)
+        return {"arn": arn, "state": "DELETING"}
+
+    def update_configuration(self, arn: str, description: str, server_properties: str) -> dict[str, Any]:
+        config = self._get_configuration(arn)
+        revision = config._add_revision(description or "", server_properties)
+        return {"arn": config.arn, "latestRevision": {"creationTime": revision["creationTime"], "description": revision["description"], "revision": revision["revision"]}}
+
+    def list_configurations(self, max_results: Optional[int], next_token: Optional[str]) -> tuple[list[dict[str, Any]], Optional[str]]:
+        configs = [{"arn": c.arn, "creationTime": c.creation_time, "description": c.description, "kafkaVersions": c.kafka_versions, "latestRevision": {"creationTime": c.latest_revision["creationTime"], "description": c.latest_revision["description"], "revision": c.latest_revision["revision"]}, "name": c.name, "state": c.state} for c in self.configurations.values()]
+        return configs, None
+
+    def list_configuration_revisions(self, arn: str, max_results: Optional[int], next_token: Optional[str]) -> tuple[list[dict[str, Any]], Optional[str]]:
+        config = self._get_configuration(arn)
+        return [{"creationTime": r["creationTime"], "description": r["description"], "revision": r["revision"]} for r in config.revisions], None
+
+    def describe_configuration_revision(self, arn: str, revision: int) -> dict[str, Any]:
+        config = self._get_configuration(arn)
+        for rev in config.revisions:
+            if rev["revision"] == revision:
+                return {"arn": config.arn, "creationTime": rev["creationTime"], "description": rev["description"], "revision": rev["revision"], "serverProperties": rev["serverProperties"]}
+        raise NotFoundException(f"Revision {revision} for configuration {arn} was not found.")
+
+    def create_replicator(self, replicator_name: str, description: str, kafka_clusters: list[dict[str, Any]], replication_info_list: list[dict[str, Any]], service_execution_role_arn: str, tags: Optional[dict[str, str]] = None) -> dict[str, Any]:
+        replicator = FakeReplicator(replicator_name=replicator_name, account_id=self.account_id, region_name=self.region_name, description=description, kafka_clusters=kafka_clusters, replication_info_list=replication_info_list, service_execution_role_arn=service_execution_role_arn, tags=tags)
+        self.replicators[replicator.arn] = replicator
+        if tags:
+            self.tag_resource(replicator.arn, tags)
+        return {"replicatorArn": replicator.arn, "replicatorName": replicator.replicator_name, "replicatorState": replicator.state}
+
+    def describe_replicator(self, replicator_arn: str) -> dict[str, Any]:
+        if replicator_arn not in self.replicators:
+            raise NotFoundException(f"The replicator with the ARN {replicator_arn} was not found.")
+        r = self.replicators[replicator_arn]
+        return {"creationTime": r.creation_time, "currentVersion": r.current_version, "isReplicatorReference": False, "kafkaClusters": r.kafka_clusters, "replicationInfoList": r.replication_info_list, "replicatorArn": r.arn, "replicatorDescription": r.description, "replicatorName": r.replicator_name, "replicatorResourceArn": r.arn, "replicatorState": r.state, "serviceExecutionRoleArn": r.service_execution_role_arn, "stateInfo": {}, "tags": self.list_tags_for_resource(r.arn)}
+
+    def delete_replicator(self, replicator_arn: str, current_version: Optional[str]) -> dict[str, Any]:
+        if replicator_arn not in self.replicators:
+            raise NotFoundException(f"The replicator with the ARN {replicator_arn} was not found.")
+        self.replicators.pop(replicator_arn)
+        return {"replicatorArn": replicator_arn, "replicatorState": "DELETING"}
+
+    def list_replicators(self, max_results: Optional[int], next_token: Optional[str], replicator_name_filter: Optional[str]) -> tuple[list[dict[str, Any]], Optional[str]]:
+        result = [{"creationTime": r.creation_time, "currentVersion": r.current_version, "isReplicatorReference": False, "replicatorArn": r.arn, "replicatorName": r.replicator_name, "replicatorState": r.state} for r in self.replicators.values() if not replicator_name_filter or replicator_name_filter in r.replicator_name]
+        return result, None
+
+    def update_replication_info(self, replicator_arn: str, current_version: str, source_kafka_cluster_arn: str, target_kafka_cluster_arn: str, consumer_group_replication: Optional[dict[str, Any]], topic_replication: Optional[dict[str, Any]]) -> dict[str, Any]:
+        if replicator_arn not in self.replicators:
+            raise NotFoundException(f"The replicator with the ARN {replicator_arn} was not found.")
+        r = self.replicators[replicator_arn]
+        for info in r.replication_info_list:
+            if consumer_group_replication:
+                info["consumerGroupReplication"] = consumer_group_replication
+            if topic_replication:
+                info["topicReplication"] = topic_replication
+        r.current_version = str(int(r.current_version) + 1)
+        return {"replicatorArn": r.arn, "replicatorState": r.state}
+
+    def create_vpc_connection(self, target_cluster_arn: str, authentication: str, vpc_id: str, client_subnets: list[str], security_groups: list[str], tags: Optional[dict[str, str]] = None) -> dict[str, Any]:
+        vc = FakeVpcConnection(account_id=self.account_id, region_name=self.region_name, target_cluster_arn=target_cluster_arn, authentication=authentication, vpc_id=vpc_id, client_subnets=client_subnets, security_groups=security_groups, tags=tags)
+        self.vpc_connections[vc.arn] = vc
+        if tags:
+            self.tag_resource(vc.arn, tags)
+        if target_cluster_arn in self.clusters:
+            self.clusters[target_cluster_arn].client_vpc_connections.append(vc.arn)
+        return {"vpcConnectionArn": vc.arn, "state": vc.state, "authentication": vc.authentication, "vpcId": vc.vpc_id, "clientSubnets": vc.client_subnets, "securityGroups": vc.security_groups, "creationTime": vc.creation_time, "tags": vc.tags}
+
+    def describe_vpc_connection(self, arn: str) -> dict[str, Any]:
+        if arn not in self.vpc_connections:
+            raise NotFoundException(f"The VPC connection with the ARN {arn} was not found.")
+        vc = self.vpc_connections[arn]
+        return {"vpcConnectionArn": vc.arn, "targetClusterArn": vc.target_cluster_arn, "state": vc.state, "authentication": vc.authentication, "vpcId": vc.vpc_id, "subnets": vc.client_subnets, "securityGroups": vc.security_groups, "creationTime": vc.creation_time, "tags": self.list_tags_for_resource(vc.arn)}
+
+    def delete_vpc_connection(self, arn: str) -> dict[str, Any]:
+        if arn not in self.vpc_connections:
+            raise NotFoundException(f"The VPC connection with the ARN {arn} was not found.")
+        vc = self.vpc_connections.pop(arn)
+        if vc.target_cluster_arn in self.clusters:
+            cl = self.clusters[vc.target_cluster_arn]
+            if arn in cl.client_vpc_connections:
+                cl.client_vpc_connections.remove(arn)
+        return {"vpcConnectionArn": arn, "state": "DELETING"}
+
+    def list_vpc_connections(self, max_results: Optional[int], next_token: Optional[str]) -> tuple[list[dict[str, Any]], Optional[str]]:
+        return [{"vpcConnectionArn": vc.arn, "targetClusterArn": vc.target_cluster_arn, "creationTime": vc.creation_time, "authentication": vc.authentication, "vpcId": vc.vpc_id, "state": vc.state} for vc in self.vpc_connections.values()], None
+
+    def list_client_vpc_connections(self, cluster_arn: str, max_results: Optional[int], next_token: Optional[str]) -> tuple[list[dict[str, Any]], Optional[str]]:
+        cluster = self._get_cluster(cluster_arn)
+        conns = [{"vpcConnectionArn": self.vpc_connections[a].arn, "owner": self.vpc_connections[a].account_id, "authentication": self.vpc_connections[a].authentication, "creationTime": self.vpc_connections[a].creation_time, "state": self.vpc_connections[a].state} for a in cluster.client_vpc_connections if a in self.vpc_connections]
+        return conns, None
+
+    def reject_client_vpc_connection(self, cluster_arn: str, vpc_connection_arn: str) -> None:
+        self._get_cluster(cluster_arn)
+        if vpc_connection_arn in self.vpc_connections:
+            self.vpc_connections[vpc_connection_arn].state = "REJECTED"
+
+    def get_bootstrap_brokers(self, cluster_arn: str) -> dict[str, Any]:
+        cluster = self._get_cluster(cluster_arn)
+        n = cluster.number_of_broker_nodes or 3
+        bs = [f"b-{i}.{cluster.cluster_name}.kafka.{cluster.region_name}.amazonaws.com" for i in range(1, n + 1)]
+        return {"bootstrapBrokerString": ",".join(f"{b}:9092" for b in bs), "bootstrapBrokerStringTls": ",".join(f"{b}:9094" for b in bs), "bootstrapBrokerStringSaslScram": ",".join(f"{b}:9096" for b in bs), "bootstrapBrokerStringSaslIam": ",".join(f"{b}:9098" for b in bs), "bootstrapBrokerStringPublicTls": "", "bootstrapBrokerStringPublicSaslScram": "", "bootstrapBrokerStringPublicSaslIam": "", "bootstrapBrokerStringVpcConnectivityTls": "", "bootstrapBrokerStringVpcConnectivitySaslScram": "", "bootstrapBrokerStringVpcConnectivitySaslIam": ""}
+
+    def batch_associate_scram_secret(self, cluster_arn: str, secret_arn_list: list[str]) -> dict[str, Any]:
+        cluster = self._get_cluster(cluster_arn)
+        unprocessed: list[dict[str, Any]] = []
+        for sa in secret_arn_list:
+            if sa in cluster.scram_secrets:
+                unprocessed.append({"errorCode": "InvalidParameterException", "errorMessage": f"Secret {sa} is already associated.", "secretArn": sa})
+            else:
+                cluster.scram_secrets.append(sa)
+        return {"clusterArn": cluster_arn, "unprocessedScramSecrets": unprocessed}
+
+    def batch_disassociate_scram_secret(self, cluster_arn: str, secret_arn_list: list[str]) -> dict[str, Any]:
+        cluster = self._get_cluster(cluster_arn)
+        unprocessed: list[dict[str, Any]] = []
+        for sa in secret_arn_list:
+            if sa in cluster.scram_secrets:
+                cluster.scram_secrets.remove(sa)
+            else:
+                unprocessed.append({"errorCode": "InvalidParameterException", "errorMessage": f"Secret {sa} is not associated.", "secretArn": sa})
+        return {"clusterArn": cluster_arn, "unprocessedScramSecrets": unprocessed}
+
+    def list_scram_secrets(self, cluster_arn: str, max_results: Optional[int], next_token: Optional[str]) -> tuple[list[str], Optional[str]]:
+        return self._get_cluster(cluster_arn).scram_secrets, None
+
+    def list_nodes(self, cluster_arn: str, max_results: Optional[int], next_token: Optional[str]) -> tuple[list[dict[str, Any]], Optional[str]]:
+        cluster = self._get_cluster(cluster_arn)
+        n = cluster.number_of_broker_nodes or 3
+        nodes = [{"nodeType": "BROKER", "nodeARN": f"{cluster.arn}/broker/{i}", "brokerNodeInfo": {"attachedENIId": f"eni-{uuid.uuid4().hex[:12]}", "brokerId": float(i), "clientSubnet": (cluster.broker_node_group_info or {}).get("clientSubnets", ["subnet-00000"])[0], "clientVpcIpAddress": f"10.0.{i}.{i}", "currentBrokerSoftwareInfo": {"kafkaVersion": cluster.kafka_version or "2.8.1"}, "endpoints": [f"b-{i}.{cluster.cluster_name}.kafka.{cluster.region_name}.amazonaws.com"]}} for i in range(1, n + 1)]
+        return nodes, None
+
+    def list_kafka_versions(self, max_results: Optional[int], next_token: Optional[str]) -> tuple[list[dict[str, Any]], Optional[str]]:
+        return [{"version": v, "status": "ACTIVE"} for v in KAFKA_VERSIONS], None
+
+    def get_compatible_kafka_versions(self, cluster_arn: Optional[str]) -> list[dict[str, Any]]:
+        if cluster_arn:
+            cluster = self._get_cluster(cluster_arn)
+            sv = cluster.kafka_version or "2.8.1"
+            return [{"sourceVersion": sv, "targetVersions": COMPATIBLE_KAFKA_VERSIONS.get(sv, [])}]
+        return [{"sourceVersion": s, "targetVersions": t} for s, t in COMPATIBLE_KAFKA_VERSIONS.items() if t]
+
+    def describe_cluster_operation(self, cluster_operation_arn: str) -> dict[str, Any]:
+        if cluster_operation_arn not in self.cluster_operations:
+            raise NotFoundException(f"The cluster operation with the ARN {cluster_operation_arn} was not found.")
+        return self.cluster_operations[cluster_operation_arn].to_dict()
+
+    def describe_cluster_operation_v2(self, cluster_operation_arn: str) -> dict[str, Any]:
+        if cluster_operation_arn not in self.cluster_operations:
+            raise NotFoundException(f"The cluster operation with the ARN {cluster_operation_arn} was not found.")
+        return self.cluster_operations[cluster_operation_arn].to_dict_v2()
+
+    def list_cluster_operations(self, cluster_arn: str, max_results: Optional[int], next_token: Optional[str]) -> tuple[list[dict[str, Any]], Optional[str]]:
+        self._get_cluster(cluster_arn)
+        return [op.to_dict() for op in self.cluster_operations.values() if op.cluster_arn == cluster_arn], None
+
+    def list_cluster_operations_v2(self, cluster_arn: str, max_results: Optional[int], next_token: Optional[str]) -> tuple[list[dict[str, Any]], Optional[str]]:
+        self._get_cluster(cluster_arn)
+        return [op.to_dict_v2() for op in self.cluster_operations.values() if op.cluster_arn == cluster_arn], None
+
+    def reboot_broker(self, cluster_arn: str, broker_ids: list[str]) -> dict[str, Any]:
+        self._get_cluster(cluster_arn)
+        op = self._create_operation(cluster_arn, "REBOOT_BROKER")
+        return {"clusterArn": cluster_arn, "clusterOperationArn": op.arn}
+
+    def update_broker_count(self, cluster_arn: str, current_version: str, target_number_of_broker_nodes: int) -> dict[str, Any]:
+        c = self._get_cluster(cluster_arn)
+        c.number_of_broker_nodes = target_number_of_broker_nodes
+        c._increment_version()
+        return {"clusterArn": cluster_arn, "clusterOperationArn": self._create_operation(cluster_arn, "UPDATE_BROKER_COUNT").arn}
+
+    def update_broker_storage(self, cluster_arn: str, current_version: str, target_broker_ebs_volume_info: list[dict[str, Any]]) -> dict[str, Any]:
+        self._get_cluster(cluster_arn)._increment_version()
+        return {"clusterArn": cluster_arn, "clusterOperationArn": self._create_operation(cluster_arn, "UPDATE_BROKER_STORAGE").arn}
+
+    def update_broker_type(self, cluster_arn: str, current_version: str, target_instance_type: str) -> dict[str, Any]:
+        c = self._get_cluster(cluster_arn)
+        if c.broker_node_group_info:
+            c.broker_node_group_info["instanceType"] = target_instance_type
+        c._increment_version()
+        return {"clusterArn": cluster_arn, "clusterOperationArn": self._create_operation(cluster_arn, "UPDATE_BROKER_TYPE").arn}
+
+    def update_cluster_configuration(self, cluster_arn: str, configuration_info: dict[str, Any], current_version: str) -> dict[str, Any]:
+        c = self._get_cluster(cluster_arn)
+        c.configuration_info = configuration_info
+        c._increment_version()
+        return {"clusterArn": cluster_arn, "clusterOperationArn": self._create_operation(cluster_arn, "UPDATE_CLUSTER_CONFIGURATION").arn}
+
+    def update_cluster_kafka_version(self, cluster_arn: str, configuration_info: Optional[dict[str, Any]], current_version: str, target_kafka_version: str) -> dict[str, Any]:
+        c = self._get_cluster(cluster_arn)
+        c.kafka_version = target_kafka_version
+        if configuration_info:
+            c.configuration_info = configuration_info
+        c._increment_version()
+        return {"clusterArn": cluster_arn, "clusterOperationArn": self._create_operation(cluster_arn, "UPDATE_CLUSTER_KAFKA_VERSION").arn}
+
+    def update_connectivity(self, cluster_arn: str, connectivity_info: dict[str, Any], current_version: str) -> dict[str, Any]:
+        c = self._get_cluster(cluster_arn)
+        c.connectivity_info = connectivity_info
+        c._increment_version()
+        return {"clusterArn": cluster_arn, "clusterOperationArn": self._create_operation(cluster_arn, "UPDATE_CONNECTIVITY").arn}
+
+    def update_monitoring(self, cluster_arn: str, current_version: str, enhanced_monitoring: Optional[str], open_monitoring: Optional[dict[str, Any]], logging_info: Optional[dict[str, Any]]) -> dict[str, Any]:
+        c = self._get_cluster(cluster_arn)
+        if enhanced_monitoring:
+            c.enhanced_monitoring = enhanced_monitoring
+        if open_monitoring:
+            c.open_monitoring = open_monitoring
+        if logging_info:
+            c.logging_info = logging_info
+        c._increment_version()
+        return {"clusterArn": cluster_arn, "clusterOperationArn": self._create_operation(cluster_arn, "UPDATE_MONITORING").arn}
+
+    def update_security(self, cluster_arn: str, client_authentication: Optional[dict[str, Any]], current_version: str, encryption_info: Optional[dict[str, Any]]) -> dict[str, Any]:
+        c = self._get_cluster(cluster_arn)
+        if client_authentication:
+            c.client_authentication = client_authentication
+        if encryption_info:
+            c.encryption_info = encryption_info
+        c._increment_version()
+        return {"clusterArn": cluster_arn, "clusterOperationArn": self._create_operation(cluster_arn, "UPDATE_SECURITY").arn}
+
+    def update_storage(self, cluster_arn: str, current_version: str, provisioned_throughput: Optional[dict[str, Any]], storage_mode: Optional[str], volume_size_gb: Optional[int]) -> dict[str, Any]:
+        c = self._get_cluster(cluster_arn)
+        if storage_mode:
+            c.storage_mode = storage_mode
+        c._increment_version()
+        return {"clusterArn": cluster_arn, "clusterOperationArn": self._create_operation(cluster_arn, "UPDATE_STORAGE").arn}
+
+    def update_rebalancing(self, cluster_arn: str, current_version: str, rebalancing: dict[str, Any]) -> dict[str, Any]:
+        self._get_cluster(cluster_arn)._increment_version()
+        return {"clusterArn": cluster_arn, "clusterOperationArn": self._create_operation(cluster_arn, "UPDATE_REBALANCING").arn}
+
+    def create_topic(self, cluster_arn: str, topic_name: str, partition_count: Optional[int], replication_factor: Optional[int], configs: Optional[dict[str, str]]) -> dict[str, Any]:
+        cluster = self._get_cluster(cluster_arn)
+        if topic_name in cluster.topics:
+            raise ConflictException(f"Topic {topic_name} already exists.")
+        topic = FakeTopic(cluster_arn=cluster_arn, account_id=self.account_id, region_name=self.region_name, topic_name=topic_name, partition_count=partition_count or 1, replication_factor=replication_factor or 1, configs=configs)
+        cluster.topics[topic_name] = topic
+        return {"topicArn": topic.arn, "topicName": topic.topic_name, "status": topic.status}
+
+    def delete_topic(self, cluster_arn: str, topic_name: str) -> dict[str, Any]:
+        cluster = self._get_cluster(cluster_arn)
+        if topic_name not in cluster.topics:
+            raise NotFoundException(f"Topic {topic_name} was not found.")
+        topic = cluster.topics.pop(topic_name)
+        return {"topicArn": topic.arn, "topicName": topic.topic_name, "status": "DELETING"}
+
+    def describe_topic(self, cluster_arn: str, topic_name: str) -> dict[str, Any]:
+        cluster = self._get_cluster(cluster_arn)
+        if topic_name not in cluster.topics:
+            raise NotFoundException(f"Topic {topic_name} was not found.")
+        t = cluster.topics[topic_name]
+        return {"topicArn": t.arn, "topicName": t.topic_name, "replicationFactor": t.replication_factor, "partitionCount": t.partition_count, "configs": t.configs, "status": t.status}
+
+    def list_topics(self, cluster_arn: str, max_results: Optional[int], next_token: Optional[str], topic_name_filter: Optional[str]) -> tuple[list[dict[str, Any]], Optional[str]]:
+        cluster = self._get_cluster(cluster_arn)
+        return [{"topicArn": t.arn, "topicName": t.topic_name, "status": t.status} for t in cluster.topics.values() if not topic_name_filter or topic_name_filter in t.topic_name], None
+
+    def update_topic(self, cluster_arn: str, topic_name: str, configs: Optional[dict[str, str]], partition_count: Optional[int]) -> dict[str, Any]:
+        cluster = self._get_cluster(cluster_arn)
+        if topic_name not in cluster.topics:
+            raise NotFoundException(f"Topic {topic_name} was not found.")
+        t = cluster.topics[topic_name]
+        if configs is not None:
+            t.configs = configs
+        if partition_count is not None:
+            t.partition_count = partition_count
+        return {"topicArn": t.arn, "topicName": t.topic_name, "status": t.status}
+
+    def describe_topic_partitions(self, cluster_arn: str, topic_name: str, max_results: Optional[int], next_token: Optional[str]) -> tuple[list[dict[str, Any]], Optional[str]]:
+        cluster = self._get_cluster(cluster_arn)
+        if topic_name not in cluster.topics:
+            raise NotFoundException(f"Topic {topic_name} was not found.")
+        t = cluster.topics[topic_name]
+        return [{"partitionIndex": i, "isr": [1], "leader": 1, "replicas": [1]} for i in range(t.partition_count)], None
+
+
+
+
+class FakeConfiguration(BaseModel):
+    def __init__(
+        self,
+        name: str,
+        account_id: str,
+        region_name: str,
+        description: str,
+        kafka_versions: list[str],
+        server_properties: str,
+    ):
+        self.name = name
+        self.account_id = account_id
+        self.region_name = region_name
+        self.description = description
+        self.kafka_versions = kafka_versions
+        self.state = "ACTIVE"
+        self.creation_time = datetime.now().isoformat()
+        partition = get_partition(region_name)
+        self.arn = f"arn:{partition}:kafka:{region_name}:{account_id}:configuration/{name}/{str(uuid.uuid4())}"
+        self.revisions: list[dict[str, Any]] = []
+        self._add_revision(description, server_properties)
+
+    def _add_revision(self, description: str, server_properties: str) -> dict[str, Any]:
+        revision_number = len(self.revisions) + 1
+        revision = {"creationTime": datetime.now().isoformat(), "description": description, "revision": revision_number, "serverProperties": server_properties}
+        self.revisions.append(revision)
+        return revision
+
+    @property
+    def latest_revision(self) -> dict[str, Any]:
+        return self.revisions[-1]
+
+
+class FakeReplicator(BaseModel):
+    def __init__(self, replicator_name: str, account_id: str, region_name: str, description: str, kafka_clusters: list[dict[str, Any]], replication_info_list: list[dict[str, Any]], service_execution_role_arn: str, tags: Optional[dict[str, str]] = None):
+        self.replicator_name = replicator_name
+        self.account_id = account_id
+        self.region_name = region_name
+        self.description = description
+        self.kafka_clusters = kafka_clusters
+        self.replication_info_list = replication_info_list
+        self.service_execution_role_arn = service_execution_role_arn
+        self.tags = tags or {}
+        self.state = "RUNNING"
+        self.creation_time = datetime.now().isoformat()
+        self.current_version = "1"
+        partition = get_partition(region_name)
+        self.arn = f"arn:{partition}:kafka:{region_name}:{account_id}:replicator/{replicator_name}/{str(uuid.uuid4())}"
+
+
+class FakeVpcConnection(BaseModel):
+    def __init__(self, account_id: str, region_name: str, target_cluster_arn: str, authentication: str, vpc_id: str, client_subnets: list[str], security_groups: list[str], tags: Optional[dict[str, str]] = None):
+        self.account_id = account_id
+        self.region_name = region_name
+        self.target_cluster_arn = target_cluster_arn
+        self.authentication = authentication
+        self.vpc_id = vpc_id
+        self.client_subnets = client_subnets
+        self.security_groups = security_groups
+        self.tags = tags or {}
+        self.state = "AVAILABLE"
+        self.creation_time = datetime.now().isoformat()
+        partition = get_partition(region_name)
+        self.arn = f"arn:{partition}:kafka:{region_name}:{account_id}:vpc-connection/{str(uuid.uuid4())}"
+
+
+class FakeClusterOperation(BaseModel):
+    def __init__(self, cluster_arn: str, account_id: str, region_name: str, operation_type: str):
+        self.cluster_arn = cluster_arn
+        self.account_id = account_id
+        self.region_name = region_name
+        self.operation_type = operation_type
+        self.creation_time = datetime.now().isoformat()
+        self.end_time = datetime.now().isoformat()
+        self.operation_state = "UPDATE_COMPLETE"
+        partition = get_partition(region_name)
+        self.arn = f"arn:{partition}:kafka:{region_name}:{account_id}:cluster-operation/{str(uuid.uuid4())}"
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"clusterArn": self.cluster_arn, "clusterOperationArn": self.arn, "creationTime": self.creation_time, "endTime": self.end_time, "operationState": self.operation_state, "operationType": self.operation_type}
+
+    def to_dict_v2(self) -> dict[str, Any]:
+        return {"clusterArn": self.cluster_arn, "clusterOperationArn": self.arn, "clusterType": "PROVISIONED", "startTime": self.creation_time, "endTime": self.end_time, "operationState": self.operation_state, "operationType": self.operation_type}
+
+
+class FakeTopic(BaseModel):
+    def __init__(self, cluster_arn: str, account_id: str, region_name: str, topic_name: str, partition_count: int = 1, replication_factor: int = 1, configs: Optional[dict[str, str]] = None):
+        self.cluster_arn = cluster_arn
+        self.account_id = account_id
+        self.region_name = region_name
+        self.topic_name = topic_name
+        self.partition_count = partition_count
+        self.replication_factor = replication_factor
+        self.configs = configs or {}
+        self.status = "ACTIVE"
+        partition = get_partition(region_name)
+        cluster_id = cluster_arn.rsplit("/", 1)[-1] if "/" in cluster_arn else "unknown"
+        self.arn = f"arn:{partition}:kafka:{region_name}:{account_id}:topic/{cluster_id}/{topic_name}"
 kafka_backends = BackendDict(KafkaBackend, "kafka")

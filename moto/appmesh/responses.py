@@ -489,3 +489,87 @@ class AppMeshResponse(BaseResponse):
                 "gatewayRoutes": [r.formatted_for_list_api() for r in gateway_routes],
             }
         )
+
+    def create_virtual_service(self) -> str:
+        params = json.loads(self.body)
+        client_token = params.get("clientToken")
+        mesh_name = self._get_param("meshName")
+        mesh_owner = self._get_param("meshOwner")
+        spec = params.get("spec") or {}
+        tags = params.get("tags")
+        virtual_service_name = params.get("virtualServiceName")
+        virtual_service = self.appmesh_backend.create_virtual_service(
+            client_token=client_token,
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            spec=spec,
+            tags=tags,
+            virtual_service_name=virtual_service_name,
+        )
+        return json.dumps(virtual_service.to_dict())
+
+    def describe_virtual_service(self) -> str:
+        mesh_name = self._get_param("meshName")
+        mesh_owner = self._get_param("meshOwner")
+        virtual_service_name = self._get_param("virtualServiceName")
+        virtual_service = self.appmesh_backend.describe_virtual_service(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_service_name=virtual_service_name,
+        )
+        return json.dumps(virtual_service.to_dict())
+
+    def update_virtual_service(self) -> str:
+        params = json.loads(self.body)
+        client_token = params.get("clientToken")
+        mesh_name = self._get_param("meshName")
+        mesh_owner = self._get_param("meshOwner")
+        spec = params.get("spec") or {}
+        virtual_service_name = self._get_param("virtualServiceName")
+        virtual_service = self.appmesh_backend.update_virtual_service(
+            client_token=client_token,
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            spec=spec,
+            virtual_service_name=virtual_service_name,
+        )
+        return json.dumps(virtual_service.to_dict())
+
+    def delete_virtual_service(self) -> str:
+        mesh_name = self._get_param("meshName")
+        mesh_owner = self._get_param("meshOwner")
+        virtual_service_name = self._get_param("virtualServiceName")
+        virtual_service = self.appmesh_backend.delete_virtual_service(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_service_name=virtual_service_name,
+        )
+        return json.dumps(virtual_service.to_dict())
+
+    def list_virtual_services(self) -> str:
+        limit = self._get_int_param("limit")
+        mesh_name = self._get_param("meshName")
+        mesh_owner = self._get_param("meshOwner")
+        next_token = self._get_param("nextToken")
+        virtual_services, next_token = self.appmesh_backend.list_virtual_services(
+            limit=limit,
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            next_token=next_token,
+        )
+        return json.dumps(
+            {
+                "nextToken": next_token,
+                "virtualServices": [vs.formatted_for_list_api() for vs in virtual_services],
+            }
+        )
+
+    def untag_resource(self) -> str:
+        params = self._get_params()
+        resource_arn = params.get("resourceArn")
+        tag_keys = json.loads(self.body).get("tagKeys") or []
+        self.appmesh_backend.untag_resource(
+            resource_arn=resource_arn,
+            tag_keys=tag_keys,
+        )
+        return json.dumps({})

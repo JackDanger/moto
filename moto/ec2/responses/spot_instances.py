@@ -109,3 +109,212 @@ class SpotInstances(EC2BaseResponse):
         )
 
         return ActionResult({"SpotInstanceRequests": requests})
+        request_list = []
+        for request in requests:
+            groups = [
+                {"GroupId": group.id, "GroupName": group.name}
+                for group in request.launch_specification.groups
+            ]
+            launch_spec = {
+                "ImageId": request.launch_specification.image_id,
+                "KeyName": request.launch_specification.key_name,
+                "Groups": groups,
+                "KernelId": request.launch_specification.kernel,
+                "RamdiskId": request.launch_specification.ramdisk,
+                "SubnetId": request.launch_specification.subnet_id,
+                "InstanceType": request.launch_specification.instance_type,
+                "BlockDeviceMapping": {},
+                "Monitoring": {"Enabled": request.launch_specification.monitored},
+                "EbsOptimized": request.launch_specification.ebs_optimized,
+                "Placement": {
+                    "AvailabilityZone": request.launch_specification.placement,
+                    "GroupName": "",
+                },
+            }
+            request_dict = {
+                "SpotInstanceRequestId": request.id,
+                "SpotPrice": request.price,
+                "Type": request.type,
+                "State": request.state,
+                "Status": {
+                    "Code": request.status,
+                    "UpdateTime": "2015-01-01T00:00:00.000Z",
+                    "Message": request.status_message,
+                },
+                "InstanceId": request.instance.id,
+                "AvailabilityZoneGroup": request.availability_zone_group,
+                "LaunchSpecification": launch_spec,
+                "LaunchGroup": request.launch_group,
+                "CreateTime": "2015-01-01T00:00:00.000Z",
+                "ProductDescription": "Linux/UNIX",
+            }
+            if request.valid_from:
+                request_dict["ValidFrom"] = request.valid_from_as_string
+            if request.valid_until:
+                request_dict["ValidUntil"] = request.valid_until_as_string
+            request_list.append(request_dict)
+
+        return ActionResult({"SpotInstanceRequests": request_list})
+
+
+REQUEST_SPOT_INSTANCES_TEMPLATE = """<RequestSpotInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <spotInstanceRequestSet>
+    {% for request in requests %}
+    <item>
+      <spotInstanceRequestId>{{ request.id }}</spotInstanceRequestId>
+      <spotPrice>{{ request.price }}</spotPrice>
+      <type>{{ request.type }}</type>
+      <state>{{ request.state }}</state>
+      <status>
+        <code>{{ request.status }}</code>
+        <updateTime>2015-01-01T00:00:00.000Z</updateTime>
+        <message>{{ request.status_message }}</message>
+      </status>
+      <instanceId>{{ request.instance.id }}</instanceId>
+      <availabilityZoneGroup>{{ request.availability_zone_group }}</availabilityZoneGroup>
+      <launchSpecification>
+        <imageId>{{ request.launch_specification.image_id }}</imageId>
+        <keyName>{{ request.launch_specification.key_name }}</keyName>
+        <groupSet>
+          {% for group in request.launch_specification.groups %}
+          <item>
+            <groupId>{{ group.id }}</groupId>
+            <groupName>{{ group.name }}</groupName>
+          </item>
+          {% endfor %}
+        </groupSet>
+        <kernelId>{{ request.launch_specification.kernel }}</kernelId>
+        <ramdiskId>{{ request.launch_specification.ramdisk }}</ramdiskId>
+        <subnetId>{{ request.launch_specification.subnet_id }}</subnetId>
+        <instanceType>{{ request.launch_specification.instance_type }}</instanceType>
+        <blockDeviceMapping/>
+        <monitoring>
+          <enabled>{{ request.launch_specification.monitored }}</enabled>
+        </monitoring>
+        <ebsOptimized>{{ request.launch_specification.ebs_optimized }}</ebsOptimized>
+        <PlacementRequestType>
+          <availabilityZone>{{ request.launch_specification.placement }}</availabilityZone>
+          <groupName></groupName>
+        </PlacementRequestType>
+      </launchSpecification>
+      <launchGroup>{{ request.launch_group }}</launchGroup>
+      <createTime>2015-01-01T00:00:00.000Z</createTime>
+      {% if request.valid_from %}
+      <validFrom>{{ request.valid_from_as_string }}</validFrom>
+      {% endif %}
+      {% if request.valid_until %}
+      <validUntil>{{ request.valid_until_as_string }}</validUntil>
+      {% endif %}
+      <productDescription>Linux/UNIX</productDescription>
+    </item>
+    {% endfor %}
+ </spotInstanceRequestSet>
+</RequestSpotInstancesResponse>"""
+
+DESCRIBE_SPOT_INSTANCES_TEMPLATE = """<DescribeSpotInstanceRequestsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <spotInstanceRequestSet>
+    {% for request in requests %}
+    <item>
+      <spotInstanceRequestId>{{ request.id }}</spotInstanceRequestId>
+      <spotPrice>{{ request.price }}</spotPrice>
+      <type>{{ request.type }}</type>
+      <state>{{ request.state }}</state>
+      <status>
+        <code>{{ request.status }}</code>
+        <updateTime>2015-01-01T00:00:00.000Z</updateTime>
+        <message>{{ request.status_message }}</message>
+      </status>
+      <instanceId>{{ request.instance.id }}</instanceId>
+      {% if request.availability_zone_group %}
+        <availabilityZoneGroup>{{ request.availability_zone_group }}</availabilityZoneGroup>
+      {% endif %}
+      <launchSpecification>
+        <imageId>{{ request.launch_specification.image_id }}</imageId>
+        {% if request.launch_specification.key_name %}
+          <keyName>{{ request.launch_specification.key_name }}</keyName>
+        {% endif %}
+        <groupSet>
+          {% for group in request.launch_specification.groups %}
+          <item>
+            <groupId>{{ group.id }}</groupId>
+            <groupName>{{ group.name }}</groupName>
+          </item>
+          {% endfor %}
+        </groupSet>
+        {% if request.launch_specification.kernel %}
+        <kernelId>{{ request.launch_specification.kernel }}</kernelId>
+        {% endif %}
+        {% if request.launch_specification.ramdisk %}
+        <ramdiskId>{{ request.launch_specification.ramdisk }}</ramdiskId>
+        {% endif %}
+        {% if request.launch_specification.subnet_id %}
+        <subnetId>{{ request.launch_specification.subnet_id }}</subnetId>
+        {% endif %}
+        <instanceType>{{ request.launch_specification.instance_type }}</instanceType>
+        <blockDeviceMapping/>
+        <monitoring>
+          <enabled>{{ request.launch_specification.monitored }}</enabled>
+        </monitoring>
+        <ebsOptimized>{{ request.launch_specification.ebs_optimized }}</ebsOptimized>
+        {% if request.launch_specification.placement %}
+          <PlacementRequestType>
+            <availabilityZone>{{ request.launch_specification.placement }}</availabilityZone>
+            <groupName></groupName>
+          </PlacementRequestType>
+        {% endif %}
+      </launchSpecification>
+      <tagSet>
+        {% for tag in request.get_tags() %}
+          <item>
+            <resourceId>{{ tag.resource_id }}</resourceId>
+            <resourceType>{{ tag.resource_type }}</resourceType>
+            <key>{{ tag.key }}</key>
+            <value>{{ tag.value }}</value>
+          </item>
+        {% endfor %}
+      </tagSet>
+      {% if request.launch_group %}
+        <launchGroup>{{ request.launch_group }}</launchGroup>
+      {% endif %}
+        <createTime>2015-01-01T00:00:00.000Z</createTime>
+      {% if request.valid_from %}
+        <validFrom>{{ request.valid_from_as_string }}</validFrom>
+      {% endif %}
+      {% if request.valid_until %}
+        <validUntil>{{ request.valid_until_as_string }}</validUntil>
+      {% endif %}
+      <productDescription>Linux/UNIX</productDescription>
+      <instanceInterruptionBehavior>{{ request.instance_interruption_behaviour }}</instanceInterruptionBehavior>
+    </item>
+    {% endfor %}
+  </spotInstanceRequestSet>
+</DescribeSpotInstanceRequestsResponse>"""
+
+CANCEL_SPOT_INSTANCES_TEMPLATE = """<CancelSpotInstanceRequestsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <spotInstanceRequestSet>
+    {% for request in requests %}
+    <item>
+      <spotInstanceRequestId>{{ request.id }}</spotInstanceRequestId>
+      <state>cancelled</state>
+    </item>
+    {% endfor %}
+  </spotInstanceRequestSet>
+</CancelSpotInstanceRequestsResponse>"""
+
+DESCRIBE_SPOT_PRICE_HISTORY_TEMPLATE = """<DescribeSpotPriceHistoryResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <spotPriceHistorySet>
+    {% for price in prices %}
+    <item>
+      <instanceType>{{ price.InstanceType }}</instanceType>
+      <productDescription>Linux/UNIX (Amazon VPC)</productDescription>
+      <spotPrice>0.00001</spotPrice>
+      <availabilityZone>{{ price.Location }}</availabilityZone>
+      <timestamp>2006-01-02T15:04:05.999999999Z</timestamp>
+    </item>
+    {% endfor %}
+  </spotPriceHistorySet>
+  </DescribeSpotPriceHistoryResponse>"""

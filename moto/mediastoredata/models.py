@@ -1,5 +1,6 @@
 import hashlib
 from collections import OrderedDict
+from datetime import datetime, timezone
 from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -10,13 +11,22 @@ from .exceptions import ClientError
 
 class Object(BaseModel):
     def __init__(
-        self, path: str, body: str, etag: str, storage_class: str = "TEMPORAL"
+        self,
+        path: str,
+        body: str,
+        etag: str,
+        storage_class: str = "TEMPORAL",
+        content_type: str = "application/octet-stream",
+        cache_control: str = "",
     ):
         self.path = path
         self.body = body
         self.content_sha256 = hashlib.sha256(body.encode("utf-8")).hexdigest()
         self.etag = etag
         self.storage_class = storage_class
+        self.content_type = content_type
+        self.cache_control = cache_control
+        self.last_modified = datetime.now(timezone.utc)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -36,13 +46,23 @@ class MediaStoreDataBackend(BaseBackend):
         self._objects: dict[str, Object] = OrderedDict()
 
     def put_object(
-        self, body: str, path: str, storage_class: str = "TEMPORAL"
+        self,
+        body: str,
+        path: str,
+        storage_class: str = "TEMPORAL",
+        content_type: str = "application/octet-stream",
+        cache_control: str = "",
     ) -> Object:
         """
-        The following parameters are not yet implemented: ContentType, CacheControl, UploadAvailability
+        The following parameters are not yet implemented: UploadAvailability
         """
         new_object = Object(
-            path=path, body=body, etag="etag", storage_class=storage_class
+            path=path,
+            body=body,
+            etag="etag",
+            storage_class=storage_class,
+            content_type=content_type,
+            cache_control=cache_control,
         )
         self._objects[path] = new_object
         return new_object
@@ -53,6 +73,14 @@ class MediaStoreDataBackend(BaseBackend):
                 "ObjectNotFoundException", f"Object with id={path} not found"
             )
         del self._objects[path]
+
+    def describe_object(self, path: str) -> Object:
+        objects_found = [item for item in self._objects.values() if item.path == path]
+        if len(objects_found) == 0:
+            raise ClientError(
+                "ObjectNotFoundException", f"Object with id={path} not found"
+            )
+        return objects_found[0]
 
     def get_object(self, path: str) -> Object:
         """

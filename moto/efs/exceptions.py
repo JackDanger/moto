@@ -97,3 +97,23 @@ class SecurityGroupLimitExceeded(EFSError):
 
     def __init__(self, msg: str):
         super().__init__("SecurityGroupLimitExceeded", msg)
+
+
+class ReplicationNotFound(EFSError):
+    code = 404
+
+    def __init__(self, file_system_id: str):
+        super().__init__(
+            "ReplicationNotFound",
+            f"No replications found for file system '{file_system_id}'.",
+        )
+
+
+class ReplicationAlreadyExists(EFSError):
+    code = 409
+
+    def __init__(self, file_system_id: str):
+        super().__init__(
+            "ReplicationAlreadyExists",
+            f"File system '{file_system_id}' already has a replication configuration.",
+        )

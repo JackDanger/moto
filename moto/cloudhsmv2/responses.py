@@ -154,3 +154,103 @@ class CloudHSMV2Response(BaseResponse):
             policy=policy,
         )
         return json.dumps(result)
+
+    def delete_resource_policy(self) -> str:
+        params = json.loads(self.body)
+        resource_arn = params.get("ResourceArn")
+        result = self.cloudhsmv2_backend.delete_resource_policy(
+            resource_arn=resource_arn,
+        )
+        return json.dumps(result)
+
+    def create_hsm(self) -> str:
+        params = json.loads(self.body)
+        cluster_id = params.get("ClusterId")
+        availability_zone = params.get("AvailabilityZone")
+        ip_address = params.get("IpAddress")
+
+        hsm = self.cloudhsmv2_backend.create_hsm(
+            cluster_id=cluster_id,
+            availability_zone=availability_zone,
+            ip_address=ip_address,
+        )
+        return json.dumps({"Hsm": hsm})
+
+    def delete_hsm(self) -> str:
+        params = json.loads(self.body)
+        cluster_id = params.get("ClusterId")
+        hsm_id = params.get("HsmId")
+        eni_id = params.get("EniId")
+        eni_ip = params.get("EniIp")
+
+        deleted_hsm_id = self.cloudhsmv2_backend.delete_hsm(
+            cluster_id=cluster_id,
+            hsm_id=hsm_id,
+            eni_id=eni_id,
+            eni_ip=eni_ip,
+        )
+        return json.dumps({"HsmId": deleted_hsm_id})
+
+    def delete_backup(self) -> str:
+        params = json.loads(self.body)
+        backup_id = params.get("BackupId")
+
+        backup = self.cloudhsmv2_backend.delete_backup(backup_id=backup_id)
+        return json.dumps({"Backup": backup.to_dict()}, cls=DateTimeEncoder)
+
+    def copy_backup_to_region(self) -> str:
+        params = json.loads(self.body)
+        destination_region = params.get("DestinationRegion")
+        backup_id = params.get("BackupId")
+        tag_list = params.get("TagList")
+
+        result = self.cloudhsmv2_backend.copy_backup_to_region(
+            destination_region=destination_region,
+            backup_id=backup_id,
+            tag_list=tag_list,
+        )
+        return json.dumps(result, cls=DateTimeEncoder)
+
+    def initialize_cluster(self) -> str:
+        params = json.loads(self.body)
+        cluster_id = params.get("ClusterId")
+        signed_cert = params.get("SignedCert")
+        trust_anchor = params.get("TrustAnchor")
+
+        result = self.cloudhsmv2_backend.initialize_cluster(
+            cluster_id=cluster_id,
+            signed_cert=signed_cert,
+            trust_anchor=trust_anchor,
+        )
+        return json.dumps(result)
+
+    def modify_backup_attributes(self) -> str:
+        params = json.loads(self.body)
+        backup_id = params.get("BackupId")
+        never_expires = params.get("NeverExpires")
+
+        backup = self.cloudhsmv2_backend.modify_backup_attributes(
+            backup_id=backup_id,
+            never_expires=never_expires,
+        )
+        return json.dumps({"Backup": backup.to_dict()}, cls=DateTimeEncoder)
+
+    def modify_cluster(self) -> str:
+        params = json.loads(self.body)
+        cluster_id = params.get("ClusterId")
+        backup_retention_policy = params.get("BackupRetentionPolicy")
+        hsm_type = params.get("HsmType")
+
+        cluster = self.cloudhsmv2_backend.modify_cluster(
+            cluster_id=cluster_id,
+            backup_retention_policy=backup_retention_policy,
+            hsm_type=hsm_type,
+        )
+        return json.dumps({"Cluster": cluster}, cls=DateTimeEncoder)
+
+    def restore_backup(self) -> str:
+        params = json.loads(self.body)
+        backup_id = params.get("BackupId")
+
+        backup = self.cloudhsmv2_backend.restore_backup(backup_id=backup_id)
+        return json.dumps({"Backup": backup.to_dict()}, cls=DateTimeEncoder)

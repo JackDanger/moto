@@ -76,6 +76,18 @@ class MissingRenderingAttributeException(SesError):
         super().__init__(f"Attribute '{var}' is not present in the rendering data.")
 
 
+class CustomVerificationEmailTemplateDoesNotExist(SesError):
+    code = "CustomVerificationEmailTemplateDoesNotExist"
+
+
+class CustomVerificationEmailTemplateAlreadyExists(SesError):
+    code = "CustomVerificationEmailTemplateAlreadyExists"
+
+
+class ReceiptFilterAlreadyExists(SesError):
+    code = "AlreadyExists"
+
+
 class NotFoundException(JsonRESTError):
     code = 404
 

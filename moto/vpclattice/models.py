@@ -111,6 +111,8 @@ class VPCLatticeListener(BaseModel):
         self.createdAt = datetime.now(timezone.utc).isoformat()
         self.last_updated_at = datetime.now(timezone.utc).isoformat()
         self.tags: dict[str, str] = tags or {}
+        self.service_id: str = service_identifier
+        self.status: str = "ACTIVE"
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -283,6 +285,7 @@ class VPCLatticeRule(BaseModel):
         self.priority: int = priority
         self.service_identifier: str = service_identifier
         self.tags: dict[str, str] = tags or {}
+        self.is_default: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -1036,6 +1039,223 @@ class VPCLatticeBackend(BaseBackend, TaggableResourcesMixin):
 
     def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
+
+    def delete_service(self, service_identifier: str) -> VPCLatticeService:
+        service = self.get_service(service_identifier)
+        del self.services[service.id]
+        return service
+
+    def update_service(
+        self,
+        service_identifier: str,
+        auth_type: Optional[str],
+        certificate_arn: Optional[str],
+    ) -> VPCLatticeService:
+        service = self.get_service(service_identifier)
+        if auth_type is not None:
+            service.auth_type = auth_type
+        if certificate_arn is not None:
+            service.certificate_arn = certificate_arn
+        return service
+
+    def delete_service_network(
+        self, service_network_identifier: str
+    ) -> None:
+        sn = self.get_service_network(service_network_identifier)
+        del self.service_networks[sn.id]
+
+    def update_service_network(
+        self,
+        service_network_identifier: str,
+        auth_type: str,
+    ) -> VPCLatticeServiceNetwork:
+        sn = self.get_service_network(service_network_identifier)
+        sn.auth_type = auth_type
+        return sn
+
+    def get_service_network_vpc_association(
+        self, service_network_vpc_association_identifier: str
+    ) -> VPCLatticeServiceNetworkVpcAssociation:
+        assoc = self.service_network_vpc_associations.get(
+            service_network_vpc_association_identifier
+        )
+        if not assoc:
+            raise ResourceNotFoundException(service_network_vpc_association_identifier)
+        return assoc
+
+    def update_service_network_vpc_association(
+        self,
+        service_network_vpc_association_identifier: str,
+        security_group_ids: list[str],
+    ) -> VPCLatticeServiceNetworkVpcAssociation:
+        assoc = self.get_service_network_vpc_association(
+            service_network_vpc_association_identifier
+        )
+        assoc.security_group_ids = security_group_ids
+        return assoc
+
+    def delete_service_network_vpc_association(
+        self, service_network_vpc_association_identifier: str
+    ) -> VPCLatticeServiceNetworkVpcAssociation:
+        assoc = self.get_service_network_vpc_association(
+            service_network_vpc_association_identifier
+        )
+        assoc.status = "DELETE_IN_PROGRESS"
+        del self.service_network_vpc_associations[assoc.id]
+        return assoc
+
+    def delete_service_network_service_association(
+        self, service_network_service_association_identifier: str
+    ) -> VPCLatticeServiceNetworkServiceAssociation:
+        assoc = self.get_service_network_service_association(
+            service_network_service_association_identifier
+        )
+        del self.service_network_service_associations[assoc.id]
+        return assoc
+
+    def update_listener(
+        self,
+        service_identifier: str,
+        listener_identifier: str,
+        default_action: dict[str, Any],
+    ) -> VPCLatticeListener:
+        listener = self.get_listener(service_identifier, listener_identifier)
+        listener.default_action = default_action
+        return listener
+
+    def delete_listener(
+        self, service_identifier: str, listener_identifier: str
+    ) -> None:
+        self.get_listener(service_identifier, listener_identifier)
+        del self.listeners[listener_identifier]
+
+    def get_rule(
+        self,
+        service_identifier: str,
+        listener_identifier: str,
+        rule_identifier: str,
+    ) -> VPCLatticeRule:
+        rule = self.rules.get(rule_identifier)
+        if not rule:
+            raise ResourceNotFoundException(rule_identifier)
+        return rule
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_rules(
+        self, service_identifier: str, listener_identifier: str
+    ) -> list[VPCLatticeRule]:
+        return [
+            r for r in self.rules.values()
+            if r.listener_identifier == listener_identifier
+            and r.service_identifier == service_identifier
+        ]
+
+    def update_rule(
+        self,
+        service_identifier: str,
+        listener_identifier: str,
+        rule_identifier: str,
+        action: Optional[dict[str, Any]],
+        match: Optional[dict[str, Any]],
+        priority: Optional[int],
+    ) -> VPCLatticeRule:
+        rule = self.get_rule(service_identifier, listener_identifier, rule_identifier)
+        if action is not None:
+            rule.action = action
+        if match is not None:
+            rule.match = match
+        if priority is not None:
+            rule.priority = priority
+        return rule
+
+    def delete_rule(
+        self,
+        service_identifier: str,
+        listener_identifier: str,
+        rule_identifier: str,
+    ) -> None:
+        self.get_rule(service_identifier, listener_identifier, rule_identifier)
+        del self.rules[rule_identifier]
+
+    def batch_update_rule(
+        self,
+        service_identifier: str,
+        listener_identifier: str,
+        rules: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        successful = []
+        unsuccessful = []
+        for rule_update in rules:
+            rule_id = rule_update.get("ruleIdentifier", "")
+            try:
+                rule = self.get_rule(service_identifier, listener_identifier, rule_id)
+                if "action" in rule_update:
+                    rule.action = rule_update["action"]
+                if "match" in rule_update:
+                    rule.match = rule_update["match"]
+                if "priority" in rule_update:
+                    rule.priority = rule_update["priority"]
+                successful.append(rule.to_dict())
+            except ResourceNotFoundException:
+                unsuccessful.append({"ruleIdentifier": rule_id})
+        return {"successful": successful, "unsuccessful": unsuccessful}
+
+    def update_target_group(
+        self,
+        target_group_identifier: str,
+        health_check: dict[str, Any],
+    ) -> VPCLatticeTargetGroup:
+        tg = self.get_target_group(target_group_identifier)
+        tg.config["healthCheck"] = health_check
+        return tg
+
+    def delete_target_group(self, target_group_identifier: str) -> VPCLatticeTargetGroup:
+        tg = self.get_target_group(target_group_identifier)
+        tg.status = "DELETE_IN_PROGRESS"
+        del self.target_groups[tg.id]
+        return tg
+
+    def register_targets(
+        self,
+        target_group_identifier: str,
+        targets: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        tg = self.get_target_group(target_group_identifier)
+        successful = []
+        unsuccessful = []
+        for target in targets:
+            tg.targets.append(target)
+            successful.append(target)
+        return {"successful": successful, "unsuccessful": unsuccessful}
+
+    def deregister_targets(
+        self,
+        target_group_identifier: str,
+        targets: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        tg = self.get_target_group(target_group_identifier)
+        successful = []
+        unsuccessful = []
+        for target in targets:
+            target_id = target.get("id")
+            matching = [t for t in tg.targets if t.get("id") == target_id]
+            if matching:
+                tg.targets = [t for t in tg.targets if t.get("id") != target_id]
+                successful.append(target)
+            else:
+                unsuccessful.append({"target": target, "failureCode": "TargetNotFound"})
+        return {"successful": successful, "unsuccessful": unsuccessful}
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_targets(
+        self,
+        target_group_identifier: str,
+    ) -> list[dict[str, Any]]:
+        tg = self.get_target_group(target_group_identifier)
+        return [
+            {**t, "id": t.get("id", ""), "port": t.get("port", 0), "status": "HEALTHY"}
+            for t in tg.targets
+        ]
 
 
 vpclattice_backends: BackendDict[VPCLatticeBackend] = BackendDict(

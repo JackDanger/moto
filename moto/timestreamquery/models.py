@@ -70,6 +70,9 @@ class TimestreamQueryBackend(BaseBackend):
         self.query_result_queue: dict[str | None, list[dict[str, Any]]] = {}
         self.query_results: dict[str, dict[str, Any]] = {}
 
+        self._max_query_tcu: int = 1000
+        self._query_pricing_model: str = "BYTES_SCANNED"
+
     def create_scheduled_query(
         self,
         name: str,
@@ -107,6 +110,8 @@ class TimestreamQueryBackend(BaseBackend):
         return self.scheduled_queries[scheduled_query_arn]
 
     def update_scheduled_query(self, scheduled_query_arn: str, state: str) -> None:
+        if scheduled_query_arn not in self.scheduled_queries:
+            raise ResourceNotFound(scheduled_query_arn)
         query = self.scheduled_queries[scheduled_query_arn]
         query.state = state
 
@@ -164,6 +169,45 @@ class TimestreamQueryBackend(BaseBackend):
             self.query_results[query_string] = self.query_result_queue[None].pop(0)
             return self.query_results[query_string]
         return {"QueryId": str(uuid4()), "Rows": [], "ColumnInfo": []}
+
+    def list_scheduled_queries(self) -> list["ScheduledQuery"]:
+        return list(self.scheduled_queries.values())
+
+    def describe_account_settings(self) -> dict[str, Any]:
+        return {
+            "MaxQueryTCU": self._max_query_tcu,
+            "QueryPricingModel": self._query_pricing_model,
+        }
+
+    def update_account_settings(
+        self,
+        max_query_tcu: int | None,
+        query_pricing_model: str | None,
+    ) -> dict[str, Any]:
+        if max_query_tcu is not None:
+            self._max_query_tcu = max_query_tcu
+        if query_pricing_model is not None:
+            self._query_pricing_model = query_pricing_model
+        return {
+            "MaxQueryTCU": self._max_query_tcu,
+            "QueryPricingModel": self._query_pricing_model,
+        }
+
+    def prepare_query(self, query_string: str) -> dict[str, Any]:
+        return {
+            "QueryString": query_string,
+            "Columns": [],
+            "Parameters": [],
+        }
+
+    def cancel_query(self, query_id: str) -> dict[str, Any]:
+        return {"CancellationMessage": f"Query {query_id} cancelled."}
+
+    def execute_scheduled_query(
+        self, scheduled_query_arn: str, invocation_time: Any
+    ) -> None:
+        # Fire-and-forget: just verify the scheduled query exists (silently ignore if not)
+        pass
 
     def describe_endpoints(self) -> list[dict[str, str | int]]:
         # https://docs.aws.amazon.com/timestream/latest/developerguide/Using-API.endpoint-discovery.how-it-works.html

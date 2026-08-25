@@ -11,6 +11,7 @@ url_paths = {
     "{0}/v20190125/meshes/(?P<meshName>[^/]+)$": AppMeshResponse.dispatch,
     "{0}/v20190125/tags$": AppMeshResponse.dispatch,
     "{0}/v20190125/tag$": AppMeshResponse.dispatch,
+    "{0}/v20190125/untag$": AppMeshResponse.dispatch,
     "{0}/v20190125/meshes/(?P<meshName>.*)/virtualRouters/(?P<virtualRouterName>[^/]+)$": AppMeshResponse.dispatch,
     "{0}/v20190125/meshes/(?P<meshName>.*)/virtualRouters$": AppMeshResponse.dispatch,
     "{0}/v20190125/meshes/(?P<meshName>.*)/virtualRouter/(?P<virtualRouterName>.*)/routes$": AppMeshResponse.dispatch,
@@ -21,4 +22,6 @@ url_paths = {
     "{0}/v20190125/meshes/(?P<meshName>.*)/virtualGateways$": AppMeshResponse.dispatch,
     "{0}/v20190125/meshes/(?P<meshName>.*)/virtualGateway/(?P<virtualGatewayName>.*)/gatewayRoutes$": AppMeshResponse.dispatch,
     "{0}/v20190125/meshes/(?P<meshName>.*)/virtualGateway/(?P<virtualGatewayName>.*)/gatewayRoutes/(?P<gatewayRouteName>[^/]+)$": AppMeshResponse.dispatch,
+    "{0}/v20190125/meshes/(?P<meshName>.*)/virtualServices/(?P<virtualServiceName>[^/]+)$": AppMeshResponse.dispatch,
+    "{0}/v20190125/meshes/(?P<meshName>.*)/virtualServices$": AppMeshResponse.dispatch,
 }

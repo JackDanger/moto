@@ -34,6 +34,21 @@ from moto.efs.exceptions import (
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition, md5_hash
+from moto.efs.exceptions import (
+    AccessPointNotFound,
+    BadRequest,
+    FileSystemAlreadyExists,
+    FileSystemInUse,
+    FileSystemNotFound,
+    MountTargetConflict,
+    MountTargetNotFound,
+    PolicyNotFound,
+    ReplicationAlreadyExists,
+    ReplicationNotFound,
+    SecurityGroupLimitExceeded,
+    SecurityGroupNotFound,
+    SubnetNotFound,
+)
 
 
 def _lookup_az_id(account_id: str, az_name: str) -> str | None:
@@ -171,6 +186,9 @@ class FileSystem(CloudFormationModel):
         self.life_cycle_state = "available"
         self._mount_targets: dict[str, MountTarget] = {}
         self._size_value = 0
+        self.file_system_protection: dict[str, str] = {
+            "ReplicationOverwriteProtection": "ENABLED"
+        }
 
     @property
     def size_in_bytes(self) -> dict[str, Any]:  # type: ignore[misc]
@@ -788,6 +806,147 @@ class EFSBackend(BaseBackend, TaggableResourcesMixin):
     def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
         resource_id = arn.rsplit("/", 1)[-1]
         self.tagging_service.untag_resource_using_names(resource_id, tag_keys)
+
+    def describe_account_preferences(self) -> dict[str, Any]:
+        return {
+            "ResourceIdPreference": {
+                "ResourceIdType": "LONG_ID",
+                "Resources": ["FILE_SYSTEM", "MOUNT_TARGET"],
+            }
+        }
+
+    def describe_replication_configurations(
+        self, file_system_id: Optional[str] = None
+    ) -> list[dict[str, Any]]:
+        if file_system_id and file_system_id not in self.file_systems_by_id:
+            raise FileSystemNotFound(file_system_id)
+        results = []
+        if file_system_id:
+            fs = self.file_systems_by_id[file_system_id]
+            if fs._replication_configuration is not None:
+                results.append(fs._replication_configuration)
+        else:
+            for fs in self.file_systems_by_id.values():
+                if fs._replication_configuration is not None:
+                    results.append(fs._replication_configuration)
+        return results
+
+    def describe_tags(self, file_system_id: str) -> list[dict[str, str]]:
+        if file_system_id not in self.file_systems_by_id:
+            raise FileSystemNotFound(file_system_id)
+        return self.list_tags_for_resource(file_system_id)
+
+    def delete_file_system_policy(self, file_system_id: str) -> None:
+        if file_system_id not in self.file_systems_by_id:
+            raise FileSystemNotFound(file_system_id)
+        self.file_systems_by_id[file_system_id].file_system_policy = None
+
+    def put_backup_policy(
+        self, file_system_id: str, backup_policy: dict[str, str]
+    ) -> dict[str, str]:
+        if file_system_id not in self.file_systems_by_id:
+            raise FileSystemNotFound(file_system_id)
+        status = backup_policy.get("Status", "ENABLED")
+        self.file_systems_by_id[file_system_id]._backup = status == "ENABLED"
+        return {"Status": status}
+
+    def put_account_preferences(self, resource_id_type: str) -> dict[str, Any]:
+        return {
+            "ResourceIdPreference": {
+                "ResourceIdType": resource_id_type,
+                "Resources": ["FILE_SYSTEM", "MOUNT_TARGET"],
+            }
+        }
+
+    def update_file_system(
+        self,
+        file_system_id: str,
+        throughput_mode: Optional[str] = None,
+        provisioned_throughput_in_mibps: Optional[float] = None,
+    ) -> "FileSystem":
+        if file_system_id not in self.file_systems_by_id:
+            raise FileSystemNotFound(file_system_id)
+        fs = self.file_systems_by_id[file_system_id]
+        if throughput_mode:
+            fs.throughput_mode = throughput_mode
+        if provisioned_throughput_in_mibps is not None:
+            fs.provisioned_throughput_in_mibps = provisioned_throughput_in_mibps
+        return fs
+
+    def create_replication_configuration(
+        self,
+        source_file_system_id: str,
+        destinations: list[dict[str, str]],
+    ) -> dict[str, Any]:
+        if source_file_system_id not in self.file_systems_by_id:
+            raise FileSystemNotFound(source_file_system_id)
+        fs = self.file_systems_by_id[source_file_system_id]
+        if fs._replication_configuration is not None:
+            raise ReplicationAlreadyExists(source_file_system_id)
+
+        built_destinations = []
+        for dest in destinations:
+            dest_region = dest.get("Region", self.region_name)
+            dest_fs_id = dest.get("FileSystemId", f"fs-{mock_random.get_random_hex()}")
+            built_destinations.append(
+                {
+                    "FileSystemId": dest_fs_id,
+                    "Region": dest_region,
+                    "Status": "ENABLED",
+                    "LastReplicatedTimestamp": time.time(),
+                    "OwnerId": self.account_id,
+                }
+            )
+
+        replication_config: dict[str, Any] = {
+            "SourceFileSystemId": source_file_system_id,
+            "SourceFileSystemRegion": self.region_name,
+            "SourceFileSystemArn": fs.file_system_arn,
+            "OriginalSourceFileSystemArn": fs.file_system_arn,
+            "CreationTime": time.time(),
+            "Destinations": built_destinations,
+            "SourceFileSystemOwnerId": self.account_id,
+        }
+        fs._replication_configuration = replication_config
+        return replication_config
+
+    def delete_replication_configuration(
+        self, source_file_system_id: str
+    ) -> None:
+        if source_file_system_id not in self.file_systems_by_id:
+            raise FileSystemNotFound(source_file_system_id)
+        fs = self.file_systems_by_id[source_file_system_id]
+        if fs._replication_configuration is None:
+            raise ReplicationNotFound(source_file_system_id)
+        fs._replication_configuration = None
+
+    def create_tags(
+        self, file_system_id: str, tags: list[dict[str, str]]
+    ) -> None:
+        if file_system_id not in self.file_systems_by_id:
+            raise FileSystemNotFound(file_system_id)
+        self.tag_resource(file_system_id, tags)
+
+    def delete_tags(
+        self, file_system_id: str, tag_keys: list[str]
+    ) -> None:
+        if file_system_id not in self.file_systems_by_id:
+            raise FileSystemNotFound(file_system_id)
+        self.untag_resource(file_system_id, tag_keys)
+
+    def update_file_system_protection(
+        self,
+        file_system_id: str,
+        replication_overwrite_protection: Optional[str] = None,
+    ) -> dict[str, str]:
+        if file_system_id not in self.file_systems_by_id:
+            raise FileSystemNotFound(file_system_id)
+        fs = self.file_systems_by_id[file_system_id]
+        if replication_overwrite_protection:
+            fs.file_system_protection = {
+                "ReplicationOverwriteProtection": replication_overwrite_protection
+            }
+        return fs.file_system_protection
 
 
 efs_backends = BackendDict(EFSBackend, "efs")

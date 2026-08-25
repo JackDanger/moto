@@ -82,3 +82,60 @@ class MediaStoreResponse(BaseResponse):
             container_name=container_name
         )
         return json.dumps({"MetricPolicy": metric_policy})
+
+    def delete_container_policy(self) -> str:
+        container_name = self._get_param("ContainerName")
+        self.mediastore_backend.delete_container_policy(container_name=container_name)
+        return "{}"
+
+    def delete_lifecycle_policy(self) -> str:
+        container_name = self._get_param("ContainerName")
+        self.mediastore_backend.delete_lifecycle_policy(container_name=container_name)
+        return "{}"
+
+    def delete_metric_policy(self) -> str:
+        container_name = self._get_param("ContainerName")
+        self.mediastore_backend.delete_metric_policy(container_name=container_name)
+        return "{}"
+
+    def put_cors_policy(self) -> str:
+        container_name = self._get_param("ContainerName")
+        cors_policy = self._get_param("CorsPolicy")
+        self.mediastore_backend.put_cors_policy(
+            container_name=container_name, cors_policy=cors_policy
+        )
+        return "{}"
+
+    def get_cors_policy(self) -> str:
+        container_name = self._get_param("ContainerName")
+        cors_policy = self.mediastore_backend.get_cors_policy(
+            container_name=container_name
+        )
+        return json.dumps({"CorsPolicy": cors_policy})
+
+    def delete_cors_policy(self) -> str:
+        container_name = self._get_param("ContainerName")
+        self.mediastore_backend.delete_cors_policy(container_name=container_name)
+        return "{}"
+
+    def start_access_logging(self) -> str:
+        container_name = self._get_param("ContainerName")
+        self.mediastore_backend.start_access_logging(container_name=container_name)
+        return "{}"
+
+    def stop_access_logging(self) -> str:
+        container_name = self._get_param("ContainerName")
+        self.mediastore_backend.stop_access_logging(container_name=container_name)
+        return "{}"
+
+    def tag_resource(self) -> str:
+        resource = self._get_param("Resource")
+        tags = self._get_param("Tags", [])
+        self.mediastore_backend.tag_resource(resource=resource, tags=tags)
+        return "{}"
+
+    def untag_resource(self) -> str:
+        resource = self._get_param("Resource")
+        tag_keys = self._get_param("TagKeys", [])
+        self.mediastore_backend.untag_resource(resource=resource, tag_keys=tag_keys)
+        return "{}"

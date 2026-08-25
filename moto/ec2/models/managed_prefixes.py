@@ -108,10 +108,50 @@ class ManagedPrefixListBackend:
     ) -> ManagedPrefixList | None:
         return self.managed_prefix_lists.get(prefix_list_id)
 
+    def get_managed_prefix_list_associations(
+        self, prefix_list_id: str
+    ) -> list[dict[str, str]]:
+        """Return resources (route tables, security groups) that reference this prefix list."""
+        associations: list[dict[str, str]] = []
+        account_id = self.account_id  # type: ignore[attr-defined]
+        # Check route tables for routes that use this prefix list
+        for route_table in self.route_tables.values():  # type: ignore[attr-defined]
+            for route in route_table.routes.values():
+                if (
+                    hasattr(route, "destination_prefix_list")
+                    and route.destination_prefix_list
+                    and route.destination_prefix_list.id == prefix_list_id
+                ):
+                    associations.append(
+                        {
+                            "ResourceId": route_table.id,
+                            "ResourceOwner": account_id,
+                        }
+                    )
+                    break
+        # Check security group rules for prefix list references
+        for vpc_groups in self.groups.values():  # type: ignore[attr-defined]
+            for sg in vpc_groups.values():
+                for rule in list(sg.ingress_rules) + list(sg.egress_rules):
+                    if any(
+                        p.get("PrefixListId") == prefix_list_id
+                        for p in getattr(rule, "prefix_list_ids", [])
+                    ):
+                        associations.append(
+                            {
+                                "ResourceId": sg.id,
+                                "ResourceOwner": account_id,
+                            }
+                        )
+                        break
+        return associations
+
     def delete_managed_prefix_list(self, prefix_list_id: str) -> ManagedPrefixList:
-        managed_prefix_list: ManagedPrefixList = self.managed_prefix_lists.get(
-            prefix_list_id
-        )  # type: ignore
+        managed_prefix_list = self.managed_prefix_lists.get(prefix_list_id)
+        if not managed_prefix_list:
+            from ..exceptions import InvalidManagedPrefixListIdError
+
+            raise InvalidManagedPrefixListIdError(prefix_list_id)
         managed_prefix_list.state = "delete-complete"
         return managed_prefix_list
 
@@ -123,8 +163,13 @@ class ManagedPrefixListBackend:
         current_version: str | None = None,
         prefix_list_name: str | None = None,
     ) -> ManagedPrefixList:
-        managed_pl: ManagedPrefixList = self.managed_prefix_lists.get(prefix_list_id)  # type: ignore
-        managed_pl.prefix_list_name = prefix_list_name
+        managed_pl = self.managed_prefix_lists.get(prefix_list_id)  # type: ignore
+        if not managed_pl:
+            from ..exceptions import InvalidManagedPrefixListIdError
+
+            raise InvalidManagedPrefixListIdError(prefix_list_id or "")
+        if prefix_list_name is not None:
+            managed_pl.prefix_list_name = prefix_list_name
         if remove_entry or add_entry:
             latest_version = managed_pl.entries.get(managed_pl.version)  # type: ignore[arg-type]
             entries = (

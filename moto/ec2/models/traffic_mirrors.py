@@ -26,6 +26,10 @@ class TrafficMirrorFilter(TaggedEC2Resource):
         self.description = description
         self.client_token = client_token
 
+        self.ingress_rules: list[Any] = []
+        self.egress_rules: list[Any] = []
+        self.network_services: list[str] = []
+
         self.tags = []
         if tag_specifications:
             tag_spec = convert_tag_spec(tag_specifications)
@@ -43,9 +47,9 @@ class TrafficMirrorFilter(TaggedEC2Resource):
     def to_dict(self) -> dict[str, Any]:
         traffic_mirror_filter = {
             "TrafficMirrorFilterId": self.id,
-            "IngressFilterRules": [],
-            "EgressFilterRules": [],
-            "NetworkServices": [],
+            "IngressFilterRules": [rule.to_dict() for rule in self.ingress_rules],
+            "EgressFilterRules": [rule.to_dict() for rule in self.egress_rules],
+            "NetworkServices": self.network_services,
             "Description": self.description,
             "Tags": self.tags or [],
         }

@@ -47,3 +47,35 @@ class SimpleDBResponse(BaseResponse):
             domain_name=domain_name, item_name=item_name, attributes=attributes
         )
         return EmptyResult()
+
+    def delete_attributes(self) -> ActionResult:
+        domain_name = self._get_param("DomainName")
+        item_name = self._get_param("ItemName")
+        attributes = self._get_param("Attributes")
+        self.sdb_backend.delete_attributes(
+            domain_name=domain_name, item_name=item_name, attributes=attributes
+        )
+        return EmptyResult()
+
+    def batch_put_attributes(self) -> ActionResult:
+        domain_name = self._get_param("DomainName")
+        items = self._get_param("Items")
+        self.sdb_backend.batch_put_attributes(domain_name=domain_name, items=items)
+        return EmptyResult()
+
+    def batch_delete_attributes(self) -> ActionResult:
+        domain_name = self._get_param("DomainName")
+        items = self._get_param("Items")
+        self.sdb_backend.batch_delete_attributes(domain_name=domain_name, items=items)
+        return EmptyResult()
+
+    def domain_metadata(self) -> ActionResult:
+        domain_name = self._get_param("DomainName")
+        metadata = self.sdb_backend.domain_metadata(domain_name=domain_name)
+        return ActionResult(metadata)
+
+    def select(self) -> ActionResult:
+        select_expression = self._get_param("SelectExpression")
+        items = self.sdb_backend.select(select_expression=select_expression)
+        result = {"Items": items}
+        return ActionResult(result)

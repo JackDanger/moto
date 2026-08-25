@@ -14,6 +14,12 @@ from ..exceptions import (
 from ..utils import describe_tag_filter, random_transit_gateway_attachment_id
 from .core import TaggedEC2Resource
 from .vpc_peering_connections import PeeringConnectionStatus
+from ..exceptions import (
+    DuplicateTransitGatewayAttachmentError,
+    InvalidParameterValueErrorPeeringAttachment,
+    InvalidTransitGatewayAttachmentIdError,
+    InvalidTransitGatewayID,
+)
 
 if TYPE_CHECKING:
     from .transit_gateway import TransitGateway
@@ -494,3 +500,11 @@ class TransitGatewayAttachmentBackend:
         transit_gateway_attachment.state = "deleted"
         transit_gateway_attachment._peering_status.deleted(deleter_id=self.account_id)  # type: ignore[attr-defined]
         return transit_gateway_attachment
+
+    def _get_transit_gateway_attachment(
+        self, transit_gateway_attachment_id: str
+    ) -> TransitGatewayAttachment:
+        attachment = self.transit_gateway_attachments.get(transit_gateway_attachment_id)
+        if not attachment:
+            raise InvalidTransitGatewayAttachmentIdError(transit_gateway_attachment_id)
+        return attachment

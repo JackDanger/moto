@@ -167,7 +167,6 @@ class FakeResourceGroup(BaseModel):
     @property
     def description(self) -> str:
         return self._description
-
     @description.setter
     def description(self, value: str) -> None:
         if not self._validate_description(value=value):
@@ -177,7 +176,6 @@ class FakeResourceGroup(BaseModel):
     @property
     def name(self) -> str:
         return self._name
-
     @name.setter
     def name(self, value: str) -> None:
         if not self._validate_name(value=value):
@@ -187,7 +185,6 @@ class FakeResourceGroup(BaseModel):
     @property
     def resource_query(self) -> dict[str, str]:
         return self._resource_query
-
     @resource_query.setter
     def resource_query(self, value: dict[str, str]) -> None:
         if not self._validate_resource_query(value=value):
@@ -197,7 +194,6 @@ class FakeResourceGroup(BaseModel):
     @property
     def tags(self) -> dict[str, str]:
         return self._tags
-
     @tags.setter
     def tags(self, value: dict[str, str]) -> None:
         if not self._validate_tags(value=value):
@@ -439,9 +435,10 @@ class ResourceGroupsBackend(BaseBackend):
     def update_group(
         self, group_name: str, description: str | None = None
     ) -> FakeResourceGroup:
+        group = self.get_group(group_name)
         if description:
-            self.groups.by_name[group_name].description = description
-        return self.groups.by_name[group_name]
+            group.description = description
+        return group
 
     def update_group_query(
         self, group_name: str, resource_query: dict[str, str]
@@ -450,15 +447,18 @@ class ResourceGroupsBackend(BaseBackend):
         self.groups.by_name[group_name].resource_query = resource_query
         return self.groups.by_name[group_name]
 
-    def get_group_configuration(self, group_name: str) -> list[dict[str, Any]] | None:
-        group = self.groups.by_name[group_name]
+    def get_group_configuration(
+        self, group_name: str
+    ) -> Optional[list[dict[str, Any]]]:
+        group = self.get_group(group_name)
         return group.configuration
 
     def put_group_configuration(
         self, group_name: str, configuration: list[dict[str, Any]]
     ) -> FakeResourceGroup:
-        self.groups.by_name[group_name].configuration = configuration
-        return self.groups.by_name[group_name]
+        group = self.get_group(group_name)
+        group.configuration = configuration
+        return group
 
     def list_tag_sync_tasks(
         self,

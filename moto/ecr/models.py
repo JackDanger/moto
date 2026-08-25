@@ -21,12 +21,16 @@ from moto.ecr.exceptions import (
     InvalidParameterException,
     LifecyclePolicyNotFoundException,
     LimitExceededException,
+    PullThroughCacheRuleAlreadyExistsException,
+    PullThroughCacheRuleNotFoundException,
     RegistryPolicyNotFoundException,
     RepositoryAlreadyExistsException,
     RepositoryNotEmptyException,
     RepositoryNotFoundException,
     RepositoryPolicyNotFoundException,
     ScanNotFoundException,
+    TemplateAlreadyExistsException,
+    TemplateNotFoundException,
     ValidationException,
 )
 from moto.ecr.policy_validation import EcrLifecyclePolicyValidator
@@ -446,6 +450,9 @@ class ECRBackend(BaseBackend):
         self.tagger = TaggingService(tag_name="tags")
 
         self.scan_finding_results: list[dict[str, Any]] = []
+        self.pull_through_cache_rules: dict[str, dict[str, Any]] = {}
+        self.repository_creation_templates: dict[str, dict[str, Any]] = {}
+        self.account_settings: dict[str, str] = {}
 
     @staticmethod
     def default_vpc_endpoint_service(  # type: ignore[misc]
@@ -1195,6 +1202,17 @@ class ECRBackend(BaseBackend):
             "policyText": self.registry_policy,
         }
 
+    def get_signing_configuration(
+        self, registry_id: Optional[str] = None
+    ) -> dict[str, Any]:
+        reg_id = registry_id or self.account_id
+        return {
+            "signingConfiguration": {
+                "rules": [],
+            },
+            "registryId": reg_id,
+        }
+
     def delete_registry_policy(self) -> dict[str, Any]:
         policy = self.registry_policy
         if not policy:
@@ -1424,6 +1442,377 @@ class ECRBackend(BaseBackend):
         return {
             "registryId": self.account_id,
             "replicationConfiguration": self.replication_config,
+        }
+
+    def describe_replication_configuration(self) -> dict[str, Any]:
+        return {"replicationConfiguration": self.replication_config}
+
+    def start_lifecycle_policy_preview(
+        self,
+        registry_id: str,
+        repository_name: str,
+        lifecycle_policy_text: Optional[str] = None,
+    ) -> dict[str, Any]:
+        repo = self._get_repository(repository_name, registry_id)
+        policy = lifecycle_policy_text or repo.lifecycle_policy
+        if not policy:
+            raise LifecyclePolicyNotFoundException(repository_name, repo.registry_id)
+        return {
+            "registryId": repo.registry_id,
+            "repositoryName": repository_name,
+            "lifecyclePolicyText": policy,
+            "status": "IN_PROGRESS",
+        }
+
+    def get_lifecycle_policy_preview(
+        self, registry_id: str, repository_name: str
+    ) -> dict[str, Any]:
+        repo = self._get_repository(repository_name, registry_id)
+        if not repo.lifecycle_policy:
+            raise LifecyclePolicyNotFoundException(repository_name, repo.registry_id)
+        return {
+            "registryId": repo.registry_id,
+            "repositoryName": repository_name,
+            "lifecyclePolicyText": repo.lifecycle_policy,
+            "status": "COMPLETE",
+            "previewResults": [],
+        }
+
+    def create_pull_through_cache_rule(
+        self,
+        ecr_repository_prefix: str,
+        upstream_registry_url: str,
+        upstream_registry: str = "",
+        credential_arn: str = "",
+    ) -> dict[str, Any]:
+        if ecr_repository_prefix in self.pull_through_cache_rules:
+            raise PullThroughCacheRuleAlreadyExistsException(
+                ecr_repository_prefix, self.account_id
+            )
+        rule: dict[str, Any] = {
+            "ecrRepositoryPrefix": ecr_repository_prefix,
+            "upstreamRegistryUrl": upstream_registry_url,
+            "upstreamRegistry": upstream_registry,
+            "credentialArn": credential_arn,
+            "registryId": self.account_id,
+            "createdAt": utcnow(),
+        }
+        self.pull_through_cache_rules[ecr_repository_prefix] = rule
+        return rule
+
+    def delete_pull_through_cache_rule(
+        self, ecr_repository_prefix: str
+    ) -> dict[str, Any]:
+        if ecr_repository_prefix not in self.pull_through_cache_rules:
+            raise PullThroughCacheRuleNotFoundException(
+                ecr_repository_prefix, self.account_id
+            )
+        return self.pull_through_cache_rules.pop(ecr_repository_prefix)
+
+    def describe_pull_through_cache_rules(
+        self,
+        ecr_repository_prefixes: Optional[list[str]] = None,
+    ) -> list[dict[str, Any]]:
+        rules = list(self.pull_through_cache_rules.values())
+        if ecr_repository_prefixes:
+            rules = [
+                r for r in rules if r["ecrRepositoryPrefix"] in ecr_repository_prefixes
+            ]
+        return rules
+
+    def validate_pull_through_cache_rule(
+        self, ecr_repository_prefix: str
+    ) -> dict[str, Any]:
+        if ecr_repository_prefix not in self.pull_through_cache_rules:
+            raise PullThroughCacheRuleNotFoundException(
+                ecr_repository_prefix, self.account_id
+            )
+        rule = self.pull_through_cache_rules[ecr_repository_prefix]
+        return {
+            "ecrRepositoryPrefix": ecr_repository_prefix,
+            "registryId": self.account_id,
+            "upstreamRegistryUrl": rule["upstreamRegistryUrl"],
+            "credentialArn": rule.get("credentialArn", ""),
+            "isValid": True,
+            "failure": "",
+        }
+
+    def create_repository_creation_template(
+        self,
+        prefix: str,
+        description: str = "",
+        encryption_configuration: Optional[dict[str, str]] = None,
+        resource_tags: Optional[list[dict[str, str]]] = None,
+        image_tag_mutability: str = "MUTABLE",
+        repository_policy: str = "",
+        lifecycle_policy: str = "",
+        applied_for: Optional[list[str]] = None,
+    ) -> dict[str, Any]:
+        if prefix in self.repository_creation_templates:
+            raise TemplateAlreadyExistsException(prefix, self.account_id)
+        template: dict[str, Any] = {
+            "prefix": prefix,
+            "description": description,
+            "encryptionConfiguration": (
+                encryption_configuration or {"encryptionType": "AES256"}
+            ),
+            "resourceTags": resource_tags or [],
+            "imageTagMutability": image_tag_mutability,
+            "repositoryPolicy": repository_policy,
+            "lifecyclePolicy": lifecycle_policy,
+            "appliedFor": (applied_for or ["REPLICATION", "PULL_THROUGH_CACHE"]),
+            "registryId": self.account_id,
+            "createdAt": utcnow(),
+            "updatedAt": utcnow(),
+        }
+        self.repository_creation_templates[prefix] = template
+        return template
+
+    def delete_repository_creation_template(self, prefix: str) -> dict[str, Any]:
+        if prefix not in self.repository_creation_templates:
+            raise TemplateNotFoundException(prefix, self.account_id)
+        return self.repository_creation_templates.pop(prefix)
+
+    def describe_repository_creation_templates(
+        self, prefixes: Optional[list[str]] = None
+    ) -> list[dict[str, Any]]:
+        templates = list(self.repository_creation_templates.values())
+        if prefixes:
+            templates = [t for t in templates if t["prefix"] in prefixes]
+        return templates
+
+    def update_repository_creation_template(
+        self,
+        prefix: str,
+        description: Optional[str] = None,
+        encryption_configuration: Optional[dict[str, str]] = None,
+        resource_tags: Optional[list[dict[str, str]]] = None,
+        image_tag_mutability: Optional[str] = None,
+        repository_policy: Optional[str] = None,
+        lifecycle_policy: Optional[str] = None,
+        applied_for: Optional[list[str]] = None,
+    ) -> dict[str, Any]:
+        if prefix not in self.repository_creation_templates:
+            raise TemplateNotFoundException(prefix, self.account_id)
+        template = self.repository_creation_templates[prefix]
+        if description is not None:
+            template["description"] = description
+        if encryption_configuration is not None:
+            template["encryptionConfiguration"] = encryption_configuration
+        if resource_tags is not None:
+            template["resourceTags"] = resource_tags
+        if image_tag_mutability is not None:
+            template["imageTagMutability"] = image_tag_mutability
+        if repository_policy is not None:
+            template["repositoryPolicy"] = repository_policy
+        if lifecycle_policy is not None:
+            template["lifecyclePolicy"] = lifecycle_policy
+        if applied_for is not None:
+            template["appliedFor"] = applied_for
+        template["updatedAt"] = utcnow()
+        return template
+
+    def get_account_setting(self, name: str) -> dict[str, Any]:
+        return {
+            "name": name,
+            "value": self.account_settings.get(name, ""),
+        }
+
+    def put_account_setting(self, name: str, value: str) -> dict[str, Any]:
+        self.account_settings[name] = value
+        return {"name": name, "value": value}
+
+    def describe_image_replication_status(
+        self,
+        repository_name: str,
+        image_id: dict[str, str],
+        registry_id: Optional[str] = None,
+    ) -> dict[str, Any]:
+        repo = self._get_repository(repository_name, registry_id or self.account_id)
+        image_tag = image_id.get("imageTag")
+        image_digest = image_id.get("imageDigest")
+        # Find the image
+        image = None
+        for img in repo.images:
+            if image_digest and img.image_digest == image_digest:
+                image = img
+                break
+            if image_tag and img.image_tags and image_tag in img.image_tags:
+                image = img
+                break
+        if image is None:
+            raise ImageNotFoundException(
+                image_id=image_digest or image_tag or "",
+                repository_name=repository_name,
+                registry_id=registry_id or self.account_id,
+            )
+        return {
+            "repositoryName": repository_name,
+            "imageId": {
+                "imageDigest": image.image_digest,
+                "imageTag": (image.image_tags[0] if image.image_tags else None),
+            },
+            "replicationStatuses": [],
+        }
+
+    def update_pull_through_cache_rule(
+        self,
+        ecr_repository_prefix: str,
+        credential_arn: str = "",
+    ) -> dict[str, Any]:
+        if ecr_repository_prefix not in self.pull_through_cache_rules:
+            raise PullThroughCacheRuleNotFoundException(
+                ecr_repository_prefix, self.account_id
+            )
+        rule = self.pull_through_cache_rules[ecr_repository_prefix]
+        if credential_arn:
+            rule["credentialArn"] = credential_arn
+        rule["updatedAt"] = utcnow()
+        return {
+            "ecrRepositoryPrefix": ecr_repository_prefix,
+            "registryId": self.account_id,
+            "updatedAt": rule["updatedAt"],
+            "credentialArn": rule.get("credentialArn", ""),
+        }
+
+    # ---- Layer upload stubs ----
+
+    def initiate_layer_upload(
+        self, repository_name: str, registry_id: Optional[str]
+    ) -> dict[str, Any]:
+        import uuid as _uuid
+        upload_id = str(_uuid.uuid4())
+        return {"uploadId": upload_id, "partSize": 10 * 1024 * 1024}
+
+    def upload_layer_part(
+        self,
+        repository_name: str,
+        upload_id: str,
+        part_first_byte: int,
+        part_last_byte: int,
+        layer_part_blob: bytes,
+        registry_id: Optional[str],
+    ) -> dict[str, Any]:
+        return {
+            "registryId": registry_id or self.account_id,
+            "repositoryName": repository_name,
+            "uploadId": upload_id,
+            "lastByteReceived": part_last_byte,
+        }
+
+    def complete_layer_upload(
+        self,
+        repository_name: str,
+        upload_id: str,
+        layer_digests: list[str],
+        registry_id: Optional[str],
+    ) -> dict[str, Any]:
+        import uuid as _uuid
+        layer_digest = layer_digests[0] if layer_digests else f"sha256:{_uuid.uuid4().hex}"
+        return {
+            "registryId": registry_id or self.account_id,
+            "repositoryName": repository_name,
+            "uploadId": upload_id,
+            "layerDigest": layer_digest,
+        }
+
+    def get_download_url_for_layer(
+        self, repository_name: str, layer_digest: str, registry_id: Optional[str]
+    ) -> dict[str, Any]:
+        reg_id = registry_id or self.account_id
+        url = (
+            f"https://{reg_id}.dkr.ecr.{self.region_name}.amazonaws.com"
+            f"/v2/{repository_name}/blobs/{layer_digest}"
+        )
+        return {"downloadUrl": url, "layerDigest": layer_digest}
+
+    # ---- Signing configuration stubs ----
+
+    _signing_configuration: dict[str, Any] = {"rules": []}
+
+    def put_signing_configuration(
+        self, signing_configuration: dict[str, Any]
+    ) -> dict[str, Any]:
+        self._signing_configuration = signing_configuration
+        return {"signingConfiguration": signing_configuration}
+
+    def get_signing_configuration(self) -> dict[str, Any]:
+        return {
+            "registryId": self.account_id,
+            "signingConfiguration": self._signing_configuration,
+        }
+
+    def delete_signing_configuration(self) -> dict[str, Any]:
+        config = self._signing_configuration.copy()
+        self._signing_configuration = {}
+        return {"registryId": self.account_id, "signingConfiguration": config}
+
+    def describe_image_signing_status(
+        self,
+        repository_name: str,
+        image_id: dict[str, str],
+        registry_id: Optional[str],
+    ) -> dict[str, Any]:
+        return {
+            "repositoryName": repository_name,
+            "imageId": image_id,
+            "registryId": registry_id or self.account_id,
+            "signingStatuses": [],
+        }
+
+    # ---- PullTimeUpdateExclusion stubs ----
+
+    _pull_time_exclusions: dict[str, dict[str, Any]] = {}
+
+    def register_pull_time_update_exclusion(
+        self, ecr_repository_prefix: str, repository_filter: str, title: str
+    ) -> dict[str, Any]:
+        import uuid as _uuid
+        exclusion_id = str(_uuid.uuid4())
+        record = {
+            "exclusionId": exclusion_id,
+            "ecrRepositoryPrefix": ecr_repository_prefix,
+            "repositoryFilter": repository_filter,
+            "title": title,
+            "registryId": self.account_id,
+        }
+        self._pull_time_exclusions[exclusion_id] = record
+        return record
+
+    def deregister_pull_time_update_exclusion(self, exclusion_id: str) -> dict[str, Any]:
+        return self._pull_time_exclusions.pop(exclusion_id, {})
+
+    def list_pull_time_update_exclusions(self) -> dict[str, Any]:
+        return {
+            "pullTimeUpdateExclusions": list(self._pull_time_exclusions.values()),
+        }
+
+    # ---- UpdateImageStorageClass stub ----
+
+    def update_image_storage_class(
+        self,
+        repository_name: str,
+        image_id: dict[str, str],
+        target_storage_class: str,
+        registry_id: Optional[str],
+    ) -> dict[str, Any]:
+        return {
+            "registryId": registry_id or self.account_id,
+            "repositoryName": repository_name,
+            "imageId": image_id,
+            "imageStatus": "COMPLETE",
+        }
+
+    # ---- ListImageReferrers stub ----
+
+    def list_image_referrers(
+        self,
+        repository_name: str,
+        image_digest: str,
+        registry_id: Optional[str],
+    ) -> dict[str, Any]:
+        return {
+            "referrers": [],
         }
 
     def _validate_mutability_exclusion_filters(

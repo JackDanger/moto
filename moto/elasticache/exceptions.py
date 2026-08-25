@@ -105,3 +105,73 @@ class SnapshotAlreadyExists(ElastiCacheException):
 
     def __init__(self, snapshot_name: str):
         super().__init__(f"Snapshot {snapshot_name} already exists.")
+
+
+class CacheParameterGroupAlreadyExists(ElastiCacheException):
+    code = "CacheParameterGroupAlreadyExists"
+
+    def __init__(self, name: str):
+        super().__init__(f"Cache parameter group {name} already exists.")
+
+
+class CacheParameterGroupNotFound(ElastiCacheException):
+    code = "CacheParameterGroupNotFound"
+
+    def __init__(self, name: str):
+        super().__init__(f"Cache parameter group {name} not found.")
+
+
+class CacheSecurityGroupAlreadyExists(ElastiCacheException):
+    code = "CacheSecurityGroupAlreadyExists"
+
+    def __init__(self, name: str):
+        super().__init__(f"Cache security group {name} already exists.")
+
+
+class CacheSecurityGroupNotFound(ElastiCacheException):
+    code = "CacheSecurityGroupNotFound"
+
+    def __init__(self, name: str):
+        super().__init__(f"Cache security group {name} not found.")
+
+
+class UserGroupAlreadyExists(ElastiCacheException):
+    code = "UserGroupAlreadyExists"
+
+    def __init__(self, user_group_id: str):
+        super().__init__(f"User group {user_group_id} already exists.")
+
+
+class UserGroupNotFound(ElastiCacheException):
+    code = "UserGroupNotFoundFault"
+
+    def __init__(self, user_group_id: str):
+        super().__init__(f"User group {user_group_id} not found.")
+
+
+class ServerlessCacheAlreadyExists(ElastiCacheException):
+    code = "ServerlessCacheAlreadyExistsFault"
+
+    def __init__(self, name: str):
+        super().__init__(f"Serverless cache {name} already exists.")
+
+
+class ServerlessCacheNotFound(ElastiCacheException):
+    code = "ServerlessCacheNotFoundFault"
+
+    def __init__(self, name: str):
+        super().__init__(f"Serverless cache {name} not found.")
+
+
+class GlobalReplicationGroupAlreadyExists(ElastiCacheException):
+    code = "GlobalReplicationGroupAlreadyExistsFault"
+
+    def __init__(self, name: str):
+        super().__init__(f"Global replication group {name} already exists.")
+
+
+class GlobalReplicationGroupNotFound(ElastiCacheException):
+    code = "GlobalReplicationGroupNotFoundFault"
+
+    def __init__(self, name: str):
+        super().__init__(f"Global replication group {name} not found.")

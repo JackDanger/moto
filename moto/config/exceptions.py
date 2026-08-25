@@ -399,3 +399,60 @@ class InvalidResourceType(JsonRESTError):
 
     def __init__(self, resource_type: str, message: str):
         super().__init__("InvalidResourceType", message)
+
+
+class NoSuchConformancePackException(JsonRESTError):
+    code = 400
+
+    def __init__(self, name: str):
+        message = (
+            f"One or more conformance packs with specified names are not present. "
+            f"Ensure your names are correct and try your request again later."
+        )
+        super().__init__("NoSuchConformancePackException", message)
+
+
+class ResourceNotFoundException2(JsonRESTError):
+    """For StoredQuery not found — uses same error type but different message pattern."""
+
+    code = 400
+
+    def __init__(self, query_name: str):
+        super().__init__(
+            "ResourceNotFoundException",
+            f"The stored query '{query_name}' does not exist.",
+        )
+
+
+class NoSuchOrganizationConfigRuleException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message: str):
+        super().__init__("NoSuchOrganizationConfigRuleException", message)
+
+
+class NoSuchRemediationConfigurationException(JsonRESTError):
+    code = 400
+
+    def __init__(self, config_rule_name: str):
+        message = (
+            f"No remediation configuration found for the config rule: '{config_rule_name}'."
+        )
+        super().__init__("NoSuchRemediationConfigurationException", message)
+
+
+class NoSuchRemediationExceptionException(JsonRESTError):
+    code = 400
+
+    def __init__(self, config_rule_name: str):
+        message = (
+            f"No remediation exception found for the config rule: '{config_rule_name}'."
+        )
+        super().__init__("NoSuchRemediationExceptionException", message)
+
+
+class RemediationInProgressException(JsonRESTError):
+    code = 400
+
+    def __init__(self, message: str):
+        super().__init__("RemediationInProgressException", message)

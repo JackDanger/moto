@@ -252,9 +252,64 @@ class IdentityStoreResponse(BaseResponse):
         )
         return json.dumps({})
 
-    # Need a Optional here, as 'NamedTuple | None' only works in 3.14+
-    # https://github.com/astral-sh/ruff/issues/19144#issuecomment-3036476276
-    def named_tuple_to_dict(self, value: Optional[NamedTuple]) -> dict[str, Any] | None:
+    def update_group(self) -> str:
+        identity_store_id = self._get_param("IdentityStoreId")
+        group_id = self._get_param("GroupId")
+        operations = self._get_param("Operations")
+        self.identitystore_backend.update_group(
+            identity_store_id=identity_store_id,
+            group_id=group_id,
+            operations=operations,
+        )
+        return json.dumps({})
+
+    def update_user(self) -> str:
+        identity_store_id = self._get_param("IdentityStoreId")
+        user_id = self._get_param("UserId")
+        operations = self._get_param("Operations")
+        self.identitystore_backend.update_user(
+            identity_store_id=identity_store_id,
+            user_id=user_id,
+            operations=operations,
+        )
+        return json.dumps({})
+
+    def describe_group_membership(self) -> str:
+        identity_store_id = self._get_param("IdentityStoreId")
+        membership_id = self._get_param("MembershipId")
+        membership = self.identitystore_backend.describe_group_membership(
+            identity_store_id=identity_store_id,
+            membership_id=membership_id,
+        )
+        return json.dumps(membership)
+
+    def get_group_membership_id(self) -> str:
+        identity_store_id = self._get_param("IdentityStoreId")
+        group_id = self._get_param("GroupId")
+        member_id = self._get_param("MemberId")
+        membership_id, identity_store_id = self.identitystore_backend.get_group_membership_id(
+            identity_store_id=identity_store_id,
+            group_id=group_id,
+            member_id=member_id,
+        )
+        return json.dumps(
+            {"MembershipId": membership_id, "IdentityStoreId": identity_store_id}
+        )
+
+    def is_member_in_groups(self) -> str:
+        identity_store_id = self._get_param("IdentityStoreId")
+        member_id = self._get_param("MemberId")
+        group_ids = self._get_param("GroupIds")
+        results = self.identitystore_backend.is_member_in_groups(
+            identity_store_id=identity_store_id,
+            member_id=member_id,
+            group_ids=group_ids,
+        )
+        return json.dumps({"Results": results})
+
+    def named_tuple_to_dict(
+        self, value: NamedTuple | None
+    ) -> dict[str, Any] | None:
         if value:
             return value._asdict()
         return None

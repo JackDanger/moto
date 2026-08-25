@@ -476,6 +476,227 @@ class ResolverDnssecConfig(BaseModel):
         }
 
 
+class FirewallDomainList(BaseModel):
+    """Representation of a Route53 Resolver DNS Firewall domain list."""
+
+    def __init__(
+        self,
+        account_id: str,
+        region: str,
+        firewall_domain_list_id: str,
+        name: str,
+    ):
+        self.account_id = account_id
+        self.region = region
+        self.id = firewall_domain_list_id
+        self.name = name
+        self.domain_count = 0
+        self.domains: list[str] = []
+        self.status = "COMPLETE"
+        self.status_message = "Successfully created firewall domain list"
+        self.managed_owner_name = ""
+        self.creator_request_id = ""
+        self.creation_time = datetime.now(timezone.utc).isoformat()
+        self.modification_time = datetime.now(timezone.utc).isoformat()
+
+    @property
+    def arn(self) -> str:
+        return (
+            f"arn:{get_partition(self.region)}:route53resolver:{self.region}"
+            f":{self.account_id}:firewall-domain-list/{self.id}"
+        )
+
+    def description(self) -> dict[str, Any]:
+        return {
+            "Id": self.id,
+            "Arn": self.arn,
+            "Name": self.name,
+            "DomainCount": self.domain_count,
+            "Status": self.status,
+            "StatusMessage": self.status_message,
+            "ManagedOwnerName": self.managed_owner_name,
+            "CreatorRequestId": self.creator_request_id,
+            "CreationTime": self.creation_time,
+            "ModificationTime": self.modification_time,
+        }
+
+    def metadata(self) -> dict[str, Any]:
+        return {
+            "Id": self.id,
+            "Arn": self.arn,
+            "Name": self.name,
+            "CreatorRequestId": self.creator_request_id,
+            "ManagedOwnerName": self.managed_owner_name,
+        }
+
+
+class FirewallRuleGroup(BaseModel):
+    """Representation of a Route53 Resolver DNS Firewall rule group."""
+
+    def __init__(
+        self,
+        account_id: str,
+        region: str,
+        firewall_rule_group_id: str,
+        name: str,
+    ):
+        self.account_id = account_id
+        self.region = region
+        self.id = firewall_rule_group_id
+        self.name = name
+        self.rule_count = 0
+        self.status = "COMPLETE"
+        self.status_message = "Successfully created firewall rule group"
+        self.owner_id = account_id
+        self.creator_request_id = ""
+        self.share_status = "NOT_SHARED"
+        self.creation_time = datetime.now(timezone.utc).isoformat()
+        self.modification_time = datetime.now(timezone.utc).isoformat()
+
+    @property
+    def arn(self) -> str:
+        return (
+            f"arn:{get_partition(self.region)}:route53resolver:{self.region}"
+            f":{self.account_id}:firewall-rule-group/{self.id}"
+        )
+
+    def description(self) -> dict[str, Any]:
+        return {
+            "Id": self.id,
+            "Arn": self.arn,
+            "Name": self.name,
+            "RuleCount": self.rule_count,
+            "Status": self.status,
+            "StatusMessage": self.status_message,
+            "OwnerId": self.owner_id,
+            "CreatorRequestId": self.creator_request_id,
+            "ShareStatus": self.share_status,
+            "CreationTime": self.creation_time,
+            "ModificationTime": self.modification_time,
+        }
+
+    def metadata(self) -> dict[str, Any]:
+        return {
+            "Id": self.id,
+            "Arn": self.arn,
+            "Name": self.name,
+            "CreatorRequestId": self.creator_request_id,
+            "OwnerId": self.owner_id,
+            "ShareStatus": self.share_status,
+        }
+
+
+class FirewallRule(BaseModel):
+    """Representation of a Route53 Resolver DNS Firewall rule."""
+
+    def __init__(
+        self,
+        firewall_rule_group_id: str,
+        firewall_domain_list_id: str,
+        name: str,
+        priority: int,
+        action: str,
+        block_response: Optional[str] = None,
+        block_override_domain: Optional[str] = None,
+        block_override_dns_type: Optional[str] = None,
+        block_override_ttl: Optional[int] = None,
+    ):
+        self.firewall_rule_group_id = firewall_rule_group_id
+        self.firewall_domain_list_id = firewall_domain_list_id
+        self.name = name
+        self.priority = priority
+        self.action = action
+        self.block_response = block_response
+        self.block_override_domain = block_override_domain
+        self.block_override_dns_type = block_override_dns_type
+        self.block_override_ttl = block_override_ttl
+        self.creator_request_id = ""
+        self.creation_time = datetime.now(timezone.utc).isoformat()
+        self.modification_time = datetime.now(timezone.utc).isoformat()
+
+    def description(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "FirewallRuleGroupId": self.firewall_rule_group_id,
+            "FirewallDomainListId": self.firewall_domain_list_id,
+            "Name": self.name,
+            "Priority": self.priority,
+            "Action": self.action,
+            "CreatorRequestId": self.creator_request_id,
+            "CreationTime": self.creation_time,
+            "ModificationTime": self.modification_time,
+        }
+        if self.block_response:
+            result["BlockResponse"] = self.block_response
+        if self.block_override_domain:
+            result["BlockOverrideDomain"] = self.block_override_domain
+        if self.block_override_dns_type:
+            result["BlockOverrideDnsType"] = self.block_override_dns_type
+        if self.block_override_ttl is not None:
+            result["BlockOverrideTtl"] = self.block_override_ttl
+        return result
+
+
+class FirewallRuleGroupAssociation(BaseModel):
+    """Representation of a Route53 Resolver DNS Firewall rule group association."""
+
+    FILTER_NAMES = [
+        "firewall_rule_group_id",
+        "vpc_id",
+        "priority",
+        "status",
+    ]
+
+    def __init__(
+        self,
+        account_id: str,
+        region: str,
+        association_id: str,
+        firewall_rule_group_id: str,
+        vpc_id: str,
+        name: str,
+        priority: int,
+        mutation_protection: str = "DISABLED",
+    ):
+        self.account_id = account_id
+        self.region = region
+        self.id = association_id
+        self.firewall_rule_group_id = firewall_rule_group_id
+        self.vpc_id = vpc_id
+        self.name = name
+        self.priority = priority
+        self.mutation_protection = mutation_protection
+        self.status = "COMPLETE"
+        self.status_message = "Successfully created firewall rule group association"
+        self.managed_owner_name = ""
+        self.creator_request_id = ""
+        self.creation_time = datetime.now(timezone.utc).isoformat()
+        self.modification_time = datetime.now(timezone.utc).isoformat()
+
+    @property
+    def arn(self) -> str:
+        return (
+            f"arn:{get_partition(self.region)}:route53resolver:{self.region}"
+            f":{self.account_id}:firewall-rule-group-association/{self.id}"
+        )
+
+    def description(self) -> dict[str, Any]:
+        return {
+            "Id": self.id,
+            "Arn": self.arn,
+            "FirewallRuleGroupId": self.firewall_rule_group_id,
+            "VpcId": self.vpc_id,
+            "Name": self.name,
+            "Priority": self.priority,
+            "MutationProtection": self.mutation_protection,
+            "ManagedOwnerName": self.managed_owner_name,
+            "Status": self.status,
+            "StatusMessage": self.status_message,
+            "CreatorRequestId": self.creator_request_id,
+            "CreationTime": self.creation_time,
+            "ModificationTime": self.modification_time,
+        }
+
+
 class Route53ResolverBackend(BaseBackend):
     """Implementation of Route53Resolver APIs."""
 
@@ -499,7 +720,19 @@ class Route53ResolverBackend(BaseBackend):
         self.resolver_dnssec_configs: dict[
             str, ResolverDnssecConfig
         ] = {}  # Key is resource_id
+        self.firewall_domain_lists: dict[str, FirewallDomainList] = {}
+        self.firewall_rule_groups: dict[str, FirewallRuleGroup] = {}
+        self.firewall_rules: dict[
+            str, FirewallRule
+        ] = {}  # Key: "group_id:domain_list_id"
+        self.firewall_rule_group_associations: dict[
+            str, FirewallRuleGroupAssociation
+        ] = {}
         self.tagger = TaggingService()
+
+        self._firewall_rule_group_policies: dict[str, str] = {}
+        self._resolver_query_log_config_policies: dict[str, str] = {}
+        self._resolver_rule_policies: dict[str, str] = {}
 
         self.ec2_backend = ec2_backends[self.account_id][self.region_name]
 
@@ -1295,6 +1528,494 @@ class Route53ResolverBackend(BaseBackend):
                 dnssec_configs.append(dnssec_config)
 
         return dnssec_configs
+
+    def delete_resolver_query_log_config(
+        self, resolver_query_log_config_id: str
+    ) -> ResolverQueryLogConfig:
+        """Delete a resolver query logging configuration."""
+        if resolver_query_log_config_id not in self.resolver_query_log_configs:
+            raise ResourceNotFoundException(
+                f"Resolver query log config with ID '{resolver_query_log_config_id}' does not exist"
+            )
+
+        # Check for active associations
+        associations = [
+            a
+            for a in self.resolver_query_log_config_associations.values()
+            if a.resolver_query_log_config_id == resolver_query_log_config_id
+        ]
+        if associations:
+            raise InvalidRequestException(
+                f"Cannot delete resolver query log config '{resolver_query_log_config_id}' "
+                f"because it still has associated VPCs"
+            )
+
+        config = self.resolver_query_log_configs.pop(resolver_query_log_config_id)
+        self.tagger.delete_all_tags_for_resource(config.arn)
+        config.status = "DELETING"
+        return config
+
+    def disassociate_resolver_query_log_config(
+        self, resolver_query_log_config_id: str, resource_id: str
+    ) -> ResolverQueryLogConfigAssociation:
+        """Disassociate a VPC from a resolver query log config."""
+        association_id = None
+        for assoc in self.resolver_query_log_config_associations.values():
+            if (
+                assoc.resolver_query_log_config_id == resolver_query_log_config_id
+                and assoc.resource_id == resource_id
+            ):
+                association_id = assoc.id
+                break
+
+        if association_id is None:
+            raise ResourceNotFoundException(
+                f"Resolver query log config association between "
+                f"'{resolver_query_log_config_id}' and '{resource_id}' does not exist"
+            )
+
+        association = self.resolver_query_log_config_associations.pop(association_id)
+        association.status = "DELETING"
+
+        if resolver_query_log_config_id in self.resolver_query_log_configs:
+            self.resolver_query_log_configs[
+                resolver_query_log_config_id
+            ].association_count -= 1
+
+        return association
+
+    # --- DNS Firewall Domain Lists ---
+
+    def create_firewall_domain_list(
+        self,
+        name: str,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> FirewallDomainList:
+        """Create a DNS Firewall domain list."""
+        domain_list_id = f"rslvr-fdl-{mock_random.get_random_hex(17)}"
+        domain_list = FirewallDomainList(
+            account_id=self.account_id,
+            region=self.region_name,
+            firewall_domain_list_id=domain_list_id,
+            name=name,
+        )
+        self.firewall_domain_lists[domain_list_id] = domain_list
+        if tags:
+            self.tagger.tag_resource(domain_list.arn, tags)
+        return domain_list
+
+    def get_firewall_domain_list(
+        self, firewall_domain_list_id: str
+    ) -> FirewallDomainList:
+        """Get information about a DNS Firewall domain list."""
+        if firewall_domain_list_id not in self.firewall_domain_lists:
+            raise ResourceNotFoundException(
+                f"Firewall domain list with ID '{firewall_domain_list_id}' does not exist"
+            )
+        return self.firewall_domain_lists[firewall_domain_list_id]
+
+    def delete_firewall_domain_list(
+        self, firewall_domain_list_id: str
+    ) -> FirewallDomainList:
+        """Delete a DNS Firewall domain list."""
+        if firewall_domain_list_id not in self.firewall_domain_lists:
+            raise ResourceNotFoundException(
+                f"Firewall domain list with ID '{firewall_domain_list_id}' does not exist"
+            )
+
+        # Check if any rules reference this domain list
+        for rule in self.firewall_rules.values():
+            if rule.firewall_domain_list_id == firewall_domain_list_id:
+                raise ResourceInUseException(
+                    f"Firewall domain list '{firewall_domain_list_id}' is still "
+                    f"referenced by one or more firewall rules"
+                )
+
+        domain_list = self.firewall_domain_lists.pop(firewall_domain_list_id)
+        self.tagger.delete_all_tags_for_resource(domain_list.arn)
+        domain_list.status = "DELETING"
+        return domain_list
+
+    def list_firewall_domain_lists(self) -> list[FirewallDomainList]:
+        """List all DNS Firewall domain lists."""
+        return sorted(self.firewall_domain_lists.values(), key=lambda x: x.name)
+
+    def update_firewall_domains(
+        self,
+        firewall_domain_list_id: str,
+        operation: str,
+        domains: list[str],
+    ) -> FirewallDomainList:
+        """Update the domains in a DNS Firewall domain list."""
+        if firewall_domain_list_id not in self.firewall_domain_lists:
+            raise ResourceNotFoundException(
+                f"Firewall domain list with ID '{firewall_domain_list_id}' does not exist"
+            )
+
+        domain_list = self.firewall_domain_lists[firewall_domain_list_id]
+
+        if operation == "ADD":
+            for d in domains:
+                if d not in domain_list.domains:
+                    domain_list.domains.append(d)
+        elif operation == "REMOVE":
+            domain_list.domains = [d for d in domain_list.domains if d not in domains]
+        elif operation == "REPLACE":
+            domain_list.domains = list(domains)
+
+        domain_list.domain_count = len(domain_list.domains)
+        domain_list.modification_time = datetime.now(timezone.utc).isoformat()
+        domain_list.status = "COMPLETE"
+        domain_list.status_message = "Successfully updated firewall domain list"
+        return domain_list
+
+    def list_firewall_domains(self, firewall_domain_list_id: str) -> list[str]:
+        """List domains in a DNS Firewall domain list."""
+        if firewall_domain_list_id not in self.firewall_domain_lists:
+            raise ResourceNotFoundException(
+                f"Firewall domain list with ID '{firewall_domain_list_id}' does not exist"
+            )
+        return self.firewall_domain_lists[firewall_domain_list_id].domains
+
+    # --- DNS Firewall Rule Groups ---
+
+    def create_firewall_rule_group(
+        self,
+        name: str,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> FirewallRuleGroup:
+        """Create a DNS Firewall rule group."""
+        rule_group_id = f"rslvr-frg-{mock_random.get_random_hex(17)}"
+        rule_group = FirewallRuleGroup(
+            account_id=self.account_id,
+            region=self.region_name,
+            firewall_rule_group_id=rule_group_id,
+            name=name,
+        )
+        self.firewall_rule_groups[rule_group_id] = rule_group
+        if tags:
+            self.tagger.tag_resource(rule_group.arn, tags)
+        return rule_group
+
+    def get_firewall_rule_group(self, firewall_rule_group_id: str) -> FirewallRuleGroup:
+        """Get information about a DNS Firewall rule group."""
+        if firewall_rule_group_id not in self.firewall_rule_groups:
+            raise ResourceNotFoundException(
+                f"Firewall rule group with ID '{firewall_rule_group_id}' does not exist"
+            )
+        return self.firewall_rule_groups[firewall_rule_group_id]
+
+    def delete_firewall_rule_group(
+        self, firewall_rule_group_id: str
+    ) -> FirewallRuleGroup:
+        """Delete a DNS Firewall rule group."""
+        if firewall_rule_group_id not in self.firewall_rule_groups:
+            raise ResourceNotFoundException(
+                f"Firewall rule group with ID '{firewall_rule_group_id}' does not exist"
+            )
+
+        # Check if any associations reference this rule group
+        for assoc in self.firewall_rule_group_associations.values():
+            if assoc.firewall_rule_group_id == firewall_rule_group_id:
+                raise ResourceInUseException(
+                    f"Firewall rule group '{firewall_rule_group_id}' is still "
+                    f"associated with one or more VPCs"
+                )
+
+        # Remove all rules in this group
+        keys_to_remove = [
+            k
+            for k, v in self.firewall_rules.items()
+            if v.firewall_rule_group_id == firewall_rule_group_id
+        ]
+        for k in keys_to_remove:
+            self.firewall_rules.pop(k)
+
+        rule_group = self.firewall_rule_groups.pop(firewall_rule_group_id)
+        self.tagger.delete_all_tags_for_resource(rule_group.arn)
+        rule_group.status = "DELETING"
+        return rule_group
+
+    def list_firewall_rule_groups(self) -> list[FirewallRuleGroup]:
+        """List all DNS Firewall rule groups."""
+        return sorted(self.firewall_rule_groups.values(), key=lambda x: x.name)
+
+    # --- DNS Firewall Rules ---
+
+    def create_firewall_rule(
+        self,
+        firewall_rule_group_id: str,
+        firewall_domain_list_id: str,
+        name: str,
+        priority: int,
+        action: str,
+        block_response: Optional[str] = None,
+        block_override_domain: Optional[str] = None,
+        block_override_dns_type: Optional[str] = None,
+        block_override_ttl: Optional[int] = None,
+    ) -> FirewallRule:
+        """Create a DNS Firewall rule."""
+        if firewall_rule_group_id not in self.firewall_rule_groups:
+            raise ResourceNotFoundException(
+                f"Firewall rule group with ID '{firewall_rule_group_id}' does not exist"
+            )
+        if firewall_domain_list_id not in self.firewall_domain_lists:
+            raise ResourceNotFoundException(
+                f"Firewall domain list with ID '{firewall_domain_list_id}' does not exist"
+            )
+
+        rule_key = f"{firewall_rule_group_id}:{firewall_domain_list_id}"
+        if rule_key in self.firewall_rules:
+            raise ResourceExistsException(
+                f"Firewall rule already exists for group '{firewall_rule_group_id}' "
+                f"and domain list '{firewall_domain_list_id}'"
+            )
+
+        rule = FirewallRule(
+            firewall_rule_group_id=firewall_rule_group_id,
+            firewall_domain_list_id=firewall_domain_list_id,
+            name=name,
+            priority=priority,
+            action=action,
+            block_response=block_response,
+            block_override_domain=block_override_domain,
+            block_override_dns_type=block_override_dns_type,
+            block_override_ttl=block_override_ttl,
+        )
+        self.firewall_rules[rule_key] = rule
+
+        # Increment rule count on the group
+        self.firewall_rule_groups[firewall_rule_group_id].rule_count += 1
+        self.firewall_rule_groups[
+            firewall_rule_group_id
+        ].modification_time = datetime.now(timezone.utc).isoformat()
+
+        return rule
+
+    def delete_firewall_rule(
+        self,
+        firewall_rule_group_id: str,
+        firewall_domain_list_id: str,
+    ) -> FirewallRule:
+        """Delete a DNS Firewall rule."""
+        rule_key = f"{firewall_rule_group_id}:{firewall_domain_list_id}"
+        if rule_key not in self.firewall_rules:
+            raise ResourceNotFoundException(
+                f"Firewall rule for group '{firewall_rule_group_id}' "
+                f"and domain list '{firewall_domain_list_id}' does not exist"
+            )
+
+        rule = self.firewall_rules.pop(rule_key)
+
+        if firewall_rule_group_id in self.firewall_rule_groups:
+            self.firewall_rule_groups[firewall_rule_group_id].rule_count -= 1
+            self.firewall_rule_groups[
+                firewall_rule_group_id
+            ].modification_time = datetime.now(timezone.utc).isoformat()
+
+        return rule
+
+    def update_firewall_rule(
+        self,
+        firewall_rule_group_id: str,
+        firewall_domain_list_id: str,
+        name: Optional[str] = None,
+        priority: Optional[int] = None,
+        action: Optional[str] = None,
+        block_response: Optional[str] = None,
+        block_override_domain: Optional[str] = None,
+        block_override_dns_type: Optional[str] = None,
+        block_override_ttl: Optional[int] = None,
+    ) -> FirewallRule:
+        """Update a DNS Firewall rule."""
+        rule_key = f"{firewall_rule_group_id}:{firewall_domain_list_id}"
+        if rule_key not in self.firewall_rules:
+            raise ResourceNotFoundException(
+                f"Firewall rule for group '{firewall_rule_group_id}' "
+                f"and domain list '{firewall_domain_list_id}' does not exist"
+            )
+
+        rule = self.firewall_rules[rule_key]
+        if name is not None:
+            rule.name = name
+        if priority is not None:
+            rule.priority = priority
+        if action is not None:
+            rule.action = action
+        if block_response is not None:
+            rule.block_response = block_response
+        if block_override_domain is not None:
+            rule.block_override_domain = block_override_domain
+        if block_override_dns_type is not None:
+            rule.block_override_dns_type = block_override_dns_type
+        if block_override_ttl is not None:
+            rule.block_override_ttl = block_override_ttl
+        rule.modification_time = datetime.now(timezone.utc).isoformat()
+        return rule
+
+    def list_firewall_rules(self, firewall_rule_group_id: str) -> list[FirewallRule]:
+        """List all DNS Firewall rules in a rule group."""
+        if firewall_rule_group_id not in self.firewall_rule_groups:
+            raise ResourceNotFoundException(
+                f"Firewall rule group with ID '{firewall_rule_group_id}' does not exist"
+            )
+        return sorted(
+            [
+                r
+                for r in self.firewall_rules.values()
+                if r.firewall_rule_group_id == firewall_rule_group_id
+            ],
+            key=lambda x: x.priority,
+        )
+
+    # --- DNS Firewall Rule Group Associations ---
+
+    def associate_firewall_rule_group(
+        self,
+        firewall_rule_group_id: str,
+        vpc_id: str,
+        name: str,
+        priority: int,
+        mutation_protection: str = "DISABLED",
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> FirewallRuleGroupAssociation:
+        """Associate a DNS Firewall rule group with a VPC."""
+        if firewall_rule_group_id not in self.firewall_rule_groups:
+            raise ResourceNotFoundException(
+                f"Firewall rule group with ID '{firewall_rule_group_id}' does not exist"
+            )
+
+        # Check for duplicate
+        for assoc in self.firewall_rule_group_associations.values():
+            if (
+                assoc.firewall_rule_group_id == firewall_rule_group_id
+                and assoc.vpc_id == vpc_id
+            ):
+                raise ResourceExistsException(
+                    f"Firewall rule group '{firewall_rule_group_id}' is already "
+                    f"associated with VPC '{vpc_id}'"
+                )
+
+        association_id = f"rslvr-frgassoc-{mock_random.get_random_hex(17)}"
+        association = FirewallRuleGroupAssociation(
+            account_id=self.account_id,
+            region=self.region_name,
+            association_id=association_id,
+            firewall_rule_group_id=firewall_rule_group_id,
+            vpc_id=vpc_id,
+            name=name,
+            priority=priority,
+            mutation_protection=mutation_protection,
+        )
+        self.firewall_rule_group_associations[association_id] = association
+        if tags:
+            self.tagger.tag_resource(association.arn, tags)
+        return association
+
+    def disassociate_firewall_rule_group(
+        self, firewall_rule_group_association_id: str
+    ) -> FirewallRuleGroupAssociation:
+        """Disassociate a DNS Firewall rule group from a VPC."""
+        if (
+            firewall_rule_group_association_id
+            not in self.firewall_rule_group_associations
+        ):
+            raise ResourceNotFoundException(
+                f"Firewall rule group association with ID "
+                f"'{firewall_rule_group_association_id}' does not exist"
+            )
+        association = self.firewall_rule_group_associations.pop(
+            firewall_rule_group_association_id
+        )
+        self.tagger.delete_all_tags_for_resource(association.arn)
+        association.status = "DELETING"
+        return association
+
+    def get_firewall_rule_group_association(
+        self, firewall_rule_group_association_id: str
+    ) -> FirewallRuleGroupAssociation:
+        """Get information about a DNS Firewall rule group association."""
+        if (
+            firewall_rule_group_association_id
+            not in self.firewall_rule_group_associations
+        ):
+            raise ResourceNotFoundException(
+                f"Firewall rule group association with ID "
+                f"'{firewall_rule_group_association_id}' does not exist"
+            )
+        return self.firewall_rule_group_associations[firewall_rule_group_association_id]
+
+    def list_firewall_rule_group_associations(
+        self,
+        firewall_rule_group_id: Optional[str] = None,
+        vpc_id: Optional[str] = None,
+    ) -> list[FirewallRuleGroupAssociation]:
+        """List all DNS Firewall rule group associations."""
+        associations = list(self.firewall_rule_group_associations.values())
+        if firewall_rule_group_id:
+            associations = [
+                a
+                for a in associations
+                if a.firewall_rule_group_id == firewall_rule_group_id
+            ]
+        if vpc_id:
+            associations = [a for a in associations if a.vpc_id == vpc_id]
+        return sorted(associations, key=lambda x: x.name)
+
+    # --- Policy operations ---
+
+    def put_firewall_rule_group_policy(self, arn: str, policy: str) -> dict[str, Any]:
+        """Store a JSON policy string for a firewall rule group."""
+        self._firewall_rule_group_policies[arn] = policy
+        return {"ReturnValue": True}
+
+    def get_firewall_rule_group_policy(self, arn: str) -> dict[str, str]:
+        """Retrieve the JSON policy string for a firewall rule group."""
+        policy = self._firewall_rule_group_policies.get(arn, "{}")
+        return {"FirewallRuleGroupPolicy": policy}
+
+    def put_resolver_query_log_config_policy(
+        self, arn: str, policy: str
+    ) -> dict[str, Any]:
+        """Store a JSON policy string for a resolver query log config."""
+        self._resolver_query_log_config_policies[arn] = policy
+        return {"ReturnValue": True}
+
+    def get_resolver_query_log_config_policy(self, arn: str) -> dict[str, str]:
+        """Retrieve the JSON policy string for a resolver query log config."""
+        policy = self._resolver_query_log_config_policies.get(arn, "{}")
+        return {"ResolverQueryLogConfigPolicy": policy}
+
+    def put_resolver_rule_policy(self, arn: str, policy: str) -> dict[str, Any]:
+        """Store a JSON policy string for a resolver rule."""
+        self._resolver_rule_policies[arn] = policy
+        return {"ReturnValue": True}
+
+    def get_resolver_rule_policy(self, arn: str) -> dict[str, str]:
+        """Retrieve the JSON policy string for a resolver rule."""
+        policy = self._resolver_rule_policies.get(arn, "{}")
+        return {"ResolverRulePolicy": policy}
+
+    def update_resolver_rule(
+        self,
+        resolver_rule_id: str,
+        name: Optional[str] = None,
+        target_ips: Optional[list[dict[str, Any]]] = None,
+        resolver_endpoint_id: Optional[str] = None,
+    ) -> ResolverRule:
+        """Update an existing resolver rule."""
+        self._validate_resolver_rule_id(resolver_rule_id)
+        resolver_rule = self.resolver_rules[resolver_rule_id]
+
+        if name is not None:
+            resolver_rule.name = name
+        if target_ips is not None:
+            resolver_rule.target_ips = target_ips
+        if resolver_endpoint_id is not None:
+            resolver_rule.resolver_endpoint_id = resolver_endpoint_id
+
+        resolver_rule.modification_time = datetime.now(timezone.utc).isoformat()
+        return resolver_rule
 
 
 route53resolver_backends = BackendDict(Route53ResolverBackend, "route53resolver")

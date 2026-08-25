@@ -24,6 +24,8 @@ from .exceptions import (
     AWSTooManyTagsException,
     AWSValidationException,
     CertificateNotFound,
+    InvalidArnException,
+    InvalidStateException,
 )
 from .utils import make_arn_for_certificate
 
@@ -135,6 +137,7 @@ class CertBundle(BaseModel):
         cert_status: str = "ISSUED",
         cert_authority_arn: str | None = None,
         cert_options: dict[str, Any] | None = None,
+        validation_method: str = "DNS",
     ):
         self.created_at = utcnow()
         self.cert = certificate
@@ -147,7 +150,10 @@ class CertBundle(BaseModel):
         self.type = cert_type  # Should really be an enum
         self.status = cert_status  # Should really be an enum
         self.cert_authority_arn = cert_authority_arn
+        self.validation_method = validation_method
         self.in_use_by: list[str] = []
+        self.revocation_reason: Optional[str] = None
+        self.revoked_at: Optional[datetime.datetime] = None
         self.cert_options = cert_options or {
             "CertificateTransparencyLoggingPreference": "ENABLED",
             "Export": "DISABLED",
@@ -198,6 +204,7 @@ class CertBundle(BaseModel):
         region: str,
         sans: list[str] | None = None,
         cert_authority_arn: str | None = None,
+        validation_method: str = "DNS",
     ) -> "CertBundle":
         unique_sans: set[str] = set(sans) if sans else set()
 
@@ -267,6 +274,7 @@ class CertBundle(BaseModel):
             cert_authority_arn=cert_authority_arn,
             account_id=account_id,
             region=region,
+            validation_method=validation_method,
         )
 
     def validate_pk(self) -> Any:
@@ -423,15 +431,15 @@ class CertBundle(BaseModel):
                 "Type": "CNAME",
                 "Value": "_c9edd76ee4a0e2a74388032f3861cc50.ykybfrwcxw.acm-validations.aws.",
             }
-            validation_options.append(
-                {
-                    "DomainName": san,
-                    "ValidationDomain": san,
-                    "ValidationStatus": domain_name_status,
-                    "ValidationMethod": "DNS",
-                    "ResourceRecord": resource_record,
-                }
-            )
+            entry: dict[str, Any] = {
+                "DomainName": san,
+                "ValidationDomain": san,
+                "ValidationStatus": domain_name_status,
+                "ValidationMethod": self.validation_method,
+            }
+            if self.validation_method == "DNS":
+                entry["ResourceRecord"] = resource_record
+            validation_options.append(entry)
 
         if self.type == "AMAZON_ISSUED":
             result["Certificate"]["DomainValidationOptions"] = validation_options
@@ -441,6 +449,10 @@ class CertBundle(BaseModel):
         else:
             result["Certificate"]["CreatedAt"] = datetime_to_epoch(self.created_at)
             result["Certificate"]["IssuedAt"] = datetime_to_epoch(self.created_at)
+
+        if self.status == "REVOKED" and self.revoked_at is not None:
+            result["Certificate"]["RevokedAt"] = datetime_to_epoch(self.revoked_at)
+            result["Certificate"]["RevocationReason"] = self.revocation_reason or "UNSPECIFIED"
 
         return result
 
@@ -606,13 +618,14 @@ class AWSCertificateManagerBackend(BaseBackend, TaggableResourcesMixin):
         tags: list[dict[str, str]],
         cert_authority_arn: str | None = None,
         cert_options: dict[str, Any] | None = None,
+        validation_method: str = "DNS",
     ) -> str:
         """
         The parameter DomainValidationOptions has not yet been implemented
         """
         if idempotency_token is not None:
             arn = self._get_arn_from_idempotency_token(idempotency_token)
-            if arn and self._certificates[arn].tags.equals(tags):
+            if arn and arn in self._certificates and self._certificates[arn].tags.equals(tags):
                 return arn
 
         cert = CertBundle.generate_cert(
@@ -621,6 +634,7 @@ class AWSCertificateManagerBackend(BaseBackend, TaggableResourcesMixin):
             region=self.region_name,
             sans=subject_alt_names,
             cert_authority_arn=cert_authority_arn,
+            validation_method=validation_method,
         )
         if idempotency_token is not None:
             self._set_idempotency_token_arn(idempotency_token, cert.arn)
@@ -701,6 +715,47 @@ class AWSCertificateManagerBackend(BaseBackend, TaggableResourcesMixin):
 
     def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
         self.remove_tags_from_certificate(arn, [{"Key": k} for k in tag_keys])  # type: ignore[list-item]
+
+
+    def renew_certificate(self, arn: str) -> None:
+        if arn not in self._certificates:
+            raise CertificateNotFound(arn=arn, account_id=self.account_id)
+        cert_bundle = self._certificates[arn]
+        if cert_bundle.type not in ("AMAZON_ISSUED", "PRIVATE"):
+            raise InvalidStateException(message="Certificate is not eligible for renewal.")
+        if cert_bundle.status != "ISSUED":
+            raise InvalidStateException(message="Certificate is not eligible for renewal.")
+        cert_bundle.status = "ISSUED"
+
+    def revoke_certificate(self, arn: str, reason: str) -> None:
+        if arn not in self._certificates:
+            raise CertificateNotFound(arn=arn, account_id=self.account_id)
+        cert_bundle = self._certificates[arn]
+        if cert_bundle.type != "PRIVATE" or cert_bundle.cert_authority_arn is None:
+            raise InvalidArnException(message="The certificate ARN is not valid. Revocation is only supported for certificates issued by a private CA.")
+        if cert_bundle.status == "REVOKED":
+            raise InvalidStateException(message="Certificate is already revoked.")
+        cert_bundle.status = "REVOKED"
+        cert_bundle.revoked_at = utcnow()
+        cert_bundle.revocation_reason = reason
+
+    def update_certificate_options(self, arn: str, options: dict[str, Any]) -> None:
+        if arn not in self._certificates:
+            raise CertificateNotFound(arn=arn, account_id=self.account_id)
+        cert_bundle = self._certificates[arn]
+        logging_pref = options.get("CertificateTransparencyLoggingPreference")
+        if logging_pref is not None:
+            if logging_pref not in ("ENABLED", "DISABLED"):
+                raise AWSValidationException(
+                    f"1 validation error detected: Value \'{logging_pref}\' at "
+                    f"\'options.certificateTransparencyLoggingPreference\' failed to satisfy "
+                    f"constraint: Member must satisfy enum value set: [ENABLED, DISABLED]"
+                )
+            cert_bundle.cert_options["CertificateTransparencyLoggingPreference"] = logging_pref
+
+
+
+
 
 
 acm_backends = BackendDict(AWSCertificateManagerBackend, "acm")

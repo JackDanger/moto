@@ -14,6 +14,8 @@ from moto.moto_api._internal import mock_random
 from moto.utilities.utils import get_partition
 
 from .exceptions import (
+    AuthenticationProfileAlreadyExistsError,
+    AuthenticationProfileNotFoundError,
     ClusterAlreadyExistsFaultError,
     ClusterNotFoundError,
     ClusterParameterGroupNotFoundError,
@@ -21,17 +23,31 @@ from .exceptions import (
     ClusterSnapshotAlreadyExistsError,
     ClusterSnapshotNotFoundError,
     ClusterSubnetGroupNotFoundError,
+    EndpointAlreadyExistsError,
+    EndpointAuthorizationAlreadyExistsError,
+    EndpointAuthorizationNotFoundError,
+    EndpointNotFoundError,
+    HsmClientCertificateAlreadyExistsError,
+    HsmClientCertificateNotFoundError,
+    HsmConfigurationAlreadyExistsError,
+    HsmConfigurationNotFoundError,
     InvalidClusterSnapshotStateFaultError,
     InvalidParameterCombinationError,
     InvalidParameterValueError,
     InvalidSubnetError,
+    PartnerNotFoundError,
     ResourceNotFoundFaultError,
+    ScheduledActionAlreadyExistsError,
+    ScheduledActionNotFoundError,
     SnapshotCopyAlreadyDisabledFaultError,
     SnapshotCopyAlreadyEnabledFaultError,
     SnapshotCopyDisabledFaultError,
     SnapshotCopyGrantAlreadyExistsFaultError,
     SnapshotCopyGrantNotFoundFaultError,
+    SubscriptionAlreadyExistError,
+    SubscriptionNotFoundError,
     UnknownSnapshotCopyRegionFaultError,
+    UsageLimitNotFoundError,
 )
 
 
@@ -524,6 +540,7 @@ class Snapshot(TaggableResourceMixin, BaseModel):
         self.db_name = cluster.db_name
         self.enhanced_vpc_routing = cluster.enhanced_vpc_routing
         self.encrypted = cluster.encrypted
+        self.accounts_with_restore_access: list[dict[str, str]] = []
 
     @property
     def resource_id(self) -> str:
@@ -535,6 +552,202 @@ class Snapshot(TaggableResourceMixin, BaseModel):
             {"ApplyStatus": "in-sync", "IamRoleArn": iam_role_arn}
             for iam_role_arn in self.iam_roles_arn
         ]
+
+
+
+class ScheduledAction(BaseModel):
+    def __init__(
+        self,
+        name: str,
+        target_action: dict[str, Any],
+        schedule: str,
+        iam_role: str,
+        description: str = "",
+        start_time: Optional[str] = None,
+        end_time: Optional[str] = None,
+        enable: bool = True,
+    ):
+        self.name = name
+        self.target_action = target_action
+        self.schedule = schedule
+        self.iam_role = iam_role
+        self.description = description
+        self.start_time = start_time
+        self.end_time = end_time
+        self.state = "ACTIVE" if enable else "DISABLED"
+
+
+class AuthenticationProfile(BaseModel):
+    def __init__(self, name: str, content: str):
+        self.name = name
+        self.content = content
+
+
+class UsageLimit(BaseModel):
+    def __init__(
+        self,
+        usage_limit_id: str,
+        cluster_identifier: str,
+        feature_type: str,
+        limit_type: str,
+        amount: int,
+        period: str = "monthly",
+        breach_action: str = "log",
+        tags: Optional[list[dict[str, str]]] = None,
+    ):
+        self.usage_limit_id = usage_limit_id
+        self.cluster_identifier = cluster_identifier
+        self.feature_type = feature_type
+        self.limit_type = limit_type
+        self.amount = amount
+        self.period = period
+        self.breach_action = breach_action
+        self.tags = tags or []
+
+
+class EndpointAuthorization(BaseModel):
+    def __init__(
+        self,
+        cluster_identifier: str,
+        account: str,
+        grantor: str,
+        status: str = "Authorized",
+        vpc_ids: Optional[list[str]] = None,
+    ):
+        self.cluster_identifier = cluster_identifier
+        self.account = account
+        self.grantor = grantor
+        self.grantee = account
+        self.status = status
+        self.allowed_all_vpcs = vpc_ids is None
+        self.allowed_vpcs = vpc_ids or []
+
+
+class EventSubscription(TaggableResourceMixin, BaseModel):
+    resource_type = "eventsubscription"
+
+    def __init__(
+        self,
+        subscription_name: str,
+        sns_topic_arn: str,
+        account_id: str,
+        region_name: str,
+        source_type: Optional[str] = None,
+        source_ids: Optional[list[str]] = None,
+        event_categories: Optional[list[str]] = None,
+        severity: str = "ERROR",
+        enabled: bool = True,
+        tags: Optional[list[dict[str, str]]] = None,
+    ):
+        super().__init__(account_id, region_name, tags)
+        self.subscription_name = subscription_name
+        self.sns_topic_arn = sns_topic_arn
+        self.source_type = source_type or ""
+        self.source_ids = source_ids or []
+        self.event_categories = event_categories or []
+        self.severity = severity
+        self.enabled = enabled
+        self.status = "active"
+        self.subscription_creation_time = utcnow()
+
+    @property
+    def resource_id(self) -> str:
+        return self.subscription_name
+
+
+class HsmClientCertificate(TaggableResourceMixin, BaseModel):
+    resource_type = "hsmclientcertificate"
+
+    def __init__(
+        self,
+        hsm_client_certificate_identifier: str,
+        account_id: str,
+        region_name: str,
+        tags: Optional[list[dict[str, str]]] = None,
+    ):
+        super().__init__(account_id, region_name, tags)
+        self.hsm_client_certificate_identifier = hsm_client_certificate_identifier
+        self.hsm_client_certificate_public_key = (
+            f"-----BEGIN CERTIFICATE-----\nMOCK{mock_random.get_random_hex(20)}\n-----END CERTIFICATE-----"
+        )
+
+    @property
+    def resource_id(self) -> str:
+        return self.hsm_client_certificate_identifier
+
+
+class HsmConfiguration(TaggableResourceMixin, BaseModel):
+    resource_type = "hsmconfiguration"
+
+    def __init__(
+        self,
+        hsm_configuration_identifier: str,
+        description: str,
+        hsm_ip_address: str,
+        hsm_partition_name: str,
+        hsm_partition_password: str,
+        hsm_server_public_certificate: str,
+        account_id: str,
+        region_name: str,
+        tags: Optional[list[dict[str, str]]] = None,
+    ):
+        super().__init__(account_id, region_name, tags)
+        self.hsm_configuration_identifier = hsm_configuration_identifier
+        self.description = description
+        self.hsm_ip_address = hsm_ip_address
+        self.hsm_partition_name = hsm_partition_name
+        self.hsm_partition_password = hsm_partition_password
+        self.hsm_server_public_certificate = hsm_server_public_certificate
+
+    @property
+    def resource_id(self) -> str:
+        return self.hsm_configuration_identifier
+
+
+class EndpointAccess(BaseModel):
+    def __init__(
+        self,
+        cluster_identifier: str,
+        resource_owner: str,
+        endpoint_name: str,
+        subnet_group_name: str,
+        region_name: str,
+        vpc_security_group_ids: Optional[list[str]] = None,
+    ):
+        self.cluster_identifier = cluster_identifier
+        self.resource_owner = resource_owner
+        self.endpoint_name = endpoint_name
+        self.subnet_group_name = subnet_group_name
+        self.endpoint_status = "active"
+        self.endpoint_create_time = utcnow()
+        self.port = 5439
+        self.address = f"{endpoint_name}.{mock_random.get_random_hex(8)}.{region_name}.redshift-serverless.amazonaws.com"
+        self.vpc_security_groups = [
+            {"VpcSecurityGroupId": sg_id, "Status": "active"}
+            for sg_id in (vpc_security_group_ids or [])
+        ]
+        self.vpc_endpoint = {
+            "VpcEndpointId": f"vpce-{mock_random.get_random_hex(8)}",
+            "VpcId": f"vpc-{mock_random.get_random_hex(8)}",
+            "NetworkInterfaces": [],
+        }
+
+
+class Partner(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        cluster_identifier: str,
+        database_name: str,
+        partner_name: str,
+    ):
+        self.account_id = account_id
+        self.cluster_identifier = cluster_identifier
+        self.database_name = database_name
+        self.partner_name = partner_name
+        self.status = "Active"
+        self.status_message = ""
+        self.created_at = utcnow()
 
 
 class RedshiftBackend(BaseBackend):
@@ -566,6 +779,17 @@ class RedshiftBackend(BaseBackend):
             "subnetgroup": self.subnet_groups,  # type: ignore
         }
         self.snapshot_copy_grants: dict[str, SnapshotCopyGrant] = {}
+        self.snapshot_schedules: dict[str, dict[str, Any]] = {}
+        self.scheduled_actions: dict[str, ScheduledAction] = {}
+        self.authentication_profiles: dict[str, AuthenticationProfile] = {}
+        self.usage_limits: dict[str, UsageLimit] = {}
+        self.endpoint_authorizations: dict[str, EndpointAuthorization] = {}
+        self.event_subscriptions: dict[str, EventSubscription] = {}
+        self.hsm_client_certificates: dict[str, HsmClientCertificate] = {}
+        self.hsm_configurations: dict[str, HsmConfiguration] = {}
+        self.endpoint_access: dict[str, EndpointAccess] = {}
+        self.partners: dict[str, Partner] = {}
+        self.resource_policies: dict[str, dict[str, Any]] = {}
         self.default_params = {
             "auto_analyze": "true",
             "datestyle": "ISO, MDY",
@@ -1122,6 +1346,1244 @@ class RedshiftBackend(BaseBackend):
             raise ClusterNotFoundError(cluster_identifier)
         cluster = self.clusters[cluster_identifier]
         return cluster.logging_details
+
+    def create_snapshot_schedule(
+        self,
+        schedule_identifier: str,
+        schedule_definitions: list[str],
+        tags: list[dict[str, str]],
+    ) -> dict[str, Any]:
+        schedule: dict[str, Any] = {
+            "ScheduleIdentifier": schedule_identifier,
+            "ScheduleDefinitions": schedule_definitions,
+            "Tags": tags,
+            "AssociatedClusterCount": 0,
+        }
+        self.snapshot_schedules[schedule_identifier] = schedule
+        return schedule
+
+    def delete_snapshot_schedule(self, schedule_identifier: str) -> None:
+        if schedule_identifier not in self.snapshot_schedules:
+            raise ResourceNotFoundFaultError(
+                message=f"Snapshot schedule {schedule_identifier} not found."
+            )
+        del self.snapshot_schedules[schedule_identifier]
+
+    def modify_snapshot_schedule(
+        self,
+        schedule_identifier: str,
+        schedule_definitions: list[str],
+    ) -> dict[str, Any]:
+        if schedule_identifier not in self.snapshot_schedules:
+            raise ResourceNotFoundFaultError(
+                message=f"Snapshot schedule {schedule_identifier} not found."
+            )
+        schedule = self.snapshot_schedules[schedule_identifier]
+        schedule["ScheduleDefinitions"] = schedule_definitions
+        return schedule
+
+    def describe_snapshot_schedules(
+        self, schedule_identifier: Optional[str] = None
+    ) -> list[dict[str, Any]]:
+        if schedule_identifier:
+            schedule = self.snapshot_schedules.get(schedule_identifier)
+            return [schedule] if schedule else []
+        return list(self.snapshot_schedules.values())
+
+    def describe_account_attributes(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_authentication_profiles(
+        self, authentication_profile_name: Optional[str] = None
+    ) -> list[dict[str, Any]]:
+        if authentication_profile_name:
+            if authentication_profile_name not in self.authentication_profiles:
+                raise AuthenticationProfileNotFoundError(authentication_profile_name)
+            profile = self.authentication_profiles[authentication_profile_name]
+            return [
+                {
+                    "AuthenticationProfileName": profile.name,
+                    "AuthenticationProfileContent": profile.content,
+                }
+            ]
+        return [
+            {
+                "AuthenticationProfileName": p.name,
+                "AuthenticationProfileContent": p.content,
+            }
+            for p in self.authentication_profiles.values()
+        ]
+
+    def describe_cluster_db_revisions(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_cluster_tracks(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_cluster_versions(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_custom_domain_associations(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_data_shares(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_data_shares_for_consumer(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_data_shares_for_producer(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_endpoint_access(
+        self,
+        cluster_identifier: Optional[str] = None,
+        endpoint_name: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        if endpoint_name:
+            if endpoint_name not in self.endpoint_access:
+                raise EndpointNotFoundError(endpoint_name)
+            return [
+                self._endpoint_access_to_dict(self.endpoint_access[endpoint_name])
+            ]
+        results = []
+        for ep in self.endpoint_access.values():
+            if cluster_identifier and ep.cluster_identifier != cluster_identifier:
+                continue
+            results.append(self._endpoint_access_to_dict(ep))
+        return results
+
+    def create_endpoint_access(
+        self,
+        cluster_identifier: str,
+        endpoint_name: str,
+        subnet_group_name: str,
+        vpc_security_group_ids: Optional[list[str]] = None,
+    ) -> dict[str, Any]:
+        if cluster_identifier not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier)
+        if endpoint_name in self.endpoint_access:
+            raise EndpointAlreadyExistsError(endpoint_name)
+        ep = EndpointAccess(
+            cluster_identifier=cluster_identifier,
+            resource_owner=self.account_id,
+            endpoint_name=endpoint_name,
+            subnet_group_name=subnet_group_name,
+            region_name=self.region_name,
+            vpc_security_group_ids=vpc_security_group_ids,
+        )
+        self.endpoint_access[endpoint_name] = ep
+        return self._endpoint_access_to_dict(ep)
+
+    def delete_endpoint_access(self, endpoint_name: str) -> dict[str, Any]:
+        if endpoint_name not in self.endpoint_access:
+            raise EndpointNotFoundError(endpoint_name)
+        ep = self.endpoint_access.pop(endpoint_name)
+        ep.endpoint_status = "deleting"
+        return self._endpoint_access_to_dict(ep)
+
+    def modify_endpoint_access(
+        self,
+        endpoint_name: str,
+        vpc_security_group_ids: Optional[list[str]] = None,
+    ) -> dict[str, Any]:
+        if endpoint_name not in self.endpoint_access:
+            raise EndpointNotFoundError(endpoint_name)
+        ep = self.endpoint_access[endpoint_name]
+        if vpc_security_group_ids is not None:
+            ep.vpc_security_groups = [
+                {"VpcSecurityGroupId": sg_id, "Status": "active"}
+                for sg_id in vpc_security_group_ids
+            ]
+        return self._endpoint_access_to_dict(ep)
+
+    def describe_endpoint_authorization(
+        self,
+        cluster_identifier: Optional[str] = None,
+        account: Optional[str] = None,
+        grantee: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        results = []
+        for auth in self.endpoint_authorizations.values():
+            if cluster_identifier and auth.cluster_identifier != cluster_identifier:
+                continue
+            if account and auth.account != account:
+                continue
+            if grantee and auth.grantee != grantee:
+                continue
+            results.append(self._endpoint_auth_to_dict(auth))
+        return results
+
+    def describe_event_categories(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_event_subscriptions(
+        self, subscription_name: Optional[str] = None
+    ) -> list[dict[str, Any]]:
+        if subscription_name:
+            if subscription_name not in self.event_subscriptions:
+                raise SubscriptionNotFoundError(subscription_name)
+            return [
+                self._event_subscription_to_dict(
+                    self.event_subscriptions[subscription_name]
+                )
+            ]
+        return [
+            self._event_subscription_to_dict(s)
+            for s in self.event_subscriptions.values()
+        ]
+
+    def create_event_subscription(
+        self,
+        subscription_name: str,
+        sns_topic_arn: str,
+        source_type: Optional[str] = None,
+        source_ids: Optional[list[str]] = None,
+        event_categories: Optional[list[str]] = None,
+        severity: str = "ERROR",
+        enabled: bool = True,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> dict[str, Any]:
+        if subscription_name in self.event_subscriptions:
+            raise SubscriptionAlreadyExistError(subscription_name)
+        sub = EventSubscription(
+            subscription_name=subscription_name,
+            sns_topic_arn=sns_topic_arn,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            source_type=source_type,
+            source_ids=source_ids,
+            event_categories=event_categories,
+            severity=severity,
+            enabled=enabled,
+            tags=tags,
+        )
+        self.event_subscriptions[subscription_name] = sub
+        return self._event_subscription_to_dict(sub)
+
+    def delete_event_subscription(self, subscription_name: str) -> None:
+        if subscription_name not in self.event_subscriptions:
+            raise SubscriptionNotFoundError(subscription_name)
+        del self.event_subscriptions[subscription_name]
+
+    def modify_event_subscription(
+        self,
+        subscription_name: str,
+        sns_topic_arn: Optional[str] = None,
+        source_type: Optional[str] = None,
+        source_ids: Optional[list[str]] = None,
+        event_categories: Optional[list[str]] = None,
+        severity: Optional[str] = None,
+        enabled: Optional[bool] = None,
+    ) -> dict[str, Any]:
+        if subscription_name not in self.event_subscriptions:
+            raise SubscriptionNotFoundError(subscription_name)
+        sub = self.event_subscriptions[subscription_name]
+        if sns_topic_arn is not None:
+            sub.sns_topic_arn = sns_topic_arn
+        if source_type is not None:
+            sub.source_type = source_type
+        if source_ids is not None:
+            sub.source_ids = source_ids
+        if event_categories is not None:
+            sub.event_categories = event_categories
+        if severity is not None:
+            sub.severity = severity
+        if enabled is not None:
+            sub.enabled = enabled
+        return self._event_subscription_to_dict(sub)
+
+    def describe_events(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_hsm_client_certificates(
+        self, hsm_client_certificate_identifier: Optional[str] = None
+    ) -> list[dict[str, Any]]:
+        if hsm_client_certificate_identifier:
+            if hsm_client_certificate_identifier not in self.hsm_client_certificates:
+                raise HsmClientCertificateNotFoundError(
+                    hsm_client_certificate_identifier
+                )
+            cert = self.hsm_client_certificates[hsm_client_certificate_identifier]
+            return [self._hsm_client_certificate_to_dict(cert)]
+        return [
+            self._hsm_client_certificate_to_dict(c)
+            for c in self.hsm_client_certificates.values()
+        ]
+
+    def create_hsm_client_certificate(
+        self,
+        hsm_client_certificate_identifier: str,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> dict[str, Any]:
+        if hsm_client_certificate_identifier in self.hsm_client_certificates:
+            raise HsmClientCertificateAlreadyExistsError(
+                hsm_client_certificate_identifier
+            )
+        cert = HsmClientCertificate(
+            hsm_client_certificate_identifier=hsm_client_certificate_identifier,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            tags=tags,
+        )
+        self.hsm_client_certificates[hsm_client_certificate_identifier] = cert
+        return self._hsm_client_certificate_to_dict(cert)
+
+    def delete_hsm_client_certificate(
+        self, hsm_client_certificate_identifier: str
+    ) -> None:
+        if hsm_client_certificate_identifier not in self.hsm_client_certificates:
+            raise HsmClientCertificateNotFoundError(
+                hsm_client_certificate_identifier
+            )
+        del self.hsm_client_certificates[hsm_client_certificate_identifier]
+
+    def describe_hsm_configurations(
+        self, hsm_configuration_identifier: Optional[str] = None
+    ) -> list[dict[str, Any]]:
+        if hsm_configuration_identifier:
+            if hsm_configuration_identifier not in self.hsm_configurations:
+                raise HsmConfigurationNotFoundError(hsm_configuration_identifier)
+            config = self.hsm_configurations[hsm_configuration_identifier]
+            return [self._hsm_configuration_to_dict(config)]
+        return [
+            self._hsm_configuration_to_dict(c)
+            for c in self.hsm_configurations.values()
+        ]
+
+    def create_hsm_configuration(
+        self,
+        hsm_configuration_identifier: str,
+        description: str,
+        hsm_ip_address: str,
+        hsm_partition_name: str,
+        hsm_partition_password: str,
+        hsm_server_public_certificate: str,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> dict[str, Any]:
+        if hsm_configuration_identifier in self.hsm_configurations:
+            raise HsmConfigurationAlreadyExistsError(hsm_configuration_identifier)
+        config = HsmConfiguration(
+            hsm_configuration_identifier=hsm_configuration_identifier,
+            description=description,
+            hsm_ip_address=hsm_ip_address,
+            hsm_partition_name=hsm_partition_name,
+            hsm_partition_password=hsm_partition_password,
+            hsm_server_public_certificate=hsm_server_public_certificate,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            tags=tags,
+        )
+        self.hsm_configurations[hsm_configuration_identifier] = config
+        return self._hsm_configuration_to_dict(config)
+
+    def delete_hsm_configuration(
+        self, hsm_configuration_identifier: str
+    ) -> None:
+        if hsm_configuration_identifier not in self.hsm_configurations:
+            raise HsmConfigurationNotFoundError(hsm_configuration_identifier)
+        del self.hsm_configurations[hsm_configuration_identifier]
+
+    def describe_inbound_integrations(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_integrations(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_orderable_cluster_options(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_redshift_idc_applications(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_reserved_node_exchange_status(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_reserved_node_offerings(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_reserved_nodes(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_scheduled_actions(
+        self, scheduled_action_name: Optional[str] = None
+    ) -> list[dict[str, Any]]:
+        if scheduled_action_name:
+            if scheduled_action_name not in self.scheduled_actions:
+                raise ScheduledActionNotFoundError(scheduled_action_name)
+            return [
+                self._scheduled_action_to_dict(
+                    self.scheduled_actions[scheduled_action_name]
+                )
+            ]
+        return [
+            self._scheduled_action_to_dict(a)
+            for a in self.scheduled_actions.values()
+        ]
+
+    def describe_storage(self) -> dict[str, Any]:
+        return {
+            "TotalBackupSizeInMegaBytes": 0.0,
+            "TotalProvisionedStorageInMegaBytes": 0.0,
+        }
+
+    def describe_table_restore_status(self) -> list[dict[str, Any]]:
+        return []
+
+    def describe_usage_limits(
+        self,
+        usage_limit_id: Optional[str] = None,
+        cluster_identifier: Optional[str] = None,
+        feature_type: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        results = []
+        for ul in self.usage_limits.values():
+            if usage_limit_id and ul.usage_limit_id != usage_limit_id:
+                continue
+            if cluster_identifier and ul.cluster_identifier != cluster_identifier:
+                continue
+            if feature_type and ul.feature_type != feature_type:
+                continue
+            results.append(self._usage_limit_to_dict(ul))
+        return results
+
+    def get_cluster_credentials_with_iam(
+        self,
+        cluster_identifier: str,
+        db_name: Optional[str],
+        duration_seconds: int,
+    ) -> dict[str, Any]:
+        if duration_seconds < 900 or duration_seconds > 3600:
+            raise InvalidParameterValueError(
+                "Token duration must be between 900 and 3600 seconds"
+            )
+        expiration = datetime.now(timezone.utc) + timedelta(seconds=duration_seconds)
+        return {
+            "DbUser": "IAM:user",
+            "DbPassword": mock_random.get_random_string(32),
+            "Expiration": expiration,
+            "NextRefreshTime": expiration,
+        }
+
+    def list_recommendations(self) -> list[dict[str, Any]]:
+        return []
+
+    def revoke_endpoint_access(self) -> dict[str, Any]:
+        return {}
+
+    # --- New operations ---
+
+    def copy_cluster_snapshot(
+        self,
+        source_snapshot_identifier: str,
+        target_snapshot_identifier: str,
+    ) -> Snapshot:
+        if source_snapshot_identifier not in self.snapshots:
+            raise ClusterSnapshotNotFoundError(source_snapshot_identifier)
+        if target_snapshot_identifier in self.snapshots:
+            raise ClusterSnapshotAlreadyExistsError(target_snapshot_identifier)
+        source = self.snapshots[source_snapshot_identifier]
+        cluster = self.clusters.get(source.cluster_identifier)
+        if cluster is None:
+            class _FakeCluster:
+                pass
+            fake = _FakeCluster()
+            for attr in (
+                "cluster_identifier", "port", "availability_zone",
+                "master_username", "master_user_password", "cluster_version",
+                "node_type", "number_of_nodes", "db_name",
+                "enhanced_vpc_routing", "encrypted",
+            ):
+                setattr(fake, attr, getattr(source, attr))
+            cluster = fake  # type: ignore[assignment]
+        new_snapshot = Snapshot(
+            cluster=cluster,
+            snapshot_identifier=target_snapshot_identifier,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            tags=list(source.tags),
+            iam_roles_arn=list(source.iam_roles_arn),
+            snapshot_type=source.snapshot_type,
+        )
+        self.snapshots[target_snapshot_identifier] = new_snapshot
+        return new_snapshot
+
+    def authorize_snapshot_access(
+        self,
+        snapshot_identifier: str,
+        account_with_restore_access: str,
+    ) -> Snapshot:
+        if snapshot_identifier not in self.snapshots:
+            raise ClusterSnapshotNotFoundError(snapshot_identifier)
+        snapshot = self.snapshots[snapshot_identifier]
+        entry = {"AccountId": account_with_restore_access, "AccountAlias": ""}
+        if not any(
+            a["AccountId"] == account_with_restore_access
+            for a in snapshot.accounts_with_restore_access
+        ):
+            snapshot.accounts_with_restore_access.append(entry)
+        return snapshot
+
+    def revoke_snapshot_access(
+        self,
+        snapshot_identifier: str,
+        account_with_restore_access: str,
+    ) -> Snapshot:
+        if snapshot_identifier not in self.snapshots:
+            raise ClusterSnapshotNotFoundError(snapshot_identifier)
+        snapshot = self.snapshots[snapshot_identifier]
+        snapshot.accounts_with_restore_access = [
+            a
+            for a in snapshot.accounts_with_restore_access
+            if a["AccountId"] != account_with_restore_access
+        ]
+        return snapshot
+
+    def create_scheduled_action(
+        self,
+        scheduled_action_name: str,
+        target_action: dict[str, Any],
+        schedule: str,
+        iam_role: str,
+        scheduled_action_description: str = "",
+        start_time: Optional[str] = None,
+        end_time: Optional[str] = None,
+        enable: bool = True,
+    ) -> dict[str, Any]:
+        if scheduled_action_name in self.scheduled_actions:
+            raise ScheduledActionAlreadyExistsError(scheduled_action_name)
+        action = ScheduledAction(
+            name=scheduled_action_name,
+            target_action=target_action,
+            schedule=schedule,
+            iam_role=iam_role,
+            description=scheduled_action_description,
+            start_time=start_time,
+            end_time=end_time,
+            enable=enable,
+        )
+        self.scheduled_actions[scheduled_action_name] = action
+        return self._scheduled_action_to_dict(action)
+
+    def delete_scheduled_action(self, scheduled_action_name: str) -> None:
+        if scheduled_action_name not in self.scheduled_actions:
+            raise ScheduledActionNotFoundError(scheduled_action_name)
+        del self.scheduled_actions[scheduled_action_name]
+
+    def modify_scheduled_action(
+        self,
+        scheduled_action_name: str,
+        target_action: Optional[dict[str, Any]] = None,
+        schedule: Optional[str] = None,
+        iam_role: Optional[str] = None,
+        scheduled_action_description: Optional[str] = None,
+        start_time: Optional[str] = None,
+        end_time: Optional[str] = None,
+        enable: Optional[bool] = None,
+    ) -> dict[str, Any]:
+        if scheduled_action_name not in self.scheduled_actions:
+            raise ScheduledActionNotFoundError(scheduled_action_name)
+        action = self.scheduled_actions[scheduled_action_name]
+        if target_action is not None:
+            action.target_action = target_action
+        if schedule is not None:
+            action.schedule = schedule
+        if iam_role is not None:
+            action.iam_role = iam_role
+        if scheduled_action_description is not None:
+            action.description = scheduled_action_description
+        if start_time is not None:
+            action.start_time = start_time
+        if end_time is not None:
+            action.end_time = end_time
+        if enable is not None:
+            action.state = "ACTIVE" if enable else "DISABLED"
+        return self._scheduled_action_to_dict(action)
+
+    def modify_cluster_iam_roles(
+        self,
+        cluster_identifier: str,
+        add_iam_roles: Optional[list[str]] = None,
+        remove_iam_roles: Optional[list[str]] = None,
+    ) -> Cluster:
+        if cluster_identifier not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier)
+        cluster = self.clusters[cluster_identifier]
+        if remove_iam_roles:
+            cluster.iam_roles_arn = [
+                r for r in cluster.iam_roles_arn if r not in remove_iam_roles
+            ]
+        if add_iam_roles:
+            for role in add_iam_roles:
+                if role not in cluster.iam_roles_arn:
+                    cluster.iam_roles_arn.append(role)
+        return cluster
+
+    def create_authentication_profile(
+        self,
+        authentication_profile_name: str,
+        authentication_profile_content: str,
+    ) -> dict[str, Any]:
+        if authentication_profile_name in self.authentication_profiles:
+            raise AuthenticationProfileAlreadyExistsError(authentication_profile_name)
+        profile = AuthenticationProfile(
+            name=authentication_profile_name,
+            content=authentication_profile_content,
+        )
+        self.authentication_profiles[authentication_profile_name] = profile
+        return {
+            "AuthenticationProfileName": profile.name,
+            "AuthenticationProfileContent": profile.content,
+        }
+
+    def delete_authentication_profile(
+        self, authentication_profile_name: str
+    ) -> dict[str, Any]:
+        if authentication_profile_name not in self.authentication_profiles:
+            raise AuthenticationProfileNotFoundError(authentication_profile_name)
+        profile = self.authentication_profiles.pop(authentication_profile_name)
+        return {
+            "AuthenticationProfileName": profile.name,
+        }
+
+    def modify_authentication_profile(
+        self,
+        authentication_profile_name: str,
+        authentication_profile_content: str,
+    ) -> dict[str, Any]:
+        if authentication_profile_name not in self.authentication_profiles:
+            raise AuthenticationProfileNotFoundError(authentication_profile_name)
+        profile = self.authentication_profiles[authentication_profile_name]
+        profile.content = authentication_profile_content
+        return {
+            "AuthenticationProfileName": profile.name,
+            "AuthenticationProfileContent": profile.content,
+        }
+
+    def batch_delete_cluster_snapshots(
+        self, identifiers: list[str]
+    ) -> tuple[list[str], list[dict[str, Any]]]:
+        deleted = []
+        errors = []
+        for snap_id in identifiers:
+            if snap_id in self.snapshots:
+                del self.snapshots[snap_id]
+                deleted.append(snap_id)
+            else:
+                errors.append(
+                    {
+                        "SnapshotIdentifier": snap_id,
+                        "ErrorCode": "ClusterSnapshotNotFound",
+                        "ErrorMessage": f"Snapshot {snap_id} not found.",
+                    }
+                )
+        return deleted, errors
+
+    def batch_modify_cluster_snapshots(
+        self,
+        snapshot_identifier_list: list[str],
+        manual_snapshot_retention_period: Optional[int] = None,
+        force: bool = False,
+    ) -> tuple[list[str], list[dict[str, Any]]]:
+        modified = []
+        errors = []
+        for snap_id in snapshot_identifier_list:
+            if snap_id in self.snapshots:
+                modified.append(snap_id)
+            else:
+                errors.append(
+                    {
+                        "SnapshotIdentifier": snap_id,
+                        "ErrorCode": "ClusterSnapshotNotFound",
+                        "ErrorMessage": f"Snapshot {snap_id} not found.",
+                    }
+                )
+        return modified, errors
+
+    def get_reserved_node_exchange_offerings(
+        self, reserved_node_id: str
+    ) -> list[dict[str, Any]]:
+        return []
+
+    def accept_reserved_node_exchange(
+        self,
+        reserved_node_id: str,
+        target_reserved_node_offering_id: str,
+    ) -> dict[str, Any]:
+        return {"ExchangedReservedNode": {}}
+
+    def create_usage_limit(
+        self,
+        cluster_identifier: str,
+        feature_type: str,
+        limit_type: str,
+        amount: int,
+        period: str = "monthly",
+        breach_action: str = "log",
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> dict[str, Any]:
+        if cluster_identifier not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier)
+        usage_limit_id = f"rul-{mock_random.get_random_hex(8)}"
+        ul = UsageLimit(
+            usage_limit_id=usage_limit_id,
+            cluster_identifier=cluster_identifier,
+            feature_type=feature_type,
+            limit_type=limit_type,
+            amount=amount,
+            period=period,
+            breach_action=breach_action,
+            tags=tags,
+        )
+        self.usage_limits[usage_limit_id] = ul
+        return self._usage_limit_to_dict(ul)
+
+    def delete_usage_limit(self, usage_limit_id: str) -> None:
+        if usage_limit_id not in self.usage_limits:
+            raise UsageLimitNotFoundError(usage_limit_id)
+        del self.usage_limits[usage_limit_id]
+
+    def modify_usage_limit(
+        self,
+        usage_limit_id: str,
+        amount: Optional[int] = None,
+        breach_action: Optional[str] = None,
+    ) -> dict[str, Any]:
+        if usage_limit_id not in self.usage_limits:
+            raise UsageLimitNotFoundError(usage_limit_id)
+        ul = self.usage_limits[usage_limit_id]
+        if amount is not None:
+            ul.amount = amount
+        if breach_action is not None:
+            ul.breach_action = breach_action
+        return self._usage_limit_to_dict(ul)
+
+    def authorize_endpoint_access(
+        self,
+        cluster_identifier: str,
+        account: str,
+        vpc_ids: Optional[list[str]] = None,
+    ) -> dict[str, Any]:
+        if cluster_identifier not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier)
+        key = f"{cluster_identifier}:{account}"
+        if key in self.endpoint_authorizations:
+            raise EndpointAuthorizationAlreadyExistsError(cluster_identifier, account)
+        auth = EndpointAuthorization(
+            cluster_identifier=cluster_identifier,
+            account=account,
+            grantor=self.account_id,
+            vpc_ids=vpc_ids,
+        )
+        self.endpoint_authorizations[key] = auth
+        return self._endpoint_auth_to_dict(auth)
+
+    def revoke_endpoint_access_for_cluster(
+        self,
+        cluster_identifier: str,
+        account: str,
+        force: bool = False,
+    ) -> dict[str, Any]:
+        key = f"{cluster_identifier}:{account}"
+        if key not in self.endpoint_authorizations:
+            raise EndpointAuthorizationNotFoundError(cluster_identifier, account)
+        auth = self.endpoint_authorizations[key]
+        auth.status = "Revoking"
+        return self._endpoint_auth_to_dict(auth)
+
+    def describe_node_configuration_options(
+        self,
+        action_type: str,
+        cluster_identifier: Optional[str] = None,
+        snapshot_identifier: Optional[str] = None,
+        filters: Optional[list[dict[str, Any]]] = None,
+    ) -> list[dict[str, Any]]:
+        """
+        Returns stub node configuration options.
+        Filtering is not yet implemented.
+        """
+        return []
+
+    def describe_partners(
+        self,
+        account_id: str,
+        cluster_identifier: str,
+        database_name: Optional[str] = None,
+        partner_name: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        results = []
+        for p in self.partners.values():
+            if p.cluster_identifier != cluster_identifier:
+                continue
+            if database_name and p.database_name != database_name:
+                continue
+            if partner_name and p.partner_name != partner_name:
+                continue
+            results.append(self._partner_to_dict(p))
+        return results
+
+    def add_partner(
+        self,
+        account_id: str,
+        cluster_identifier: str,
+        database_name: str,
+        partner_name: str,
+    ) -> dict[str, Any]:
+        if cluster_identifier not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier)
+        key = f"{cluster_identifier}:{database_name}:{partner_name}"
+        partner = Partner(
+            account_id=account_id,
+            cluster_identifier=cluster_identifier,
+            database_name=database_name,
+            partner_name=partner_name,
+        )
+        self.partners[key] = partner
+        return {
+            "DatabaseName": database_name,
+            "PartnerName": partner_name,
+        }
+
+    def delete_partner(
+        self,
+        account_id: str,
+        cluster_identifier: str,
+        database_name: str,
+        partner_name: str,
+    ) -> dict[str, Any]:
+        key = f"{cluster_identifier}:{database_name}:{partner_name}"
+        if key not in self.partners:
+            raise PartnerNotFoundError(partner_name)
+        del self.partners[key]
+        return {
+            "DatabaseName": database_name,
+            "PartnerName": partner_name,
+        }
+
+    def update_partner_status(
+        self,
+        account_id: str,
+        cluster_identifier: str,
+        database_name: str,
+        partner_name: str,
+        status: str,
+        status_message: Optional[str] = None,
+    ) -> dict[str, Any]:
+        key = f"{cluster_identifier}:{database_name}:{partner_name}"
+        if key not in self.partners:
+            raise PartnerNotFoundError(partner_name)
+        partner = self.partners[key]
+        partner.status = status
+        if status_message is not None:
+            partner.status_message = status_message
+        return {
+            "DatabaseName": database_name,
+            "PartnerName": partner_name,
+        }
+
+    def describe_resize(self, cluster_identifier: str) -> dict[str, Any]:
+        """
+        Returns a stub resize response for an existing cluster.
+        """
+        if cluster_identifier not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier)
+        cluster = self.clusters[cluster_identifier]
+        cluster_type = "multi-node" if cluster.number_of_nodes > 1 else "single-node"
+        return {
+            "TargetNodeType": cluster.node_type,
+            "TargetNumberOfNodes": int(cluster.number_of_nodes or 1),
+            "TargetClusterType": cluster_type,
+            "Status": "NONE",
+            "ResizeType": "ClassicResize",
+        }
+
+    def get_identity_center_auth_token(
+        self,
+        cluster_ids: list[str],
+    ) -> dict[str, Any]:
+        """
+        Identity Center integration is not modeled; returns empty stub.
+        """
+        return {
+            "Token": "mock-token-placeholder",
+            "ExpirationTime": utcnow().isoformat(),
+        }
+
+    def get_reserved_node_exchange_configuration_options(
+        self,
+        action_type: str,
+        cluster_identifier: Optional[str] = None,
+        snapshot_identifier: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        """
+        Returns empty list of reserved node exchange configuration options.
+        """
+        return []
+
+    def put_resource_policy(
+        self, resource_arn: str, policy: str
+    ) -> dict[str, Any]:
+        self.resource_policies[resource_arn] = {
+            "ResourceArn": resource_arn,
+            "Policy": policy,
+        }
+        return self.resource_policies[resource_arn]
+
+    def get_resource_policy(self, resource_arn: str) -> dict[str, Any]:
+        if resource_arn not in self.resource_policies:
+            raise ResourceNotFoundFaultError(
+                message=f"Resource policy for {resource_arn} not found."
+            )
+        return self.resource_policies[resource_arn]
+
+    def delete_resource_policy(self, resource_arn: str) -> None:
+        if resource_arn not in self.resource_policies:
+            raise ResourceNotFoundFaultError(
+                message=f"Resource policy for {resource_arn} not found."
+            )
+        del self.resource_policies[resource_arn]
+
+    def rotate_encryption_key(self, cluster_identifier: str) -> Cluster:
+        if cluster_identifier not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier)
+        cluster = self.clusters[cluster_identifier]
+        return cluster
+
+    def cancel_resize(self, cluster_identifier: str) -> dict[str, Any]:
+        if cluster_identifier not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier)
+        cluster = self.clusters[cluster_identifier]
+        cluster_type = (
+            "multi-node" if cluster.number_of_nodes > 1 else "single-node"
+        )
+        return {
+            "TargetNodeType": cluster.node_type,
+            "TargetNumberOfNodes": int(cluster.number_of_nodes or 1),
+            "TargetClusterType": cluster_type,
+            "Status": "NONE",
+            "ResizeType": "ClassicResize",
+        }
+
+    def modify_cluster_parameter_group(
+        self,
+        parameter_group_name: str,
+        parameters: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        if parameter_group_name not in self.parameter_groups:
+            raise ClusterParameterGroupNotFoundError(parameter_group_name)
+        # Store any custom parameter values (simplified — real AWS validates each param)
+        return {
+            "ParameterGroupName": parameter_group_name,
+            "ParameterGroupStatus": "Your parameter group has been updated.",
+        }
+
+    def reset_cluster_parameter_group(
+        self,
+        parameter_group_name: str,
+        reset_all_parameters: bool = True,
+        parameters: Optional[list[dict[str, Any]]] = None,
+    ) -> dict[str, Any]:
+        if parameter_group_name not in self.parameter_groups:
+            raise ClusterParameterGroupNotFoundError(parameter_group_name)
+        return {
+            "ParameterGroupName": parameter_group_name,
+            "ParameterGroupStatus": "Your parameter group has been updated.",
+        }
+
+    def modify_cluster_snapshot(
+        self,
+        snapshot_identifier: str,
+        manual_snapshot_retention_period: Optional[int] = None,
+        force: bool = False,
+    ) -> Snapshot:
+        if snapshot_identifier not in self.snapshots:
+            raise ClusterSnapshotNotFoundError(snapshot_identifier)
+        return self.snapshots[snapshot_identifier]
+
+    def modify_cluster_subnet_group(
+        self,
+        cluster_subnet_group_name: str,
+        description: Optional[str] = None,
+        subnet_ids: Optional[list[str]] = None,
+    ) -> SubnetGroup:
+        if cluster_subnet_group_name not in self.subnet_groups:
+            raise ClusterSubnetGroupNotFoundError(cluster_subnet_group_name)
+        sg = self.subnet_groups[cluster_subnet_group_name]
+        if description is not None:
+            sg.description = description
+        if subnet_ids is not None:
+            sg.subnet_ids = subnet_ids
+            if not sg.subnets:
+                raise InvalidSubnetError(subnet_ids)
+        return sg
+
+    def modify_aqua_configuration(
+        self, cluster_identifier: str, aqua_configuration_status: Optional[str] = None
+    ) -> dict[str, Any]:
+        if cluster_identifier not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier)
+        return {
+            "AquaConfiguration": {
+                "AquaStatus": "disabled",
+                "AquaConfigurationStatus": aqua_configuration_status or "auto",
+            }
+        }
+
+    def reboot_cluster(self, cluster_identifier: str) -> Cluster:
+        if cluster_identifier not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier)
+        cluster = self.clusters[cluster_identifier]
+        cluster.status = "available"
+        return cluster
+
+    def modify_cluster_db_revision(
+        self, cluster_identifier: str, revision_target: Optional[str] = None
+    ) -> Cluster:
+        if cluster_identifier not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier)
+        return self.clusters[cluster_identifier]
+
+    def modify_cluster_maintenance(
+        self,
+        cluster_identifier: str,
+        defer_maintenance: Optional[bool] = None,
+        defer_maintenance_identifier: Optional[str] = None,
+        defer_maintenance_start_time: Optional[str] = None,
+        defer_maintenance_end_time: Optional[str] = None,
+        defer_maintenance_duration: Optional[int] = None,
+    ) -> Cluster:
+        if cluster_identifier not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier)
+        return self.clusters[cluster_identifier]
+
+    def create_custom_domain_association(
+        self,
+        cluster_identifier: str,
+        custom_domain_name: str,
+        custom_domain_certificate_arn: str,
+    ) -> dict[str, Any]:
+        if cluster_identifier not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier)
+        return {
+            "CustomDomainName": custom_domain_name,
+            "CustomDomainCertificateArn": custom_domain_certificate_arn,
+            "ClusterIdentifier": cluster_identifier,
+            "CustomDomainCertExpiryTime": "2099-12-31T23:59:59Z",
+        }
+
+    def delete_custom_domain_association(
+        self, cluster_identifier: str, custom_domain_name: str
+    ) -> None:
+        if cluster_identifier not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier)
+
+    def modify_custom_domain_association(
+        self,
+        cluster_identifier: str,
+        custom_domain_name: str,
+        custom_domain_certificate_arn: str,
+    ) -> dict[str, Any]:
+        if cluster_identifier not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier)
+        return {
+            "CustomDomainName": custom_domain_name,
+            "CustomDomainCertificateArn": custom_domain_certificate_arn,
+            "ClusterIdentifier": cluster_identifier,
+            "CustomDomainCertExpiryTime": "2099-12-31T23:59:59Z",
+        }
+
+    def authorize_data_share(
+        self, data_share_arn: str, consumer_identifier: str
+    ) -> dict[str, Any]:
+        return {
+            "DataShareArn": data_share_arn,
+            "ProducerArn": data_share_arn,
+            "AllowPubliclyAccessibleConsumers": False,
+            "DataShareAssociations": [
+                {
+                    "ConsumerIdentifier": consumer_identifier,
+                    "Status": "AUTHORIZED",
+                    "ConsumerRegion": self.region_name,
+                }
+            ],
+        }
+
+    def deauthorize_data_share(
+        self, data_share_arn: str, consumer_identifier: str
+    ) -> dict[str, Any]:
+        return {
+            "DataShareArn": data_share_arn,
+            "ProducerArn": data_share_arn,
+            "AllowPubliclyAccessibleConsumers": False,
+            "DataShareAssociations": [
+                {
+                    "ConsumerIdentifier": consumer_identifier,
+                    "Status": "DEAUTHORIZED",
+                    "ConsumerRegion": self.region_name,
+                }
+            ],
+        }
+
+    def reject_data_share(self, data_share_arn: str) -> dict[str, Any]:
+        return {
+            "DataShareArn": data_share_arn,
+            "ProducerArn": data_share_arn,
+            "AllowPubliclyAccessibleConsumers": False,
+            "DataShareAssociations": [],
+        }
+
+    def associate_data_share_consumer(
+        self,
+        data_share_arn: str,
+        associate_entire_account: bool = False,
+        consumer_arn: Optional[str] = None,
+        consumer_region: Optional[str] = None,
+    ) -> dict[str, Any]:
+        return {
+            "DataShareArn": data_share_arn,
+            "ProducerArn": data_share_arn,
+            "AllowPubliclyAccessibleConsumers": False,
+            "DataShareAssociations": [
+                {
+                    "ConsumerIdentifier": consumer_arn or self.account_id,
+                    "Status": "ACTIVE",
+                    "ConsumerRegion": consumer_region or self.region_name,
+                }
+            ],
+        }
+
+    def disassociate_data_share_consumer(
+        self,
+        data_share_arn: str,
+        disassociate_entire_account: bool = False,
+        consumer_arn: Optional[str] = None,
+        consumer_region: Optional[str] = None,
+    ) -> dict[str, Any]:
+        return {
+            "DataShareArn": data_share_arn,
+            "ProducerArn": data_share_arn,
+            "AllowPubliclyAccessibleConsumers": False,
+            "DataShareAssociations": [],
+        }
+
+    def revoke_cluster_security_group_ingress(
+        self, security_group_name: str, cidr_ip: Optional[str] = None
+    ) -> SecurityGroup:
+        security_group = self.security_groups.get(security_group_name)
+        if not security_group:
+            raise ClusterSecurityGroupNotFoundError()
+        if cidr_ip and cidr_ip in security_group.ingress_rules:
+            security_group.ingress_rules.remove(cidr_ip)
+        return security_group
+
+    def modify_cluster_snapshot_schedule(
+        self,
+        cluster_identifier: str,
+        schedule_identifier: Optional[str] = None,
+        disassociate_schedule: bool = False,
+    ) -> None:
+        if cluster_identifier not in self.clusters:
+            raise ClusterNotFoundError(cluster_identifier)
+        # Association is not deeply modeled — just validate the cluster exists.
+
+    # --- Helper methods ---
+
+    def _scheduled_action_to_dict(self, action: ScheduledAction) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "ScheduledActionName": action.name,
+            "TargetAction": action.target_action,
+            "Schedule": action.schedule,
+            "IamRole": action.iam_role,
+            "ScheduledActionDescription": action.description,
+            "State": action.state,
+        }
+        if action.start_time:
+            result["StartTime"] = action.start_time
+        if action.end_time:
+            result["EndTime"] = action.end_time
+        return result
+
+    def _usage_limit_to_dict(self, ul: UsageLimit) -> dict[str, Any]:
+        return {
+            "UsageLimitId": ul.usage_limit_id,
+            "ClusterIdentifier": ul.cluster_identifier,
+            "FeatureType": ul.feature_type,
+            "LimitType": ul.limit_type,
+            "Amount": ul.amount,
+            "Period": ul.period,
+            "BreachAction": ul.breach_action,
+            "Tags": ul.tags,
+        }
+
+    def _endpoint_auth_to_dict(self, auth: EndpointAuthorization) -> dict[str, Any]:
+        return {
+            "ClusterIdentifier": auth.cluster_identifier,
+            "Grantor": auth.grantor,
+            "Grantee": auth.grantee,
+            "Status": auth.status,
+            "AllowedAllVPCs": auth.allowed_all_vpcs,
+            "AllowedVPCs": auth.allowed_vpcs,
+        }
+
+    def _event_subscription_to_dict(
+        self, sub: EventSubscription
+    ) -> dict[str, Any]:
+        return {
+            "CustomerAwsId": sub.account_id,
+            "CustSubscriptionId": sub.subscription_name,
+            "SnsTopicArn": sub.sns_topic_arn,
+            "Status": sub.status,
+            "SubscriptionCreationTime": sub.subscription_creation_time.isoformat(),
+            "SourceType": sub.source_type,
+            "SourceIdsList": sub.source_ids,
+            "EventCategoriesList": sub.event_categories,
+            "Severity": sub.severity,
+            "Enabled": sub.enabled,
+            "Tags": sub.tags,
+        }
+
+    def _hsm_client_certificate_to_dict(
+        self, cert: HsmClientCertificate
+    ) -> dict[str, Any]:
+        return {
+            "HsmClientCertificateIdentifier": cert.hsm_client_certificate_identifier,
+            "HsmClientCertificatePublicKey": cert.hsm_client_certificate_public_key,
+            "Tags": cert.tags,
+        }
+
+    def _hsm_configuration_to_dict(
+        self, config: HsmConfiguration
+    ) -> dict[str, Any]:
+        return {
+            "HsmConfigurationIdentifier": config.hsm_configuration_identifier,
+            "Description": config.description,
+            "HsmIpAddress": config.hsm_ip_address,
+            "HsmPartitionName": config.hsm_partition_name,
+            "Tags": config.tags,
+        }
+
+    def _endpoint_access_to_dict(self, ep: EndpointAccess) -> dict[str, Any]:
+        return {
+            "ClusterIdentifier": ep.cluster_identifier,
+            "ResourceOwner": ep.resource_owner,
+            "SubnetGroupName": ep.subnet_group_name,
+            "EndpointStatus": ep.endpoint_status,
+            "EndpointName": ep.endpoint_name,
+            "EndpointCreateTime": ep.endpoint_create_time.isoformat(),
+            "Port": ep.port,
+            "Address": ep.address,
+            "VpcSecurityGroups": ep.vpc_security_groups,
+            "VpcEndpoint": ep.vpc_endpoint,
+        }
+
+    def _partner_to_dict(self, partner: Partner) -> dict[str, Any]:
+        return {
+            "DatabaseName": partner.database_name,
+            "PartnerName": partner.partner_name,
+            "Status": partner.status,
+            "StatusMessage": partner.status_message,
+            "CreatedAt": partner.created_at.isoformat(),
+        }
 
 
 redshift_backends = BackendDict(RedshiftBackend, "redshift")

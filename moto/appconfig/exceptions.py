@@ -18,3 +18,38 @@ class ConfigurationVersionNotFound(JsonRESTError):
         super().__init__(
             "ResourceNotFoundException", "HostedConfigurationVersion not found"
         )
+
+
+class DeploymentStrategyNotFound(JsonRESTError):
+    def __init__(self) -> None:
+        super().__init__(
+            "ResourceNotFoundException", "DeploymentStrategy not found"
+        )
+
+
+class EnvironmentNotFound(JsonRESTError):
+    def __init__(self) -> None:
+        super().__init__(
+            "ResourceNotFoundException", "Environment not found"
+        )
+
+
+class ExtensionNotFound(JsonRESTError):
+    def __init__(self) -> None:
+        super().__init__(
+            "ResourceNotFoundException", "Extension not found"
+        )
+
+
+class ExtensionAssociationNotFound(JsonRESTError):
+    def __init__(self) -> None:
+        super().__init__(
+            "ResourceNotFoundException", "ExtensionAssociation not found"
+        )
+
+
+class DeploymentNotFound(JsonRESTError):
+    def __init__(self) -> None:
+        super().__init__(
+            "ResourceNotFoundException", "Deployment not found"
+        )

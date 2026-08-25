@@ -227,6 +227,58 @@ def validate_select(
             )
 
 
+def validate_select(
+    *,
+    operation: str,
+    select: str | None,
+    projection_expression: str | None,
+    attributes_to_get: list[str] | None,
+    table: Table,
+    index_name: str | None,
+) -> None:
+    if select is None:
+        return
+
+    if select not in SELECT_VALUES:
+        raise MockValidationException(
+            f"1 validation error detected: Value '{select}' at 'select' failed to satisfy constraint: Member must satisfy enum value set: [{', '.join(SELECT_VALUES)}]"
+        )
+
+    validation_prefix = "1 validation error detected: " if operation == "Query" else ""
+
+    if select == "SPECIFIC_ATTRIBUTES" and not (
+        projection_expression or attributes_to_get
+    ):
+        raise MockValidationException(
+            f"{validation_prefix}Must specify the AttributesToGet or ProjectionExpression when choosing to get SPECIFIC_ATTRIBUTES"
+        )
+
+    if select != "SPECIFIC_ATTRIBUTES":
+        selection_description = "only the Count" if select == "COUNT" else select
+        if projection_expression:
+            raise MockValidationException(
+                f"{validation_prefix}Cannot specify the ProjectionExpression when choosing to get {selection_description}"
+            )
+        if attributes_to_get:
+            raise MockValidationException(
+                f"{validation_prefix}Cannot specify the AttributesToGet when choosing to get {selection_description}"
+            )
+
+    if select == "ALL_PROJECTED_ATTRIBUTES" and index_name is None:
+        raise MockValidationException(
+            f"{validation_prefix}ALL_PROJECTED_ATTRIBUTES can be used only when Querying using an IndexName"
+        )
+
+    if select == "ALL_ATTRIBUTES" and index_name:
+        global_index = next(
+            (index for index in table.global_indexes if index.name == index_name), None
+        )
+        if global_index and global_index.projection.get("ProjectionType") != "ALL":
+            raise MockValidationException(
+                f"One or more parameter values were invalid: Select type ALL_ATTRIBUTES is not supported for global secondary index {index_name} because its projection type is not ALL"
+            )
+
+
 def check_projection_expression(expression: str) -> None:
     if expression.upper() in ReservedKeywords.get_reserved_keywords():
         raise MockValidationException(
@@ -1142,6 +1194,15 @@ class DynamoHandler(BaseResponse):
             index_name=index_name,
         )
 
+        validate_select(
+            operation="Scan",
+            select=self.body.get("Select"),
+            projection_expression=projection_expression,
+            attributes_to_get=self.body.get("AttributesToGet"),
+            table=self.dynamodb_backend.get_table(name),
+            index_name=index_name,
+        )
+
         try:
             items, scanned_count, last_evaluated_key = self.dynamodb_backend.scan(
                 name,
@@ -1679,7 +1740,7 @@ class DynamoHandler(BaseResponse):
         return ActionResult({"ExportDescription": export_table.response()})
 
     def list_exports(self) -> ActionResult:
-        table_arn = self.body["TableArn"]
+        table_arn = self.body.get("TableArn")
         exports = self.dynamodb_backend.list_exports(table_arn)
         response = []
         for export_table in exports:
@@ -1691,6 +1752,86 @@ class DynamoHandler(BaseResponse):
                 }
             )
         return ActionResult({"ExportSummaries": response})
+
+    def list_contributor_insights(self) -> ActionResult:
+        return ActionResult({"ContributorInsightsSummaries": []})
+
+    def describe_contributor_insights(self) -> ActionResult:
+        body = self.body
+        table_name = body["TableName"]
+        index_name = body.get("IndexName")
+        result = self.dynamodb_backend.describe_contributor_insights(
+            table_name, index_name
+        )
+        return ActionResult(result)
+
+    def describe_global_table_settings(self) -> ActionResult:
+        body = self.body
+        global_table_name = body["GlobalTableName"]
+        result = self.dynamodb_backend.describe_global_table_settings(global_table_name)
+        return ActionResult(result)
+
+    def describe_kinesis_streaming_destination(self) -> ActionResult:
+        body = self.body
+        table_name = body["TableName"]
+        result = self.dynamodb_backend.describe_kinesis_streaming_destination(
+            table_name
+        )
+        return ActionResult(result)
+
+    def enable_kinesis_streaming_destination(self) -> ActionResult:
+        body = self.body
+        table_name = body["TableName"]
+        stream_arn = body["StreamArn"]
+        precision = body.get("ApproximateCreationDateTimePrecision")
+        result = self.dynamodb_backend.enable_kinesis_streaming_destination(
+            table_name, stream_arn, precision
+        )
+        return ActionResult(result)
+
+    def disable_kinesis_streaming_destination(self) -> ActionResult:
+        body = self.body
+        table_name = body["TableName"]
+        stream_arn = body["StreamArn"]
+        result = self.dynamodb_backend.disable_kinesis_streaming_destination(table_name, stream_arn)
+        return ActionResult(result)
+
+    def update_kinesis_streaming_destination(self) -> ActionResult:
+        body = self.body
+        table_name = body["TableName"]
+        stream_arn = body["StreamArn"]
+        config = body.get("UpdateKinesisStreamingConfiguration")
+        result = self.dynamodb_backend.update_kinesis_streaming_destination(
+            table_name, stream_arn, config
+        )
+        return ActionResult(result)
+
+    def update_contributor_insights(self) -> ActionResult:
+        body = self.body
+        table_name = body["TableName"]
+        action = body["ContributorInsightsAction"]
+        index_name = body.get("IndexName")
+        result = self.dynamodb_backend.update_contributor_insights(table_name, action, index_name)
+        return ActionResult(result)
+
+    def update_global_table_settings(self) -> ActionResult:
+        body = self.body
+        global_table_name = body["GlobalTableName"]
+        result = self.dynamodb_backend.update_global_table_settings(global_table_name, **{
+            k: v for k, v in body.items() if k != "GlobalTableName"
+        })
+        return ActionResult(result)
+
+    def update_table_replica_auto_scaling(self) -> ActionResult:
+        body = self.body
+        table_name = body["TableName"]
+        result = self.dynamodb_backend.update_table_replica_auto_scaling(table_name, **{
+            k: v for k, v in body.items() if k != "TableName"
+        })
+        return ActionResult(result)
+
+    def list_imports(self) -> ActionResult:
+        return ActionResult({"ImportSummaryList": []})
 
     def put_resource_policy(self) -> ActionResult:
         policy = self.dynamodb_backend.put_resource_policy(

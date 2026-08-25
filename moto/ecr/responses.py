@@ -140,8 +140,19 @@ class ECRResponse(BaseResponse):
             }
         )
 
-    def complete_layer_upload(self) -> None:
-        raise NotImplementedError("ECR.complete_layer_upload is not yet implemented")
+    def complete_layer_upload(self) -> ActionResult:
+        registry_id = self._get_param("registryId")
+        repository_name = self._get_param("repositoryName")
+        upload_id = self._get_param("uploadId")
+        layer_digests = self._get_param("layerDigests", [])
+        return ActionResult(
+            self.ecr_backend.complete_layer_upload(
+                repository_name=repository_name,
+                upload_id=upload_id,
+                layer_digests=layer_digests,
+                registry_id=registry_id,
+            )
+        )
 
     def delete_repository_policy(self) -> ActionResult:
         registry_id = self._get_param("registryId")
@@ -170,9 +181,16 @@ class ECRResponse(BaseResponse):
             )
         return ActionResult({"authorizationData": auth_data})
 
-    def get_download_url_for_layer(self) -> None:
-        raise NotImplementedError(
-            "ECR.get_download_url_for_layer is not yet implemented"
+    def get_download_url_for_layer(self) -> ActionResult:
+        registry_id = self._get_param("registryId")
+        repository_name = self._get_param("repositoryName")
+        layer_digest = self._get_param("layerDigest")
+        return ActionResult(
+            self.ecr_backend.get_download_url_for_layer(
+                repository_name=repository_name,
+                layer_digest=layer_digest,
+                registry_id=registry_id,
+            )
         )
 
     def get_repository_policy(self) -> ActionResult:
@@ -185,8 +203,15 @@ class ECRResponse(BaseResponse):
             )
         )
 
-    def initiate_layer_upload(self) -> None:
-        raise NotImplementedError("ECR.initiate_layer_upload is not yet implemented")
+    def initiate_layer_upload(self) -> ActionResult:
+        registry_id = self._get_param("registryId")
+        repository_name = self._get_param("repositoryName")
+        return ActionResult(
+            self.ecr_backend.initiate_layer_upload(
+                repository_name=repository_name,
+                registry_id=registry_id,
+            )
+        )
 
     def set_repository_policy(self) -> ActionResult:
         registry_id = self._get_param("registryId")
@@ -204,8 +229,23 @@ class ECRResponse(BaseResponse):
             )
         )
 
-    def upload_layer_part(self) -> None:
-        raise NotImplementedError("ECR.upload_layer_part is not yet implemented")
+    def upload_layer_part(self) -> ActionResult:
+        registry_id = self._get_param("registryId")
+        repository_name = self._get_param("repositoryName")
+        upload_id = self._get_param("uploadId")
+        part_first_byte = self._get_param("partFirstByte", 0)
+        part_last_byte = self._get_param("partLastByte", 0)
+        layer_part_blob = self._get_param("layerPartBlob", b"")
+        return ActionResult(
+            self.ecr_backend.upload_layer_part(
+                repository_name=repository_name,
+                upload_id=upload_id,
+                part_first_byte=part_first_byte,
+                part_last_byte=part_last_byte,
+                layer_part_blob=layer_part_blob,
+                registry_id=registry_id,
+            )
+        )
 
     def list_tags_for_resource(self) -> ActionResult:
         arn = self._get_param("resourceArn")
@@ -299,6 +339,12 @@ class ECRResponse(BaseResponse):
     def get_registry_policy(self) -> ActionResult:
         return ActionResult(self.ecr_backend.get_registry_policy())
 
+    def get_signing_configuration(self) -> ActionResult:
+        registry_id = self._get_param("registryId")
+        return ActionResult(
+            self.ecr_backend.get_signing_configuration(registry_id=registry_id)
+        )
+
     def delete_registry_policy(self) -> ActionResult:
         return ActionResult(self.ecr_backend.delete_registry_policy())
 
@@ -358,3 +404,239 @@ class ECRResponse(BaseResponse):
 
     def describe_registry(self) -> ActionResult:
         return ActionResult(self.ecr_backend.describe_registry())
+
+    def describe_replication_configuration(self) -> ActionResult:
+        return ActionResult(self.ecr_backend.describe_replication_configuration())
+
+    def start_lifecycle_policy_preview(self) -> ActionResult:
+        registry_id = self._get_param("registryId")
+        repository_name = self._get_param("repositoryName")
+        lifecycle_policy_text = self._get_param("lifecyclePolicyText")
+        return ActionResult(
+            self.ecr_backend.start_lifecycle_policy_preview(
+                registry_id=registry_id,
+                repository_name=repository_name,
+                lifecycle_policy_text=lifecycle_policy_text,
+            )
+        )
+
+    def get_lifecycle_policy_preview(self) -> ActionResult:
+        registry_id = self._get_param("registryId")
+        repository_name = self._get_param("repositoryName")
+        return ActionResult(
+            self.ecr_backend.get_lifecycle_policy_preview(
+                registry_id=registry_id,
+                repository_name=repository_name,
+            )
+        )
+
+    def create_pull_through_cache_rule(self) -> ActionResult:
+        prefix = self._get_param("ecrRepositoryPrefix")
+        url = self._get_param("upstreamRegistryUrl")
+        registry = self._get_param("upstreamRegistry", "")
+        cred = self._get_param("credentialArn", "")
+        return ActionResult(
+            self.ecr_backend.create_pull_through_cache_rule(
+                ecr_repository_prefix=prefix,
+                upstream_registry_url=url,
+                upstream_registry=registry,
+                credential_arn=cred,
+            )
+        )
+
+    def delete_pull_through_cache_rule(self) -> ActionResult:
+        prefix = self._get_param("ecrRepositoryPrefix")
+        return ActionResult(
+            self.ecr_backend.delete_pull_through_cache_rule(
+                ecr_repository_prefix=prefix,
+            )
+        )
+
+    def describe_pull_through_cache_rules(self) -> ActionResult:
+        prefixes = self._get_param("ecrRepositoryPrefixes")
+        rules = self.ecr_backend.describe_pull_through_cache_rules(
+            ecr_repository_prefixes=prefixes,
+        )
+        return ActionResult({"pullThroughCacheRules": rules})
+
+    def validate_pull_through_cache_rule(self) -> ActionResult:
+        prefix = self._get_param("ecrRepositoryPrefix")
+        return ActionResult(
+            self.ecr_backend.validate_pull_through_cache_rule(
+                ecr_repository_prefix=prefix,
+            )
+        )
+
+    def create_repository_creation_template(self) -> ActionResult:
+        prefix = self._get_param("prefix")
+        description = self._get_param("description", "")
+        enc = self._get_param("encryptionConfiguration")
+        tags = self._get_param("resourceTags")
+        mutability = self._get_param("imageTagMutability", "MUTABLE")
+        repo_policy = self._get_param("repositoryPolicy", "")
+        lc_policy = self._get_param("lifecyclePolicy", "")
+        applied_for = self._get_param("appliedFor")
+        template = self.ecr_backend.create_repository_creation_template(
+            prefix=prefix,
+            description=description,
+            encryption_configuration=enc,
+            resource_tags=tags,
+            image_tag_mutability=mutability,
+            repository_policy=repo_policy,
+            lifecycle_policy=lc_policy,
+            applied_for=applied_for,
+        )
+        return ActionResult(
+            {
+                "registryId": self.current_account,
+                "repositoryCreationTemplate": template,
+            }
+        )
+
+    def delete_repository_creation_template(self) -> ActionResult:
+        prefix = self._get_param("prefix")
+        template = self.ecr_backend.delete_repository_creation_template(prefix=prefix)
+        return ActionResult(
+            {
+                "registryId": self.current_account,
+                "repositoryCreationTemplate": template,
+            }
+        )
+
+    def describe_repository_creation_templates(self) -> ActionResult:
+        prefixes = self._get_param("prefixes")
+        templates = self.ecr_backend.describe_repository_creation_templates(
+            prefixes=prefixes,
+        )
+        return ActionResult(
+            {
+                "registryId": self.current_account,
+                "repositoryCreationTemplates": templates,
+            }
+        )
+
+    def update_repository_creation_template(self) -> ActionResult:
+        prefix = self._get_param("prefix")
+        description = self._get_param("description")
+        enc = self._get_param("encryptionConfiguration")
+        tags = self._get_param("resourceTags")
+        mutability = self._get_param("imageTagMutability")
+        repo_policy = self._get_param("repositoryPolicy")
+        lc_policy = self._get_param("lifecyclePolicy")
+        applied_for = self._get_param("appliedFor")
+        template = self.ecr_backend.update_repository_creation_template(
+            prefix=prefix,
+            description=description,
+            encryption_configuration=enc,
+            resource_tags=tags,
+            image_tag_mutability=mutability,
+            repository_policy=repo_policy,
+            lifecycle_policy=lc_policy,
+            applied_for=applied_for,
+        )
+        return ActionResult(
+            {
+                "registryId": self.current_account,
+                "repositoryCreationTemplate": template,
+            }
+        )
+
+    def get_account_setting(self) -> ActionResult:
+        name = self._get_param("name")
+        return ActionResult(self.ecr_backend.get_account_setting(name))
+
+    def put_account_setting(self) -> ActionResult:
+        name = self._get_param("name")
+        value = self._get_param("value")
+        return ActionResult(self.ecr_backend.put_account_setting(name, value))
+
+    def describe_image_replication_status(self) -> ActionResult:
+        repository_name = self._get_param("repositoryName")
+        image_id = self._get_param("imageId")
+        registry_id = self._get_param("registryId")
+        return ActionResult(
+            self.ecr_backend.describe_image_replication_status(
+                repository_name=repository_name,
+                image_id=image_id,
+                registry_id=registry_id,
+            )
+        )
+
+    def update_pull_through_cache_rule(self) -> ActionResult:
+        prefix = self._get_param("ecrRepositoryPrefix")
+        cred = self._get_param("credentialArn", "")
+        return ActionResult(
+            self.ecr_backend.update_pull_through_cache_rule(
+                ecr_repository_prefix=prefix,
+                credential_arn=cred,
+            )
+        )
+
+    def put_signing_configuration(self) -> ActionResult:
+        signing_configuration = self._get_param("signingConfiguration", {})
+        return ActionResult(self.ecr_backend.put_signing_configuration(signing_configuration))
+
+    def get_signing_configuration(self) -> ActionResult:
+        return ActionResult(self.ecr_backend.get_signing_configuration())
+
+    def delete_signing_configuration(self) -> ActionResult:
+        self.ecr_backend.delete_signing_configuration()
+        return EmptyResult()
+
+    def describe_image_signing_status(self) -> ActionResult:
+        registry_id = self._get_param("registryId")
+        repository_name = self._get_param("repositoryName")
+        image_id = self._get_param("imageId", {})
+        return ActionResult(
+            self.ecr_backend.describe_image_signing_status(
+                repository_name=repository_name,
+                image_id=image_id,
+                registry_id=registry_id,
+            )
+        )
+
+    def register_pull_time_update_exclusion(self) -> ActionResult:
+        ecr_repository_prefix = self._get_param("ecrRepositoryPrefix", "")
+        repository_filter = self._get_param("repositoryFilter", "")
+        title = self._get_param("title", "")
+        return ActionResult(
+            self.ecr_backend.register_pull_time_update_exclusion(
+                ecr_repository_prefix=ecr_repository_prefix,
+                repository_filter=repository_filter,
+                title=title,
+            )
+        )
+
+    def deregister_pull_time_update_exclusion(self) -> ActionResult:
+        exclusion_id = self._get_param("exclusionId")
+        self.ecr_backend.deregister_pull_time_update_exclusion(exclusion_id)
+        return EmptyResult()
+
+    def list_pull_time_update_exclusions(self) -> ActionResult:
+        return ActionResult(self.ecr_backend.list_pull_time_update_exclusions())
+
+    def update_image_storage_class(self) -> ActionResult:
+        registry_id = self._get_param("registryId")
+        repository_name = self._get_param("repositoryName")
+        image_id = self._get_param("imageId", {})
+        target_storage_class = self._get_param("targetStorageClass", "STANDARD")
+        return ActionResult(
+            self.ecr_backend.update_image_storage_class(
+                repository_name=repository_name,
+                image_id=image_id,
+                target_storage_class=target_storage_class,
+                registry_id=registry_id,
+            )
+        )
+
+    def list_image_referrers(self) -> ActionResult:
+        registry_id = self._get_param("registryId")
+        repository_name = self._get_param("repositoryName")
+        subject_id = self._get_param("subjectId", "")
+        return ActionResult(
+            self.ecr_backend.list_image_referrers(
+                repository_name=repository_name,
+                image_digest=subject_id,
+                registry_id=registry_id,
+            )
+        )

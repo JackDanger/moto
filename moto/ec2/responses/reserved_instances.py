@@ -20,15 +20,11 @@ class ReservedInstances(EC2BaseResponse):
             "ReservedInstances.create_reserved_instances_listing is not yet implemented"
         )
 
-    def describe_reserved_instances(self) -> None:
-        raise NotImplementedError(
-            "ReservedInstances.describe_reserved_instances is not yet implemented"
-        )
+    def describe_reserved_instances(self) -> ActionResult:
+        return ActionResult({})
 
-    def describe_reserved_instances_listings(self) -> None:
-        raise NotImplementedError(
-            "ReservedInstances.describe_reserved_instances_listings is not yet implemented"
-        )
+    def describe_reserved_instances_listings(self) -> ActionResult:
+        return ActionResult({})
 
     def describe_reserved_instances_offerings(self) -> ActionResult:
         self.error_on_dryrun()

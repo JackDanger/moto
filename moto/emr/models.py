@@ -22,6 +22,23 @@ from .utils import (
     random_instance_group_id,
     random_step_id,
 )
+from moto.emr.exceptions import (
+    InvalidCluster,
+    InvalidRequestException,
+    InvalidStep,
+    ResourceNotFoundException,
+    ValidationException,
+)
+from .utils import (
+    EmrSecurityGroupManager,
+    random_cluster_id,
+    random_instance_fleet_id,
+    random_instance_group_id,
+    random_notebook_execution_id,
+    random_persistent_app_ui_id,
+    random_step_id,
+    random_studio_id,
+)
 
 if TYPE_CHECKING:
     from moto.ec2.models import EC2Backend
@@ -841,6 +858,13 @@ class ElasticMapReduceBackend(BaseBackend):
         self.instance_groups: dict[str, InstanceGroup] = {}
         self.security_configurations: dict[str, SecurityConfiguration] = {}
         self.block_public_access_configuration: dict[str, Any] = {}
+        self.studios: dict[str, Studio] = {}
+        self.notebook_executions: dict[str, NotebookExecution] = {}
+        self.managed_scaling_policies: dict[str, dict[str, Any]] = {}
+        self.auto_termination_policies: dict[str, dict[str, Any]] = {}
+        self.instance_fleets: dict[str, InstanceFleet] = {}
+        self.studio_session_mappings: dict[str, StudioSessionMapping] = {}
+        self.persistent_app_uis: dict[str, PersistentAppUI] = {}
 
     @cached_property
     def _release_labels(self) -> list[str]:
@@ -1180,5 +1204,561 @@ class ElasticMapReduceBackend(BaseBackend):
             if name in instance_type_names
         ]
 
+    def list_security_configurations(self) -> list[SecurityConfiguration]:
+        return list(self.security_configurations.values())
 
+    def cancel_steps(
+        self, cluster_id: str, step_ids: list[str]
+    ) -> list[dict[str, Any]]:
+        cluster = self.describe_cluster(cluster_id)
+        results = []
+        for step_id in step_ids:
+            step = None
+            for s in cluster.steps:
+                if s.id == step_id:
+                    step = s
+                    break
+            if step is None:
+                results.append(
+                    {
+                        "StepId": step_id,
+                        "Status": "FAILED",
+                        "Reason": f"Step {step_id} is not found.",
+                    }
+                )
+            elif step.state in ("COMPLETED", "FAILED", "CANCELLED"):
+                results.append(
+                    {
+                        "StepId": step_id,
+                        "Status": "FAILED",
+                        "Reason": f"Step {step_id} could not be cancelled.",
+                    }
+                )
+            else:
+                step.state = "CANCELLED"
+                step.end_date_time = utcnow()
+                results.append(
+                    {
+                        "StepId": step_id,
+                        "Status": "SUCCESS",
+                        "Reason": "NONE",
+                    }
+                )
+        return results
+
+    def create_studio(
+        self,
+        name: str,
+        auth_mode: str,
+        vpc_id: str,
+        subnet_ids: list[str],
+        service_role: str,
+        workspace_security_group_id: str,
+        engine_security_group_id: str,
+        default_s3_location: str = "",
+        description: str = "",
+        user_role: str = "",
+        tags: Optional[dict[str, str]] = None,
+    ) -> Studio:
+        studio = Studio(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            name=name,
+            auth_mode=auth_mode,
+            vpc_id=vpc_id,
+            subnet_ids=subnet_ids,
+            service_role=service_role,
+            workspace_security_group_id=workspace_security_group_id,
+            engine_security_group_id=engine_security_group_id,
+            default_s3_location=default_s3_location,
+            description=description,
+            user_role=user_role,
+            tags=tags,
+        )
+        self.studios[studio.studio_id] = studio
+        return studio
+
+    def describe_studio(self, studio_id: str) -> Studio:
+        if studio_id not in self.studios:
+            raise InvalidRequestException(message=f"Studio {studio_id} does not exist.")
+        return self.studios[studio_id]
+
+    def delete_studio(self, studio_id: str) -> None:
+        if studio_id not in self.studios:
+            raise InvalidRequestException(message=f"Studio {studio_id} does not exist.")
+        del self.studios[studio_id]
+
+    def list_studios(self) -> list[Studio]:
+        return list(self.studios.values())
+
+    def update_studio(
+        self,
+        studio_id: str,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        subnet_ids: Optional[list[str]] = None,
+        default_s3_location: Optional[str] = None,
+        encryption_key_arn: Optional[str] = None,
+    ) -> None:
+        if studio_id not in self.studios:
+            raise InvalidRequestException(message=f"Studio {studio_id} does not exist.")
+        studio = self.studios[studio_id]
+        if name is not None:
+            studio.name = name
+        if description is not None:
+            studio.description = description
+        if subnet_ids is not None:
+            studio.subnet_ids = subnet_ids
+        if default_s3_location is not None:
+            studio.default_s3_location = default_s3_location
+        if encryption_key_arn is not None:
+            studio.encryption_key_arn = encryption_key_arn
+
+    def put_managed_scaling_policy(
+        self, cluster_id: str, managed_scaling_policy: dict[str, Any]
+    ) -> None:
+        self.describe_cluster(cluster_id)
+        self.managed_scaling_policies[cluster_id] = managed_scaling_policy
+
+    def get_managed_scaling_policy(self, cluster_id: str) -> Optional[dict[str, Any]]:
+        self.describe_cluster(cluster_id)
+        return self.managed_scaling_policies.get(cluster_id)
+
+    def remove_managed_scaling_policy(self, cluster_id: str) -> None:
+        self.describe_cluster(cluster_id)
+        self.managed_scaling_policies.pop(cluster_id, None)
+
+    def put_auto_termination_policy(
+        self, cluster_id: str, auto_termination_policy: dict[str, Any]
+    ) -> None:
+        self.describe_cluster(cluster_id)
+        self.auto_termination_policies[cluster_id] = auto_termination_policy
+
+    def get_auto_termination_policy(self, cluster_id: str) -> Optional[dict[str, Any]]:
+        self.describe_cluster(cluster_id)
+        return self.auto_termination_policies.get(cluster_id)
+
+    def remove_auto_termination_policy(self, cluster_id: str) -> None:
+        self.describe_cluster(cluster_id)
+        self.auto_termination_policies.pop(cluster_id, None)
+
+    def add_instance_fleet(
+        self,
+        cluster_id: str,
+        instance_fleet: dict[str, Any],
+    ) -> InstanceFleet:
+        self.describe_cluster(cluster_id)
+        fleet = InstanceFleet(
+            cluster_id=cluster_id,
+            instance_fleet_type=instance_fleet.get("InstanceFleetType", "TASK"),
+            name=instance_fleet.get("Name", ""),
+            target_on_demand_capacity=instance_fleet.get("TargetOnDemandCapacity", 0),
+            target_spot_capacity=instance_fleet.get("TargetSpotCapacity", 0),
+            instance_type_configs=instance_fleet.get("InstanceTypeConfigs", []),
+            launch_specifications=instance_fleet.get("LaunchSpecifications"),
+            resize_specifications=instance_fleet.get("ResizeSpecifications"),
+        )
+        self.instance_fleets[fleet.id] = fleet
+        return fleet
+
+    def modify_instance_fleet(
+        self,
+        cluster_id: str,
+        instance_fleet: dict[str, Any],
+    ) -> None:
+        self.describe_cluster(cluster_id)
+        fleet_id = instance_fleet.get("InstanceFleetId", "")
+        if fleet_id not in self.instance_fleets:
+            raise ResourceNotFoundException(
+                f"Instance fleet '{fleet_id}' is not found."
+            )
+        fleet = self.instance_fleets[fleet_id]
+        if "TargetOnDemandCapacity" in instance_fleet:
+            fleet.target_on_demand_capacity = instance_fleet["TargetOnDemandCapacity"]
+            fleet.provisioned_on_demand_capacity = instance_fleet[
+                "TargetOnDemandCapacity"
+            ]
+        if "TargetSpotCapacity" in instance_fleet:
+            fleet.target_spot_capacity = instance_fleet["TargetSpotCapacity"]
+            fleet.provisioned_spot_capacity = instance_fleet["TargetSpotCapacity"]
+        if "ResizeSpecifications" in instance_fleet:
+            fleet.resize_specifications = instance_fleet["ResizeSpecifications"]
+
+    def list_instance_fleets(self, cluster_id: str) -> list[InstanceFleet]:
+        self.describe_cluster(cluster_id)
+        return [f for f in self.instance_fleets.values() if f.cluster_id == cluster_id]
+
+    def create_studio_session_mapping(
+        self,
+        studio_id: str,
+        identity_id: str,
+        identity_name: str,
+        identity_type: str,
+        session_policy_arn: str,
+    ) -> None:
+        if studio_id not in self.studios:
+            raise InvalidRequestException(message=f"Studio {studio_id} does not exist.")
+        mapping = StudioSessionMapping(
+            studio_id=studio_id,
+            identity_id=identity_id,
+            identity_name=identity_name,
+            identity_type=identity_type,
+            session_policy_arn=session_policy_arn,
+        )
+        self.studio_session_mappings[mapping.key] = mapping
+
+    def get_studio_session_mapping(
+        self,
+        studio_id: str,
+        identity_id: str,
+        identity_type: str,
+    ) -> StudioSessionMapping:
+        key = f"{studio_id}:{identity_type}:{identity_id}"
+        if key not in self.studio_session_mappings:
+            raise InvalidRequestException(
+                message=f"Session mapping for identity {identity_id} does not exist."
+            )
+        return self.studio_session_mappings[key]
+
+    def update_studio_session_mapping(
+        self,
+        studio_id: str,
+        identity_id: str,
+        identity_type: str,
+        session_policy_arn: str,
+    ) -> None:
+        key = f"{studio_id}:{identity_type}:{identity_id}"
+        if key not in self.studio_session_mappings:
+            raise InvalidRequestException(
+                message=f"Session mapping for identity {identity_id} does not exist."
+            )
+        mapping = self.studio_session_mappings[key]
+        mapping.session_policy_arn = session_policy_arn
+        mapping.last_modified_time = utcnow()
+
+    def delete_studio_session_mapping(
+        self,
+        studio_id: str,
+        identity_id: str,
+        identity_type: str,
+    ) -> None:
+        key = f"{studio_id}:{identity_type}:{identity_id}"
+        if key not in self.studio_session_mappings:
+            raise InvalidRequestException(
+                message=f"Session mapping for identity {identity_id} does not exist."
+            )
+        del self.studio_session_mappings[key]
+
+    def create_notebook_execution(
+        self,
+        editor_id: str,
+        relative_path: str,
+        execution_engine: dict[str, Any],
+        service_role: str,
+        notebook_execution_name: str = "",
+        notebook_params: str = "",
+        tags: Optional[dict[str, str]] = None,
+    ) -> NotebookExecution:
+        execution = NotebookExecution(
+            editor_id=editor_id,
+            relative_path=relative_path,
+            execution_engine=execution_engine,
+            service_role=service_role,
+            notebook_execution_name=notebook_execution_name,
+            notebook_params=notebook_params,
+            tags=tags,
+        )
+        self.notebook_executions[execution.notebook_execution_id] = execution
+        return execution
+
+    def describe_notebook_execution(
+        self, notebook_execution_id: str
+    ) -> NotebookExecution:
+        if notebook_execution_id not in self.notebook_executions:
+            raise InvalidRequestException(
+                message=(f"Notebook execution {notebook_execution_id} does not exist.")
+            )
+        return self.notebook_executions[notebook_execution_id]
+
+    def list_notebook_executions(
+        self, status: Optional[str] = None
+    ) -> list[NotebookExecution]:
+        executions = list(self.notebook_executions.values())
+        if status:
+            executions = [e for e in executions if e.status == status]
+        return executions
+
+    def stop_notebook_execution(self, notebook_execution_id: str) -> None:
+        execution = self.describe_notebook_execution(notebook_execution_id)
+        execution.status = "STOPPED"
+        execution.end_time = utcnow()
+
+    def create_persistent_app_ui(self, target_resource_arn: str) -> PersistentAppUI:
+        persistent_app_ui_id = random_persistent_app_ui_id()
+        app_ui = PersistentAppUI(
+            persistent_app_ui_id=persistent_app_ui_id,
+            target_resource_arn=target_resource_arn,
+            account_id=self.account_id,
+            region_name=self.region_name,
+        )
+        self.persistent_app_uis[persistent_app_ui_id] = app_ui
+        return app_ui
+
+    def describe_persistent_app_ui(self, persistent_app_ui_id: str) -> PersistentAppUI:
+        if persistent_app_ui_id not in self.persistent_app_uis:
+            raise ResourceNotFoundException(
+                f"PersistentAppUI {persistent_app_ui_id} does not exist."
+            )
+        return self.persistent_app_uis[persistent_app_ui_id]
+
+    def describe_release_label(self, release_label: str) -> dict[str, Any]:
+        if release_label not in self._release_labels:
+            raise InvalidRequestException(
+                message=f"Release label {release_label} not found."
+            )
+        return {
+            "ReleaseLabel": release_label,
+            "Applications": [],
+            "AvailableOSReleases": [],
+        }
+
+    def list_studio_session_mappings(
+        self, studio_id: Optional[str] = None, identity_type: Optional[str] = None
+    ) -> list[dict[str, Any]]:
+        mappings = []
+        for m in self.studio_session_mappings.values():
+            if studio_id and m.studio_id != studio_id:
+                continue
+            if identity_type and m.identity_type != identity_type:
+                continue
+            mappings.append({
+                "StudioId": m.studio_id,
+                "IdentityId": m.identity_id,
+                "IdentityType": m.identity_type,
+                "SessionPolicyArn": m.session_policy_arn,
+            })
+        return mappings
+
+    def set_keep_job_flow_alive_when_no_steps(
+        self, job_flow_ids: list[str], keep_job_flow_alive: bool
+    ) -> None:
+        for jf_id in job_flow_ids:
+            cluster = self.clusters.get(jf_id)
+            if cluster:
+                cluster.keep_job_flow_alive_when_no_steps = keep_job_flow_alive
+
+    def set_unhealthy_node_replacement(
+        self, job_flow_ids: list[str], unhealthy_node_replacement: bool
+    ) -> None:
+        for jf_id in job_flow_ids:
+            cluster = self.clusters.get(jf_id)
+            if cluster:
+                cluster.unhealthy_node_replacement = unhealthy_node_replacement
+
+    def get_cluster_session_credentials(
+        self, cluster_id: str, execution_role_arn: str
+    ) -> dict[str, Any]:
+        return {
+            "Credentials": {
+                "UsernamePassword": {
+                    "Username": "hadoop",
+                    "Password": "changeme",
+                }
+            },
+            "ExpiresAt": "2099-01-01T00:00:00Z",
+        }
+
+    def start_notebook_execution(
+        self,
+        editor_id: str,
+        relative_path: str,
+        execution_engine: dict[str, Any],
+        service_role: str,
+        **kwargs: Any,
+    ) -> "NotebookExecution":
+        return self.create_notebook_execution(
+            editor_id=editor_id,
+            relative_path=relative_path,
+            execution_engine=execution_engine,
+            service_role=service_role,
+            notebook_execution_name=kwargs.get("notebook_execution_name", ""),
+            notebook_params=kwargs.get("notebook_params", ""),
+            tags=kwargs.get("tags"),
+        )
+
+    def get_persistent_app_ui_presigned_url(
+        self, persistent_app_ui_id: str, presentation_type: str
+    ) -> dict[str, Any]:
+        return {
+            "PresignedURLForAthena": "",
+            "PresignedURLForIDP": f"https://emr.example.com/ui/{persistent_app_ui_id}?type={presentation_type}",
+        }
+
+    def get_on_cluster_app_ui_presigned_url(
+        self, cluster_id: str, on_cluster_app_ui_type: str
+    ) -> dict[str, Any]:
+        return {
+            "PresignedURLForAthena": "",
+            "PresignedURLForIDP": f"https://emr.example.com/cluster/{cluster_id}/ui/{on_cluster_app_ui_type}",
+        }
+
+
+
+
+class InstanceFleet(BaseModel):
+    def __init__(
+        self,
+        cluster_id: str,
+        instance_fleet_type: str,
+        name: str = "",
+        target_on_demand_capacity: int = 0,
+        target_spot_capacity: int = 0,
+        instance_type_configs: Optional[list[dict[str, Any]]] = None,
+        launch_specifications: Optional[dict[str, Any]] = None,
+        resize_specifications: Optional[dict[str, Any]] = None,
+    ):
+        self.id = random_instance_fleet_id()
+        self.cluster_id = cluster_id
+        self.name = name or instance_fleet_type
+        self.instance_fleet_type = instance_fleet_type
+        self.target_on_demand_capacity = target_on_demand_capacity
+        self.target_spot_capacity = target_spot_capacity
+        self.provisioned_on_demand_capacity = target_on_demand_capacity
+        self.provisioned_spot_capacity = target_spot_capacity
+        self.instance_type_configs = instance_type_configs or []
+        self.launch_specifications = launch_specifications or {}
+        self.resize_specifications = resize_specifications
+        self.state = "RUNNING"
+        self.state_change_reason = ""
+        self.creation_date_time = utcnow()
+        self.ready_date_time = utcnow()
+        self.end_date_time: Optional[datetime] = None
+
+    @property
+    def status(self) -> dict[str, Any]:
+        return {
+            "State": self.state,
+            "StateChangeReason": {
+                "Message": self.state_change_reason,
+                "Code": "USER_REQUEST",
+            },
+            "Timeline": {
+                "CreationDateTime": self.creation_date_time,
+                "ReadyDateTime": self.ready_date_time,
+                "EndDateTime": self.end_date_time,
+            },
+        }
+
+
+class StudioSessionMapping(BaseModel):
+    def __init__(
+        self,
+        studio_id: str,
+        identity_id: str,
+        identity_name: str,
+        identity_type: str,
+        session_policy_arn: str,
+    ):
+        self.studio_id = studio_id
+        self.identity_id = identity_id
+        self.identity_name = identity_name
+        self.identity_type = identity_type
+        self.session_policy_arn = session_policy_arn
+        self.creation_time = utcnow()
+        self.last_modified_time = utcnow()
+
+    @property
+    def key(self) -> str:
+        return f"{self.studio_id}:{self.identity_type}:{self.identity_id}"
+
+
+class Studio(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        name: str,
+        auth_mode: str,
+        vpc_id: str,
+        subnet_ids: list[str],
+        service_role: str,
+        workspace_security_group_id: str,
+        engine_security_group_id: str,
+        default_s3_location: str = "",
+        description: str = "",
+        user_role: str = "",
+        tags: Optional[dict[str, str]] = None,
+    ):
+        self.studio_id = random_studio_id()
+        self.name = name
+        self.auth_mode = auth_mode
+        self.vpc_id = vpc_id
+        self.subnet_ids = subnet_ids
+        self.service_role = service_role
+        self.user_role = user_role
+        self.workspace_security_group_id = workspace_security_group_id
+        self.engine_security_group_id = engine_security_group_id
+        self.default_s3_location = default_s3_location
+        self.description = description
+        self.creation_time = utcnow()
+        self._tags = tags or {}
+        partition = get_partition(region_name)
+        self.arn = (
+            f"arn:{partition}:elasticmapreduce:{region_name}:"
+            f"{account_id}:studio/{self.studio_id}"
+        )
+        self.url = (
+            f"https://{self.studio_id}.emrstudio-prod.{region_name}.amazonaws.com"
+        )
+
+    @property
+    def tags(self) -> list[dict[str, str]]:
+        return [{"Key": k, "Value": v} for k, v in self._tags.items()]
+
+
+class PersistentAppUI(BaseModel):
+    def __init__(
+        self,
+        persistent_app_ui_id: str,
+        target_resource_arn: str,
+        account_id: str,
+        region_name: str,
+    ):
+        self.persistent_app_ui_id = persistent_app_ui_id
+        self.target_resource_arn = target_resource_arn
+        self.creation_time = utcnow()
+        self.last_modified_time = utcnow()
+        partition = get_partition(region_name)
+        self.persistent_app_ui_arn = (
+            f"arn:{partition}:elasticmapreduce:{region_name}:"
+            f"{account_id}:persistent-app-ui/{persistent_app_ui_id}"
+        )
+
+
+class NotebookExecution(BaseModel):
+    def __init__(
+        self,
+        editor_id: str,
+        relative_path: str,
+        execution_engine: dict[str, Any],
+        service_role: str,
+        notebook_execution_name: str = "",
+        notebook_params: str = "",
+        tags: Optional[dict[str, str]] = None,
+    ):
+        self.notebook_execution_id = random_notebook_execution_id()
+        self.notebook_execution_name = notebook_execution_name
+        self.editor_id = editor_id
+        self.relative_path = relative_path
+        self.execution_engine = execution_engine
+        self.service_role = service_role
+        self.notebook_params = notebook_params
+        self.status = "STARTING"
+        self.start_time = utcnow()
+        self.end_time: Optional[datetime] = None
+        self._tags = tags or {}
+
+    @property
+    def tags(self) -> list[dict[str, str]]:
+        return [{"Key": k, "Value": v} for k, v in self._tags.items()]
 emr_backends = BackendDict(ElasticMapReduceBackend, "emr")

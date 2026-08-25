@@ -26,3 +26,8 @@ class SchemaException(JsonRESTError):
 class ParamValidationError(JsonRESTError):
     def __init__(self, msg: str):
         super().__init__("ParamValidationError", msg)
+
+
+class ResourceExistsException(JsonRESTError):
+    def __init__(self, msg: str):
+        super().__init__("ResourceExistsException", msg)

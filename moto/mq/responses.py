@@ -206,6 +206,43 @@ class MQResponse(BaseResponse):
         tags = self.mq_backend.list_tags(resource_arn)
         return ActionResult({"Tags": tags})
 
+    def delete_configuration(self) -> ActionResult:
+        config_id = self.path.split("/")[-1]
+        config = self.mq_backend.delete_configuration(config_id)
+        return ActionResult({"configurationId": config.id})
+
+    def list_configuration_revisions(self) -> ActionResult:
+        config_id = self.path.split("/")[-2]
+        config_id, revisions = self.mq_backend.list_configuration_revisions(
+            config_id
+        )
+        return ActionResult(
+            {
+                "configurationId": config_id,
+                "revisions": [
+                    {
+                        "created": r.created.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                        "description": r.description,
+                        "revision": int(r.revision_id),
+                    }
+                    for r in revisions
+                ],
+            }
+        )
+
+    def describe_broker_engine_types(self) -> ActionResult:
+        engine_types = self.mq_backend.describe_broker_engine_types()
+        return ActionResult({"brokerEngineTypes": engine_types})
+
+    def describe_broker_instance_options(self) -> ActionResult:
+        options = self.mq_backend.describe_broker_instance_options()
+        return ActionResult({"brokerInstanceOptions": options})
+
+    def promote(self) -> ActionResult:
+        broker_id = self.path.split("/")[-2]
+        self.mq_backend.promote(broker_id)
+        return ActionResult({"brokerId": broker_id})
+
     def reboot_broker(self) -> ActionResult:
         broker_id = self.path.split("/")[-2]
         self.mq_backend.reboot_broker(broker_id=broker_id)

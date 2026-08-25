@@ -67,5 +67,64 @@ class InvalidRequestException(S3ControlError):
 class StorageLensConfigurationNotFound(S3ControlError):
     code = "NoSuchConfiguration"
 
-    def __init__(self, config_id: str):
-        super().__init__(f"The specified configuration does not exist: {config_id}")
+    def __init__(self, config_id: str, **kwargs: Any):
+        super().__init__(
+            "NoSuchConfiguration",
+            f"The specified configuration does not exist: {config_id}",
+            **kwargs,
+        )
+
+
+class AccessGrantNotFound(S3ControlError):
+    code = 404
+
+    def __init__(self, grant_id: str, **kwargs: Any):
+        super().__init__(
+            "NoSuchAccessGrant",
+            f"The specified access grant does not exist: {grant_id}",
+            **kwargs,
+        )
+
+
+class AccessGrantsInstanceNotFound(S3ControlError):
+    code = 404
+
+    def __init__(self, **kwargs: Any):
+        super().__init__(
+            "NoSuchAccessGrantsInstance",
+            "The Access Grants instance does not exist",
+            **kwargs,
+        )
+
+
+class AccessGrantsLocationNotFound(S3ControlError):
+    code = 404
+
+    def __init__(self, location_id: str, **kwargs: Any):
+        super().__init__(
+            "NoSuchAccessGrantsLocation",
+            f"The specified access grants location does not exist: {location_id}",
+            **kwargs,
+        )
+
+
+class JobNotFound(S3ControlError):
+    code = 404
+
+    def __init__(self, job_id: str, **kwargs: Any):
+        super().__init__(
+            "NoSuchJob",
+            f"The specified job does not exist: {job_id}",
+            **kwargs,
+        )
+
+
+class StorageLensGroupNotFound(S3ControlError):
+    code = 404
+
+    def __init__(self, name: str, **kwargs: Any):
+        super().__init__(
+            "NoSuchStorageLensGroup",
+            f"The specified Storage Lens group does not exist: {name}",
+            **kwargs,
+        )

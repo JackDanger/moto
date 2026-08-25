@@ -16,6 +16,39 @@ from moto.utilities.tagging_service import TaggingService
 from moto.utilities.utils import get_partition
 
 
+class AttributeGroup(BaseModel):
+    def __init__(
+        self,
+        name: str,
+        description: str,
+        attributes: str,
+        region: str,
+        account_id: str,
+    ):
+        self.id = mock_random.get_random_string(
+            length=27, include_digits=True, lower_case=True
+        )
+        self.arn = f"arn:{get_partition(region)}:servicecatalog:{region}:{account_id}:attribute-groups/{self.id}"
+        self.name = name
+        self.description = description
+        self.attributes = attributes
+        self.creationTime = datetime.datetime.now()
+        self.lastUpdateTime = self.creationTime
+        self.tags: dict[str, str] = {}
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "arn": self.arn,
+            "name": self.name,
+            "description": self.description,
+            "attributes": self.attributes,
+            "creationTime": str(self.creationTime),
+            "lastUpdateTime": str(self.lastUpdateTime),
+            "tags": self.tags,
+        }
+
+
 class Application(BaseModel):
     def __init__(
         self,
@@ -36,6 +69,7 @@ class Application(BaseModel):
         self.applicationTag: dict[str, str] = {"awsApplication": self.arn}
 
         self.associated_resources: dict[str, AssociatedResource] = {}
+        self.associated_attribute_groups: dict[str, str] = {}  # arn -> arn
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -121,8 +155,27 @@ class AppRegistryBackend(BaseBackend):
     def __init__(self, region_name: str, account_id: str):
         super().__init__(region_name, account_id)
         self.applications: dict[str, Application] = {}
+        self.attribute_groups: dict[str, AttributeGroup] = {}
         self.tagger = TaggingService()
         self.configuration: dict[str, Any] = {"tagQueryConfiguration": {}}
+
+    def _find_app(self, search: str) -> Application:
+        """Find application by ARN, ID, or name."""
+        if search in self.applications:
+            return self.applications[search]
+        for app in self.applications.values():
+            if search == app.id or search == app.name:
+                return app
+        raise ResourceNotFoundException(f"Application not found: {search}")
+
+    def _find_attribute_group(self, search: str) -> AttributeGroup:
+        """Find attribute group by ARN, ID, or name."""
+        if search in self.attribute_groups:
+            return self.attribute_groups[search]
+        for ag in self.attribute_groups.values():
+            if search == ag.id or search == ag.name:
+                return ag
+        raise ResourceNotFoundException(f"AttributeGroup not found: {search}")
 
     def create_application(
         self, name: str, description: str, tags: dict[str, str], client_token: str
@@ -137,8 +190,103 @@ class AppRegistryBackend(BaseBackend):
         self._tag_resource(app.arn, tags)
         return app
 
+    def get_application(self, application: str) -> Application:
+        return self._find_app(application)
+
+    def update_application(
+        self, application: str, name: str, description: str
+    ) -> Application:
+        app = self._find_app(application)
+        if name is not None:
+            app.name = name
+        if description is not None:
+            app.description = description
+        app.lastUpdateTime = datetime.datetime.now()
+        return app
+
+    def delete_application(self, application: str) -> Application:
+        app = self._find_app(application)
+        del self.applications[app.arn]
+        return app
+
     def list_applications(self) -> list[Application]:
         return list(self.applications.values())
+
+    def create_attribute_group(
+        self,
+        name: str,
+        description: str,
+        attributes: str,
+        tags: dict[str, str],
+        client_token: str,
+    ) -> AttributeGroup:
+        ag = AttributeGroup(
+            name,
+            description,
+            attributes,
+            region=self.region_name,
+            account_id=self.account_id,
+        )
+        self.attribute_groups[ag.arn] = ag
+        self._tag_resource(ag.arn, tags or {})
+        return ag
+
+    def get_attribute_group(self, attribute_group: str) -> AttributeGroup:
+        return self._find_attribute_group(attribute_group)
+
+    def update_attribute_group(
+        self, attribute_group: str, name: str, description: str, attributes: str
+    ) -> AttributeGroup:
+        ag = self._find_attribute_group(attribute_group)
+        if name is not None:
+            ag.name = name
+        if description is not None:
+            ag.description = description
+        if attributes is not None:
+            ag.attributes = attributes
+        ag.lastUpdateTime = datetime.datetime.now()
+        return ag
+
+    def delete_attribute_group(self, attribute_group: str) -> AttributeGroup:
+        ag = self._find_attribute_group(attribute_group)
+        del self.attribute_groups[ag.arn]
+        return ag
+
+    def list_attribute_groups(self) -> list[AttributeGroup]:
+        return list(self.attribute_groups.values())
+
+    def associate_attribute_group(
+        self, application: str, attribute_group: str
+    ) -> dict[str, str]:
+        app = self._find_app(application)
+        ag = self._find_attribute_group(attribute_group)
+        app.associated_attribute_groups[ag.arn] = ag.arn
+        return {"applicationArn": app.arn, "attributeGroupArn": ag.arn}
+
+    def disassociate_attribute_group(
+        self, application: str, attribute_group: str
+    ) -> dict[str, str]:
+        app = self._find_app(application)
+        ag = self._find_attribute_group(attribute_group)
+        app.associated_attribute_groups.pop(ag.arn, None)
+        return {"applicationArn": app.arn, "attributeGroupArn": ag.arn}
+
+    def list_associated_attribute_groups(
+        self, application: str
+    ) -> list[str]:
+        app = self._find_app(application)
+        return list(app.associated_attribute_groups.keys())
+
+    def list_attribute_groups_for_application(
+        self, application: str
+    ) -> list[dict[str, Any]]:
+        app = self._find_app(application)
+        result = []
+        for ag_arn in app.associated_attribute_groups.keys():
+            if ag_arn in self.attribute_groups:
+                ag = self.attribute_groups[ag_arn]
+                result.append({"id": ag.id, "arn": ag.arn, "name": ag.name, "createdBy": self.account_id})
+        return result
 
     def associate_resource(
         self, application: str, resource_type: str, resource: str, options: list[str]
@@ -149,6 +297,52 @@ class AppRegistryBackend(BaseBackend):
         )
         app.associated_resources[new_resource.resource] = new_resource
         return {"applicationArn": app.arn, "resourceArn": resource, "options": options}
+
+    def disassociate_resource(
+        self, application: str, resource_type: str, resource: str
+    ) -> dict[str, str]:
+        app = self._find_app(application)
+        # Find resource by name or arn
+        to_delete = None
+        for res_arn, res in app.associated_resources.items():
+            if res.name == resource or res.resource == resource or res_arn == resource:
+                to_delete = res_arn
+                break
+        if to_delete:
+            del app.associated_resources[to_delete]
+        return {"applicationArn": app.arn, "resourceArn": resource}
+
+    def get_associated_resource(
+        self, application: str, resource_type: str, resource: str
+    ) -> dict[str, Any]:
+        app = self._find_app(application)
+        for res in app.associated_resources.values():
+            if res.name == resource or res.resource == resource:
+                return res.to_json()
+        raise ResourceNotFoundException(f"Resource not found: {resource}")
+
+    def sync_resource(
+        self, resource_type: str, resource: str
+    ) -> dict[str, Any]:
+        # Find which application this resource is associated with
+        for app in self.applications.values():
+            for res in app.associated_resources.values():
+                if res.name == resource or res.resource == resource:
+                    return {
+                        "applicationArn": app.arn,
+                        "resourceArn": res.resource,
+                        "actionTaken": "NO_ACTION",
+                    }
+        raise ResourceNotFoundException(f"Resource not found: {resource}")
+
+    def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
+        return self.tagger.get_tag_dict_for_resource(resource_arn)
+
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
+        self._tag_resource(resource_arn, tags)
+
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
+        self._untag_resource(resource_arn, tag_keys)
 
     def _list_tags_for_resource(self, arn: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(arn)

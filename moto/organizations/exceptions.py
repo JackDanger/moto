@@ -1,4 +1,4 @@
-from moto.core.exceptions import ServiceException
+from moto.core.exceptions import JsonRESTError, ServiceException
 
 
 class OrganizationsClientError(ServiceException):
@@ -118,3 +118,13 @@ class TargetNotFoundException(OrganizationsClientError):
 class PolicyNotFoundException(OrganizationsClientError):
     def __init__(self, message: str) -> None:
         super().__init__("PolicyNotFoundException", message)
+
+
+class ResourcePolicyNotFoundException(JsonRESTError):
+    code = 400
+
+    def __init__(self) -> None:
+        super().__init__(
+            "ResourcePolicyNotFoundException",
+            "We can't find a resource policy request with the parameter that you specified.",
+        )

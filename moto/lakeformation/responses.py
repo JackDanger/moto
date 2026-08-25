@@ -253,3 +253,313 @@ class LakeFormationResponse(BaseResponse):
             catalog_id, resource, tags
         )
         return "{}"
+
+    def describe_transaction(self) -> str:
+        transaction_id = self._get_param("TransactionId")
+        txn = self.lakeformation_backend.describe_transaction(transaction_id)
+        return json.dumps({"TransactionDescription": txn.to_dict()})
+
+    def list_transactions(self) -> str:
+        status_filter = self._get_param("StatusFilter")
+        transactions = self.lakeformation_backend.list_transactions(
+            status_filter=status_filter,
+        )
+        return json.dumps({"Transactions": [t.to_dict() for t in transactions]})
+
+    def start_transaction(self) -> str:
+        transaction_type = self._get_param("TransactionType") or "READ_AND_WRITE"
+        transaction_id = self.lakeformation_backend.start_transaction(transaction_type)
+        return json.dumps({"TransactionId": transaction_id})
+
+    def commit_transaction(self) -> str:
+        transaction_id = self._get_param("TransactionId")
+        status = self.lakeformation_backend.commit_transaction(transaction_id)
+        return json.dumps({"TransactionStatus": status})
+
+    def cancel_transaction(self) -> str:
+        transaction_id = self._get_param("TransactionId")
+        self.lakeformation_backend.cancel_transaction(transaction_id)
+        return "{}"
+
+    def get_data_lake_principal(self) -> str:
+        principal = self.lakeformation_backend.get_data_lake_principal()
+        return json.dumps({"Identity": principal})
+
+    def get_effective_permissions_for_path(self) -> str:
+        catalog_id = self._get_param("CatalogId") or self.current_account
+        resource_arn = self._get_param("ResourceArn")
+        permissions = self.lakeformation_backend.get_effective_permissions_for_path(
+            catalog_id,
+            resource_arn,
+        )
+        return json.dumps({"Permissions": permissions})
+
+    def get_query_state(self) -> str:
+        query_id = self._get_param("QueryId")
+        state = self.lakeformation_backend.get_query_state(query_id)
+        return json.dumps({"State": state})
+
+    def get_query_statistics(self) -> str:
+        query_id = self._get_param("QueryId")
+        stats = self.lakeformation_backend.get_query_statistics(query_id)
+        return json.dumps(stats)
+
+    def get_work_units(self) -> str:
+        query_id = self._get_param("QueryId")
+        work_units = self.lakeformation_backend.get_work_units(query_id)
+        return json.dumps({"WorkUnitRanges": work_units})
+
+    def get_work_unit_results(self) -> str:
+        query_id = self._get_param("QueryId")
+        work_unit_id = self._get_param("WorkUnitId")
+        work_unit_token = self._get_param("WorkUnitToken")
+        self.lakeformation_backend.get_work_unit_results(
+            query_id, work_unit_id, work_unit_token
+        )
+        return json.dumps({"ResultStream": ""})
+
+    def get_temporary_glue_partition_credentials(self) -> str:
+        table_arn = self._get_param("TableArn")
+        partition = self._get_param("Partition")
+        supported_permission_types = self._get_param("SupportedPermissionTypes") or []
+        creds = self.lakeformation_backend.get_temporary_glue_partition_credentials(
+            table_arn,
+            partition,
+            supported_permission_types,
+        )
+        return json.dumps(creds)
+
+    def get_temporary_glue_table_credentials(self) -> str:
+        table_arn = self._get_param("TableArn")
+        supported_permission_types = self._get_param("SupportedPermissionTypes") or []
+        creds = self.lakeformation_backend.get_temporary_glue_table_credentials(
+            table_arn,
+            supported_permission_types,
+        )
+        return json.dumps(creds)
+
+    def create_data_cells_filter(self) -> str:
+        table_data = self._get_param("TableData")
+        self.lakeformation_backend.create_data_cells_filter(table_data)
+        return "{}"
+
+    def get_data_cells_filter(self) -> str:
+        table_catalog_id = self._get_param("TableCatalogId") or self.current_account
+        database_name = self._get_param("DatabaseName")
+        table_name = self._get_param("TableName")
+        name = self._get_param("Name")
+        dcf = self.lakeformation_backend.get_data_cells_filter(
+            table_catalog_id,
+            database_name,
+            table_name,
+            name,
+        )
+        return json.dumps({"DataCellsFilter": dcf.to_dict()})
+
+    def delete_data_cells_filter(self) -> str:
+        table_catalog_id = self._get_param("TableCatalogId") or self.current_account
+        database_name = self._get_param("DatabaseName")
+        table_name = self._get_param("TableName")
+        name = self._get_param("Name")
+        self.lakeformation_backend.delete_data_cells_filter(
+            table_catalog_id,
+            database_name,
+            table_name,
+            name,
+        )
+        return "{}"
+
+    def search_databases_by_lf_tags(self) -> str:
+        catalog_id = self._get_param("CatalogId") or self.current_account
+        expression = self._get_param("Expression") or []
+        results = self.lakeformation_backend.search_databases_by_lf_tags(
+            expression=expression,
+            catalog_id=catalog_id,
+        )
+        return json.dumps({"DatabaseList": results})
+
+    def search_tables_by_lf_tags(self) -> str:
+        catalog_id = self._get_param("CatalogId") or self.current_account
+        expression = self._get_param("Expression") or []
+        results = self.lakeformation_backend.search_tables_by_lf_tags(
+            expression=expression,
+            catalog_id=catalog_id,
+        )
+        return json.dumps({"TableList": results})
+
+
+    def create_lf_tag_expression(self) -> str:
+        catalog_id = self._get_param("CatalogId") or self.current_account
+        name = self._get_param("Name")
+        expression = self._get_param("Expression") or []
+        description = self._get_param("Description")
+        self.lakeformation_backend.create_lf_tag_expression(
+            catalog_id=catalog_id,
+            name=name,
+            expression=expression,
+            description=description,
+        )
+        return "{}"
+
+    def get_lf_tag_expression(self) -> str:
+        catalog_id = self._get_param("CatalogId") or self.current_account
+        name = self._get_param("Name")
+        ex = self.lakeformation_backend.get_lf_tag_expression(catalog_id, name)
+        return json.dumps(ex.to_dict())
+
+    def list_lf_tag_expressions(self) -> str:
+        catalog_id = self._get_param("CatalogId") or self.current_account
+        max_results = self._get_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        expressions, next_token = self.lakeformation_backend.list_lf_tag_expressions(
+            catalog_id=catalog_id,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        result: dict[str, Any] = {
+            "LFTagExpressions": [e.to_dict() for e in expressions],
+        }
+        if next_token is not None:
+            result["NextToken"] = next_token
+        return json.dumps(result)
+
+    def update_lf_tag_expression(self) -> str:
+        catalog_id = self._get_param("CatalogId") or self.current_account
+        name = self._get_param("Name")
+        expression = self._get_param("Expression")
+        description = self._get_param("Description")
+        self.lakeformation_backend.update_lf_tag_expression(
+            catalog_id=catalog_id,
+            name=name,
+            expression=expression,
+            description=description,
+        )
+        return "{}"
+
+    def delete_lf_tag_expression(self) -> str:
+        catalog_id = self._get_param("CatalogId") or self.current_account
+        name = self._get_param("Name")
+        self.lakeformation_backend.delete_lf_tag_expression(catalog_id, name)
+        return "{}"
+
+    def create_lake_formation_identity_center_configuration(self) -> str:
+        catalog_id = self._get_param("CatalogId") or self.current_account
+        instance_arn = self._get_param("InstanceArn")
+        external_filtering = self._get_param("ExternalFiltering")
+        share_recipients = self._get_param("ShareRecipients")
+        service_integrations = self._get_param("ServiceIntegrations")
+        application_arn = self.lakeformation_backend.create_lake_formation_identity_center_configuration(
+            catalog_id=catalog_id,
+            instance_arn=instance_arn,
+            external_filtering=external_filtering,
+            share_recipients=share_recipients,
+            service_integrations=service_integrations,
+        )
+        return json.dumps({"ApplicationArn": application_arn})
+
+    def describe_lake_formation_identity_center_configuration(self) -> str:
+        catalog_id = self._get_param("CatalogId") or self.current_account
+        config = self.lakeformation_backend.describe_lake_formation_identity_center_configuration(
+            catalog_id,
+        )
+        return json.dumps(config)
+
+    def update_lake_formation_identity_center_configuration(self) -> str:
+        catalog_id = self._get_param("CatalogId") or self.current_account
+        share_recipients = self._get_param("ShareRecipients")
+        service_integrations = self._get_param("ServiceIntegrations")
+        application_status = self._get_param("ApplicationStatus")
+        external_filtering = self._get_param("ExternalFiltering")
+        self.lakeformation_backend.update_lake_formation_identity_center_configuration(
+            catalog_id=catalog_id,
+            share_recipients=share_recipients,
+            service_integrations=service_integrations,
+            application_status=application_status,
+            external_filtering=external_filtering,
+        )
+        return "{}"
+
+    def delete_lake_formation_identity_center_configuration(self) -> str:
+        catalog_id = self._get_param("CatalogId") or self.current_account
+        self.lakeformation_backend.delete_lake_formation_identity_center_configuration(
+            catalog_id,
+        )
+        return "{}"
+
+    def list_lake_formation_opt_ins(self) -> str:
+        opt_ins = self.lakeformation_backend.list_lake_formation_opt_ins()
+        return json.dumps({"LakeFormationOptInsInfoList": opt_ins})
+
+    def get_temporary_data_location_credentials(self) -> str:
+        creds = self.lakeformation_backend.get_temporary_data_location_credentials(
+            data_locations=self._get_param("DataLocations") or [],
+            credentials_scope=self._get_param("CredentialsScope", ""),
+            duration_seconds=self._get_param("DurationSeconds"),
+            audit_context=self._get_param("AuditContext"),
+        )
+        return json.dumps({"Credentials": creds, "AccessibleDataLocations": []})
+
+    def list_table_storage_optimizers(self) -> str:
+        catalog_id = self._get_param("CatalogId") or self.current_account
+        optimizers = self.lakeformation_backend.list_table_storage_optimizers(
+            catalog_id=catalog_id,
+            database_name=self._get_param("DatabaseName", ""),
+            table_name=self._get_param("TableName", ""),
+            storage_optimizer_type=self._get_param("StorageOptimizerType"),
+        )
+        return json.dumps({"StorageOptimizerList": optimizers})
+
+    def get_table_objects(self) -> str:
+        catalog_id = self._get_param("CatalogId") or self.current_account
+        objects = self.lakeformation_backend.get_table_objects(
+            catalog_id=catalog_id,
+            database_name=self._get_param("DatabaseName", ""),
+            table_name=self._get_param("TableName", ""),
+        )
+        return json.dumps({"Objects": objects})
+
+    def create_lake_formation_opt_in(self) -> str:
+        self.lakeformation_backend.create_lake_formation_opt_in()
+        return json.dumps({})
+
+    def delete_lake_formation_opt_in(self) -> str:
+        self.lakeformation_backend.delete_lake_formation_opt_in()
+        return json.dumps({})
+
+    def delete_objects_on_cancel(self) -> str:
+        self.lakeformation_backend.delete_objects_on_cancel()
+        return json.dumps({})
+
+    def extend_transaction(self) -> str:
+        self.lakeformation_backend.extend_transaction(
+            transaction_id=self._get_param("TransactionId", ""),
+        )
+        return json.dumps({})
+
+    def update_resource(self) -> str:
+        self.lakeformation_backend.update_resource(
+            resource_arn=self._get_param("ResourceArn", ""),
+            role_arn=self._get_param("RoleArn", ""),
+        )
+        return json.dumps({})
+
+    def update_table_objects(self) -> str:
+        self.lakeformation_backend.update_table_objects()
+        return json.dumps({})
+
+    def update_table_storage_optimizer(self) -> str:
+        result = self.lakeformation_backend.update_table_storage_optimizer()
+        return json.dumps(result)
+
+    def assume_decorated_role_with_saml(self) -> str:
+        role_arn = self._get_param("RoleArn", "")
+        principal_arn = self._get_param("PrincipalArn", "")
+        saml_assertion = self._get_param("SAMLAssertion", "")
+        duration_seconds = self._get_param("DurationSeconds")
+        creds = self.lakeformation_backend.assume_decorated_role_with_saml(
+            role_arn=role_arn,
+            principal_arn=principal_arn,
+            saml_assertion=saml_assertion,
+            duration_seconds=duration_seconds,
+        )
+        return json.dumps(creds)

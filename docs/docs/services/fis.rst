@@ -40,4 +40,19 @@ fis
 - [X] update_experiment_template
 - [ ] update_safety_lever_state
 - [X] update_target_account_configuration
+- [ ] create_target_account_configuration
+- [ ] delete_target_account_configuration
+- [ ] get_experiment
+- [ ] get_experiment_target_account_configuration
+- [ ] get_experiment_template
+- [ ] get_target_account_configuration
+- [ ] list_experiment_resolved_targets
+- [ ] list_experiment_target_account_configurations
+- [ ] list_experiment_templates
+- [ ] list_experiments
+- [ ] list_target_account_configurations
+- [ ] start_experiment
+- [ ] stop_experiment
+- [ ] update_experiment_template
+- [ ] update_target_account_configuration
 

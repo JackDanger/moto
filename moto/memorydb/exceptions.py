@@ -57,11 +57,31 @@ class SubnetGroupInUseFault(MemoryDBClientError):
         super().__init__("SubnetGroupInUseFault", msg)
 
 
-class UserAlreadyExistsFault(MemoryDBClientError):
+class ACLNotFoundFault(MemoryDBClientError):
     def __init__(self, msg: str):
-        super().__init__("UserAlreadyExistsFault", msg)
+        super().__init__("ACLNotFoundFault", msg)
+
+
+class ACLAlreadyExistsFault(MemoryDBClientError):
+    def __init__(self, msg: str):
+        super().__init__("ACLAlreadyExistsFault", msg)
 
 
 class UserNotFoundFault(MemoryDBClientError):
     def __init__(self, msg: str):
         super().__init__("UserNotFoundFault", msg)
+
+
+class UserAlreadyExistsFault(MemoryDBClientError):
+    def __init__(self, msg: str):
+        super().__init__("UserAlreadyExistsFault", msg)
+
+
+class ParameterGroupNotFoundFault(MemoryDBClientError):
+    def __init__(self, msg: str):
+        super().__init__("ParameterGroupNotFoundFault", msg)
+
+
+class ParameterGroupAlreadyExistsFault(MemoryDBClientError):
+    def __init__(self, msg: str):
+        super().__init__("ParameterGroupAlreadyExistsFault", msg)

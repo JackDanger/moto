@@ -306,6 +306,14 @@ class VPCs(EC2BaseResponse):
         result = {"Entries": entries}
         return ActionResult(result)
 
+    def get_managed_prefix_list_associations(self) -> ActionResult:
+        prefix_list_id = self._get_param("PrefixListId")
+        associations = self.ec2_backend.get_managed_prefix_list_associations(
+            prefix_list_id
+        )
+        result = {"PrefixListAssociations": associations}
+        return ActionResult(result)
+
     def delete_managed_prefix_list(self) -> ActionResult:
         prefix_list_id = self._get_param("PrefixListId")
         managed_prefix_list = self.ec2_backend.delete_managed_prefix_list(
@@ -347,3 +355,20 @@ class VPCs(EC2BaseResponse):
         )
         result = {"PrefixList": managed_prefix_list}
         return ActionResult(result)
+
+    def detach_classic_link_vpc(self) -> ActionResult:
+        instance_id = self._get_param("InstanceId")
+        vpc_id = self._get_param("VpcId")
+        self.ec2_backend.detach_classic_link_vpc(
+            instance_id=instance_id, vpc_id=vpc_id
+        )
+        return ActionResult({"Return": True})
+
+    def attach_classic_link_vpc(self) -> ActionResult:
+        instance_id = self._get_param("InstanceId")
+        vpc_id = self._get_param("VpcId")
+        security_group_ids = self._get_param("SecurityGroupIds", [])
+        self.ec2_backend.attach_classic_link_vpc(
+            instance_id=instance_id, vpc_id=vpc_id, security_group_ids=security_group_ids
+        )
+        return ActionResult({"Return": True})

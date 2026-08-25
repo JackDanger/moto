@@ -682,6 +682,17 @@ class SecurityGroupBackend:
 
         return matches
 
+    def get_security_groups_for_vpc(
+        self,
+        vpc_id: str,
+        filters: Any = None,
+    ) -> list["SecurityGroup"]:
+        """Return security groups associated with the given VPC."""
+        matches = list(self.groups.get(vpc_id, {}).values())
+        if filters:
+            matches = [grp for grp in matches if grp.matches_filters(filters)]
+        return matches
+
     def describe_security_group_rules(
         self,
         sg_rule_ids: list[str],

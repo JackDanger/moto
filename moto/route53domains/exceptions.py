@@ -39,3 +39,13 @@ class UnsupportedTLDException(JsonRESTError):
             "UnsupportedTLD",
             f"Amazon Route53 does not support the top-level domain (TLD) `.{tld}`.",
         )
+
+
+class OperationLimitExceededException(JsonRESTError):
+    code = 400
+
+    def __init__(self) -> None:
+        super().__init__(
+            "OperationLimitExceeded",
+            "The number of operations or jobs running exceeded the allowed threshold for the account.",
+        )

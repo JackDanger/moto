@@ -213,15 +213,22 @@ class ElasticBlockStore(EC2BaseResponse):
         )
         return ActionResult({"Volumes": volumes})
 
-    def describe_volume_attribute(self) -> str:
-        raise NotImplementedError(
-            "ElasticBlockStore.describe_volume_attribute is not yet implemented"
+    def describe_volume_attribute(self) -> ActionResult:
+        volume_id = self._get_param("VolumeId")
+        attribute = self._get_param("Attribute")
+        result = self.ec2_backend.describe_volume_attribute(
+            volume_id=volume_id,
+            attribute=attribute,
         )
+        response = {"VolumeId": result["volume_id"]}
+        if attribute == "autoEnableIO":
+            response["AutoEnableIO"] = {"Value": result["auto_enable_io"]}
+        elif attribute == "productCodes":
+            response["ProductCodes"] = []
+        return ActionResult(response)
 
-    def describe_volume_status(self) -> str:
-        raise NotImplementedError(
-            "ElasticBlockStore.describe_volume_status is not yet implemented"
-        )
+    def describe_volume_status(self) -> ActionResult:
+        return ActionResult({"VolumeStatusSet": []})
 
     def detach_volume(self) -> ActionResult:
         volume_id = self._get_param("VolumeId")
@@ -285,12 +292,16 @@ class ElasticBlockStore(EC2BaseResponse):
             )
         return EmptyResult()
 
-    def modify_volume_attribute(self) -> str:
+    def modify_volume_attribute(self) -> ActionResult:
         self.error_on_dryrun()
 
-        raise NotImplementedError(
-            "ElasticBlockStore.modify_volume_attribute is not yet implemented"
+        volume_id = self._get_param("VolumeId")
+        auto_enable_io = self._get_param("AutoEnableIO")
+        self.ec2_backend.modify_volume_attribute(
+            volume_id=volume_id,
+            auto_enable_io=auto_enable_io,
         )
+        return ActionResult({"Return": True})
 
     def reset_snapshot_attribute(self) -> str:
         self.error_on_dryrun()
@@ -304,3 +315,332 @@ class ElasticBlockStore(EC2BaseResponse):
         kms_key_id = self._get_param("KmsKeyId")
         new_default_kms_arn = self.ec2_backend.modify_ebs_default_kms_key_id(kms_key_id)
         return ActionResult({"KmsKeyId": new_default_kms_arn})
+
+
+CREATE_VOLUME_RESPONSE = """<CreateVolumeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <volumeId>{{ volume.id }}</volumeId>
+  <size>{{ volume.size }}</size>
+  {% if volume.snapshot_id %}
+    <snapshotId>{{ volume.snapshot_id }}</snapshotId>
+  {% else %}
+    <snapshotId/>
+  {% endif %}
+  <encrypted>{{ 'true' if volume.encrypted else 'false' }}</encrypted>
+  {% if volume.encrypted %}
+  <kmsKeyId>{{ volume.kms_key_id }}</kmsKeyId>
+  {% endif %}
+  {% if volume.zone %}
+  <availabilityZone>{{ volume.zone.name }}</availabilityZone>
+  {% endif %}
+  <status>creating</status>
+  <createTime>{{ volume.create_time }}</createTime>
+  {% if volume.get_tags() %}
+    <tagSet>
+      {% for tag in volume.get_tags() %}
+          <item>
+          <resourceId>{{ tag.resource_id }}</resourceId>
+          <resourceType>{{ tag.resource_type }}</resourceType>
+          <key>{{ tag.key }}</key>
+          <value>{{ tag.value }}</value>
+          </item>
+      {% endfor %}
+    </tagSet>
+  {% endif %}
+  <volumeType>{{ volume.volume_type }}</volumeType>
+  {% if volume.iops %}
+    <iops>{{ volume.iops }}</iops>
+  {% endif %}
+  {% if volume.throughput %}
+    <throughput>{{ volume.throughput }}</throughput>
+  {% endif %}
+  {% if volume.multi_attach_enabled %}
+    <multiAttachEnabled>{{ volume.multi_attach_enabled|lower }}</multiAttachEnabled>
+  {% endif %}
+</CreateVolumeResponse>"""
+
+DESCRIBE_VOLUMES_RESPONSE = """<DescribeVolumesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+   <volumeSet>
+      {% for volume in volumes %}
+          <item>
+             <volumeId>{{ volume.id }}</volumeId>
+             <size>{{ volume.size }}</size>
+             {% if volume.snapshot_id %}
+               <snapshotId>{{ volume.snapshot_id }}</snapshotId>
+             {% else %}
+               <snapshotId/>
+             {% endif %}
+             <encrypted>{{ 'true' if volume.encrypted else 'false' }}</encrypted>
+             {% if volume.encrypted %}
+             <kmsKeyId>{{ volume.kms_key_id }}</kmsKeyId>
+             {% endif %}
+             {% if volume.zone %}
+             <availabilityZone>{{ volume.zone.name }}</availabilityZone>
+             {% endif %}
+             <status>{{ volume.status }}</status>
+             <createTime>{{ volume.create_time }}</createTime>
+             <attachmentSet>
+                {% if volume.attachment %}
+                    <item>
+                       <volumeId>{{ volume.id }}</volumeId>
+                       <instanceId>{{ volume.attachment.instance.id }}</instanceId>
+                       <device>{{ volume.attachment.device }}</device>
+                       <status>attached</status>
+                       <attachTime>{{volume.attachment.attach_time}}</attachTime>
+                       <deleteOnTermination>false</deleteOnTermination>
+                    </item>
+                {% endif %}
+             </attachmentSet>
+             {% if volume.get_tags() %}
+               <tagSet>
+                 {% for tag in volume.get_tags() %}
+                   <item>
+                     <resourceId>{{ tag.resource_id }}</resourceId>
+                     <resourceType>{{ tag.resource_type }}</resourceType>
+                     <key>{{ tag.key }}</key>
+                     <value>{{ tag.value }}</value>
+                   </item>
+                 {% endfor %}
+               </tagSet>
+             {% endif %}
+             <volumeType>{{ volume.volume_type }}</volumeType>
+             {% if volume.iops %}
+               <iops>{{ volume.iops }}</iops>
+             {% endif %}
+             {% if volume.throughput %}
+               <throughput>{{ volume.throughput }}</throughput>
+             {% endif %}
+             {% if volume.multi_attach_enabled %}
+               <multiAttachEnabled>{{ volume.multi_attach_enabled|lower }}</multiAttachEnabled>
+             {% endif %}
+          </item>
+      {% endfor %}
+   </volumeSet>
+</DescribeVolumesResponse>"""
+
+
+ATTACHED_VOLUME_RESPONSE = """<AttachVolumeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <volumeId>{{ attachment.volume.id }}</volumeId>
+  <instanceId>{{ attachment.instance.id }}</instanceId>
+  <device>{{ attachment.device }}</device>
+  <status>attaching</status>
+  <attachTime>{{attachment.attach_time}}</attachTime>
+</AttachVolumeResponse>"""
+
+DETATCH_VOLUME_RESPONSE = """<DetachVolumeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+   <volumeId>{{ attachment.volume.id }}</volumeId>
+   <instanceId>{{ attachment.instance.id }}</instanceId>
+   <device>{{ attachment.device }}</device>
+   <status>detaching</status>
+   <attachTime>2013-10-04T17:38:53.000Z</attachTime>
+</DetachVolumeResponse>"""
+
+CREATE_SNAPSHOT_RESPONSE = """<CreateSnapshotResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <snapshotId>{{ snapshot.id }}</snapshotId>
+  <volumeId>{{ snapshot.volume.id }}</volumeId>
+  <status>pending</status>
+  <startTime>{{ snapshot.start_time}}</startTime>
+  <progress>60%</progress>
+  <ownerId>{{ snapshot.owner_id }}</ownerId>
+  <volumeSize>{{ snapshot.volume.size }}</volumeSize>
+  <description>{{ snapshot.description }}</description>
+  <encrypted>{{ 'true' if snapshot.encrypted else 'false' }}</encrypted>
+  <tagSet>
+    {% for tag in snapshot.get_tags() %}
+      <item>
+      <resourceId>{{ tag.resource_id }}</resourceId>
+      <resourceType>{{ tag.resource_type }}</resourceType>
+      <key>{{ tag.key }}</key>
+      <value>{{ tag.value }}</value>
+      </item>
+    {% endfor %}
+  </tagSet>
+</CreateSnapshotResponse>"""
+
+CREATE_SNAPSHOTS_RESPONSE = """<CreateSnapshotsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <snapshotSet>
+      {% for snapshot in snapshots %}
+      <item>
+          <snapshotId>{{ snapshot.id }}</snapshotId>
+          <volumeId>{{ snapshot.volume.id }}</volumeId>
+          <status>pending</status>
+          <startTime>{{ snapshot.start_time}}</startTime>
+          <progress>60%</progress>
+          <ownerId>{{ snapshot.owner_id }}</ownerId>
+          <volumeSize>{{ snapshot.volume.size }}</volumeSize>
+          <description>{{ snapshot.description }}</description>
+          <encrypted>{{ 'true' if snapshot.encrypted else 'false' }}</encrypted>
+          <tagSet>
+            {% for tag in snapshot.get_tags() %}
+              <item>
+              <resourceId>{{ tag.resource_id }}</resourceId>
+              <resourceType>{{ tag.resource_type }}</resourceType>
+              <key>{{ tag.key }}</key>
+              <value>{{ tag.value }}</value>
+              </item>
+            {% endfor %}
+          </tagSet>
+      </item>
+      {% endfor %}
+  </snapshotSet>
+</CreateSnapshotsResponse>"""
+
+COPY_SNAPSHOT_RESPONSE = """<CopySnapshotResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+  <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+  <snapshotId>{{ snapshot.id }}</snapshotId>
+  <tagSet>
+    {% for tag in snapshot.get_tags() %}
+      <item>
+      <resourceId>{{ tag.resource_id }}</resourceId>
+      <resourceType>{{ tag.resource_type }}</resourceType>
+      <key>{{ tag.key }}</key>
+      <value>{{ tag.value }}</value>
+      </item>
+    {% endfor %}
+  </tagSet>
+</CopySnapshotResponse>"""
+
+DESCRIBE_SNAPSHOTS_RESPONSE = """<DescribeSnapshotsResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+   <snapshotSet>
+      {% for snapshot in snapshots %}
+          <item>
+             <snapshotId>{{ snapshot.id }}</snapshotId>
+            <volumeId>{{ snapshot.volume.id }}</volumeId>
+             <status>{{ snapshot.status }}</status>
+             <startTime>{{ snapshot.start_time}}</startTime>
+             <progress>100%</progress>
+             <ownerId>{{ snapshot.owner_id }}</ownerId>
+            <volumeSize>{{ snapshot.volume.size }}</volumeSize>
+             <description>{{ snapshot.description }}</description>
+             <encrypted>{{ 'true' if snapshot.encrypted else 'false' }}</encrypted>
+             {% if snapshot.kms_key_id %}<kmsKeyId>{{ snapshot.kms_key_id }}</kmsKeyId>{% endif %}
+             <tagSet>
+               {% for tag in snapshot.get_tags() %}
+                 <item>
+                   <resourceId>{{ tag.resource_id }}</resourceId>
+                   <resourceType>{{ tag.resource_type }}</resourceType>
+                   <key>{{ tag.key }}</key>
+                   <value>{{ tag.value }}</value>
+                 </item>
+               {% endfor %}
+             </tagSet>
+          </item>
+      {% endfor %}
+   </snapshotSet>
+</DescribeSnapshotsResponse>"""
+
+
+DESCRIBE_SNAPSHOT_ATTRIBUTES_RESPONSE = """
+<DescribeSnapshotAttributeResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
+    <requestId>a9540c9f-161a-45d8-9cc1-1182b89ad69f</requestId>
+    <snapshotId>snap-a0332ee0</snapshotId>
+    <createVolumePermission>
+       {% for group in groups %}
+          <item>
+             <group>{{ group }}</group>
+          </item>
+       {% endfor %}
+       {% for userId in userIds %}
+          <item>
+             <userId>{{ userId }}</userId>
+          </item>
+       {% endfor %}
+    </createVolumePermission>
+</DescribeSnapshotAttributeResponse>
+"""
+
+
+MODIFY_VOLUME_RESPONSE = """<?xml version="1.0" encoding="UTF-8"?>
+<ModifyVolumeResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+    <volumeModification>
+        {% set volume_modification = volume.modifications[-1] %}
+        <modificationState>modifying</modificationState>
+        {% if volume_modification.original_size %}
+        <originalSize>{{ volume_modification.original_size }}</originalSize>
+        {% endif %}
+        {% if volume_modification.original_volume_type %}
+            <originalVolumeType>{{ volume_modification.original_volume_type }}</originalVolumeType>
+        {% endif %}
+        {% if volume_modification.original_iops %}
+            <originalIops>{{ volume_modification.original_iops }}</originalIops>
+        {% endif %}
+        {% if volume_modification.original_throughput %}
+            <originalThroughput>{{ volume_modification.original_throughput }}</originalThroughput>
+        {% endif %}
+        {% if volume_modification.original_multi_attach_enabled is not none %}
+            <originalMultiAttachEnabled>{{ volume_modification.original_multi_attach_enabled|lower }}</originalMultiAttachEnabled>
+        {% endif %}
+        <progress>0</progress>
+        <startTime>{{ volume_modification.start_time }}</startTime>
+        {% if volume_modification.target_size %}
+            <targetSize>{{ volume_modification.target_size }}</targetSize>
+        {% endif %}
+        {% if volume_modification.target_volume_type %}
+            <targetVolumeType>{{ volume_modification.target_volume_type }}</targetVolumeType>
+        {% endif %}
+        {% if volume_modification.target_iops %}
+            <targetIops>{{ volume_modification.target_iops }}</targetIops>
+        {% endif %}
+        {% if volume_modification.target_throughput %}
+            <targetThroughput>{{ volume_modification.target_throughput }}</targetThroughput>
+        {% endif %}
+        {% if volume_modification.target_multi_attach_enabled %}
+            <targetMultiAttachEnabled>{{ volume_modification.target_multi_attach_enabled|lower }}</targetMultiAttachEnabled>
+        {% endif %}
+        <volumeId>{{ volume.id }}</volumeId>
+    </volumeModification>
+</ModifyVolumeResponse>"""
+
+DESCRIBE_VOLUMES_MODIFICATIONS_RESPONSE = """
+<?xml version="1.0" encoding="UTF-8"?>
+<DescribeVolumesModificationsResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">
+    <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
+    <volumeModificationSet>
+      {% for modification in modifications %}
+        <item>
+            <endTime>{{ modification.end_time }}</endTime>
+            <modificationState>completed</modificationState>
+            {% if modification.original_size %}
+                <originalSize>{{ modification.original_size }}</originalSize>
+            {% endif %}
+            {% if modification.original_volume_type %}
+                <originalVolumeType>{{ modification.original_volume_type }}</originalVolumeType>
+            {% endif %}
+            {% if modification.original_iops %}
+                <originalIops>{{ modification.original_iops }}</originalIops>
+            {% endif %}
+            {% if modification.original_throughput %}
+                <originalThroughput>{{ modification.original_throughput }}</originalThroughput>
+            {% endif %}
+            {% if modification.original_multi_attach_enabled %}
+                <originalMultiAttachEnabled>{{ modification.original_multi_attach_enabled|lower }}</originalMultiAttachEnabled>
+            {% endif %}
+            <progress>100</progress>
+            <startTime>{{ modification.start_time }}</startTime>
+            {% if modification.target_size %}
+                <targetSize>{{ modification.target_size }}</targetSize>
+            {% endif %}
+            {% if modification.target_volume_type %}
+                <targetVolumeType>{{ modification.target_volume_type }}</targetVolumeType>
+            {% endif %}
+            {% if modification.target_iops %}
+                <targetIops>{{ modification.target_iops }}</targetIops>
+            {% endif %}
+            {% if modification.target_throughput %}
+                <targetThroughput>{{ modification.target_throughput }}</targetThroughput>
+            {% endif %}
+            {% if modification.target_multi_attach_enabled %}
+                <targetMultiAttachEnabled>{{ modification.target_multi_attach_enabled|lower }}</targetMultiAttachEnabled>
+            {% endif %}
+            <volumeId>{{ modification.volume.id }}</volumeId>
+        </item>
+      {% endfor %}
+    </volumeModificationSet>
+</DescribeVolumesModificationsResponse>"""

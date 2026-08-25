@@ -333,6 +333,140 @@ class FakeSubscriptionDefinitionVersion(BaseModel):
         }
 
 
+class FakeConnectorDefinition(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        name: str,
+        initial_version: dict[str, Any],
+    ):
+        self.region_name = region_name
+        self.id = str(mock_random.uuid4())
+        self.arn = f"arn:{get_partition(region_name)}:greengrass:{region_name}:{account_id}:greengrass/definition/connectors/{self.id}"
+        self.created_at_datetime = utcnow()
+        self.update_at_datetime = utcnow()
+        self.latest_version = ""
+        self.latest_version_arn = ""
+        self.name = name
+        self.initial_version = initial_version
+
+    def to_dict(self) -> dict[str, Any]:
+        res = {
+            "Arn": self.arn,
+            "CreationTimestamp": iso_8601_datetime_with_milliseconds(
+                self.created_at_datetime
+            ),
+            "Id": self.id,
+            "LastUpdatedTimestamp": iso_8601_datetime_with_milliseconds(
+                self.update_at_datetime
+            ),
+            "LatestVersion": self.latest_version,
+            "LatestVersionArn": self.latest_version_arn,
+        }
+        if self.name is not None:
+            res["Name"] = self.name
+        return res
+
+
+class FakeConnectorDefinitionVersion(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        connector_definition_id: str,
+        connectors: list[dict[str, Any]],
+    ):
+        self.region_name = region_name
+        self.connector_definition_id = connector_definition_id
+        self.connectors = connectors
+        self.version = str(mock_random.uuid4())
+        self.arn = f"arn:{get_partition(region_name)}:greengrass:{region_name}:{account_id}:greengrass/definition/connectors/{self.connector_definition_id}/versions/{self.version}"
+        self.created_at_datetime = utcnow()
+
+    def to_dict(self, include_detail: bool = False) -> dict[str, Any]:
+        obj: dict[str, Any] = {
+            "Arn": self.arn,
+            "CreationTimestamp": iso_8601_datetime_with_milliseconds(
+                self.created_at_datetime
+            ),
+            "Id": self.connector_definition_id,
+            "Version": self.version,
+        }
+
+        if include_detail:
+            obj["Definition"] = {"Connectors": self.connectors}
+
+        return obj
+
+
+class FakeLoggerDefinition(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        name: str,
+        initial_version: dict[str, Any],
+    ):
+        self.region_name = region_name
+        self.id = str(mock_random.uuid4())
+        self.arn = f"arn:{get_partition(region_name)}:greengrass:{region_name}:{account_id}:greengrass/definition/loggers/{self.id}"
+        self.created_at_datetime = utcnow()
+        self.update_at_datetime = utcnow()
+        self.latest_version = ""
+        self.latest_version_arn = ""
+        self.name = name
+        self.initial_version = initial_version
+
+    def to_dict(self) -> dict[str, Any]:
+        res = {
+            "Arn": self.arn,
+            "CreationTimestamp": iso_8601_datetime_with_milliseconds(
+                self.created_at_datetime
+            ),
+            "Id": self.id,
+            "LastUpdatedTimestamp": iso_8601_datetime_with_milliseconds(
+                self.update_at_datetime
+            ),
+            "LatestVersion": self.latest_version,
+            "LatestVersionArn": self.latest_version_arn,
+        }
+        if self.name is not None:
+            res["Name"] = self.name
+        return res
+
+
+class FakeLoggerDefinitionVersion(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        logger_definition_id: str,
+        loggers: list[dict[str, Any]],
+    ):
+        self.region_name = region_name
+        self.logger_definition_id = logger_definition_id
+        self.loggers = loggers
+        self.version = str(mock_random.uuid4())
+        self.arn = f"arn:{get_partition(region_name)}:greengrass:{region_name}:{account_id}:greengrass/definition/loggers/{self.logger_definition_id}/versions/{self.version}"
+        self.created_at_datetime = utcnow()
+
+    def to_dict(self, include_detail: bool = False) -> dict[str, Any]:
+        obj: dict[str, Any] = {
+            "Arn": self.arn,
+            "CreationTimestamp": iso_8601_datetime_with_milliseconds(
+                self.created_at_datetime
+            ),
+            "Id": self.logger_definition_id,
+            "Version": self.version,
+        }
+
+        if include_detail:
+            obj["Definition"] = {"Loggers": self.loggers}
+
+        return obj
+
+
 class FakeGroup(BaseModel):
     def __init__(self, account_id: str, region_name: str, name: str):
         self.region_name = region_name
@@ -515,6 +649,14 @@ class GreengrassBackend(BaseBackend):
         )
         self.subscription_definition_versions: dict[
             str, dict[str, FakeSubscriptionDefinitionVersion]
+        ] = OrderedDict()
+        self.connector_definitions: dict[str, FakeConnectorDefinition] = OrderedDict()
+        self.connector_definition_versions: dict[
+            str, dict[str, FakeConnectorDefinitionVersion]
+        ] = OrderedDict()
+        self.logger_definitions: dict[str, FakeLoggerDefinition] = OrderedDict()
+        self.logger_definition_versions: dict[
+            str, dict[str, FakeLoggerDefinitionVersion]
         ] = OrderedDict()
         self.deployments: dict[str, FakeDeployment] = OrderedDict()
 
@@ -1046,6 +1188,188 @@ class GreengrassBackend(BaseBackend):
 
         return self.subscription_definition_versions[subscription_definition_id][
             subscription_definition_version_id
+        ]
+
+    def create_connector_definition(
+        self, name: str, initial_version: dict[str, Any]
+    ) -> FakeConnectorDefinition:
+        connector_def = FakeConnectorDefinition(
+            self.account_id, self.region_name, name, initial_version
+        )
+        self.connector_definitions[connector_def.id] = connector_def
+        init_ver = connector_def.initial_version
+        init_connectors = init_ver.get("Connectors", {})
+        self.create_connector_definition_version(connector_def.id, init_connectors)
+
+        return connector_def
+
+    def list_connector_definitions(self) -> Iterable[FakeConnectorDefinition]:
+        return self.connector_definitions.values()
+
+    def get_connector_definition(
+        self, connector_definition_id: str
+    ) -> FakeConnectorDefinition:
+        if connector_definition_id not in self.connector_definitions:
+            raise IdNotFoundException(
+                "That Connector List Definition does not exist."
+            )
+        return self.connector_definitions[connector_definition_id]
+
+    def delete_connector_definition(self, connector_definition_id: str) -> None:
+        if connector_definition_id not in self.connector_definitions:
+            raise IdNotFoundException("That connectors definition does not exist.")
+        del self.connector_definitions[connector_definition_id]
+        del self.connector_definition_versions[connector_definition_id]
+
+    def update_connector_definition(
+        self, connector_definition_id: str, name: str
+    ) -> None:
+        if name == "":
+            raise InvalidContainerDefinitionException(
+                "Input does not contain any attributes to be updated"
+            )
+        if connector_definition_id not in self.connector_definitions:
+            raise IdNotFoundException("That connectors definition does not exist.")
+        self.connector_definitions[connector_definition_id].name = name
+
+    def create_connector_definition_version(
+        self, connector_definition_id: str, connectors: list[dict[str, Any]]
+    ) -> FakeConnectorDefinitionVersion:
+        if connector_definition_id not in self.connector_definitions:
+            raise IdNotFoundException("That connectors definition does not exist.")
+
+        connector_ver = FakeConnectorDefinitionVersion(
+            self.account_id, self.region_name, connector_definition_id, connectors
+        )
+        connector_vers = self.connector_definition_versions.get(
+            connector_ver.connector_definition_id, {}
+        )
+        connector_vers[connector_ver.version] = connector_ver
+        self.connector_definition_versions[connector_ver.connector_definition_id] = (
+            connector_vers
+        )
+        self.connector_definitions[
+            connector_definition_id
+        ].latest_version = connector_ver.version
+        self.connector_definitions[
+            connector_definition_id
+        ].latest_version_arn = connector_ver.arn
+
+        return connector_ver
+
+    def list_connector_definition_versions(
+        self, connector_definition_id: str
+    ) -> Iterable[FakeConnectorDefinitionVersion]:
+        if connector_definition_id not in self.connector_definitions:
+            raise IdNotFoundException("That connectors definition does not exist.")
+        return self.connector_definition_versions[connector_definition_id].values()
+
+    def get_connector_definition_version(
+        self, connector_definition_id: str, connector_definition_version_id: str
+    ) -> FakeConnectorDefinitionVersion:
+        if connector_definition_id not in self.connector_definitions:
+            raise IdNotFoundException("That connectors definition does not exist.")
+
+        if (
+            connector_definition_version_id
+            not in self.connector_definition_versions[connector_definition_id]
+        ):
+            raise VersionNotFoundException(
+                f"Version {connector_definition_version_id} of Connector List Definition {connector_definition_id} does not exist."
+            )
+
+        return self.connector_definition_versions[connector_definition_id][
+            connector_definition_version_id
+        ]
+
+    def create_logger_definition(
+        self, name: str, initial_version: dict[str, Any]
+    ) -> FakeLoggerDefinition:
+        logger_def = FakeLoggerDefinition(
+            self.account_id, self.region_name, name, initial_version
+        )
+        self.logger_definitions[logger_def.id] = logger_def
+        init_ver = logger_def.initial_version
+        init_loggers = init_ver.get("Loggers", {})
+        self.create_logger_definition_version(logger_def.id, init_loggers)
+
+        return logger_def
+
+    def list_logger_definitions(self) -> Iterable[FakeLoggerDefinition]:
+        return self.logger_definitions.values()
+
+    def get_logger_definition(
+        self, logger_definition_id: str
+    ) -> FakeLoggerDefinition:
+        if logger_definition_id not in self.logger_definitions:
+            raise IdNotFoundException(
+                "That Logger List Definition does not exist."
+            )
+        return self.logger_definitions[logger_definition_id]
+
+    def delete_logger_definition(self, logger_definition_id: str) -> None:
+        if logger_definition_id not in self.logger_definitions:
+            raise IdNotFoundException("That loggers definition does not exist.")
+        del self.logger_definitions[logger_definition_id]
+        del self.logger_definition_versions[logger_definition_id]
+
+    def update_logger_definition(
+        self, logger_definition_id: str, name: str
+    ) -> None:
+        if name == "":
+            raise InvalidContainerDefinitionException(
+                "Input does not contain any attributes to be updated"
+            )
+        if logger_definition_id not in self.logger_definitions:
+            raise IdNotFoundException("That loggers definition does not exist.")
+        self.logger_definitions[logger_definition_id].name = name
+
+    def create_logger_definition_version(
+        self, logger_definition_id: str, loggers: list[dict[str, Any]]
+    ) -> FakeLoggerDefinitionVersion:
+        if logger_definition_id not in self.logger_definitions:
+            raise IdNotFoundException("That loggers definition does not exist.")
+
+        logger_ver = FakeLoggerDefinitionVersion(
+            self.account_id, self.region_name, logger_definition_id, loggers
+        )
+        logger_vers = self.logger_definition_versions.get(
+            logger_ver.logger_definition_id, {}
+        )
+        logger_vers[logger_ver.version] = logger_ver
+        self.logger_definition_versions[logger_ver.logger_definition_id] = logger_vers
+        self.logger_definitions[
+            logger_definition_id
+        ].latest_version = logger_ver.version
+        self.logger_definitions[
+            logger_definition_id
+        ].latest_version_arn = logger_ver.arn
+
+        return logger_ver
+
+    def list_logger_definition_versions(
+        self, logger_definition_id: str
+    ) -> Iterable[FakeLoggerDefinitionVersion]:
+        if logger_definition_id not in self.logger_definitions:
+            raise IdNotFoundException("That loggers definition does not exist.")
+        return self.logger_definition_versions[logger_definition_id].values()
+
+    def get_logger_definition_version(
+        self, logger_definition_id: str, logger_definition_version_id: str
+    ) -> FakeLoggerDefinitionVersion:
+        if logger_definition_id not in self.logger_definitions:
+            raise IdNotFoundException("That loggers definition does not exist.")
+
+        if (
+            logger_definition_version_id
+            not in self.logger_definition_versions[logger_definition_id]
+        ):
+            raise VersionNotFoundException(
+                f"Version {logger_definition_version_id} of Logger List Definition {logger_definition_id} does not exist."
+            )
+
+        return self.logger_definition_versions[logger_definition_id][
+            logger_definition_version_id
         ]
 
     def create_group(self, name: str, initial_version: dict[str, Any]) -> FakeGroup:

@@ -97,3 +97,7 @@ class ActivityTask(BaseModel):
         self._check_workflow_execution_open()
         self.state = "TIMED_OUT"
         self.timeout_type = _timeout.kind
+
+    def cancel(self) -> None:
+        self._check_workflow_execution_open()
+        self.state = "CANCELED"

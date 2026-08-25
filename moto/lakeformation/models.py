@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import time
+import uuid
 from collections import defaultdict
 from enum import Enum
 from typing import Any, Optional
@@ -204,11 +206,90 @@ class LFTag:
         self.tag_values = tag_values
 
 
+class Transaction:
+    def __init__(self, transaction_type: str = "READ_AND_WRITE"):
+        self.transaction_id = str(uuid.uuid4())
+        self.status = "ACTIVE"
+        self.transaction_type = transaction_type
+        self.transaction_start_time = time.time()
+        self.transaction_end_time: Optional[float] = None
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "TransactionId": self.transaction_id,
+            "TransactionStatus": self.status,
+            "TransactionStartTime": self.transaction_start_time,
+        }
+        if self.transaction_end_time:
+            result["TransactionEndTime"] = self.transaction_end_time
+        return result
+
+
+class DataCellsFilter:
+    def __init__(
+        self,
+        table_catalog_id: str,
+        database_name: str,
+        table_name: str,
+        name: str,
+        row_filter: Optional[dict[str, Any]] = None,
+        column_names: Optional[list[str]] = None,
+        column_wildcard: Optional[dict[str, Any]] = None,
+    ):
+        self.table_catalog_id = table_catalog_id
+        self.database_name = database_name
+        self.table_name = table_name
+        self.name = name
+        self.row_filter = row_filter or {"AllRowsWildcard": {}}
+        self.column_names = column_names
+        self.column_wildcard = column_wildcard
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "TableCatalogId": self.table_catalog_id,
+            "DatabaseName": self.database_name,
+            "TableName": self.table_name,
+            "Name": self.name,
+            "RowFilter": self.row_filter,
+        }
+        if self.column_names is not None:
+            result["ColumnNames"] = self.column_names
+        if self.column_wildcard is not None:
+            result["ColumnWildcard"] = self.column_wildcard
+        return result
+
+
 class ListPermissionsResourceLFTagPolicy:
     def __init__(self, catalog_id: str, resource_type: str, expression: list[LFTag]):
         self.catalog_id = catalog_id
         self.resource_type = resource_type
         self.expression = expression
+
+
+class FakeLFTagExpression(BaseModel):
+    """LF-Tag expression for metadata-based access control."""
+
+    def __init__(
+        self,
+        name: str,
+        catalog_id: str,
+        expression: list[dict[str, Any]],
+        description: Optional[str] = None,
+    ):
+        self.name = name
+        self.catalog_id = catalog_id
+        self.expression = expression or []
+        self.description = description or ""
+
+    def to_dict(self) -> dict[str, Any]:
+        result: dict[str, Any] = {
+            "Name": self.name,
+            "CatalogId": self.catalog_id,
+            "Expression": self.expression,
+        }
+        if self.description:
+            result["Description"] = self.description
+        return result
 
 
 class ListPermissionsResource:
@@ -277,6 +358,10 @@ class LakeFormationBackend(BaseBackend):
         self.lf_database_tags: dict[tuple[str, str], list[dict[str, str]]] = {}
         self.lf_table_tags: dict[tuple[str, str, str], list[dict[str, str]]] = {}
         self.lf_columns_tags: dict[tuple[str, ...], list[dict[str, str]]] = {}
+        self.transactions: dict[str, Transaction] = {}
+        self.data_cells_filters: dict[tuple[str, str, str, str], DataCellsFilter] = {}
+        self.lf_tag_expressions: dict[tuple[str, str], FakeLFTagExpression] = {}
+        self.identity_center_config: Optional[dict[str, Any]] = None
 
     def describe_resource(self, resource_arn: str) -> Resource:
         if resource_arn not in self.resources:
@@ -501,12 +586,6 @@ class LakeFormationBackend(BaseBackend):
             arn, TaggingService.convert_dict_to_tags_input(existing_tags)
         )
 
-    def list_data_cells_filter(self) -> list[dict[str, Any]]:
-        """
-        This currently just returns an empty list, as the corresponding Create is not yet implemented
-        """
-        return []
-
     def batch_grant_permissions(
         self, catalog_id: str, entries: list[dict[str, Any]]
     ) -> None:
@@ -636,6 +715,419 @@ class LakeFormationBackend(BaseBackend):
                 existing_tags = self.lf_columns_tags[dct_key]
                 for tag in tags:
                     existing_tags.remove(tag)
+
+    def describe_transaction(self, transaction_id: str) -> Transaction:
+        if transaction_id not in self.transactions:
+            raise EntityNotFound
+        return self.transactions[transaction_id]
+
+    def list_transactions(
+        self,
+        status_filter: Optional[str] = None,
+    ) -> list[Transaction]:
+        transactions = list(self.transactions.values())
+        if status_filter:
+            transactions = [t for t in transactions if t.status == status_filter]
+        return transactions
+
+    def start_transaction(self, transaction_type: str = "READ_AND_WRITE") -> str:
+        txn = Transaction(transaction_type=transaction_type)
+        self.transactions[txn.transaction_id] = txn
+        return txn.transaction_id
+
+    def commit_transaction(self, transaction_id: str) -> str:
+        if transaction_id not in self.transactions:
+            raise EntityNotFound
+        txn = self.transactions[transaction_id]
+        txn.status = "COMMITTED"
+        txn.transaction_end_time = time.time()
+        return "COMMITTED"
+
+    def cancel_transaction(self, transaction_id: str) -> None:
+        if transaction_id not in self.transactions:
+            raise EntityNotFound
+        txn = self.transactions[transaction_id]
+        txn.status = "ABORTED"
+        txn.transaction_end_time = time.time()
+
+    def get_data_lake_principal(self) -> str:
+        return f"arn:aws:iam::{self.account_id}:root"
+
+    def get_effective_permissions_for_path(
+        self,
+        catalog_id: str,
+        resource_arn: str,
+    ) -> list[dict[str, Any]]:
+        """Return permissions that apply to the given S3 path. Simplified: return empty list."""
+        return []
+
+    def get_query_state(self, query_id: str) -> str:
+        return "FINISHED"
+
+    def get_query_statistics(self, query_id: str) -> dict[str, Any]:
+        return {
+            "ExecutionStatistics": {
+                "AverageExecutionTimeMillis": 0,
+                "DataScannedBytes": 0,
+                "WorkUnitsExecutedCount": 0,
+            },
+            "PlanningStatistics": {
+                "EstimatedDataToScanBytes": 0,
+                "PlanningTimeMillis": 0,
+                "QueueTimeMillis": 0,
+                "WorkUnitsGeneratedCount": 0,
+            },
+            "SubmissionTime": time.time(),
+        }
+
+    def get_work_units(self, query_id: str) -> list[dict[str, Any]]:
+        return []
+
+    def get_work_unit_results(
+        self, query_id: str, work_unit_id: int, work_unit_token: str
+    ) -> bytes:
+        return b""
+
+    def get_temporary_glue_partition_credentials(
+        self,
+        table_arn: str,
+        partition: dict[str, Any],
+        supported_permission_types: list[str],
+    ) -> dict[str, Any]:
+        return {
+            "AccessKeyId": "AKIAIOSFODNN7EXAMPLE",
+            "SecretAccessKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+            "SessionToken": "FwoGZXIvYXdzEBYaDHqa0AP1HCbMGnS/3SLIAbRQhGIOdVKGCMEZxbQtiAEdHRwqEicrW8hR",
+            "Expiration": time.time() + 3600,
+        }
+
+    def get_temporary_glue_table_credentials(
+        self,
+        table_arn: str,
+        supported_permission_types: list[str],
+    ) -> dict[str, Any]:
+        return {
+            "AccessKeyId": "AKIAIOSFODNN7EXAMPLE",
+            "SecretAccessKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+            "SessionToken": "FwoGZXIvYXdzEBYaDHqa0AP1HCbMGnS/3SLIAbRQhGIOdVKGCMEZxbQtiAEdHRwqEicrW8hR",
+            "Expiration": time.time() + 3600,
+        }
+
+    def create_data_cells_filter(
+        self,
+        table_data: dict[str, Any],
+    ) -> None:
+        dcf = DataCellsFilter(
+            table_catalog_id=table_data.get("TableCatalogId", self.account_id),
+            database_name=table_data["DatabaseName"],
+            table_name=table_data["TableName"],
+            name=table_data["Name"],
+            row_filter=table_data.get("RowFilter"),
+            column_names=table_data.get("ColumnNames"),
+            column_wildcard=table_data.get("ColumnWildcard"),
+        )
+        key = (dcf.table_catalog_id, dcf.database_name, dcf.table_name, dcf.name)
+        if key in self.data_cells_filters:
+            raise AlreadyExists("Data cell filter already exists")
+        self.data_cells_filters[key] = dcf
+
+    def get_data_cells_filter(
+        self,
+        table_catalog_id: str,
+        database_name: str,
+        table_name: str,
+        name: str,
+    ) -> DataCellsFilter:
+        key = (table_catalog_id, database_name, table_name, name)
+        if key not in self.data_cells_filters:
+            raise EntityNotFound
+        return self.data_cells_filters[key]
+
+    def delete_data_cells_filter(
+        self,
+        table_catalog_id: str,
+        database_name: str,
+        table_name: str,
+        name: str,
+    ) -> None:
+        key = (table_catalog_id, database_name, table_name, name)
+        if key not in self.data_cells_filters:
+            raise EntityNotFound
+        del self.data_cells_filters[key]
+
+    def list_data_cells_filter(self) -> list[dict[str, Any]]:
+        return [dcf.to_dict() for dcf in self.data_cells_filters.values()]
+
+    def search_databases_by_lf_tags(
+        self,
+        expression: list[dict[str, Any]],
+        catalog_id: str,
+    ) -> list[dict[str, Any]]:
+        results = []
+        for (db_catalog_id, db_name), tags in self.lf_database_tags.items():
+            if self._tags_match_expression(tags, expression):
+                results.append(
+                    {
+                        "Database": {
+                            "CatalogId": db_catalog_id,
+                            "Name": db_name,
+                        },
+                        "LFTags": tags,
+                    }
+                )
+        return results
+
+    def search_tables_by_lf_tags(
+        self,
+        expression: list[dict[str, Any]],
+        catalog_id: str,
+    ) -> list[dict[str, Any]]:
+        results = []
+        for (tbl_catalog_id, db_name, tbl_name), tags in self.lf_table_tags.items():
+            if self._tags_match_expression(tags, expression):
+                results.append(
+                    {
+                        "Table": {
+                            "CatalogId": tbl_catalog_id,
+                            "DatabaseName": db_name,
+                            "Name": tbl_name,
+                        },
+                        "LFTags": tags,
+                    }
+                )
+        return results
+
+    def _tags_match_expression(
+        self, tags: list[dict[str, str]], expression: list[dict[str, Any]]
+    ) -> bool:
+        for expr in expression:
+            expr_key = expr["TagKey"]
+            expr_values = expr["TagValues"]
+            found = False
+            for tag in tags:
+                if tag.get("TagKey") == expr_key:
+                    tag_values = tag.get("TagValues", [])
+                    if isinstance(tag_values, list):
+                        if any(v in expr_values for v in tag_values):
+                            found = True
+                            break
+                    elif tag_values in expr_values:
+                        found = True
+                        break
+            if not found:
+                return False
+        return True
+
+
+    def create_lf_tag_expression(
+        self,
+        catalog_id: str,
+        name: str,
+        expression: list[dict[str, Any]],
+        description: Optional[str] = None,
+    ) -> None:
+        key = (catalog_id, name)
+        if key in self.lf_tag_expressions:
+            raise AlreadyExists(
+                "An error occurred (AlreadyExistsException) when calling the CreateLFTagExpression operation: "
+                "LF-Tag expression with this name already exists"
+            )
+        self.lf_tag_expressions[key] = FakeLFTagExpression(
+            name=name,
+            catalog_id=catalog_id,
+            expression=expression,
+            description=description,
+        )
+
+    def get_lf_tag_expression(self, catalog_id: str, name: str) -> FakeLFTagExpression:
+        key = (catalog_id, name)
+        if key not in self.lf_tag_expressions:
+            raise EntityNotFound
+        return self.lf_tag_expressions[key]
+
+    def list_lf_tag_expressions(
+        self,
+        catalog_id: str,
+        max_results: Optional[int] = None,
+        next_token: Optional[str] = None,
+    ) -> tuple[list[FakeLFTagExpression], Optional[str]]:
+        expressions = [
+            e for (cid, _), e in self.lf_tag_expressions.items() if cid == catalog_id
+        ]
+        # Sort by name for stable pagination
+        expressions.sort(key=lambda e: e.name)
+
+        if max_results is not None:
+            start = int(next_token or 0)
+            expressions = expressions[start : start + max_results]
+            next_token = (
+                str(start + len(expressions))
+                if len(expressions) == max_results
+                else None
+            )
+        else:
+            next_token = None
+
+        return expressions, next_token
+
+    def update_lf_tag_expression(
+        self,
+        catalog_id: str,
+        name: str,
+        expression: list[dict[str, Any]],
+        description: Optional[str] = None,
+    ) -> None:
+        key = (catalog_id, name)
+        if key not in self.lf_tag_expressions:
+            raise EntityNotFound
+        ex = self.lf_tag_expressions[key]
+        if expression is not None:
+            ex.expression = expression
+        if description is not None:
+            ex.description = description
+
+    def delete_lf_tag_expression(self, catalog_id: str, name: str) -> None:
+        key = (catalog_id, name)
+        if key not in self.lf_tag_expressions:
+            raise EntityNotFound
+        del self.lf_tag_expressions[key]
+
+    def create_lake_formation_identity_center_configuration(
+        self,
+        catalog_id: str,
+        instance_arn: str,
+        application_arn: Optional[str] = None,
+        external_filtering: Optional[dict[str, Any]] = None,
+        share_recipients: Optional[list[dict[str, str]]] = None,
+        service_integrations: Optional[list[dict[str, Any]]] = None,
+    ) -> str:
+        if self.identity_center_config is not None:
+            raise AlreadyExists(
+                "An error occurred (AlreadyExistsException) when calling the CreateLakeFormationIdentityCenterConfiguration operation: "
+                "Lake Formation Identity Center configuration already exists"
+            )
+        app_arn = (
+            application_arn
+            or f"arn:aws:sso::aws:account/{catalog_id}/application/default"
+        )
+        self.identity_center_config = {
+            "CatalogId": catalog_id,
+            "InstanceArn": instance_arn,
+            "ApplicationArn": app_arn,
+            "ExternalFiltering": external_filtering
+            or {"Status": "DISABLED", "AuthorizedTargets": []},
+            "ShareRecipients": share_recipients or [],
+            "ServiceIntegrations": service_integrations or [],
+            "ResourceShare": f"arn:aws:ram:{self.region_name}:{self.account_id}:resource-share/default",
+        }
+        return app_arn
+
+    def describe_lake_formation_identity_center_configuration(
+        self,
+        catalog_id: str,
+    ) -> dict[str, Any]:
+        if self.identity_center_config is None:
+            raise EntityNotFound
+        return dict(self.identity_center_config)
+
+    def update_lake_formation_identity_center_configuration(
+        self,
+        catalog_id: str,
+        share_recipients: Optional[list[dict[str, str]]] = None,
+        service_integrations: Optional[list[dict[str, Any]]] = None,
+        application_status: Optional[str] = None,
+        external_filtering: Optional[dict[str, Any]] = None,
+    ) -> None:
+        if self.identity_center_config is None:
+            raise EntityNotFound
+        if share_recipients is not None:
+            self.identity_center_config["ShareRecipients"] = share_recipients
+        if service_integrations is not None:
+            self.identity_center_config["ServiceIntegrations"] = service_integrations
+        if application_status is not None:
+            self.identity_center_config["ApplicationStatus"] = application_status
+        if external_filtering is not None:
+            self.identity_center_config["ExternalFiltering"] = external_filtering
+
+    def delete_lake_formation_identity_center_configuration(
+        self,
+        catalog_id: str,
+    ) -> None:
+        if self.identity_center_config is None:
+            raise EntityNotFound
+        self.identity_center_config = None
+
+    def list_lake_formation_opt_ins(self) -> list[dict[str, Any]]:
+        return []
+
+    def get_temporary_data_location_credentials(
+        self,
+        data_locations: list[dict[str, Any]],
+        credentials_scope: str,
+        duration_seconds: Optional[int] = None,
+        audit_context: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any]:
+        return {
+            "AccessKeyId": f"ASIA{uuid.uuid4().hex[:16].upper()}",
+            "SecretAccessKey": uuid.uuid4().hex,
+            "SessionToken": uuid.uuid4().hex,
+            "Expiration": "2099-01-01T00:00:00Z",
+        }
+
+    def list_table_storage_optimizers(
+        self,
+        catalog_id: str,
+        database_name: str,
+        table_name: str,
+        storage_optimizer_type: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        return []
+
+    def get_table_objects(
+        self,
+        catalog_id: str,
+        database_name: str,
+        table_name: str,
+        **kwargs: Any,
+    ) -> list[dict[str, Any]]:
+        return []
+
+    def create_lake_formation_opt_in(self, **kwargs: Any) -> None:
+        pass
+
+    def delete_lake_formation_opt_in(self, **kwargs: Any) -> None:
+        pass
+
+    def delete_objects_on_cancel(self, **kwargs: Any) -> None:
+        pass
+
+    def extend_transaction(self, transaction_id: str, **kwargs: Any) -> None:
+        pass
+
+    def update_resource(self, resource_arn: str, role_arn: str, **kwargs: Any) -> None:
+        if resource_arn in self.resources:
+            self.resources[resource_arn].role_arn = role_arn
+
+    def update_table_objects(self, **kwargs: Any) -> None:
+        pass
+
+    def update_table_storage_optimizer(self, **kwargs: Any) -> dict[str, Any]:
+        return {"Result": "Updated table storage optimizer configuration successfully"}
+
+    def assume_decorated_role_with_saml(
+        self,
+        role_arn: str,
+        principal_arn: str,
+        saml_assertion: str,
+        duration_seconds: Optional[int] = None,
+    ) -> dict[str, Any]:
+        expiry = time.time() + (duration_seconds or 3600)
+        return {
+            "AccessKeyId": f"ASIA{uuid.uuid4().hex[:16].upper()}",
+            "SecretAccessKey": uuid.uuid4().hex,
+            "SessionToken": uuid.uuid4().hex,
+            "Expiration": expiry,
+        }
 
 
 lakeformation_backends = BackendDict(LakeFormationBackend, "lakeformation")

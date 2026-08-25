@@ -332,6 +332,132 @@ class GreengrassResponse(BaseResponse):
         )
         return json.dumps(res.to_dict())
 
+    def create_connector_definition(self) -> TYPE_RESPONSE:
+        name = self._get_param("Name")
+        initial_version = self._get_param("InitialVersion")
+        res = self.greengrass_backend.create_connector_definition(
+            name=name, initial_version=initial_version
+        )
+        return 201, {"status": 201}, json.dumps(res.to_dict())
+
+    def list_connector_definitions(self) -> str:
+        res = self.greengrass_backend.list_connector_definitions()
+        return json.dumps(
+            {"Definitions": [connector_definition.to_dict() for connector_definition in res]}
+        )
+
+    def get_connector_definition(self) -> str:
+        connector_definition_id = self.path.split("/")[-1]
+        res = self.greengrass_backend.get_connector_definition(
+            connector_definition_id=connector_definition_id
+        )
+        return json.dumps(res.to_dict())
+
+    def delete_connector_definition(self) -> str:
+        connector_definition_id = self.path.split("/")[-1]
+        self.greengrass_backend.delete_connector_definition(
+            connector_definition_id=connector_definition_id
+        )
+        return json.dumps({})
+
+    def update_connector_definition(self) -> str:
+        connector_definition_id = self.path.split("/")[-1]
+        name = self._get_param("Name")
+        self.greengrass_backend.update_connector_definition(
+            connector_definition_id=connector_definition_id, name=name
+        )
+        return "{}"
+
+    def create_connector_definition_version(self) -> TYPE_RESPONSE:
+        connector_definition_id = self.path.split("/")[-2]
+        connectors = self._get_param("Connectors")
+
+        res = self.greengrass_backend.create_connector_definition_version(
+            connector_definition_id=connector_definition_id, connectors=connectors
+        )
+        return 201, {"status": 201}, json.dumps(res.to_dict())
+
+    def list_connector_definition_versions(self) -> str:
+        connector_definition_id = self.path.split("/")[-2]
+        res = self.greengrass_backend.list_connector_definition_versions(
+            connector_definition_id
+        )
+        return json.dumps(
+            {"Versions": [connector_def_ver.to_dict() for connector_def_ver in res]}
+        )
+
+    def get_connector_definition_version(self) -> str:
+        connector_definition_id = self.path.split("/")[-3]
+        connector_definition_version_id = self.path.split("/")[-1]
+        res = self.greengrass_backend.get_connector_definition_version(
+            connector_definition_id=connector_definition_id,
+            connector_definition_version_id=connector_definition_version_id,
+        )
+        return json.dumps(res.to_dict(include_detail=True))
+
+    def create_logger_definition(self) -> TYPE_RESPONSE:
+        name = self._get_param("Name")
+        initial_version = self._get_param("InitialVersion")
+        res = self.greengrass_backend.create_logger_definition(
+            name=name, initial_version=initial_version
+        )
+        return 201, {"status": 201}, json.dumps(res.to_dict())
+
+    def list_logger_definitions(self) -> str:
+        res = self.greengrass_backend.list_logger_definitions()
+        return json.dumps(
+            {"Definitions": [logger_definition.to_dict() for logger_definition in res]}
+        )
+
+    def get_logger_definition(self) -> str:
+        logger_definition_id = self.path.split("/")[-1]
+        res = self.greengrass_backend.get_logger_definition(
+            logger_definition_id=logger_definition_id
+        )
+        return json.dumps(res.to_dict())
+
+    def delete_logger_definition(self) -> str:
+        logger_definition_id = self.path.split("/")[-1]
+        self.greengrass_backend.delete_logger_definition(
+            logger_definition_id=logger_definition_id
+        )
+        return json.dumps({})
+
+    def update_logger_definition(self) -> str:
+        logger_definition_id = self.path.split("/")[-1]
+        name = self._get_param("Name")
+        self.greengrass_backend.update_logger_definition(
+            logger_definition_id=logger_definition_id, name=name
+        )
+        return "{}"
+
+    def create_logger_definition_version(self) -> TYPE_RESPONSE:
+        logger_definition_id = self.path.split("/")[-2]
+        loggers = self._get_param("Loggers")
+
+        res = self.greengrass_backend.create_logger_definition_version(
+            logger_definition_id=logger_definition_id, loggers=loggers
+        )
+        return 201, {"status": 201}, json.dumps(res.to_dict())
+
+    def list_logger_definition_versions(self) -> str:
+        logger_definition_id = self.path.split("/")[-2]
+        res = self.greengrass_backend.list_logger_definition_versions(
+            logger_definition_id
+        )
+        return json.dumps(
+            {"Versions": [logger_def_ver.to_dict() for logger_def_ver in res]}
+        )
+
+    def get_logger_definition_version(self) -> str:
+        logger_definition_id = self.path.split("/")[-3]
+        logger_definition_version_id = self.path.split("/")[-1]
+        res = self.greengrass_backend.get_logger_definition_version(
+            logger_definition_id=logger_definition_id,
+            logger_definition_version_id=logger_definition_version_id,
+        )
+        return json.dumps(res.to_dict(include_detail=True))
+
     def create_group(self) -> TYPE_RESPONSE:
         initial_version = self._get_param("InitialVersion")
         name = self._get_param("Name")
@@ -455,3 +581,93 @@ class GreengrassResponse(BaseResponse):
         group_id = self.path.split("/")[-2]
         self.greengrass_backend.disassociate_role_from_group(group_id=group_id)
         return json.dumps({"DisassociatedAt": iso_8601_datetime_with_milliseconds()})
+
+    def tag_resource(self) -> TYPE_RESPONSE:
+        resource_arn = self.path.split("/tags/")[-1]
+        tags = self._get_param("tags", {})
+        if not hasattr(self.greengrass_backend, "_tags"):
+            self.greengrass_backend._tags = {}
+        self.greengrass_backend._tags[resource_arn] = {
+            **self.greengrass_backend._tags.get(resource_arn, {}),
+            **tags,
+        }
+        return 200, {}, json.dumps({})
+
+    def untag_resource(self) -> TYPE_RESPONSE:
+        resource_arn = self.path.split("/tags/")[-1]
+        tag_keys = list(self.querystring.get("tagKeys", []))
+        if hasattr(self.greengrass_backend, "_tags"):
+            for k in tag_keys:
+                self.greengrass_backend._tags.get(resource_arn, {}).pop(k, None)
+        return 204, {}, json.dumps({})
+
+    def list_tags_for_resource(self) -> str:
+        resource_arn = self.path.split("/tags/")[-1]
+        tags = {}
+        if hasattr(self.greengrass_backend, "_tags"):
+            tags = self.greengrass_backend._tags.get(resource_arn, {})
+        return json.dumps({"tags": tags})
+
+    def get_service_role_for_account(self) -> str:
+        role_arn = getattr(self.greengrass_backend, "_service_role_arn", "")
+        return json.dumps({"AssociatedAt": "", "RoleArn": role_arn})
+
+    def associate_service_role_to_account(self) -> str:
+        role_arn = self._get_param("RoleArn")
+        self.greengrass_backend._service_role_arn = role_arn
+        return json.dumps({"AssociatedAt": ""})
+
+    def disassociate_service_role_from_account(self) -> str:
+        self.greengrass_backend._service_role_arn = ""
+        return json.dumps({"DisassociatedAt": ""})
+
+    def list_bulk_deployments(self) -> str:
+        return json.dumps({"BulkDeployments": []})
+
+    def get_connectivity_info(self) -> str:
+        thing_name = self.path.rstrip("/").split("/")[-2]
+        return json.dumps({"ConnectivityInfo": [], "Message": ""})
+
+    def update_connectivity_info(self) -> TYPE_RESPONSE:
+        return 200, {}, json.dumps({"Message": "", "Version": ""})
+
+    def list_group_certificate_authorities(self) -> str:
+        return json.dumps({"GroupCertificateAuthorities": []})
+
+    def get_group_certificate_authority(self) -> str:
+        return json.dumps({"CertificateAuthorityArn": "", "CertificateAuthorityId": "", "PemEncodedCertificate": ""})
+
+    def get_group_certificate_configuration(self) -> str:
+        return json.dumps({"CertificateAuthorityExpiryInMilliseconds": "", "CertificateExpiryInMilliseconds": "", "GroupId": ""})
+
+    def list_bulk_deployment_detailed_reports(self) -> str:
+        return json.dumps({"Deployments": []})
+
+    def get_bulk_deployment_status(self) -> str:
+        return json.dumps({"BulkDeploymentMetrics": {}, "BulkDeploymentStatus": "Completed"})
+
+    def start_bulk_deployment(self) -> TYPE_RESPONSE:
+        return 200, {}, json.dumps({"BulkDeploymentArn": "", "BulkDeploymentId": ""})
+
+    def stop_bulk_deployment(self) -> TYPE_RESPONSE:
+        return 200, {}, json.dumps({})
+
+    def create_group_certificate_authority(self) -> TYPE_RESPONSE:
+        return 200, {}, json.dumps({"CertificateAuthorityArn": ""})
+
+    def create_software_update_job(self) -> TYPE_RESPONSE:
+        return 200, {}, json.dumps({"IotJobArn": "", "IotJobId": "", "PlatformSoftwareVersion": ""})
+
+    def get_thing_runtime_configuration(self) -> str:
+        return json.dumps({"RuntimeConfiguration": {}})
+
+    def update_thing_runtime_configuration(self) -> str:
+        return json.dumps({})
+
+    def update_group_certificate_configuration(self) -> str:
+        group_id = self.path.rstrip("/").split("/")[-2] if "/groups/" in self.path else ""
+        return json.dumps({
+            "CertificateAuthorityExpiryInMilliseconds": "",
+            "CertificateExpiryInMilliseconds": "",
+            "GroupId": group_id,
+        })

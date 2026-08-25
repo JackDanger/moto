@@ -31,6 +31,12 @@ from .utils import (
     make_arn_for_dashboard,
     make_arn_for_rule,
 )
+from .utils import (
+    make_arn_for_alarm,
+    make_arn_for_dashboard,
+    make_arn_for_metric_stream,
+    make_arn_for_rule,
+)
 
 _EMPTY_LIST: Any = ()
 
@@ -516,6 +522,8 @@ class CloudWatchBackend(BaseBackend, TaggableResourcesMixin):
         self.paged_metric_data: dict[str, list[MetricDatumBase]] = {}
         self.insight_rules: dict[str, InsightRule] = {}
         self.tagger = TaggingService()
+        self.anomaly_detectors: list[dict[str, Any]] = []
+        self.metric_streams: dict[str, MetricStream] = {}
 
     @property
     # Retrieve a list of all OOTB metrics that are provided by metrics providers
@@ -1205,5 +1213,198 @@ class CloudWatchBackend(BaseBackend, TaggableResourcesMixin):
 
         self.tagger.untag_resource_using_names(arn, tag_keys)
 
+    def put_anomaly_detector(
+        self,
+        namespace: Optional[str],
+        metric_name: Optional[str],
+        dimensions: list[dict[str, str]],
+        stat: Optional[str],
+        configuration: Optional[dict[str, Any]],
+        metric_math_anomaly_detector: Optional[dict[str, Any]] = None,
+        single_metric_anomaly_detector: Optional[dict[str, Any]] = None,
+    ) -> None:
+        detector = {
+            "Namespace": namespace,
+            "MetricName": metric_name,
+            "Dimensions": dimensions,
+            "Stat": stat,
+            "Configuration": configuration or {},
+            "StateValue": "PENDING_TRAINING",
+            "MetricMathAnomalyDetector": metric_math_anomaly_detector,
+            "SingleMetricAnomalyDetector": single_metric_anomaly_detector,
+        }
+        self.anomaly_detectors.append(detector)
 
+    def describe_anomaly_detectors(
+        self,
+        namespace: Optional[str] = None,
+        metric_name: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        detectors = self.anomaly_detectors
+        if namespace:
+            detectors = [d for d in detectors if d.get("Namespace") == namespace]
+        if metric_name:
+            detectors = [d for d in detectors if d.get("MetricName") == metric_name]
+        return detectors
+
+    def delete_anomaly_detector(
+        self,
+        namespace: Optional[str] = None,
+        metric_name: Optional[str] = None,
+        stat: Optional[str] = None,
+        single_metric_anomaly_detector: Optional[dict[str, Any]] = None,
+    ) -> None:
+        if single_metric_anomaly_detector:
+            namespace = single_metric_anomaly_detector.get("Namespace", namespace)
+            metric_name = single_metric_anomaly_detector.get("MetricName", metric_name)
+            stat = single_metric_anomaly_detector.get("Stat", stat)
+        self.anomaly_detectors = [
+            d
+            for d in self.anomaly_detectors
+            if not (
+                d.get("Namespace") == namespace
+                and d.get("MetricName") == metric_name
+                and d.get("Stat") == stat
+            )
+        ]
+
+    def put_metric_stream(
+        self,
+        name: str,
+        firehose_arn: str,
+        role_arn: str,
+        output_format: str,
+        include_filters: Optional[list[dict[str, Any]]] = None,
+        exclude_filters: Optional[list[dict[str, Any]]] = None,
+        statistics_configurations: Optional[list[dict[str, Any]]] = None,
+        include_linked_accounts_metrics: bool = False,
+        tags: Optional[list[dict[str, str]]] = None,
+    ) -> MetricStream:
+        stream = MetricStream(
+            account_id=self.account_id,
+            region_name=self.region_name,
+            name=name,
+            firehose_arn=firehose_arn,
+            role_arn=role_arn,
+            output_format=output_format,
+            include_filters=include_filters,
+            exclude_filters=exclude_filters,
+            statistics_configurations=statistics_configurations,
+            include_linked_accounts_metrics=include_linked_accounts_metrics,
+        )
+        self.metric_streams[name] = stream
+        if tags:
+            self.tagger.tag_resource(stream.arn, tags)
+        return stream
+
+    def get_metric_stream(self, name: str) -> MetricStream:
+        if name not in self.metric_streams:
+            raise ResourceNotFoundException(f"MetricStream {name} does not exist")
+        return self.metric_streams[name]
+
+    def delete_metric_stream(self, name: str) -> None:
+        self.metric_streams.pop(name, None)
+
+    def start_metric_streams(self, names: list[str]) -> None:
+        for name in names:
+            if name in self.metric_streams:
+                self.metric_streams[name].state = "running"
+
+    def stop_metric_streams(self, names: list[str]) -> None:
+        for name in names:
+            if name in self.metric_streams:
+                self.metric_streams[name].state = "stopped"
+
+    def list_metric_streams(self) -> list[dict[str, Any]]:
+        # Metric streams are not yet modeled; return empty list
+        return []
+
+    def list_managed_insight_rules(
+        self, resource_arn: Optional[str] = None
+    ) -> list[dict[str, Any]]:
+        # Managed insight rules are not yet modeled; return empty list
+        return []
+
+    def put_managed_insight_rules(
+        self, managed_rules: Optional[list[dict[str, Any]]] = None
+    ) -> list[dict[str, Any]]:
+        # Stub: accept the input, return empty failures list
+        return []
+
+    def get_insight_rule_report(
+        self,
+        rule_name: str,
+        start_time: Any,
+        end_time: Any,
+        period: int,
+        max_contributor_count: Optional[int] = None,
+        metrics: Optional[list[str]] = None,
+        order_by: Optional[str] = None,
+    ) -> dict[str, Any]:
+        # Verify rule exists
+        if rule_name not in self.insight_rules:
+            raise ResourceNotFoundException(f"Rule {rule_name} does not exist")
+        return {
+            "KeyLabels": [],
+            "AggregationStatistic": "Sum",
+            "AggregateValue": 0.0,
+            "ApproximateUniqueCount": 0,
+            "Contributors": [],
+            "MetricDatapoints": [],
+        }
+
+    def get_metric_widget_image(
+        self,
+        metric_widget: str,
+        output_format: str = "png",
+    ) -> bytes:
+        # Return a minimal 1x1 transparent PNG
+        import base64
+
+        minimal_png = base64.b64decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+        )
+        return minimal_png
+
+    def list_alarm_mute_rules(
+        self, alarm_name: Optional[str] = None
+    ) -> list[dict[str, Any]]:
+        # Alarm mute rules are not yet modeled; return empty list
+        return []
+
+    def describe_alarm_contributors(
+        self, alarm_name: Optional[str] = None
+    ) -> dict[str, Any]:
+        # Stub response
+        return {"Contributors": []}
+
+
+
+
+class MetricStream(BaseModel):
+    def __init__(
+        self,
+        account_id: str,
+        region_name: str,
+        name: str,
+        firehose_arn: str,
+        role_arn: str,
+        output_format: str,
+        include_filters: Optional[list[dict[str, Any]]] = None,
+        exclude_filters: Optional[list[dict[str, Any]]] = None,
+        statistics_configurations: Optional[list[dict[str, Any]]] = None,
+        include_linked_accounts_metrics: bool = False,
+    ):
+        self.name = name
+        self.arn = make_arn_for_metric_stream(region_name, account_id, name)
+        self.firehose_arn = firehose_arn
+        self.role_arn = role_arn
+        self.output_format = output_format
+        self.include_filters = include_filters or []
+        self.exclude_filters = exclude_filters or []
+        self.statistics_configurations = statistics_configurations or []
+        self.include_linked_accounts_metrics = include_linked_accounts_metrics
+        self.state = "running"
+        self.creation_date = utcnow()
+        self.last_update_date = utcnow()
 cloudwatch_backends = BackendDict(CloudWatchBackend, "cloudwatch")

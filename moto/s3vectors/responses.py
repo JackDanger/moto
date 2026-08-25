@@ -257,6 +257,46 @@ class S3VectorsResponse(BaseResponse):
 
         return EmptyResult()
 
+    def query_vectors(self) -> ActionResult:
+        vector_bucket_name = self._get_param("vectorBucketName")
+        index_arn = self._get_param("indexArn")
+        index_name = self._get_param("indexName")
+        self._validate_index_params(index_arn, index_name, vector_bucket_name)
+        query_vector = self._get_param("queryVector")
+        top_k = self._get_param("topK") or 10
+        return_data = self._get_bool_param("returnData", False)
+        return_metadata = self._get_bool_param("returnMetadata", False)
+        filter_expr = self._get_param("filter")
+
+        vectors = self.s3vectors_backend.query_vectors(
+            vector_bucket_name=vector_bucket_name,
+            index_name=index_name,
+            index_arn=index_arn,
+            query_vector=query_vector,
+            top_k=top_k,
+            return_data=return_data,
+            return_metadata=return_metadata,
+            filter_expr=filter_expr,
+        )
+        return ActionResult(result={"vectors": vectors})
+
+    def tag_resource(self) -> ActionResult:
+        resource_arn = self.path.split("/tags/", 1)[-1]
+        tags = self._get_param("tags") or {}
+        self.s3vectors_backend.tag_resource(resource_arn=resource_arn, tags=tags)
+        return EmptyResult()
+
+    def untag_resource(self) -> ActionResult:
+        resource_arn = self.path.split("/tags/", 1)[-1]
+        tag_keys = self.querystring.get("tagKeys", [])
+        self.s3vectors_backend.untag_resource(resource_arn=resource_arn, tag_keys=tag_keys)
+        return EmptyResult()
+
+    def list_tags_for_resource(self) -> ActionResult:
+        resource_arn = self.path.split("/tags/", 1)[-1]
+        tags = self.s3vectors_backend.list_tags_for_resource(resource_arn=resource_arn)
+        return ActionResult(result={"tags": tags})
+
     def _validate_index_params(
         self, index_arn: str, index_name: str, vector_bucket_name: str
     ) -> None:

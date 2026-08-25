@@ -14,4 +14,7 @@ url_paths = {
     "{0}/applications/(?P<applicationId>[^/]+)/stop$": EMRServerlessResponse.dispatch,
     "{0}/applications/(?P<applicationId>[^/]+)/jobruns$": EMRServerlessResponse.dispatch,
     "{0}/applications/(?P<applicationId>[^/]+)/jobruns/(?P<jobRunId>[^/]+)$": EMRServerlessResponse.dispatch,
+    "{0}/applications/(?P<applicationId>[^/]+)/jobruns/(?P<jobRunId>[^/]+)/dashboard$": EMRServerlessResponse.dispatch,
+    "{0}/applications/(?P<applicationId>[^/]+)/jobruns/(?P<jobRunId>[^/]+)/attempts$": EMRServerlessResponse.dispatch,
+    "{0}/tags/(?P<resourceArn>.+)$": EMRServerlessResponse.dispatch,
 }

@@ -45,6 +45,36 @@ from moto.appmesh.exceptions import (
 )
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.utilities.paginator import paginate
+from moto.appmesh.dataclasses.virtual_gateway import (
+    GatewayRoute,
+    GatewayRouteMetadata,
+    GatewayRouteSpec,
+    VirtualGateway,
+    VirtualGatewayMetadata,
+    VirtualGatewaySpec,
+)
+from moto.appmesh.dataclasses.virtual_service import (
+    VirtualServiceMetadata,
+    VirtualServiceResource,
+    VirtualServiceSpec,
+)
+from moto.appmesh.exceptions import (
+    GatewayRouteNameAlreadyTakenError,
+    GatewayRouteNotFoundError,
+    MeshNotFoundError,
+    MeshOwnerDoesNotMatchError,
+    ResourceNotFoundError,
+    RouteNameAlreadyTakenError,
+    RouteNotFoundError,
+    VirtualGatewayNameAlreadyTakenError,
+    VirtualGatewayNotFoundError,
+    VirtualNodeNameAlreadyTakenError,
+    VirtualNodeNotFoundError,
+    VirtualRouterNameAlreadyTakenError,
+    VirtualRouterNotFoundError,
+    VirtualServiceNameAlreadyTakenError,
+    VirtualServiceNotFoundError,
+)
 
 PAGINATION_MODEL = {
     "list_meshes": {
@@ -926,6 +956,125 @@ class AppMeshBackend(BaseBackend):
             gateway_route.metadata
             for gateway_route in virtual_gateway.gateway_routes.values()
         ]
+
+    def _check_virtual_service_availability(
+        self,
+        mesh_name: str,
+        mesh_owner: Optional[str],
+        virtual_service_name: str,
+    ) -> None:
+        self._validate_mesh(mesh_name=mesh_name, mesh_owner=mesh_owner)
+        if virtual_service_name in self.meshes[mesh_name].virtual_services:
+            raise VirtualServiceNameAlreadyTakenError(
+                mesh_name=mesh_name, virtual_service_name=virtual_service_name
+            )
+
+    def _check_virtual_service_validity(
+        self,
+        mesh_name: str,
+        mesh_owner: Optional[str],
+        virtual_service_name: str,
+    ) -> None:
+        self._validate_mesh(mesh_name=mesh_name, mesh_owner=mesh_owner)
+        if virtual_service_name not in self.meshes[mesh_name].virtual_services:
+            raise VirtualServiceNotFoundError(
+                mesh_name=mesh_name, virtual_service_name=virtual_service_name
+            )
+
+    def create_virtual_service(
+        self,
+        client_token: Optional[str],
+        mesh_name: str,
+        mesh_owner: Optional[str],
+        spec: dict,
+        tags: Optional[list[dict[str, str]]],
+        virtual_service_name: str,
+    ) -> VirtualServiceResource:
+        self._check_virtual_service_availability(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_service_name=virtual_service_name,
+        )
+        owner = mesh_owner or self.meshes[mesh_name].metadata.mesh_owner
+        metadata = VirtualServiceMetadata(
+            arn=f"arn:aws:appmesh:{self.region_name}:{self.account_id}:mesh/{mesh_name}/virtualService/{virtual_service_name}",
+            mesh_name=mesh_name,
+            mesh_owner=owner,
+            resource_owner=owner,
+            virtual_service_name=virtual_service_name,
+        )
+        virtual_service = VirtualServiceResource(
+            mesh_name=mesh_name,
+            mesh_owner=owner,
+            metadata=metadata,
+            spec=VirtualServiceSpec(spec=spec),
+            virtual_service_name=virtual_service_name,
+            tags=tags or [],
+        )
+        self.meshes[mesh_name].virtual_services[virtual_service_name] = virtual_service
+        return virtual_service
+
+    def describe_virtual_service(
+        self,
+        mesh_name: str,
+        mesh_owner: Optional[str],
+        virtual_service_name: str,
+    ) -> VirtualServiceResource:
+        self._check_virtual_service_validity(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_service_name=virtual_service_name,
+        )
+        return self.meshes[mesh_name].virtual_services[virtual_service_name]
+
+    def update_virtual_service(
+        self,
+        client_token: Optional[str],
+        mesh_name: str,
+        mesh_owner: Optional[str],
+        spec: dict,
+        virtual_service_name: str,
+    ) -> VirtualServiceResource:
+        self._check_virtual_service_validity(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_service_name=virtual_service_name,
+        )
+        virtual_service = self.meshes[mesh_name].virtual_services[virtual_service_name]
+        virtual_service.spec = VirtualServiceSpec(spec=spec)
+        virtual_service.metadata.version += 1
+        virtual_service.metadata.update_timestamp()
+        return virtual_service
+
+    def delete_virtual_service(
+        self,
+        mesh_name: str,
+        mesh_owner: Optional[str],
+        virtual_service_name: str,
+    ) -> VirtualServiceResource:
+        self._check_virtual_service_validity(
+            mesh_name=mesh_name,
+            mesh_owner=mesh_owner,
+            virtual_service_name=virtual_service_name,
+        )
+        virtual_service = self.meshes[mesh_name].virtual_services[virtual_service_name]
+        virtual_service.status["status"] = "DELETED"
+        del self.meshes[mesh_name].virtual_services[virtual_service_name]
+        return virtual_service
+
+    @paginate(pagination_model=PAGINATION_MODEL)
+    def list_virtual_services(
+        self,
+        mesh_name: str,
+        mesh_owner: Optional[str],
+    ) -> list[VirtualServiceMetadata]:
+        self._validate_mesh(mesh_name=mesh_name, mesh_owner=mesh_owner)
+        virtual_services = self.meshes[mesh_name].virtual_services
+        return [vs.metadata for vs in virtual_services.values()]
+
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
+        resource = self._get_resource_with_arn(resource_arn=resource_arn)
+        resource.tags = [t for t in resource.tags if t.get("key") not in tag_keys]
 
 
 appmesh_backends = BackendDict(AppMeshBackend, "appmesh")

@@ -537,6 +537,52 @@ class CognitoIdpResponse(BaseResponse):
             response["NextToken"] = str(next_token)
         return ActionResult(response)
 
+    # Terms
+    def create_terms(self) -> ActionResult:
+        user_pool_id = self._get_param("UserPoolId")
+        client_id = self._get_param("ClientId")
+        terms_name = self._get_param("TermsName")
+        terms_source = self._get_param("TermsSource")
+        enforcement = self._get_param("Enforcement")
+        terms = self.backend.create_terms(
+            user_pool_id, client_id, terms_name, terms_source, enforcement
+        )
+        return ActionResult({"Terms": terms.to_json()})
+
+    def describe_terms(self) -> ActionResult:
+        user_pool_id = self._get_param("UserPoolId")
+        terms_id = self._get_param("TermsId")
+        terms = self.backend.describe_terms(user_pool_id, terms_id)
+        return ActionResult({"Terms": terms.to_json()})
+
+    def list_terms(self) -> ActionResult:
+        user_pool_id = self._get_param("UserPoolId")
+        max_results = self._get_param("MaxResults")
+        next_token = self._get_param("NextToken")
+        terms_list, next_token = self.backend.list_terms(
+            user_pool_id, max_results=max_results, next_token=next_token
+        )
+        response: dict[str, Any] = {"Terms": [terms.to_json() for terms in terms_list]}
+        if next_token:
+            response["NextToken"] = str(next_token)
+        return ActionResult(response)
+
+    def update_terms(self) -> ActionResult:
+        user_pool_id = self._get_param("UserPoolId")
+        terms_id = self._get_param("TermsId")
+        terms_source = self._get_param("TermsSource")
+        enforcement = self._get_param("Enforcement")
+        terms = self.backend.update_terms(
+            user_pool_id, terms_id, terms_source=terms_source, enforcement=enforcement
+        )
+        return ActionResult({"Terms": terms.to_json()})
+
+    def delete_terms(self) -> ActionResult:
+        user_pool_id = self._get_param("UserPoolId")
+        terms_id = self._get_param("TermsId")
+        self.backend.delete_terms(user_pool_id, terms_id)
+        return EmptyResult()
+
     def sign_up(self) -> ActionResult:
         client_id = self._get_param("ClientId")
         username = self._get_param("Username")

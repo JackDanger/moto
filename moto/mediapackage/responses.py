@@ -36,6 +36,14 @@ class MediaPackageResponse(BaseResponse):
         channel = self.mediapackage_backend.delete_channel(channel_id=channel_id)
         return json.dumps(channel.to_dict())
 
+    def update_channel(self) -> str:
+        channel_id = self._get_param("id")
+        description = self._get_param("description")
+        channel = self.mediapackage_backend.update_channel(
+            channel_id=channel_id, description=description
+        )
+        return json.dumps(channel.to_dict())
+
     def create_origin_endpoint(self) -> str:
         authorization = self._get_param("authorization")
         channel_id = self._get_param("channelId")
@@ -115,3 +123,61 @@ class MediaPackageResponse(BaseResponse):
             whitelist=whitelist,  # type: ignore[arg-type]
         )
         return json.dumps(origin_endpoint.to_dict())
+
+    def create_harvest_job(self) -> str:
+        harvest_job_id = self._get_param("id")
+        start_time = self._get_param("startTime")
+        end_time = self._get_param("endTime")
+        s3_destination = self._get_param("s3Destination")
+        origin_endpoint_id = self._get_param("originEndpointId")
+        job = self.mediapackage_backend.create_harvest_job(
+            harvest_job_id=harvest_job_id,
+            start_time=start_time,
+            end_time=end_time,
+            s3_destination=s3_destination,
+            origin_endpoint_id=origin_endpoint_id,
+        )
+        return json.dumps(job)
+
+    def describe_harvest_job(self) -> str:
+        harvest_job_id = self._get_param("id")
+        job = self.mediapackage_backend.describe_harvest_job(
+            harvest_job_id=harvest_job_id
+        )
+        return json.dumps(job)
+
+    def list_harvest_jobs(self) -> str:
+        jobs = self.mediapackage_backend.list_harvest_jobs()
+        return json.dumps({"harvestJobs": jobs})
+
+    def tag_resource(self) -> str:
+        resource_arn = self._get_param("resourceArn") or self.path.split("/tags/")[-1]
+        tags = self._get_param("tags") or {}
+        self.mediapackage_backend.tag_resource(resource_arn=resource_arn, tags=tags)
+        return json.dumps({})
+
+    def untag_resource(self) -> str:
+        resource_arn = self.path.split("/tags/")[-1]
+        tag_keys = self.querystring.get("tagKeys", [])
+        self.mediapackage_backend.untag_resource(resource_arn=resource_arn, tag_keys=tag_keys)
+        return json.dumps({})
+
+    def list_tags_for_resource(self) -> str:
+        resource_arn = self.path.split("/tags/")[-1]
+        tags = self.mediapackage_backend.list_tags_for_resource(resource_arn=resource_arn)
+        return json.dumps({"tags": tags})
+
+    def configure_logs(self) -> str:
+        channel_id = self._get_param("id")
+        channel = self.mediapackage_backend.describe_channel(channel_id=channel_id)
+        return json.dumps(channel.to_dict())
+
+    def rotate_channel_credentials(self) -> str:
+        channel_id = self._get_param("id")
+        channel = self.mediapackage_backend.describe_channel(channel_id=channel_id)
+        return json.dumps(channel.to_dict())
+
+    def rotate_ingest_endpoint_credentials(self) -> str:
+        channel_id = self._get_param("id")
+        channel = self.mediapackage_backend.describe_channel(channel_id=channel_id)
+        return json.dumps(channel.to_dict())

@@ -271,3 +271,163 @@ class MemoryDBResponse(BaseResponse):
             user_name=user_name,
         )
         return ActionResult({"User": user.to_dict()})
+
+    def create_acl(self) -> ActionResult:
+        params = json.loads(self.body)
+        acl = self.memorydb_backend.create_acl(
+            acl_name=params.get("ACLName"),
+            user_names=params.get("UserNames", []),
+            tags=params.get("Tags", []),
+        )
+        return ActionResult({"ACL": acl.to_dict()})
+
+    def describe_ac_ls(self) -> ActionResult:
+        params = json.loads(self.body)
+        acls = self.memorydb_backend.describe_acls(acl_name=params.get("ACLName"))
+        return ActionResult({"ACLs": [acl.to_dict() for acl in acls]})
+
+    def delete_acl(self) -> ActionResult:
+        params = json.loads(self.body)
+        acl = self.memorydb_backend.delete_acl(acl_name=params.get("ACLName"))
+        return ActionResult({"ACL": acl.to_dict()})
+
+    def update_acl(self) -> ActionResult:
+        params = json.loads(self.body)
+        acl = self.memorydb_backend.update_acl(
+            acl_name=params.get("ACLName"),
+            user_names_to_add=params.get("UserNamesToAdd"),
+            user_names_to_remove=params.get("UserNamesToRemove"),
+        )
+        return ActionResult({"ACL": acl.to_dict()})
+
+    def create_parameter_group(self) -> ActionResult:
+        params = json.loads(self.body)
+        pg = self.memorydb_backend.create_parameter_group(
+            name=params.get("ParameterGroupName"),
+            family=params.get("Family", "memorydb_redis7"),
+            description=params.get("Description", ""),
+            tags=params.get("Tags", []),
+        )
+        return ActionResult({"ParameterGroup": pg.to_dict()})
+
+    def describe_parameter_groups(self) -> ActionResult:
+        params = json.loads(self.body)
+        pgs = self.memorydb_backend.describe_parameter_groups(name=params.get("ParameterGroupName"))
+        return ActionResult({"ParameterGroups": [pg.to_dict() for pg in pgs]})
+
+    def delete_parameter_group(self) -> ActionResult:
+        params = json.loads(self.body)
+        pg = self.memorydb_backend.delete_parameter_group(name=params.get("ParameterGroupName"))
+        return ActionResult({"ParameterGroup": pg.to_dict()})
+
+    def update_parameter_group(self) -> ActionResult:
+        params = json.loads(self.body)
+        pg = self.memorydb_backend.update_parameter_group(
+            name=params.get("ParameterGroupName"),
+            parameter_name_values=params.get("ParameterNameValues", []),
+        )
+        return ActionResult({"ParameterGroup": pg.to_dict()})
+
+    def describe_service_updates(self) -> ActionResult:
+        updates = self.memorydb_backend.describe_service_updates()
+        return ActionResult({"ServiceUpdates": updates})
+
+    def describe_events(self) -> ActionResult:
+        events = self.memorydb_backend.describe_events()
+        return ActionResult({"Events": events})
+
+    def describe_engine_versions(self) -> ActionResult:
+        versions = self.memorydb_backend.describe_engine_versions()
+        return ActionResult({"EngineVersions": versions})
+
+    def describe_reserved_nodes(self) -> ActionResult:
+        nodes = self.memorydb_backend.describe_reserved_nodes()
+        return ActionResult({"ReservedNodes": nodes})
+
+    def describe_reserved_nodes_offerings(self) -> ActionResult:
+        offerings = self.memorydb_backend.describe_reserved_nodes_offerings()
+        return ActionResult({"ReservedNodesOfferings": offerings})
+
+    def copy_snapshot(self) -> ActionResult:
+        params = json.loads(self.body)
+        snapshot = self.memorydb_backend.copy_snapshot(
+            source_snapshot_name=params.get("SourceSnapshotName"),
+            target_snapshot_name=params.get("TargetSnapshotName"),
+            kms_key_id=params.get("KmsKeyId"),
+            tags=params.get("Tags", []),
+        )
+        return ActionResult({"Snapshot": snapshot.to_dict()})
+
+    def update_subnet_group(self) -> ActionResult:
+        params = json.loads(self.body)
+        sg = self.memorydb_backend.update_subnet_group(
+            subnet_group_name=params.get("SubnetGroupName"),
+            description=params.get("Description"),
+            subnet_ids=params.get("SubnetIds"),
+        )
+        return ActionResult({"SubnetGroup": sg.to_dict()})
+
+    def reset_parameter_group(self) -> ActionResult:
+        params = json.loads(self.body)
+        pg = self.memorydb_backend.reset_parameter_group(
+            parameter_group_name=params.get("ParameterGroupName"),
+            all_parameters=params.get("AllParameters", False),
+            parameter_names=params.get("ParameterNames"),
+        )
+        return ActionResult({"ParameterGroup": pg.to_dict()})
+
+    def describe_parameters(self) -> ActionResult:
+        params = json.loads(self.body)
+        parameters = self.memorydb_backend.describe_parameters(
+            parameter_group_name=params.get("ParameterGroupName"),
+        )
+        return ActionResult({"Parameters": parameters})
+
+    def list_allowed_node_type_updates(self) -> ActionResult:
+        params = json.loads(self.body)
+        result = self.memorydb_backend.list_allowed_node_type_updates(
+            cluster_name=params.get("ClusterName"),
+        )
+        return ActionResult(result)
+
+    def batch_update_cluster(self) -> ActionResult:
+        params = json.loads(self.body)
+        processed, unprocessed = self.memorydb_backend.batch_update_cluster(
+            cluster_names=params.get("ClusterNames", []),
+            service_update=params.get("ServiceUpdate"),
+        )
+        return ActionResult({"ProcessedClusters": processed, "UnprocessedClusters": unprocessed})
+
+    def purchase_reserved_nodes_offering(self) -> ActionResult:
+        params = json.loads(self.body)
+        result = self.memorydb_backend.purchase_reserved_nodes_offering(
+            reserved_nodes_offering_id=params.get("ReservedNodesOfferingId"),
+            reservation_id=params.get("ReservationId"),
+            node_count=params.get("NodeCount", 1),
+            tags=params.get("Tags", []),
+        )
+        return ActionResult({"ReservedNode": result})
+
+    def create_multi_region_cluster(self) -> ActionResult:
+        return ActionResult({"MultiRegionCluster": {}})
+
+    def delete_multi_region_cluster(self) -> ActionResult:
+        return ActionResult({"MultiRegionCluster": {}})
+
+    def describe_multi_region_clusters(self) -> ActionResult:
+        return ActionResult({"MultiRegionClusters": [], "NextToken": None})
+
+    def describe_multi_region_parameter_groups(self) -> ActionResult:
+        return ActionResult({"MultiRegionParameterGroups": [], "NextToken": None})
+
+    def describe_multi_region_parameters(self) -> ActionResult:
+        return ActionResult({"Parameters": [], "NextToken": None})
+
+    def failover_shard(self) -> ActionResult:
+        return ActionResult({"Cluster": {}})
+
+    def list_allowed_multi_region_cluster_updates(self) -> ActionResult:
+        return ActionResult({"MultiRegionParameterGroupName": "", "Parameters": []})
+
+    def update_multi_region_cluster(self) -> ActionResult:
+        return ActionResult({"MultiRegionCluster": {}})

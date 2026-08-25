@@ -122,3 +122,51 @@ class ScanNotFoundException(ServiceException):
 
 class ValidationException(ServiceException):
     code = "ValidationException"
+
+
+class PullThroughCacheRuleNotFoundException(ServiceException):
+    code = "PullThroughCacheRuleNotFoundException"
+
+    def __init__(self, ecr_repository_prefix: str, registry_id: str):
+        message = (
+            "The pull through cache rule with Amazon ECR repository "
+            f"prefix '{ecr_repository_prefix}' does not exist in the "
+            f"registry with id '{registry_id}'"
+        )
+        super().__init__(message)
+
+
+class PullThroughCacheRuleAlreadyExistsException(ServiceException):
+    code = "PullThroughCacheRuleAlreadyExistsException"
+
+    def __init__(self, ecr_repository_prefix: str, registry_id: str):
+        message = (
+            "The pull through cache rule with Amazon ECR repository "
+            f"prefix '{ecr_repository_prefix}' already exists in the "
+            f"registry with id '{registry_id}'"
+        )
+        super().__init__(message)
+
+
+class TemplateNotFoundException(ServiceException):
+    code = "TemplateNotFoundException"
+
+    def __init__(self, prefix: str, registry_id: str):
+        message = (
+            f"The repository creation template with the prefix "
+            f"'{prefix}' does not exist in the registry with id "
+            f"'{registry_id}'"
+        )
+        super().__init__(message)
+
+
+class TemplateAlreadyExistsException(ServiceException):
+    code = "TemplateAlreadyExistsException"
+
+    def __init__(self, prefix: str, registry_id: str):
+        message = (
+            f"The repository creation template with the prefix "
+            f"'{prefix}' already exists in the registry with id "
+            f"'{registry_id}'"
+        )
+        super().__init__(message)

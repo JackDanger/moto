@@ -28,3 +28,20 @@ class InvalidParameterException(JsonRESTError):
             __class__.__name__,  # type: ignore
             "An input parameter violated a constraint. For example, in synchronous operations, an InvalidParameterException exception occurs when neither of the S3Object or Bytes values are supplied in the Document request parameter. Validate your parameter before calling the API operation again.",
         )
+
+
+class ResourceNotFoundException(JsonRESTError):
+    code = 400
+
+    def __init__(self, resource_id: str = "") -> None:
+        super().__init__(
+            __class__.__name__,  # type: ignore
+            f"The resource {resource_id!r} does not exist.",
+        )
+
+
+class ConflictException(JsonRESTError):
+    code = 400
+
+    def __init__(self, msg: str = "Conflict") -> None:
+        super().__init__(__class__.__name__, msg)  # type: ignore

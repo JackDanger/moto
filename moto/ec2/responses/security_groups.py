@@ -188,6 +188,13 @@ class SecurityGroups(EC2BaseResponse):
             self.ec2_backend.update_security_group_rule_descriptions_ingress(**args)
         return EmptyResult()
 
+    def get_security_groups_for_vpc(self) -> ActionResult:
+        vpc_id = self._get_param("VpcId")
+        filters = self._filters_from_querystring()
+        groups = self.ec2_backend.get_security_groups_for_vpc(vpc_id=vpc_id, filters=filters)
+        result = {"SecurityGroupForVpcs": groups}
+        return ActionResult(result)
+
     def update_security_group_rule_descriptions_egress(self) -> ActionResult:
         for args in self._process_rules_from_querystring():
             # we don't need this parameter to revoke

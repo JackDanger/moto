@@ -17,6 +17,7 @@ from moto.dynamodb.exceptions import (
     BackupNotFoundException,
     ConditionalCheckFailed,
     DeletionProtectedException,
+    GlobalTableNotFoundException,
     ItemSizeTooLarge,
     ItemSizeToUpdateTooLarge,
     MockValidationException,
@@ -998,7 +999,10 @@ class DynamoDBBackend(BaseBackend, TaggableResourcesMixin):
         return table_import
 
     def describe_import(self, import_arn: str) -> TableImport:
-        return self.table_imports[import_arn]
+        try:
+            return self.table_imports[import_arn]
+        except KeyError:
+            raise ResourceNotFoundException
 
     def export_table(
         self,
@@ -1041,12 +1045,120 @@ class DynamoDBBackend(BaseBackend, TaggableResourcesMixin):
     def describe_export(self, export_arn: str) -> TableExport:
         return self.table_exports[export_arn]
 
-    def list_exports(self, table_arn: str) -> list[TableExport]:
+    def list_exports(self, table_arn: Optional[str] = None) -> list[TableExport]:
         exports = []
         for export_arn in self.table_exports:
-            if self.table_exports[export_arn].table.table_arn == table_arn:
+            if (
+                table_arn is None
+                or self.table_exports[export_arn].table.table_arn == table_arn
+            ):
                 exports.append(self.table_exports[export_arn])
         return exports
+
+    def describe_contributor_insights(
+        self, table_name: str, index_name: Optional[str] = None
+    ) -> dict[str, Any]:
+        self.get_table(table_name)
+        result: dict[str, Any] = {
+            "TableName": table_name,
+            "ContributorInsightsRuleList": [
+                f"DynamoDBContributorInsights-PKC-{table_name}",
+                f"DynamoDBContributorInsights-SKC-{table_name}",
+            ],
+            "ContributorInsightsStatus": "DISABLED",
+            "LastModifiedDateTime": unix_time(),
+        }
+        if index_name is not None:
+            result["IndexName"] = index_name
+        return result
+
+    def describe_global_table_settings(self, global_table_name: str) -> dict[str, Any]:
+        try:
+            self.get_table(global_table_name)
+        except ResourceNotFoundException:
+            raise GlobalTableNotFoundException(global_table_name)
+        return {
+            "GlobalTableName": global_table_name,
+            "ReplicaSettings": [
+                {
+                    "RegionName": self.region_name,
+                    "ReplicaStatus": "ACTIVE",
+                    "ReplicaBillingModeSummary": {"BillingMode": "PAY_PER_REQUEST"},
+                    "ReplicaProvisionedReadCapacityUnits": 0,
+                    "ReplicaProvisionedWriteCapacityUnits": 0,
+                }
+            ],
+        }
+
+    def describe_kinesis_streaming_destination(self, table_name: str) -> dict[str, Any]:
+        table = self.get_table(table_name)
+        destinations = getattr(table, "_kinesis_destinations", [])
+        return {
+            "TableName": table_name,
+            "KinesisDataStreamDestinations": destinations,
+        }
+
+    def enable_kinesis_streaming_destination(
+        self, table_name: str, stream_arn: str, approximate_creation_date_time_precision: Optional[str] = None
+    ) -> dict[str, Any]:
+        table = self.get_table(table_name)
+        if not hasattr(table, "_kinesis_destinations"):
+            table._kinesis_destinations = []
+        # Add if not already present
+        existing = [d for d in table._kinesis_destinations if d["StreamArn"] == stream_arn]
+        if not existing:
+            table._kinesis_destinations.append({
+                "StreamArn": stream_arn,
+                "DestinationStatus": "ACTIVE",
+                "ApproximateCreationDateTimePrecision": approximate_creation_date_time_precision or "MILLISECOND",
+            })
+        return {"TableName": table_name, "StreamArn": stream_arn, "DestinationStatus": "ENABLING"}
+
+    def disable_kinesis_streaming_destination(self, table_name: str, stream_arn: str) -> dict[str, Any]:
+        table = self.get_table(table_name)
+        if hasattr(table, "_kinesis_destinations"):
+            table._kinesis_destinations = [
+                d for d in table._kinesis_destinations if d["StreamArn"] != stream_arn
+            ]
+        return {"TableName": table_name, "StreamArn": stream_arn, "DestinationStatus": "DISABLED"}
+
+    def update_kinesis_streaming_destination(
+        self, table_name: str, stream_arn: str, update_kinesis_streaming_configuration: Optional[dict] = None
+    ) -> dict[str, Any]:
+        table = self.get_table(table_name)
+        if hasattr(table, "_kinesis_destinations"):
+            for dest in table._kinesis_destinations:
+                if dest["StreamArn"] == stream_arn:
+                    if update_kinesis_streaming_configuration:
+                        precision = update_kinesis_streaming_configuration.get("ApproximateCreationDateTimePrecision")
+                        if precision:
+                            dest["ApproximateCreationDateTimePrecision"] = precision
+        return {"TableName": table_name, "StreamArn": stream_arn, "DestinationStatus": "ACTIVE"}
+
+    def update_contributor_insights(
+        self, table_name: str, contributor_insights_action: str, index_name: Optional[str] = None
+    ) -> dict[str, Any]:
+        self.get_table(table_name)
+        status = "ENABLED" if contributor_insights_action == "ENABLE" else "DISABLED"
+        result: dict[str, Any] = {"TableName": table_name, "ContributorInsightsStatus": status}
+        if index_name:
+            result["IndexName"] = index_name
+        return result
+
+    def update_global_table_settings(
+        self, global_table_name: str, **kwargs: Any
+    ) -> dict[str, Any]:
+        # Return a stub response
+        return {
+            "GlobalTableName": global_table_name,
+            "ReplicaSettings": [],
+        }
+
+    def update_table_replica_auto_scaling(
+        self, table_name: str, **kwargs: Any
+    ) -> dict[str, Any]:
+        self.get_table(table_name)
+        return {"TableAutoScalingDescription": {"TableName": table_name, "TableStatus": "ACTIVE", "Replicas": []}}
 
     def put_resource_policy(
         self, resource_arn: str, policy_doc: str, expected_revision_id: str | None

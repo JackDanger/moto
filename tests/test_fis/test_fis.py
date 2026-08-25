@@ -1,13 +1,12 @@
 """Unit tests for fis-supported APIs."""
 
 from unittest import SkipTest
-
 import boto3
 import pytest
 from botocore.exceptions import ClientError
-
 from moto import mock_aws, settings
 from moto.moto_api import state_manager
+from moto import mock_aws
 
 # See our Development Tips on writing tests for hints on how to write good tests:
 # http://docs.getmoto.org/en/latest/docs/contributing/development_tips/tests.html

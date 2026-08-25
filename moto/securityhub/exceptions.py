@@ -18,3 +18,17 @@ class _InvalidOperationException(SecurityHubClientError):
 class InvalidInputException(_InvalidOperationException):
     def __init__(self, op: str, msg: str):
         super().__init__("InvalidInputException", op, msg)
+
+
+class InvalidAccessException(SecurityHubClientError):
+    code = 402
+
+    def __init__(self, msg: str):
+        super().__init__("InvalidAccessException", msg)
+
+
+class ResourceNotFoundException(SecurityHubClientError):
+    code = 404
+
+    def __init__(self, msg: str):
+        super().__init__("ResourceNotFoundException", msg)

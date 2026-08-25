@@ -417,3 +417,48 @@ class FleetsBackend:
                 fleet.state = "deleted_running"
             fleets.append(fleet)
         return fleets
+
+    def modify_fleet(
+        self,
+        fleet_id: str,
+        target_capacity_specification: Optional[dict[str, Any]] = None,
+        excess_capacity_termination_policy: Optional[str] = None,
+    ) -> Fleet:
+        fleet = self.fleets.get(fleet_id)
+        if not fleet:
+            from ..exceptions import InvalidFleetIdError
+
+            raise InvalidFleetIdError(fleet_id)
+        if target_capacity_specification:
+            new_total = int(
+                target_capacity_specification.get(
+                    "TotalTargetCapacity", fleet.target_capacity
+                )
+            )
+            fleet.target_capacity = new_total
+        if excess_capacity_termination_policy:
+            fleet.excess_capacity_termination_policy = excess_capacity_termination_policy
+        return fleet
+
+    def describe_fleet_history(
+        self,
+        fleet_id: str,
+        start_time: Optional[str] = None,
+    ) -> list[dict[str, Any]]:
+        fleet = self.fleets.get(fleet_id)
+        if not fleet:
+            from ..exceptions import InvalidFleetIdError
+
+            raise InvalidFleetIdError(fleet_id)
+        # Return synthetic history events
+        return [
+            {
+                "EventInformation": {
+                    "EventSubType": "submitted",
+                    "InstanceId": "",
+                },
+                "EventType": "fleetRequestChange",
+                "Timestamp": utcnow().isoformat(),
+            }
+        ]
+

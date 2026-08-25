@@ -18,6 +18,8 @@ import zipfile
 from collections import defaultdict
 from collections.abc import Iterable, Iterator
 from datetime import datetime
+from collections.abc import Iterable
+from datetime import datetime, timezone
 from gzip import GzipFile
 from sys import platform
 from typing import Any, TypedDict
@@ -58,6 +60,7 @@ from .exceptions import (
     InvalidRoleFormat,
     LambdaClientError,
     UnknownAliasException,
+    UnknownCodeSigningConfigException,
     UnknownEventConfig,
     UnknownFunctionException,
     UnknownLayerException,
@@ -406,6 +409,37 @@ class ImageConfig:
         return dict(content)
 
 
+class CodeSigningConfig:
+    def __init__(
+        self,
+        allowed_publishers: dict[str, Any],
+        description: str = "",
+        policies: Optional[dict[str, str]] = None,
+        account_id: str = "",
+        region: str = "",
+    ) -> None:
+        self.config_id = "csc-" + "".join(random.choices("0123456789abcdef", k=17))
+        self.config_arn = (
+            f"arn:aws:lambda:{region}:{account_id}:code-signing-config:{self.config_id}"
+        )
+        self.allowed_publishers = allowed_publishers
+        self.description = description
+        self.policies = policies or {"UntrustedArtifactOnDeployment": "Warn"}
+        self.last_modified = (
+            datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "+0000"
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "CodeSigningConfigId": self.config_id,
+            "CodeSigningConfigArn": self.config_arn,
+            "Description": self.description,
+            "AllowedPublishers": self.allowed_publishers,
+            "CodeSigningPolicies": self.policies,
+            "LastModified": self.last_modified,
+        }
+
+
 class Permission(CloudFormationModel):
     def __init__(self, region: str):
         self.region = region
@@ -710,7 +744,6 @@ class LambdaFunction(CloudFormationModel, DockerModel):
     @property
     def architectures(self) -> list[str]:
         return self._architectures
-
     @architectures.setter
     def architectures(self, architectures: list[str]) -> None:
         if (
@@ -729,7 +762,6 @@ class LambdaFunction(CloudFormationModel, DockerModel):
     @property
     def ephemeral_storage(self) -> int:
         return self._ephemeral_storage
-
     @ephemeral_storage.setter
     def ephemeral_storage(self, ephemeral_storage: int) -> None:
         if ephemeral_storage > 10240:
@@ -1359,7 +1391,6 @@ class EventSourceMapping(CloudFormationModel):
     @property
     def event_source_arn(self) -> str:
         return self._event_source_arn
-
     @event_source_arn.setter
     def event_source_arn(self, event_source_arn: str) -> None:
         service = self._get_service_source_from_arn(event_source_arn)
@@ -1372,7 +1403,6 @@ class EventSourceMapping(CloudFormationModel):
     @property
     def batch_size(self) -> int:
         return self._batch_size
-
     @batch_size.setter
     def batch_size(self, new_batch_size: int | None) -> None:
         batch_size_service_map = {
@@ -2003,6 +2033,7 @@ class LambdaBackend(BaseBackend, TaggableResourcesMixin):
         self._lambdas = LambdaStorage(region_name=region_name, account_id=account_id)
         self._event_source_mappings: dict[str, EventSourceMapping] = {}
         self._layers = LayerStorage()
+        self._code_signing_configs: dict[str, CodeSigningConfig] = {}
 
     def create_alias(
         self,
@@ -2498,6 +2529,47 @@ class LambdaBackend(BaseBackend, TaggableResourcesMixin):
     def get_function_code_signing_config(self, function_name: str) -> dict[str, Any]:
         fn = self.get_function(function_name)
         return fn.get_function_code_signing_config()
+
+    def create_code_signing_config(
+        self,
+        allowed_publishers: dict[str, Any],
+        description: str = "",
+        policies: dict[str, str] | None = None,
+    ) -> CodeSigningConfig:
+        config = CodeSigningConfig(
+            allowed_publishers=allowed_publishers,
+            description=description,
+            policies=policies,
+            account_id=self.account_id,
+            region=self.region_name,
+        )
+        self._code_signing_configs[config.config_arn] = config
+        return config
+
+    def get_code_signing_config(self, config_arn: str) -> CodeSigningConfig:
+        if config_arn not in self._code_signing_configs:
+            raise UnknownCodeSigningConfigException(config_arn)
+        return self._code_signing_configs[config_arn]
+
+    def list_code_signing_configs(
+        self,
+    ) -> list[CodeSigningConfig]:
+        return list(self._code_signing_configs.values())
+
+    def delete_code_signing_config(self, config_arn: str) -> None:
+        if config_arn not in self._code_signing_configs:
+            raise UnknownCodeSigningConfigException(config_arn)
+        del self._code_signing_configs[config_arn]
+
+    def list_functions_by_code_signing_config(
+        self, config_arn: str
+    ) -> list[LambdaFunction]:
+        self.get_code_signing_config(config_arn)  # raise if not found
+        return [
+            fn
+            for fn in self.list_functions()
+            if fn.code_signing_config_arn == config_arn
+        ]
 
     def get_policy(self, function_name: str, qualifier: str | None = None) -> str:
         fn = self._lambdas.get_function_by_name_or_arn_with_qualifier(

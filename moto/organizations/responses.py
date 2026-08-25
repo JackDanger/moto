@@ -265,3 +265,103 @@ class OrganizationsResponse(BaseResponse):
             **self.request_params
         )
         return "{}"
+
+    def invite_account_to_organization(self) -> str:
+        return json.dumps(
+            self.organizations_backend.invite_account_to_organization(
+                **self.request_params
+            )
+        )
+
+    def accept_handshake(self) -> str:
+        return json.dumps(
+            self.organizations_backend.accept_handshake(**self.request_params)
+        )
+
+    def cancel_handshake(self) -> str:
+        return json.dumps(
+            self.organizations_backend.cancel_handshake(**self.request_params)
+        )
+
+    def decline_handshake(self) -> str:
+        return json.dumps(
+            self.organizations_backend.decline_handshake(**self.request_params)
+        )
+
+    def describe_handshake(self) -> str:
+        return json.dumps(
+            self.organizations_backend.describe_handshake(**self.request_params)
+        )
+
+    def list_handshakes_for_account(self) -> str:
+        return json.dumps(
+            self.organizations_backend.list_handshakes_for_account(
+                **self.request_params
+            )
+        )
+
+    def list_handshakes_for_organization(self) -> str:
+        return json.dumps(
+            self.organizations_backend.list_handshakes_for_organization(
+                **self.request_params
+            )
+        )
+
+    def enable_all_features(self) -> str:
+        return json.dumps(
+            self.organizations_backend.enable_all_features(**self.request_params)
+        )
+
+    def describe_effective_policy(self) -> str:
+        return json.dumps(
+            self.organizations_backend.describe_effective_policy(**self.request_params)
+        )
+
+    def put_resource_policy(self) -> str:
+        return json.dumps(
+            self.organizations_backend.put_resource_policy(**self.request_params)
+        )
+
+    def describe_resource_policy(self) -> str:
+        return json.dumps(self.organizations_backend.describe_resource_policy())
+
+    def delete_resource_policy(self) -> str:
+        self.organizations_backend.delete_resource_policy()
+        return "{}"
+
+    def leave_organization(self) -> str:
+        self.organizations_backend.leave_organization()
+        return "{}"
+
+    def list_accounts_with_invalid_effective_policy(self) -> str:
+        policy_type = self._get_param("PolicyType")
+        return json.dumps({"Accounts": [], "PolicyType": policy_type})
+
+    def create_gov_cloud_account(self) -> str:
+        return json.dumps(
+            self.organizations_backend.create_account(**self.request_params)
+        )
+
+    def describe_responsibility_transfer(self) -> str:
+        transfer_id = self._get_param("TransferId")
+        return json.dumps({"ResponsibilityTransfer": {"TransferId": transfer_id, "State": "REQUESTED"}})
+
+    def invite_organization_to_transfer_responsibility(self) -> str:
+        return json.dumps({"HandshakeId": f"h-{self._get_param('TargetId', 'unknown')}"})
+
+    def list_effective_policy_validation_errors(self) -> str:
+        return json.dumps({"EffectivePolicyValidationErrors": []})
+
+    def list_inbound_responsibility_transfers(self) -> str:
+        return json.dumps({"ResponsibilityTransfers": []})
+
+    def list_outbound_responsibility_transfers(self) -> str:
+        return json.dumps({"ResponsibilityTransfers": []})
+
+    def terminate_responsibility_transfer(self) -> str:
+        transfer_id = self._get_param("TransferId")
+        return json.dumps({"ResponsibilityTransfer": {"TransferId": transfer_id, "State": "CANCELLED"}})
+
+    def update_responsibility_transfer(self) -> str:
+        transfer_id = self._get_param("TransferId")
+        return json.dumps({"ResponsibilityTransfer": {"TransferId": transfer_id, "State": "REQUESTED"}})
