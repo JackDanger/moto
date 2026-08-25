@@ -2401,6 +2401,7 @@ class RDSBackend(BaseBackend, TaggableResourcesMixin):
         self.reserved_db_instances_offerings: dict[
             str, ReservedDBInstancesOffering
         ] = {}
+        self._init_reserved_offerings()
 
     @property
     def kms(self) -> KmsBackend:
@@ -3074,9 +3075,9 @@ class RDSBackend(BaseBackend, TaggableResourcesMixin):
     def modify_db_subnet_group(
         self, subnet_name: str, description: str, subnets: list[Subnet]
     ) -> DBSubnetGroup:
-        subnet_group = self.subnet_groups.pop(subnet_name)
-        if not subnet_group:
+        if subnet_name not in self.subnet_groups:
             raise DBSubnetGroupNotFoundError(subnet_name)
+        subnet_group = self.subnet_groups[subnet_name]
         subnet_group.name = subnet_name
         subnet_group.subnets = subnets  # type: ignore[assignment]
         if description is not None:

@@ -193,14 +193,14 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
         account_ids = self.portfolio_access.get(portfolio_id, [])
         return [{"account_id": account_id} for account_id in account_ids]
 
-    def delete_portfolio(self, accept_language: str | None, id: str) -> None:
+    def delete_portfolio(self, accept_language: str | None, portfolio_id: str) -> None:
         # TODO: Implement accept_language
 
-        if id in self.portfolio_access:
-            del self.portfolio_access[id]
+        if portfolio_id in self.portfolio_access:
+            del self.portfolio_access[portfolio_id]
 
-        if id in self.portfolios:
-            del self.portfolios[id]
+        if portfolio_id in self.portfolios:
+            del self.portfolios[portfolio_id]
 
         return None
 
@@ -337,7 +337,7 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
     def describe_portfolio_shares(
         self,
         portfolio_id: str,
-        type: str,
+        share_type: str,
         page_token: str | None = None,
         page_size: int | None = None,
     ) -> tuple[str | None, list[dict[str, Any]]]:
@@ -348,7 +348,7 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
         if portfolio_id not in self.portfolios:
             return None, []
 
-        if type == "ACCOUNT":
+        if share_type == "ACCOUNT":
             account_ids = self.portfolio_access.get(portfolio_id, [])
             for account_id in account_ids:
                 portfolio_share_details.append(
@@ -361,7 +361,7 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
                     }
                 )
 
-        elif type == "ORGANIZATION":
+        elif share_type == "ORGANIZATION":
             tokens = self.portfolio_share_tokens.get(portfolio_id, [])
 
             for token in tokens:
@@ -390,16 +390,16 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
         return None, portfolio_share_details
 
     def describe_portfolio(
-        self, accept_language: str | None, id: str
+        self, accept_language: str | None, portfolio_id: str
     ) -> tuple[
         dict[str, Any], list[dict[str, str]], list[dict[str, Any]], list[dict[str, str]]
     ]:
         # TODO: Implement accept_language
 
-        if id not in self.portfolios:
+        if portfolio_id not in self.portfolios:
             return {}, [], [], []
 
-        portfolio = self.portfolios[id]
+        portfolio = self.portfolios[portfolio_id]
         portfolio_detail = portfolio.to_dict()
 
         tags = portfolio.tags
@@ -454,15 +454,15 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
         return product
 
     def describe_product(
-        self, accept_language: str | None, id: str, name: str
+        self, accept_language: str | None, product_id: str, name: str
     ) -> Product:
-        if not id and not name:
+        if not product_id and not name:
             raise InvalidParametersException("Either Id or Name must be specified.")
 
-        if id:
-            product = self.products.get(id)
+        if product_id:
+            product = self.products.get(product_id)
             if not product:
-                raise ResourceNotFoundException(f"Product with Id '{id}' not found.")
+                raise ResourceNotFoundException(f"Product with Id '{product_id}' not found.")
         else:
             product = self.lookup_by_name(name)
             if not product:
@@ -479,9 +479,9 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
 
         return None
 
-    def delete_product(self, accept_language: str | None, id: str) -> None:
-        if id in self.products:
-            del self.products[id]
+    def delete_product(self, accept_language: str | None, product_id: str) -> None:
+        if product_id in self.products:
+            del self.products[product_id]
 
         return None
 
