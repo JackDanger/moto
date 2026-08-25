@@ -2120,9 +2120,7 @@ class QuickSightResponse(BaseResponse):
 
     def tag_resource(self) -> str:
         resource_arn = unquote(self._get_param("ResourceArn"))
-        tags = self._get_param("Tags") or []
-        tags = {tag["Key"]: tag.get("Value") for tag in tags}
-        tags = self._get_param("Tags")
+        tags = {tag["Key"]: tag.get("Value") for tag in (self._get_param("Tags") or [])}
         self.quicksight_backend.tag_resource(resource_arn, tags)
         return json.dumps({"RequestId": "request_id", "Status": 200})
 

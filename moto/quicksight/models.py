@@ -1699,8 +1699,11 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
 
     # --- Tagging ---
 
-    def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
-        self.tagger.tag_resource(arn=resource_arn, tags=tags)
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
+        self.tagger.tag_resource(
+            arn=resource_arn,
+            tags=[{"Key": k, "Value": v} for k, v in tags.items()],
+        )
 
     def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
