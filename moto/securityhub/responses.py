@@ -1072,3 +1072,20 @@ class SecurityHubResponse(BaseResponse):
         if idx >= 0:
             return path[idx + len(prefix) + 2 :]
         return ""
+
+    def list_members(self) -> str:
+        only_associated = self._get_param("OnlyAssociated")
+        max_results = self._get_param("MaxResults")
+        if max_results is not None:
+            max_results = int(max_results)
+        next_token = self._get_param("NextToken")
+
+        members, next_token = self.securityhub_backend.list_members(
+            only_associated=only_associated,
+            max_results=max_results,
+            next_token=next_token,
+        )
+        response: dict[str, Any] = {"Members": members}
+        if next_token:
+            response["NextToken"] = next_token
+        return json.dumps(response)

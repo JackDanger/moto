@@ -175,6 +175,7 @@ class FileSystem(CloudFormationModel):
         self.file_system_protection: dict[str, str] = {
             "ReplicationOverwriteProtection": "ENABLED"
         }
+        self._replication_configuration: dict[str, Any] | None = None
 
     @property
     def size_in_bytes(self) -> dict[str, Any]:  # type: ignore[misc]
@@ -911,7 +912,9 @@ class EFSBackend(BaseBackend, TaggableResourcesMixin):
     ) -> None:
         if file_system_id not in self.file_systems_by_id:
             raise FileSystemNotFound(file_system_id)
-        self.tag_resource(file_system_id, tags)
+        self.tag_resource(
+            file_system_id, {tag["Key"]: tag.get("Value", "") for tag in tags}
+        )
 
     def delete_tags(
         self, file_system_id: str, tag_keys: list[str]
