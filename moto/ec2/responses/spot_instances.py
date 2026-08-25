@@ -109,52 +109,7 @@ class SpotInstances(EC2BaseResponse):
         )
 
         return ActionResult({"SpotInstanceRequests": requests})
-        request_list = []
-        for request in requests:
-            groups = [
-                {"GroupId": group.id, "GroupName": group.name}
-                for group in request.launch_specification.groups
-            ]
-            launch_spec = {
-                "ImageId": request.launch_specification.image_id,
-                "KeyName": request.launch_specification.key_name,
-                "Groups": groups,
-                "KernelId": request.launch_specification.kernel,
-                "RamdiskId": request.launch_specification.ramdisk,
-                "SubnetId": request.launch_specification.subnet_id,
-                "InstanceType": request.launch_specification.instance_type,
-                "BlockDeviceMapping": {},
-                "Monitoring": {"Enabled": request.launch_specification.monitored},
-                "EbsOptimized": request.launch_specification.ebs_optimized,
-                "Placement": {
-                    "AvailabilityZone": request.launch_specification.placement,
-                    "GroupName": "",
-                },
-            }
-            request_dict = {
-                "SpotInstanceRequestId": request.id,
-                "SpotPrice": request.price,
-                "Type": request.type,
-                "State": request.state,
-                "Status": {
-                    "Code": request.status,
-                    "UpdateTime": "2015-01-01T00:00:00.000Z",
-                    "Message": request.status_message,
-                },
-                "InstanceId": request.instance.id,
-                "AvailabilityZoneGroup": request.availability_zone_group,
-                "LaunchSpecification": launch_spec,
-                "LaunchGroup": request.launch_group,
-                "CreateTime": "2015-01-01T00:00:00.000Z",
-                "ProductDescription": "Linux/UNIX",
-            }
-            if request.valid_from:
-                request_dict["ValidFrom"] = request.valid_from_as_string
-            if request.valid_until:
-                request_dict["ValidUntil"] = request.valid_until_as_string
-            request_list.append(request_dict)
 
-        return ActionResult({"SpotInstanceRequests": request_list})
 
 
 REQUEST_SPOT_INSTANCES_TEMPLATE = """<RequestSpotInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">

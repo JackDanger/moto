@@ -42,6 +42,7 @@ class RouteTable(TaggedEC2Resource, CloudFormationModel):
         self.main_association_id = random_subnet_association_id() if main else None
         self._associations: dict[str, str] = {}
         self._routes: dict[str, Route] = {}
+        self.propagating_vgws: list[str] = []
 
     @property
     def route_table_id(self) -> str:
@@ -76,9 +77,6 @@ class RouteTable(TaggedEC2Resource, CloudFormationModel):
                 item["SubnetId"] = target_id
             result.append(item)
         return result
-        self.associations: dict[str, str] = {}
-        self.routes: dict[str, Route] = {}
-        self.propagating_vgws: list[str] = []
 
     @property
     def owner_id(self) -> str:

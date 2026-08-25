@@ -175,56 +175,6 @@ def validate_attributes_used(
             raise MockValidationException(msg)
 
 
-def validate_select(
-    *,
-    operation: str,
-    select: str | None,
-    projection_expression: str | None,
-    attributes_to_get: list[str] | None,
-    table: Table,
-    index_name: str | None,
-) -> None:
-    if select is None:
-        return
-
-    if select not in SELECT_VALUES:
-        raise MockValidationException(
-            f"1 validation error detected: Value '{select}' at 'select' failed to satisfy constraint: Member must satisfy enum value set: [{', '.join(SELECT_VALUES)}]"
-        )
-
-    validation_prefix = "1 validation error detected: " if operation == "Query" else ""
-
-    if select == "SPECIFIC_ATTRIBUTES" and not (
-        projection_expression or attributes_to_get
-    ):
-        raise MockValidationException(
-            f"{validation_prefix}Must specify the AttributesToGet or ProjectionExpression when choosing to get SPECIFIC_ATTRIBUTES"
-        )
-
-    if select != "SPECIFIC_ATTRIBUTES":
-        selection_description = "only the Count" if select == "COUNT" else select
-        if projection_expression:
-            raise MockValidationException(
-                f"{validation_prefix}Cannot specify the ProjectionExpression when choosing to get {selection_description}"
-            )
-        if attributes_to_get:
-            raise MockValidationException(
-                f"{validation_prefix}Cannot specify the AttributesToGet when choosing to get {selection_description}"
-            )
-
-    if select == "ALL_PROJECTED_ATTRIBUTES" and index_name is None:
-        raise MockValidationException(
-            f"{validation_prefix}ALL_PROJECTED_ATTRIBUTES can be used only when Querying using an IndexName"
-        )
-
-    if select == "ALL_ATTRIBUTES" and index_name:
-        global_index = next(
-            (index for index in table.global_indexes if index.name == index_name), None
-        )
-        if global_index and global_index.projection.get("ProjectionType") != "ALL":
-            raise MockValidationException(
-                f"One or more parameter values were invalid: Select type ALL_ATTRIBUTES is not supported for global secondary index {index_name} because its projection type is not ALL"
-            )
 
 
 def validate_select(

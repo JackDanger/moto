@@ -46,6 +46,18 @@ PAGINATION_MODEL = {
         "limit_default": 100,
         "unique_attribute": "configuration_set_name",
     },
+    "list_email_templates": {
+        "input_token": "next_token",
+        "limit_key": "page_size",
+        "limit_default": 10,
+        "unique_attribute": "template_name",
+    },
+    "list_custom_verification_email_templates": {
+        "input_token": "next_token",
+        "limit_key": "page_size",
+        "limit_default": 50,
+        "unique_attribute": "template_name",
+    },
 }
 
 

@@ -1157,7 +1157,7 @@ class CloudFrontResponse(BaseResponse):
 
     def put_resource_policy(self) -> ActionResult:
         return ActionResult({
-            "ResourceArn": XMLNS,
+            "ResourceArn": "",
         })
 
     def delete_resource_policy(self) -> TYPE_RESPONSE:
@@ -1239,7 +1239,7 @@ class CloudFrontResponse(BaseResponse):
 
     def get_connection_group_by_routing_endpoint(self) -> ActionResult:
         return ActionResult({
-            "ConnectionGroup": XMLNS,
+            "ConnectionGroup": {},
         })
 
     # Distribution Tenants
@@ -1285,12 +1285,13 @@ class CloudFrontResponse(BaseResponse):
 
     def get_distribution_tenant_by_domain(self) -> ActionResult:
         return ActionResult({
-            "DistributionTenant": XMLNS,
+            "DistributionTenant": {},
         })
 
     def list_distribution_tenants_by_customization(self) -> ActionResult:
         return ActionResult({
-            "DistributionTenantList": XMLNS,
+            "NextMarker": "",
+            "DistributionTenantList": [],
         })
 
     def create_invalidation_for_distribution_tenant(self) -> ActionResult:
@@ -1307,7 +1308,7 @@ class CloudFrontResponse(BaseResponse):
 
     def list_invalidations_for_distribution_tenant(self) -> ActionResult:
         return ActionResult({
-            "InvalidationList": {"Items": XMLNS, "Quantity": len(XMLNS), "MaxItems": 100},
+            "InvalidationList": {"Items": [], "Quantity": 0, "MaxItems": 100},
         })
 
     # Connection Functions
@@ -1361,7 +1362,7 @@ class CloudFrontResponse(BaseResponse):
 
     def test_connection_function(self) -> ActionResult:
         return ActionResult({
-            "ConnectionFunctionTestResult": XMLNS,
+            "ConnectionFunctionTestResult": {},
         })
 
     def list_connection_functions(self) -> ActionResult:
@@ -1399,7 +1400,8 @@ class CloudFrontResponse(BaseResponse):
 
     def list_domain_conflicts(self) -> ActionResult:
         return ActionResult({
-            "DomainConflicts": XMLNS,
+            "DomainConflicts": [],
+            "NextMarker": "",
         })
 
     def update_distribution_with_staging_config(self) -> ActionResult:
@@ -1414,12 +1416,12 @@ class CloudFrontResponse(BaseResponse):
 
     def get_managed_certificate_details(self) -> ActionResult:
         return ActionResult({
-            "ManagedCertificateDetails": XMLNS,
+            "ManagedCertificateDetails": {},
         })
 
     def verify_dns_configuration(self) -> ActionResult:
         return ActionResult({
-            "DnsConfigurationList": XMLNS,
+            "DnsConfigurationList": [],
         })
 
 DIST_META_TEMPLATE = """

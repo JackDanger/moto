@@ -38,6 +38,102 @@ PAGINATION_MODEL = {
         "limit_default": 100,
         "unique_attribute": "schema_arn",
     },
+    "list_applied_schema_arns": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "schema_arn",
+    },
+    "list_facet_names": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "name",
+    },
+    "list_facet_attributes": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "name",
+    },
+    "list_typed_link_facet_names": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "name",
+    },
+    "list_typed_link_facet_attributes": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "name",
+    },
+    "list_managed_schema_arns": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "schema_arn",
+    },
+    "list_object_attributes": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "key",
+    },
+    "list_object_children": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "link_name",
+    },
+    "list_object_parent_paths": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "path",
+    },
+    "list_object_parents": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "object_identifier",
+    },
+    "list_object_policies": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "policy_id",
+    },
+    "list_policy_attachments": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "object_identifier",
+    },
+    "list_index": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "object_identifier",
+    },
+    "list_incoming_typed_links": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "source_object_reference",
+    },
+    "list_outgoing_typed_links": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "target_object_reference",
+    },
+    "list_attached_indices": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "index_object_identifier",
+    },
 }
 
 

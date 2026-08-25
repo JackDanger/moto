@@ -43,6 +43,66 @@ PAGINATION_MODEL = {
         "limit_default": 100,
         "unique_attribute": "device_arn",
     },
+    "get_connections": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "connection_arn",
+    },
+    "list_attachments": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "attachment_id",
+    },
+    "list_connect_peers": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "connect_peer_id",
+    },
+    "list_peerings": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "peering_id",
+    },
+    "list_core_network_policy_versions": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "policy_version_id",
+    },
+    "get_connect_peer_associations": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "connect_peer_id",
+    },
+    "get_customer_gateway_associations": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "customer_gateway_arn",
+    },
+    "get_link_associations": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "link_id",
+    },
+    "get_transit_gateway_connect_peer_associations": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "transit_gateway_connect_peer_arn",
+    },
+    "get_transit_gateway_registrations": {
+        "input_token": "next_token",
+        "limit_key": "max_results",
+        "limit_default": 100,
+        "unique_attribute": "transit_gateway_arn",
+    },
 }
 
 

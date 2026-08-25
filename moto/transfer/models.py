@@ -179,7 +179,6 @@ class TransferBackend(BaseBackend):
         server = self.servers[server_id]
         return server
     def delete_server(self, server_id: str) -> None:
-        return self._get_server(server_id)
         server = self._get_server(server_id)
         self.tagger.pop(server.arn, None)
         del self.servers[server_id]

@@ -139,8 +139,6 @@ class EMRContainersResponse(BaseResponse):
         result = {"jobRun": job_run}
         return ActionResult(result)
 
-        response = {"jobRun": job_run}
-        return 200, {}, json.dumps(response)
 
     # --- JobTemplate ---
 

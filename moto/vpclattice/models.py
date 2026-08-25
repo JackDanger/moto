@@ -455,6 +455,18 @@ class VPCLatticeBackend(BaseBackend, TaggableResourcesMixin):
             "limit_default": 50,
             "unique_attribute": "id",
         },
+        "list_rules": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "id",
+        },
+        "list_targets": {
+            "input_token": "next_token",
+            "limit_key": "max_results",
+            "limit_default": 100,
+            "unique_attribute": "id",
+        },
     }
 
     def __init__(self, region_name: str, account_id: str) -> None:

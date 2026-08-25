@@ -96,6 +96,12 @@ PAGINATION_MODEL = {
         "limit_default": 100,
         "unique_attribute": "gateway_route_name",
     },
+    "list_virtual_services": {
+        "input_token": "next_token",
+        "limit_key": "limit",
+        "limit_default": 100,
+        "unique_attribute": "virtual_service_name",
+    },
 }
 
 

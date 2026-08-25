@@ -94,7 +94,6 @@ class VPCEndpointServiceConfiguration(EC2BaseResponse):
         )
         return ActionResult({"ReturnValue": True})
 
-        return MODIFY_VPC_ENDPOINT_SERVICE_PERMISSIONS
 
     def accept_vpc_endpoint_connections(self) -> ActionResult:
         service_id = self._get_param("ServiceId")
