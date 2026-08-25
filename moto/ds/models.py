@@ -1238,11 +1238,13 @@ class DirectoryServiceBackend(BaseBackend):
         """Enable multi-factor authentication (MFA) with RADIUS."""
         self._validate_directory_id(directory_id)
         self.radius_settings[directory_id] = radius_settings
+        self.directories[directory_id].enable_radius(radius_settings)
 
     def disable_radius(self, directory_id: str) -> None:
         """Disable multi-factor authentication (MFA) with RADIUS."""
         self._validate_directory_id(directory_id)
         self.radius_settings.pop(directory_id, None)
+        self.directories[directory_id].disable_radius()
 
     def update_radius(
         self,
@@ -1256,6 +1258,7 @@ class DirectoryServiceBackend(BaseBackend):
                 f"RADIUS is not enabled for directory {directory_id}"
             )
         self.radius_settings[directory_id] = radius_settings
+        self.directories[directory_id].enable_radius(radius_settings)
 
     def enable_client_authentication(
         self,

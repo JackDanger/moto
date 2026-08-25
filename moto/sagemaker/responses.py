@@ -3442,8 +3442,9 @@ class SageMakerResponse(BaseResponse):
         return ActionResult({"PipelineExecutionArn": "_arn"})
 
     def stop_processing_job(self) -> ActionResult:
-        self._get_param("ProcessingJobName")
-        return ActionResult({})
+        processing_job_name = self._get_param("ProcessingJobName")
+        self.sagemaker_backend.stop_processing_job(processing_job_name)
+        return EmptyResult()
 
     def stop_training_job(self) -> ActionResult:
         self._get_param("TrainingJobName")
