@@ -1364,7 +1364,11 @@ class ElastiCacheBackend(BaseBackend, TaggableResourcesMixin):
         self,
         serverless_cache_name: Optional[str] = None,
     ) -> list[dict[str, Any]]:
-        return []
+        if serverless_cache_name:
+            if serverless_cache_name not in self.serverless_caches:
+                raise ServerlessCacheNotFound(serverless_cache_name)
+            return [self.serverless_caches[serverless_cache_name].to_dict()]
+        return [c.to_dict() for c in self.serverless_caches.values()]
 
     def describe_service_updates(
         self,
@@ -2420,6 +2424,27 @@ class ServerlessCache(BaseModel):
         self.reader_endpoint = {
             "Address": f"{serverless_cache_name}.serverless.{region}.cache.amazonaws.com",
             "Port": 6379,
+        }
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "ServerlessCacheName": self.serverless_cache_name,
+            "Description": self.description,
+            "CreateTime": self.create_time,
+            "Status": self.status,
+            "Engine": self.engine,
+            "MajorEngineVersion": self.major_engine_version,
+            "FullEngineVersion": self.full_engine_version,
+            "CacheUsageLimits": self.cache_usage_limits,
+            "KmsKeyId": self.kms_key_id,
+            "SecurityGroupIds": self.security_group_ids,
+            "Endpoint": self.endpoint,
+            "ReaderEndpoint": self.reader_endpoint,
+            "ARN": self.arn,
+            "UserGroupId": self.user_group_id,
+            "SubnetIds": self.subnet_ids,
+            "SnapshotRetentionLimit": self.snapshot_retention_limit,
+            "DailySnapshotTime": self.daily_snapshot_time,
         }
 
 
