@@ -648,7 +648,7 @@ class Stage(BaseModel):
         self.description = description
         self.cache_cluster_enabled = cacheClusterEnabled
         self.cache_cluster_status = "AVAILABLE" if cacheClusterEnabled else None
-        self.created_date = datetime.now()
+        self.created_date = int(time.time())
         self.last_updated_date = self.created_date
         self.cache_cluster_size = (
             str(cacheClusterSize) if cacheClusterSize is not None else None
@@ -1350,9 +1350,8 @@ class RestAPI(CloudFormationModel):
         authorizer_uri: str | None,
         authorizer_credentials: str | None,
         identity_source: str | None,
-        identiy_validation_expression: str | None,
         authorizer_result_ttl: int | None,
-        identity_validation_expression: Optional[str],
+        identity_validation_expression: str | None,
     ) -> Authorizer:
         authorizer = Authorizer(
             authorizer_id=authorizer_id,
