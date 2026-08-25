@@ -1202,16 +1202,6 @@ class ECRBackend(BaseBackend):
             "policyText": self.registry_policy,
         }
 
-    def get_signing_configuration(
-        self, registry_id: Optional[str] = None
-    ) -> dict[str, Any]:
-        reg_id = registry_id or self.account_id
-        return {
-            "signingConfiguration": {
-                "rules": [],
-            },
-            "registryId": reg_id,
-        }
 
     def delete_registry_policy(self) -> dict[str, Any]:
         policy = self.registry_policy

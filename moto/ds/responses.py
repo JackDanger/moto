@@ -246,19 +246,7 @@ class DirectoryServiceResponse(BaseResponse):
         )
         return ""
 
-    def enable_radius(self) -> str:
-        directory_id = self._get_param("DirectoryId")
-        radius_settings = self._get_param("RadiusSettings")
-        self.ds_backend.enable_radius(
-            directory_id=directory_id,
-            radius_settings=radius_settings,
-        )
-        return ""
 
-    def disable_radius(self) -> str:
-        directory_id = self._get_param("DirectoryId")
-        self.ds_backend.disable_radius(directory_id=directory_id)
-        return ""
 
     def describe_settings(self) -> str:
         directory_id = self._get_param("DirectoryId")
@@ -578,29 +566,7 @@ class DirectoryServiceResponse(BaseResponse):
         routes = self.ds_backend.list_ip_routes(directory_id=directory_id)
         return json.dumps({"IpRoutesInfo": routes, "NextToken": None})
 
-    def start_schema_extension(self) -> str:
-        directory_id = self._get_param("DirectoryId")
-        create_snapshot = self._get_param(
-            "CreateSnapshotBeforeSchemaExtension", False
-        )
-        ldif_content = self._get_param("LdifContent")
-        description = self._get_param("Description")
-        schema_extension_id = self.ds_backend.start_schema_extension(
-            directory_id=directory_id,
-            create_snapshot_before_schema_extension=create_snapshot,
-            ldif_content=ldif_content,
-            description=description,
-        )
-        return json.dumps({"SchemaExtensionId": schema_extension_id})
 
-    def cancel_schema_extension(self) -> str:
-        directory_id = self._get_param("DirectoryId")
-        schema_extension_id = self._get_param("SchemaExtensionId")
-        self.ds_backend.cancel_schema_extension(
-            directory_id=directory_id,
-            schema_extension_id=schema_extension_id,
-        )
-        return json.dumps({})
 
     def list_schema_extensions(self) -> str:
         directory_id = self._get_param("DirectoryId")

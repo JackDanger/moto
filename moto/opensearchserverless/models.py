@@ -593,27 +593,6 @@ class OpenSearchServiceServerlessBackend(BaseBackend):
     def list_lifecycle_policies(self, type: str) -> list[LifecyclePolicy]:
         return [lp for lp in self.lifecycle_policies.values() if lp.type == type]
 
-    def update_lifecycle_policy(
-        self,
-        name: str,
-        type: str,
-        description: str | None,
-        policy: str | None,
-        policy_version: str | None,
-    ) -> LifecyclePolicy:
-        key = f"{name}:{type}"
-        if key not in self.lifecycle_policies:
-            raise ResourceNotFoundException(
-                msg=f"Policy with name {name} and type {type} is not found"
-            )
-        lp = self.lifecycle_policies[key]
-        if description is not None:
-            lp.description = description
-        if policy is not None:
-            lp.policy = json.loads(policy)
-            lp.policy_version = mock_random.get_random_string(20)
-        lp.last_modified_date = int(unix_time() * 1000)
-        return lp
 
     def delete_lifecycle_policy(self, name: str, type: str) -> None:
         key = f"{name}:{type}"

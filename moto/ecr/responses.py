@@ -339,11 +339,6 @@ class ECRResponse(BaseResponse):
     def get_registry_policy(self) -> ActionResult:
         return ActionResult(self.ecr_backend.get_registry_policy())
 
-    def get_signing_configuration(self) -> ActionResult:
-        registry_id = self._get_param("registryId")
-        return ActionResult(
-            self.ecr_backend.get_signing_configuration(registry_id=registry_id)
-        )
 
     def delete_registry_policy(self) -> ActionResult:
         return ActionResult(self.ecr_backend.delete_registry_policy())

@@ -1461,22 +1461,7 @@ class ConnectBackend(BaseBackend):
 
     # ---- Instance Attribute ----
 
-    def describe_instance_attribute(
-        self, instance_id: str, attribute_type: str
-    ) -> dict[str, str]:
-        instance = self._get_instance_or_raise(instance_id)
-        value = instance.attributes.get(attribute_type)
-        if value is None:
-            raise ResourceNotFoundException(
-                f"Attribute {attribute_type} not found for instance {instance_id}"
-            )
-        return {"AttributeType": attribute_type, "Value": value}
 
-    def update_instance_attribute(
-        self, instance_id: str, attribute_type: str, value: str
-    ) -> None:
-        instance = self._get_instance_or_raise(instance_id)
-        instance.attributes[attribute_type] = value
 
     # ---- Analytics Data Association ----
 
@@ -2658,1501 +2643,155 @@ class ConnectBackend(BaseBackend):
 
     # ---- Update/Delete: Agent Status ----
 
-    def update_agent_status(
-        self,
-        instance_id: str,
-        agent_status_id: str,
-        name: str | None = None,
-        description: str | None = None,
-        state: str | None = None,
-        display_order: int | None = None,
-        reset_order_number: bool = False,
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        statuses = self.agent_statuses.get(instance_id, {})
-        if agent_status_id not in statuses:
-            raise ResourceNotFoundException(f"Agent status {agent_status_id} not found")
-        s = statuses[agent_status_id]
-        if name is not None:
-            s.name = name
-        if description is not None:
-            s.description = description
-        if state is not None:
-            s.state = state
-        if display_order is not None:
-            s.display_order = display_order
-        if reset_order_number:
-            s.display_order = None
-        s.last_modified_time = _now_iso()
 
     # ---- Update/Delete: Contact Flow ----
 
-    def update_contact_flow_content(
-        self, instance_id: str, contact_flow_id: str, content: str
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        flows = self.contact_flows.get(instance_id, {})
-        if contact_flow_id not in flows:
-            raise ResourceNotFoundException(f"Contact flow {contact_flow_id} not found")
-        flow = flows[contact_flow_id]
-        flow.content = content
-        flow.flow_content_sha256 = hashlib.sha256(content.encode()).hexdigest()
 
-    def update_contact_flow_name(
-        self,
-        instance_id: str,
-        contact_flow_id: str,
-        name: str | None = None,
-        description: str | None = None,
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        flows = self.contact_flows.get(instance_id, {})
-        if contact_flow_id not in flows:
-            raise ResourceNotFoundException(f"Contact flow {contact_flow_id} not found")
-        flow = flows[contact_flow_id]
-        if name is not None:
-            flow.name = name
-        if description is not None:
-            flow.description = description
 
-    def delete_contact_flow(self, instance_id: str, contact_flow_id: str) -> None:
-        self._get_instance_or_raise(instance_id)
-        flows = self.contact_flows.get(instance_id, {})
-        if contact_flow_id not in flows:
-            raise ResourceNotFoundException(f"Contact flow {contact_flow_id} not found")
-        del flows[contact_flow_id]
 
-    def delete_contact_flow_module(
-        self, instance_id: str, contact_flow_module_id: str
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        modules = self.contact_flow_modules.get(instance_id, {})
-        if contact_flow_module_id not in modules:
-            raise ResourceNotFoundException(
-                f"Contact flow module {contact_flow_module_id} not found"
-            )
-        del modules[contact_flow_module_id]
 
     # ---- Update/Delete: Hours of Operation ----
 
-    def update_hours_of_operation(
-        self,
-        instance_id: str,
-        hours_of_operation_id: str,
-        name: str | None = None,
-        description: str | None = None,
-        time_zone: str | None = None,
-        config: list[dict[str, Any]] | None = None,
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        hours = self.hours_of_operations.get(instance_id, {})
-        if hours_of_operation_id not in hours:
-            raise ResourceNotFoundException(
-                f"Hours of operation {hours_of_operation_id} not found"
-            )
-        h = hours[hours_of_operation_id]
-        if name is not None:
-            h.name = name
-        if description is not None:
-            h.description = description
-        if time_zone is not None:
-            h.time_zone = time_zone
-        if config is not None:
-            h.config = config
-        h.last_modified_time = _now_iso()
 
-    def delete_hours_of_operation(
-        self, instance_id: str, hours_of_operation_id: str
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        hours = self.hours_of_operations.get(instance_id, {})
-        if hours_of_operation_id not in hours:
-            raise ResourceNotFoundException(
-                f"Hours of operation {hours_of_operation_id} not found"
-            )
-        del hours[hours_of_operation_id]
 
     # ---- Update/Delete: Prompt ----
 
-    def update_prompt(
-        self,
-        instance_id: str,
-        prompt_id: str,
-        name: str | None = None,
-        description: str | None = None,
-        s3_uri: str | None = None,
-    ) -> dict[str, Any]:
-        self._get_instance_or_raise(instance_id)
-        prompts = self.prompts.get(instance_id, {})
-        if prompt_id not in prompts:
-            raise ResourceNotFoundException(f"Prompt {prompt_id} not found")
-        p = prompts[prompt_id]
-        if name is not None:
-            p.name = name
-        if description is not None:
-            p.description = description
-        if s3_uri is not None:
-            p.s3_uri = s3_uri
-        p.last_modified_time = _now_iso()
-        return {"PromptARN": p.arn, "PromptId": p.prompt_id}
 
-    def delete_prompt(self, instance_id: str, prompt_id: str) -> None:
-        self._get_instance_or_raise(instance_id)
-        prompts = self.prompts.get(instance_id, {})
-        if prompt_id not in prompts:
-            raise ResourceNotFoundException(f"Prompt {prompt_id} not found")
-        del prompts[prompt_id]
 
     # ---- Update/Delete: Queue ----
 
-    def update_queue_name(
-        self,
-        instance_id: str,
-        queue_id: str,
-        name: str | None = None,
-        description: str | None = None,
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        queues = self.queues.get(instance_id, {})
-        if queue_id not in queues:
-            raise ResourceNotFoundException(f"Queue {queue_id} not found")
-        q = queues[queue_id]
-        if name is not None:
-            q.name = name
-        if description is not None:
-            q.description = description
-        q.last_modified_time = _now_iso()
 
-    def update_queue_max_contacts(
-        self, instance_id: str, queue_id: str, max_contacts: int
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        queues = self.queues.get(instance_id, {})
-        if queue_id not in queues:
-            raise ResourceNotFoundException(f"Queue {queue_id} not found")
-        queues[queue_id].max_contacts = max_contacts
-        queues[queue_id].last_modified_time = _now_iso()
 
-    def update_queue_status(self, instance_id: str, queue_id: str, status: str) -> None:
-        self._get_instance_or_raise(instance_id)
-        queues = self.queues.get(instance_id, {})
-        if queue_id not in queues:
-            raise ResourceNotFoundException(f"Queue {queue_id} not found")
-        queues[queue_id].status = status
-        queues[queue_id].last_modified_time = _now_iso()
 
-    def update_queue_hours_of_operation(
-        self, instance_id: str, queue_id: str, hours_of_operation_id: str
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        queues = self.queues.get(instance_id, {})
-        if queue_id not in queues:
-            raise ResourceNotFoundException(f"Queue {queue_id} not found")
-        queues[queue_id].hours_of_operation_id = hours_of_operation_id
-        queues[queue_id].last_modified_time = _now_iso()
 
-    def update_queue_outbound_caller_config(
-        self, instance_id: str, queue_id: str, outbound_caller_config: dict[str, str]
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        queues = self.queues.get(instance_id, {})
-        if queue_id not in queues:
-            raise ResourceNotFoundException(f"Queue {queue_id} not found")
-        queues[queue_id].outbound_caller_config = outbound_caller_config
-        queues[queue_id].last_modified_time = _now_iso()
 
-    def delete_queue(self, instance_id: str, queue_id: str) -> None:
-        self._get_instance_or_raise(instance_id)
-        queues = self.queues.get(instance_id, {})
-        if queue_id not in queues:
-            raise ResourceNotFoundException(f"Queue {queue_id} not found")
-        del queues[queue_id]
 
     # ---- Update/Delete: Quick Connect ----
 
-    def update_quick_connect_name(
-        self,
-        instance_id: str,
-        quick_connect_id: str,
-        name: str | None = None,
-        description: str | None = None,
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        qcs = self.quick_connects.get(instance_id, {})
-        if quick_connect_id not in qcs:
-            raise ResourceNotFoundException(
-                f"Quick connect {quick_connect_id} not found"
-            )
-        qc = qcs[quick_connect_id]
-        if name is not None:
-            qc.name = name
-        if description is not None:
-            qc.description = description
-        qc.last_modified_time = _now_iso()
 
-    def update_quick_connect_config(
-        self,
-        instance_id: str,
-        quick_connect_id: str,
-        quick_connect_config: dict[str, Any],
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        qcs = self.quick_connects.get(instance_id, {})
-        if quick_connect_id not in qcs:
-            raise ResourceNotFoundException(
-                f"Quick connect {quick_connect_id} not found"
-            )
-        qcs[quick_connect_id].quick_connect_config = quick_connect_config
-        qcs[quick_connect_id].last_modified_time = _now_iso()
 
-    def delete_quick_connect(self, instance_id: str, quick_connect_id: str) -> None:
-        self._get_instance_or_raise(instance_id)
-        qcs = self.quick_connects.get(instance_id, {})
-        if quick_connect_id not in qcs:
-            raise ResourceNotFoundException(
-                f"Quick connect {quick_connect_id} not found"
-            )
-        del qcs[quick_connect_id]
 
     # ---- Update/Delete: Routing Profile ----
 
-    def update_routing_profile_concurrency(
-        self,
-        instance_id: str,
-        routing_profile_id: str,
-        media_concurrencies: list[dict[str, Any]],
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        rps = self.routing_profiles.get(instance_id, {})
-        if routing_profile_id not in rps:
-            raise ResourceNotFoundException(
-                f"Routing profile {routing_profile_id} not found"
-            )
-        rps[routing_profile_id].media_concurrencies = media_concurrencies
-        rps[routing_profile_id].last_modified_time = _now_iso()
 
-    def update_routing_profile_default_outbound_queue(
-        self,
-        instance_id: str,
-        routing_profile_id: str,
-        default_outbound_queue_id: str,
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        rps = self.routing_profiles.get(instance_id, {})
-        if routing_profile_id not in rps:
-            raise ResourceNotFoundException(
-                f"Routing profile {routing_profile_id} not found"
-            )
-        rps[routing_profile_id].default_outbound_queue_id = default_outbound_queue_id
-        rps[routing_profile_id].last_modified_time = _now_iso()
 
-    def update_routing_profile_name(
-        self,
-        instance_id: str,
-        routing_profile_id: str,
-        name: str | None = None,
-        description: str | None = None,
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        rps = self.routing_profiles.get(instance_id, {})
-        if routing_profile_id not in rps:
-            raise ResourceNotFoundException(
-                f"Routing profile {routing_profile_id} not found"
-            )
-        rp = rps[routing_profile_id]
-        if name is not None:
-            rp.name = name
-        if description is not None:
-            rp.description = description
-        rp.last_modified_time = _now_iso()
 
-    def delete_routing_profile(self, instance_id: str, routing_profile_id: str) -> None:
-        self._get_instance_or_raise(instance_id)
-        rps = self.routing_profiles.get(instance_id, {})
-        if routing_profile_id not in rps:
-            raise ResourceNotFoundException(
-                f"Routing profile {routing_profile_id} not found"
-            )
-        del rps[routing_profile_id]
 
     # ---- Update/Delete: Security Profile ----
 
-    def update_security_profile(
-        self,
-        instance_id: str,
-        security_profile_id: str,
-        security_profile_name: str | None = None,
-        description: str | None = None,
-        permissions: list[str] | None = None,
-        allowed_access_control_tags: dict[str, str] | None = None,
-        tag_restricted_resources: list[str] | None = None,
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        sps = self.security_profiles.get(instance_id, {})
-        if security_profile_id not in sps:
-            raise ResourceNotFoundException(
-                f"Security profile {security_profile_id} not found"
-            )
-        sp = sps[security_profile_id]
-        if security_profile_name is not None:
-            sp.security_profile_name = security_profile_name
-        if description is not None:
-            sp.description = description
-        if permissions is not None:
-            sp.permissions = permissions
-        if allowed_access_control_tags is not None:
-            sp.allowed_access_control_tags = allowed_access_control_tags
-        if tag_restricted_resources is not None:
-            sp.tag_restricted_resources = tag_restricted_resources
-        sp.last_modified_time = _now_iso()
 
-    def delete_security_profile(
-        self, instance_id: str, security_profile_id: str
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        sps = self.security_profiles.get(instance_id, {})
-        if security_profile_id not in sps:
-            raise ResourceNotFoundException(
-                f"Security profile {security_profile_id} not found"
-            )
-        del sps[security_profile_id]
 
     # ---- Update/Delete: User ----
 
-    def delete_user(self, instance_id: str, user_id: str) -> None:
-        self._get_instance_or_raise(instance_id)
-        users = self.users.get(instance_id, {})
-        if user_id not in users:
-            raise ResourceNotFoundException(f"User {user_id} not found")
-        del users[user_id]
 
-    def update_user_identity_info(
-        self, instance_id: str, user_id: str, identity_info: dict[str, str]
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        users = self.users.get(instance_id, {})
-        if user_id not in users:
-            raise ResourceNotFoundException(f"User {user_id} not found")
-        users[user_id].identity_info = identity_info
-        users[user_id].last_modified_time = _now_iso()
 
-    def update_user_phone_config(
-        self, instance_id: str, user_id: str, phone_config: dict[str, Any]
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        users = self.users.get(instance_id, {})
-        if user_id not in users:
-            raise ResourceNotFoundException(f"User {user_id} not found")
-        users[user_id].phone_config = phone_config
-        users[user_id].last_modified_time = _now_iso()
 
-    def update_user_routing_profile(
-        self, instance_id: str, user_id: str, routing_profile_id: str
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        users = self.users.get(instance_id, {})
-        if user_id not in users:
-            raise ResourceNotFoundException(f"User {user_id} not found")
-        users[user_id].routing_profile_id = routing_profile_id
-        users[user_id].last_modified_time = _now_iso()
 
-    def update_user_security_profiles(
-        self, instance_id: str, user_id: str, security_profile_ids: list[str]
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        users = self.users.get(instance_id, {})
-        if user_id not in users:
-            raise ResourceNotFoundException(f"User {user_id} not found")
-        users[user_id].security_profile_ids = security_profile_ids
-        users[user_id].last_modified_time = _now_iso()
 
-    def update_user_hierarchy(
-        self, instance_id: str, user_id: str, hierarchy_group_id: str | None
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        users = self.users.get(instance_id, {})
-        if user_id not in users:
-            raise ResourceNotFoundException(f"User {user_id} not found")
-        users[user_id].hierarchy_group_id = hierarchy_group_id
-        users[user_id].last_modified_time = _now_iso()
 
-    def search_users(
-        self,
-        instance_id: str,
-        search_criteria: dict[str, Any] | None = None,
-    ) -> list[dict[str, Any]]:
-        self._get_instance_or_raise(instance_id)
-        users = self.users.get(instance_id, {})
-        return [u.to_dict() for u in users.values()]
 
     # ---- Delete/Search: Vocabulary ----
 
-    def delete_vocabulary(self, instance_id: str, vocabulary_id: str) -> dict[str, str]:
-        self._get_instance_or_raise(instance_id)
-        vocabs = self.vocabularies.get(instance_id, {})
-        if vocabulary_id not in vocabs:
-            raise ResourceNotFoundException(f"Vocabulary {vocabulary_id} not found")
-        v = vocabs.pop(vocabulary_id)
-        return {
-            "VocabularyArn": v.arn,
-            "VocabularyId": v.vocabulary_id,
-            "State": "DELETE_IN_PROGRESS",
-        }
 
-    def search_vocabularies(
-        self,
-        instance_id: str,
-        state: str | None = None,
-        name_starts_with: str | None = None,
-        language_code: str | None = None,
-    ) -> list[dict[str, Any]]:
-        self._get_instance_or_raise(instance_id)
-        vocabs = self.vocabularies.get(instance_id, {})
-        results = []
-        for v in vocabs.values():
-            if state and v.state != state:
-                continue
-            if name_starts_with and not v.name.startswith(name_starts_with):
-                continue
-            if language_code and v.language_code != language_code:
-                continue
-            results.append(v.to_dict())
-        return results
 
     # ---- Update/Delete: Rule ----
 
-    def update_rule(
-        self,
-        instance_id: str,
-        rule_id: str,
-        name: str,
-        function: str,
-        actions: list[dict[str, Any]],
-        publish_status: str,
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        rules = self.rules.get(instance_id, {})
-        if rule_id not in rules:
-            raise ResourceNotFoundException(f"Rule {rule_id} not found")
-        r = rules[rule_id]
-        r.name = name
-        r.function = function
-        r.actions = actions
-        r.publish_status = publish_status
-        r.last_updated_time = _now_iso()
 
-    def delete_rule(self, instance_id: str, rule_id: str) -> None:
-        self._get_instance_or_raise(instance_id)
-        rules = self.rules.get(instance_id, {})
-        if rule_id not in rules:
-            raise ResourceNotFoundException(f"Rule {rule_id} not found")
-        del rules[rule_id]
 
     # ---- Phone Number: Claim, Release, Update, Search ----
 
-    @staticmethod
-    def _generate_phone_number(
-        country_code: str, phone_type: str, prefix: str = ""
-    ) -> str:
-        area = "".join(random.choices(string.digits, k=3))
-        line = "".join(random.choices(string.digits, k=4))
-        if country_code == "US":
-            return f"+1{prefix or area}{line}"
-        elif country_code == "GB":
-            return f"+44{prefix or '20'}{area}{line}"
-        else:
-            digits = "".join(random.choices(string.digits, k=10))
-            return f"+{prefix or '1'}{digits}"
 
-    def claim_phone_number(
-        self,
-        instance_id: str,
-        phone_number: str,
-        phone_number_country_code: str,
-        phone_number_type: str,
-        description: str = "",
-        tags: dict[str, str] | None = None,
-    ) -> dict[str, Any]:
-        instance = self._get_instance_or_raise(instance_id)
-        for pn in self.phone_numbers.values():
-            if pn.phone_number == phone_number:
-                raise DuplicateResourceException(
-                    f"Phone number {phone_number} is already claimed"
-                )
-        pn = PhoneNumber(
-            instance_arn=instance.arn,
-            phone_number=phone_number,
-            phone_number_country_code=phone_number_country_code,
-            phone_number_type=phone_number_type,
-            description=description,
-            tags=tags,
-        )
-        self.phone_numbers[pn.phone_number_id] = pn
-        if tags:
-            self.tag_resource(pn.arn, tags)
-        return {"PhoneNumberId": pn.phone_number_id, "PhoneNumberArn": pn.arn}
 
-    def release_phone_number(self, phone_number_id: str) -> None:
-        if phone_number_id not in self.phone_numbers:
-            raise ResourceNotFoundException(f"Phone number {phone_number_id} not found")
-        del self.phone_numbers[phone_number_id]
 
-    def update_phone_number(
-        self,
-        phone_number_id: str,
-        target_arn: str | None = None,
-        instance_id: str | None = None,
-    ) -> dict[str, Any]:
-        if phone_number_id not in self.phone_numbers:
-            raise ResourceNotFoundException(f"Phone number {phone_number_id} not found")
-        pn = self.phone_numbers[phone_number_id]
-        if target_arn:
-            pn.target_arn = target_arn
-            pn.instance_id = target_arn.split("/")[-1]
-        elif instance_id:
-            inst = self._get_instance_or_raise(instance_id)
-            pn.target_arn = inst.arn
-            pn.instance_id = instance_id
-        return {
-            "PhoneNumberId": pn.phone_number_id,
-            "PhoneNumberArn": pn.arn,
-        }
 
-    def search_available_phone_numbers(
-        self,
-        target_arn: str,
-        phone_number_country_code: str,
-        phone_number_type: str,
-        phone_number_prefix: str | None = None,
-        max_results: int = 10,
-    ) -> list[dict[str, str]]:
-        results = []
-        for _ in range(min(max_results, 25)):
-            number = self._generate_phone_number(
-                phone_number_country_code, phone_number_type, phone_number_prefix or ""
-            )
-            results.append(
-                {
-                    "PhoneNumber": number,
-                    "PhoneNumberCountryCode": phone_number_country_code,
-                    "PhoneNumberType": phone_number_type,
-                }
-            )
-        return results
 
     # ---- Update/Delete: Contact Flow Metadata & Module Content/Metadata ----
 
-    def update_contact_flow_metadata(
-        self,
-        instance_id: str,
-        contact_flow_id: str,
-        name: str | None = None,
-        description: str | None = None,
-        contact_flow_state: str | None = None,
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        flows = self.contact_flows.get(instance_id, {})
-        if contact_flow_id not in flows:
-            raise ResourceNotFoundException(f"Contact flow {contact_flow_id} not found")
-        flow = flows[contact_flow_id]
-        if name is not None:
-            flow.name = name
-        if description is not None:
-            flow.description = description
-        if contact_flow_state is not None:
-            flow.state = contact_flow_state
 
-    def update_contact_flow_module_content(
-        self, instance_id: str, contact_flow_module_id: str, content: str
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        modules = self.contact_flow_modules.get(instance_id, {})
-        if contact_flow_module_id not in modules:
-            raise ResourceNotFoundException(
-                f"Contact flow module {contact_flow_module_id} not found"
-            )
-        m = modules[contact_flow_module_id]
-        m.content = content
-        m.flow_module_content_sha256 = hashlib.sha256(content.encode()).hexdigest()
 
-    def update_contact_flow_module_metadata(
-        self,
-        instance_id: str,
-        contact_flow_module_id: str,
-        name: str | None = None,
-        description: str | None = None,
-        state: str | None = None,
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        modules = self.contact_flow_modules.get(instance_id, {})
-        if contact_flow_module_id not in modules:
-            raise ResourceNotFoundException(
-                f"Contact flow module {contact_flow_module_id} not found"
-            )
-        m = modules[contact_flow_module_id]
-        if name is not None:
-            m.name = name
-        if description is not None:
-            m.description = description
-        if state is not None:
-            m.state = state
 
     # ---- Update/Delete: View ----
 
-    def delete_view(self, instance_id: str, view_id: str) -> None:
-        self._get_instance_or_raise(instance_id)
-        views = self.views.get(instance_id, {})
-        if view_id not in views:
-            raise ResourceNotFoundException(f"View {view_id} not found")
-        del views[view_id]
 
-    def update_view_content(
-        self,
-        instance_id: str,
-        view_id: str,
-        content: dict[str, Any],
-        status: str | None = None,
-    ) -> dict[str, Any]:
-        self._get_instance_or_raise(instance_id)
-        views = self.views.get(instance_id, {})
-        if view_id not in views:
-            raise ResourceNotFoundException(f"View {view_id} not found")
-        v = views[view_id]
-        v.content = content
-        v.version += 1
-        if status is not None:
-            v.status = status
-        return v.to_dict()
 
-    def update_view_metadata(
-        self,
-        instance_id: str,
-        view_id: str,
-        name: str | None = None,
-        description: str | None = None,
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        views = self.views.get(instance_id, {})
-        if view_id not in views:
-            raise ResourceNotFoundException(f"View {view_id} not found")
-        v = views[view_id]
-        if name is not None:
-            v.name = name
-        if description is not None:
-            v.description = description
 
     # ---- Evaluation Form: Activate/Deactivate/Delete/Update ----
 
-    def activate_evaluation_form(
-        self, instance_id: str, evaluation_form_id: str, evaluation_form_version: int
-    ) -> dict[str, Any]:
-        self._get_instance_or_raise(instance_id)
-        forms = self.evaluation_forms.get(instance_id, {})
-        if evaluation_form_id not in forms:
-            raise ResourceNotFoundException(
-                f"Evaluation form {evaluation_form_id} not found"
-            )
-        f = forms[evaluation_form_id]
-        f.status = "ACTIVE"
-        f.last_modified_time = _now_iso()
-        return {
-            "EvaluationFormId": f.evaluation_form_id,
-            "EvaluationFormArn": f.arn,
-            "EvaluationFormVersion": f.version,
-        }
 
-    def deactivate_evaluation_form(
-        self, instance_id: str, evaluation_form_id: str, evaluation_form_version: int
-    ) -> dict[str, Any]:
-        self._get_instance_or_raise(instance_id)
-        forms = self.evaluation_forms.get(instance_id, {})
-        if evaluation_form_id not in forms:
-            raise ResourceNotFoundException(
-                f"Evaluation form {evaluation_form_id} not found"
-            )
-        f = forms[evaluation_form_id]
-        f.status = "DRAFT"
-        f.last_modified_time = _now_iso()
-        return {
-            "EvaluationFormId": f.evaluation_form_id,
-            "EvaluationFormArn": f.arn,
-            "EvaluationFormVersion": f.version,
-        }
 
-    def delete_evaluation_form(self, instance_id: str, evaluation_form_id: str) -> None:
-        self._get_instance_or_raise(instance_id)
-        forms = self.evaluation_forms.get(instance_id, {})
-        if evaluation_form_id not in forms:
-            raise ResourceNotFoundException(
-                f"Evaluation form {evaluation_form_id} not found"
-            )
-        del forms[evaluation_form_id]
 
-    def update_evaluation_form(
-        self,
-        instance_id: str,
-        evaluation_form_id: str,
-        title: str,
-        description: str = "",
-        items: list[dict[str, Any]] | None = None,
-        scoring_strategy: dict[str, str] | None = None,
-    ) -> dict[str, Any]:
-        self._get_instance_or_raise(instance_id)
-        forms = self.evaluation_forms.get(instance_id, {})
-        if evaluation_form_id not in forms:
-            raise ResourceNotFoundException(
-                f"Evaluation form {evaluation_form_id} not found"
-            )
-        f = forms[evaluation_form_id]
-        f.title = title
-        f.description = description
-        if items is not None:
-            f.items = items
-        if scoring_strategy is not None:
-            f.scoring_strategy = scoring_strategy
-        f.version += 1
-        f.last_modified_time = _now_iso()
-        return {
-            "EvaluationFormId": f.evaluation_form_id,
-            "EvaluationFormArn": f.arn,
-            "EvaluationFormVersion": f.version,
-        }
 
     # ---- PredefinedAttribute CRUD ----
 
-    def create_predefined_attribute(
-        self,
-        instance_id: str,
-        name: str,
-        values: dict[str, Any],
-    ) -> None:
-        instance = self._get_instance_or_raise(instance_id)
-        attr = PredefinedAttribute(
-            instance_arn=instance.arn,
-            name=name,
-            values=values,
-        )
-        if instance_id not in self.predefined_attributes:
-            self.predefined_attributes[instance_id] = {}
-        self.predefined_attributes[instance_id][name] = attr
 
-    def describe_predefined_attribute(
-        self, instance_id: str, name: str
-    ) -> dict[str, Any]:
-        self._get_instance_or_raise(instance_id)
-        attrs = self.predefined_attributes.get(instance_id, {})
-        if name not in attrs:
-            raise ResourceNotFoundException(f"Predefined attribute {name} not found")
-        return attrs[name].to_dict()
 
-    def update_predefined_attribute(
-        self,
-        instance_id: str,
-        name: str,
-        values: dict[str, Any],
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        attrs = self.predefined_attributes.get(instance_id, {})
-        if name not in attrs:
-            raise ResourceNotFoundException(f"Predefined attribute {name} not found")
-        attrs[name].values = values
-        attrs[name].last_modified_time = _now_iso()
 
-    def delete_predefined_attribute(self, instance_id: str, name: str) -> None:
-        self._get_instance_or_raise(instance_id)
-        attrs = self.predefined_attributes.get(instance_id, {})
-        if name not in attrs:
-            raise ResourceNotFoundException(f"Predefined attribute {name} not found")
-        del attrs[name]
 
     # ---- TaskTemplate CRUD ----
 
-    def create_task_template(
-        self,
-        instance_id: str,
-        name: str,
-        description: str = "",
-        fields: list[dict[str, Any]] | None = None,
-        defaults: dict[str, Any] | None = None,
-        constraints: dict[str, Any] | None = None,
-        contact_flow_id: str = "",
-        status: str = "ACTIVE",
-        tags: dict[str, str] | None = None,
-    ) -> dict[str, Any]:
-        instance = self._get_instance_or_raise(instance_id)
-        tt = TaskTemplate(
-            instance_arn=instance.arn,
-            name=name,
-            description=description,
-            fields=fields,
-            defaults=defaults,
-            constraints=constraints,
-            contact_flow_id=contact_flow_id,
-            status=status,
-            tags=tags,
-        )
-        if instance_id not in self.task_templates:
-            self.task_templates[instance_id] = {}
-        self.task_templates[instance_id][tt.task_template_id] = tt
-        if tags:
-            self.tag_resource(tt.arn, tags)
-        return {"Id": tt.task_template_id, "Arn": tt.arn}
 
-    def get_task_template(
-        self, instance_id: str, task_template_id: str
-    ) -> dict[str, Any]:
-        self._get_instance_or_raise(instance_id)
-        templates = self.task_templates.get(instance_id, {})
-        if task_template_id not in templates:
-            raise ResourceNotFoundException(
-                f"Task template {task_template_id} not found"
-            )
-        return templates[task_template_id].to_dict()
 
-    def update_task_template(
-        self,
-        instance_id: str,
-        task_template_id: str,
-        name: str | None = None,
-        description: str | None = None,
-        fields: list[dict[str, Any]] | None = None,
-        defaults: dict[str, Any] | None = None,
-        constraints: dict[str, Any] | None = None,
-        contact_flow_id: str | None = None,
-        status: str | None = None,
-    ) -> dict[str, Any]:
-        self._get_instance_or_raise(instance_id)
-        templates = self.task_templates.get(instance_id, {})
-        if task_template_id not in templates:
-            raise ResourceNotFoundException(
-                f"Task template {task_template_id} not found"
-            )
-        tt = templates[task_template_id]
-        if name is not None:
-            tt.name = name
-        if description is not None:
-            tt.description = description
-        if fields is not None:
-            tt.fields = fields
-        if defaults is not None:
-            tt.defaults = defaults
-        if constraints is not None:
-            tt.constraints = constraints
-        if contact_flow_id is not None:
-            tt.contact_flow_id = contact_flow_id
-        if status is not None:
-            tt.status = status
-        tt.last_modified_time = _now_iso()
-        return tt.to_dict()
 
-    def delete_task_template(self, instance_id: str, task_template_id: str) -> None:
-        self._get_instance_or_raise(instance_id)
-        templates = self.task_templates.get(instance_id, {})
-        if task_template_id not in templates:
-            raise ResourceNotFoundException(
-                f"Task template {task_template_id} not found"
-            )
-        del templates[task_template_id]
 
     # ---- IntegrationAssociation CRUD ----
 
-    def create_integration_association(
-        self,
-        instance_id: str,
-        integration_type: str,
-        integration_arn: str,
-        source_application_url: str = "",
-        source_application_name: str = "",
-        source_type: str = "",
-        tags: dict[str, str] | None = None,
-    ) -> dict[str, str]:
-        instance = self._get_instance_or_raise(instance_id)
-        ia = IntegrationAssociation(
-            instance_arn=instance.arn,
-            integration_type=integration_type,
-            integration_arn=integration_arn,
-            source_application_url=source_application_url,
-            source_application_name=source_application_name,
-            source_type=source_type,
-            tags=tags,
-        )
-        if instance_id not in self.integration_associations:
-            self.integration_associations[instance_id] = {}
-        self.integration_associations[instance_id][ia.integration_association_id] = ia
-        if tags:
-            self.tag_resource(ia.arn, tags)
-        return {
-            "IntegrationAssociationId": ia.integration_association_id,
-            "IntegrationAssociationArn": ia.arn,
-        }
 
-    def delete_integration_association(
-        self, instance_id: str, integration_association_id: str
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        assocs = self.integration_associations.get(instance_id, {})
-        if integration_association_id not in assocs:
-            raise ResourceNotFoundException(
-                f"Integration association {integration_association_id} not found"
-            )
-        del assocs[integration_association_id]
 
     # ---- UseCase CRUD ----
 
-    def create_use_case(
-        self,
-        instance_id: str,
-        integration_association_id: str,
-        use_case_type: str,
-        tags: dict[str, str] | None = None,
-    ) -> dict[str, str]:
-        instance = self._get_instance_or_raise(instance_id)
-        uc = UseCase(
-            instance_arn=instance.arn,
-            integration_association_id=integration_association_id,
-            use_case_type=use_case_type,
-            tags=tags,
-        )
-        if instance_id not in self.use_cases:
-            self.use_cases[instance_id] = {}
-        self.use_cases[instance_id][uc.use_case_id] = uc
-        if tags:
-            self.tag_resource(uc.arn, tags)
-        return {"UseCaseId": uc.use_case_id, "UseCaseArn": uc.arn}
 
-    def delete_use_case(
-        self, instance_id: str, integration_association_id: str, use_case_id: str
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        ucs = self.use_cases.get(instance_id, {})
-        if use_case_id not in ucs:
-            raise ResourceNotFoundException(f"Use case {use_case_id} not found")
-        del ucs[use_case_id]
 
     # ---- Contact CRUD ----
 
-    def create_contact(
-        self,
-        instance_id: str,
-        channel: str,
-        initiation_method: str,
-        description: str = "",
-        name: str = "",
-        related_contact_id: str = "",
-        segment_attributes: dict[str, Any] | None = None,
-        user_info: dict[str, Any] | None = None,
-    ) -> dict[str, str]:
-        instance = self._get_instance_or_raise(instance_id)
-        contact = Contact(
-            instance_arn=instance.arn,
-            channel=channel,
-            initiation_method=initiation_method,
-            description=description,
-            name=name,
-            related_contact_id=related_contact_id,
-            segment_attributes=segment_attributes,
-            user_info=user_info,
-        )
-        if instance_id not in self.contacts:
-            self.contacts[instance_id] = {}
-        self.contacts[instance_id][contact.contact_id] = contact
-        return {"ContactId": contact.contact_id, "ContactArn": contact.arn}
 
-    def describe_contact(self, instance_id: str, contact_id: str) -> dict[str, Any]:
-        self._get_instance_or_raise(instance_id)
-        contacts = self.contacts.get(instance_id, {})
-        if contact_id not in contacts:
-            raise ResourceNotFoundException(f"Contact {contact_id} not found")
-        return contacts[contact_id].to_dict()
 
-    def update_contact(
-        self,
-        instance_id: str,
-        contact_id: str,
-        name: str | None = None,
-        description: str | None = None,
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        contacts = self.contacts.get(instance_id, {})
-        if contact_id not in contacts:
-            raise ResourceNotFoundException(f"Contact {contact_id} not found")
-        c = contacts[contact_id]
-        if name is not None:
-            c.name = name
-        if description is not None:
-            c.description = description
-        c.last_update_timestamp = _now_iso()
 
-    def stop_contact(self, instance_id: str, contact_id: str) -> None:
-        self._get_instance_or_raise(instance_id)
-        contacts = self.contacts.get(instance_id, {})
-        if contact_id not in contacts:
-            raise ResourceNotFoundException(f"Contact {contact_id} not found")
-        # Just mark as stopped by removing (or could set disconnect timestamp)
-        del contacts[contact_id]
 
     # ---- HoursOfOperationOverride CRUD ----
 
-    def create_hours_of_operation_override(
-        self,
-        instance_id: str,
-        hours_of_operation_id: str,
-        name: str,
-        description: str = "",
-        config: list[dict[str, Any]] | None = None,
-        effective_from: str = "",
-        effective_till: str = "",
-    ) -> dict[str, str]:
-        instance = self._get_instance_or_raise(instance_id)
-        override = HoursOfOperationOverride(
-            instance_arn=instance.arn,
-            hours_of_operation_id=hours_of_operation_id,
-            name=name,
-            description=description,
-            config=config,
-            effective_from=effective_from,
-            effective_till=effective_till,
-        )
-        key = f"{instance_id}:{hours_of_operation_id}"
-        if key not in self.hours_of_operation_overrides:
-            self.hours_of_operation_overrides[key] = {}
-        self.hours_of_operation_overrides[key][
-            override.hours_of_operation_override_id
-        ] = override
-        return {
-            "HoursOfOperationOverrideId": override.hours_of_operation_override_id,
-        }
 
-    def describe_hours_of_operation_override(
-        self,
-        instance_id: str,
-        hours_of_operation_id: str,
-        hours_of_operation_override_id: str,
-    ) -> dict[str, Any]:
-        self._get_instance_or_raise(instance_id)
-        key = f"{instance_id}:{hours_of_operation_id}"
-        overrides = self.hours_of_operation_overrides.get(key, {})
-        if hours_of_operation_override_id not in overrides:
-            raise ResourceNotFoundException(
-                f"Hours of operation override {hours_of_operation_override_id} not found"
-            )
-        return overrides[hours_of_operation_override_id].to_dict()
 
-    def update_hours_of_operation_override(
-        self,
-        instance_id: str,
-        hours_of_operation_id: str,
-        hours_of_operation_override_id: str,
-        name: str | None = None,
-        description: str | None = None,
-        config: list[dict[str, Any]] | None = None,
-        effective_from: str | None = None,
-        effective_till: str | None = None,
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        key = f"{instance_id}:{hours_of_operation_id}"
-        overrides = self.hours_of_operation_overrides.get(key, {})
-        if hours_of_operation_override_id not in overrides:
-            raise ResourceNotFoundException(
-                f"Hours of operation override {hours_of_operation_override_id} not found"
-            )
-        o = overrides[hours_of_operation_override_id]
-        if name is not None:
-            o.name = name
-        if description is not None:
-            o.description = description
-        if config is not None:
-            o.config = config
-        if effective_from is not None:
-            o.effective_from = effective_from
-        if effective_till is not None:
-            o.effective_till = effective_till
 
-    def delete_hours_of_operation_override(
-        self,
-        instance_id: str,
-        hours_of_operation_id: str,
-        hours_of_operation_override_id: str,
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        key = f"{instance_id}:{hours_of_operation_id}"
-        overrides = self.hours_of_operation_overrides.get(key, {})
-        if hours_of_operation_override_id not in overrides:
-            raise ResourceNotFoundException(
-                f"Hours of operation override {hours_of_operation_override_id} not found"
-            )
-        del overrides[hours_of_operation_override_id]
 
-    def list_hours_of_operation_overrides(
-        self, instance_id: str, hours_of_operation_id: str
-    ) -> list[dict[str, Any]]:
-        self._get_instance_or_raise(instance_id)
-        key = f"{instance_id}:{hours_of_operation_id}"
-        overrides = self.hours_of_operation_overrides.get(key, {})
-        return [o.to_dict() for o in overrides.values()]
 
     # ---- Association operations ----
 
-    def associate_approved_origin(self, instance_id: str, origin: str) -> None:
-        self._get_instance_or_raise(instance_id)
-        if instance_id not in self.approved_origins:
-            self.approved_origins[instance_id] = []
-        if origin not in self.approved_origins[instance_id]:
-            self.approved_origins[instance_id].append(origin)
 
-    def disassociate_approved_origin(self, instance_id: str, origin: str) -> None:
-        self._get_instance_or_raise(instance_id)
-        origins = self.approved_origins.get(instance_id, [])
-        if origin in origins:
-            origins.remove(origin)
 
-    def associate_lambda_function(self, instance_id: str, function_arn: str) -> None:
-        self._get_instance_or_raise(instance_id)
-        if instance_id not in self.lambda_functions:
-            self.lambda_functions[instance_id] = []
-        if function_arn not in self.lambda_functions[instance_id]:
-            self.lambda_functions[instance_id].append(function_arn)
 
-    def disassociate_lambda_function(self, instance_id: str, function_arn: str) -> None:
-        self._get_instance_or_raise(instance_id)
-        funcs = self.lambda_functions.get(instance_id, [])
-        if function_arn in funcs:
-            funcs.remove(function_arn)
 
-    def associate_bot(
-        self,
-        instance_id: str,
-        lex_bot: dict[str, Any] | None = None,
-        lex_v2_bot: dict[str, Any] | None = None,
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        if instance_id not in self.bots:
-            self.bots[instance_id] = []
-        entry: dict[str, Any] = {}
-        if lex_bot:
-            entry["LexBot"] = lex_bot
-        if lex_v2_bot:
-            entry["LexV2Bot"] = lex_v2_bot
-        self.bots[instance_id].append(entry)
 
-    def disassociate_bot(
-        self,
-        instance_id: str,
-        lex_bot: dict[str, Any] | None = None,
-        lex_v2_bot: dict[str, Any] | None = None,
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        bots = self.bots.get(instance_id, [])
-        if lex_bot:
-            self.bots[instance_id] = [b for b in bots if b.get("LexBot") != lex_bot]
-        if lex_v2_bot:
-            self.bots[instance_id] = [
-                b for b in bots if b.get("LexV2Bot") != lex_v2_bot
-            ]
 
-    def associate_security_key(self, instance_id: str, key: str) -> dict[str, str]:
-        self._get_instance_or_raise(instance_id)
-        if instance_id not in self.security_keys:
-            self.security_keys[instance_id] = []
-        assoc_id = str(uuid.uuid4())
-        self.security_keys[instance_id].append(
-            {
-                "AssociationId": assoc_id,
-                "Key": key,
-                "CreationTime": _now_iso(),
-            }
-        )
-        return {"AssociationId": assoc_id}
 
-    def disassociate_security_key(self, instance_id: str, association_id: str) -> None:
-        self._get_instance_or_raise(instance_id)
-        keys = self.security_keys.get(instance_id, [])
-        self.security_keys[instance_id] = [
-            k for k in keys if k.get("AssociationId") != association_id
-        ]
 
-    def associate_instance_storage_config(
-        self,
-        instance_id: str,
-        resource_type: str,
-        storage_config: dict[str, Any],
-    ) -> dict[str, str]:
-        self._get_instance_or_raise(instance_id)
-        if instance_id not in self.instance_storage_configs:
-            self.instance_storage_configs[instance_id] = []
-        assoc_id = str(uuid.uuid4())
-        entry = {
-            "AssociationId": assoc_id,
-            "ResourceType": resource_type,
-            "StorageConfig": storage_config,
-        }
-        self.instance_storage_configs[instance_id].append(entry)
-        return {"AssociationId": assoc_id}
 
-    def disassociate_instance_storage_config(
-        self, instance_id: str, association_id: str, resource_type: str
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        configs = self.instance_storage_configs.get(instance_id, [])
-        self.instance_storage_configs[instance_id] = [
-            c for c in configs if c.get("AssociationId") != association_id
-        ]
 
-    def associate_queue_quick_connects(
-        self, instance_id: str, queue_id: str, quick_connect_ids: list[str]
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        if instance_id not in self.queue_quick_connect_associations:
-            self.queue_quick_connect_associations[instance_id] = {}
-        if queue_id not in self.queue_quick_connect_associations[instance_id]:
-            self.queue_quick_connect_associations[instance_id][queue_id] = set()
-        self.queue_quick_connect_associations[instance_id][queue_id].update(
-            quick_connect_ids
-        )
 
-    def disassociate_queue_quick_connects(
-        self, instance_id: str, queue_id: str, quick_connect_ids: list[str]
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        assocs = self.queue_quick_connect_associations.get(instance_id, {}).get(
-            queue_id, set()
-        )
-        for qc_id in quick_connect_ids:
-            assocs.discard(qc_id)
 
-    def associate_routing_profile_queues(
-        self,
-        instance_id: str,
-        routing_profile_id: str,
-        queue_configs: list[dict[str, Any]],
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        rps = self.routing_profiles.get(instance_id, {})
-        if routing_profile_id not in rps:
-            raise ResourceNotFoundException(
-                f"Routing profile {routing_profile_id} not found"
-            )
-        if instance_id not in self.routing_profile_queue_associations:
-            self.routing_profile_queue_associations[instance_id] = {}
-        if (
-            routing_profile_id
-            not in self.routing_profile_queue_associations[instance_id]
-        ):
-            self.routing_profile_queue_associations[instance_id][
-                routing_profile_id
-            ] = []
-        self.routing_profile_queue_associations[instance_id][routing_profile_id].extend(
-            queue_configs
-        )
-        rps[routing_profile_id].number_of_associated_queues = len(
-            self.routing_profile_queue_associations[instance_id][routing_profile_id]
-        )
 
-    def disassociate_routing_profile_queues(
-        self,
-        instance_id: str,
-        routing_profile_id: str,
-        queue_references: list[dict[str, str]],
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        rps = self.routing_profiles.get(instance_id, {})
-        if routing_profile_id not in rps:
-            raise ResourceNotFoundException(
-                f"Routing profile {routing_profile_id} not found"
-            )
-        existing = self.routing_profile_queue_associations.get(instance_id, {}).get(
-            routing_profile_id, []
-        )
-        remove_ids = {r.get("QueueId") for r in queue_references}
-        filtered = [
-            q
-            for q in existing
-            if q.get("QueueReference", {}).get("QueueId") not in remove_ids
-        ]
-        if instance_id in self.routing_profile_queue_associations:
-            self.routing_profile_queue_associations[instance_id][routing_profile_id] = (
-                filtered
-            )
-        rps[routing_profile_id].number_of_associated_queues = len(filtered)
 
-    def update_routing_profile_queues(
-        self,
-        instance_id: str,
-        routing_profile_id: str,
-        queue_configs: list[dict[str, Any]],
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        rps = self.routing_profiles.get(instance_id, {})
-        if routing_profile_id not in rps:
-            raise ResourceNotFoundException(
-                f"Routing profile {routing_profile_id} not found"
-            )
-        if instance_id not in self.routing_profile_queue_associations:
-            self.routing_profile_queue_associations[instance_id] = {}
-        self.routing_profile_queue_associations[instance_id][routing_profile_id] = (
-            queue_configs
-        )
-        rps[routing_profile_id].number_of_associated_queues = len(queue_configs)
 
     # ---- User Hierarchy Group: Delete/Update/Search ----
 
-    def delete_user_hierarchy_group(
-        self, instance_id: str, hierarchy_group_id: str
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        groups = self.user_hierarchy_groups.get(instance_id, {})
-        if hierarchy_group_id not in groups:
-            raise ResourceNotFoundException(
-                f"Hierarchy group {hierarchy_group_id} not found"
-            )
-        del groups[hierarchy_group_id]
 
-    def update_user_hierarchy_group_name(
-        self, instance_id: str, hierarchy_group_id: str, name: str
-    ) -> None:
-        self._get_instance_or_raise(instance_id)
-        groups = self.user_hierarchy_groups.get(instance_id, {})
-        if hierarchy_group_id not in groups:
-            raise ResourceNotFoundException(
-                f"Hierarchy group {hierarchy_group_id} not found"
-            )
-        groups[hierarchy_group_id].name = name
-        groups[hierarchy_group_id].last_modified_time = _now_iso()
 
-    def update_user_hierarchy_structure(
-        self, instance_id: str, hierarchy_structure: dict[str, Any]
-    ) -> None:
-        # This operation updates the hierarchy level names but we store a default
-        # structure. Just accept and silently succeed.
-        self._get_instance_or_raise(instance_id)
 
     # ---- TrafficDistributionGroup: Delete/List ----
 
-    def delete_traffic_distribution_group(
-        self, traffic_distribution_group_id: str
-    ) -> None:
-        if traffic_distribution_group_id not in self.traffic_distribution_groups:
-            raise ResourceNotFoundException(
-                f"Traffic distribution group {traffic_distribution_group_id} not found"
-            )
-        del self.traffic_distribution_groups[traffic_distribution_group_id]
 
-    def list_traffic_distribution_groups(
-        self,
-        instance_id: str | None = None,
-    ) -> list[dict[str, Any]]:
-        results = []
-        for tdg in self.traffic_distribution_groups.values():
-            if instance_id and tdg.instance_arn.split("/")[-1] != instance_id:
-                continue
-            results.append(tdg.to_dict())
-        return results
 
     # ---- Search operations ----
 
-    def search_queues(
-        self,
-        instance_id: str,
-        search_criteria: dict[str, Any] | None = None,
-    ) -> list[dict[str, Any]]:
-        self._get_instance_or_raise(instance_id)
-        queues = self.queues.get(instance_id, {})
-        results = []
-        for q in queues.values():
-            d = q.to_dict()
-            d["QueueType"] = "STANDARD"
-            results.append(d)
-        return results
 
-    def search_quick_connects(
-        self,
-        instance_id: str,
-        search_criteria: dict[str, Any] | None = None,
-    ) -> list[dict[str, Any]]:
-        self._get_instance_or_raise(instance_id)
-        qcs = self.quick_connects.get(instance_id, {})
-        return [qc.to_dict() for qc in qcs.values()]
 
-    def search_prompts(
-        self,
-        instance_id: str,
-        search_criteria: dict[str, Any] | None = None,
-    ) -> list[dict[str, Any]]:
-        self._get_instance_or_raise(instance_id)
-        prompts = self.prompts.get(instance_id, {})
-        return [p.to_dict() for p in prompts.values()]
 
-    def search_routing_profiles(
-        self,
-        instance_id: str,
-        search_criteria: dict[str, Any] | None = None,
-    ) -> list[dict[str, Any]]:
-        self._get_instance_or_raise(instance_id)
-        rps = self.routing_profiles.get(instance_id, {})
-        return [rp.to_dict() for rp in rps.values()]
 
-    def search_security_profiles(
-        self,
-        instance_id: str,
-        search_criteria: dict[str, Any] | None = None,
-    ) -> list[dict[str, Any]]:
-        self._get_instance_or_raise(instance_id)
-        sps = self.security_profiles.get(instance_id, {})
-        return [sp.to_dict() for sp in sps.values()]
 
-    def search_hours_of_operations(
-        self,
-        instance_id: str,
-        search_criteria: dict[str, Any] | None = None,
-    ) -> list[dict[str, Any]]:
-        self._get_instance_or_raise(instance_id)
-        hours = self.hours_of_operations.get(instance_id, {})
-        return [h.to_dict() for h in hours.values()]
 
-    def search_agent_statuses(
-        self,
-        instance_id: str,
-        search_criteria: dict[str, Any] | None = None,
-    ) -> list[dict[str, Any]]:
-        self._get_instance_or_raise(instance_id)
-        statuses = self.agent_statuses.get(instance_id, {})
-        return [s.to_dict() for s in statuses.values()]
 
-    def search_contact_flows(
-        self,
-        instance_id: str,
-        search_criteria: dict[str, Any] | None = None,
-    ) -> list[dict[str, Any]]:
-        self._get_instance_or_raise(instance_id)
-        flows = self.contact_flows.get(instance_id, {})
-        return [f.to_dict() for f in flows.values()]
 
-    def search_contact_flow_modules(
-        self,
-        instance_id: str,
-        search_criteria: dict[str, Any] | None = None,
-    ) -> list[dict[str, Any]]:
-        self._get_instance_or_raise(instance_id)
-        modules = self.contact_flow_modules.get(instance_id, {})
-        return [m.to_dict() for m in modules.values()]
 
-    def search_predefined_attributes(
-        self,
-        instance_id: str,
-        search_criteria: dict[str, Any] | None = None,
-    ) -> list[dict[str, Any]]:
-        self._get_instance_or_raise(instance_id)
-        attrs = self.predefined_attributes.get(instance_id, {})
-        return [a.to_dict() for a in attrs.values()]
 
-    def search_user_hierarchy_groups(
-        self,
-        instance_id: str,
-        search_criteria: dict[str, Any] | None = None,
-    ) -> list[dict[str, Any]]:
-        self._get_instance_or_raise(instance_id)
-        groups = self.user_hierarchy_groups.get(instance_id, {})
-        return [g.to_dict() for g in groups.values()]
 
     # ---- EmailAddress CRUD ----
 

@@ -62,22 +62,6 @@ class StepFunctionResponse(BaseResponse):
             response["stateMachineVersionArn"] = state_machine.latest_version.arn
         return ActionResult(response)
 
-    def create_state_machine_alias(self) -> ActionResult:
-        name = self._get_param("name")
-        routing_configuration = self._get_param("routingConfiguration")
-        description = self._get_param("description")
-
-        # Validate routing configuration
-        self._validate_routing_configuration(routing_configuration)
-
-        alias = self.stepfunction_backend.create_state_machine_alias(
-            name, routing_configuration, description
-        )
-        response = {
-            "creationDate": alias.creation_date,
-            "stateMachineAliasArn": alias.arn,
-        }
-        return ActionResult(response)
 
     def list_state_machines(self) -> ActionResult:
         max_results = self._get_int_param("maxResults")
@@ -96,44 +80,11 @@ class StepFunctionResponse(BaseResponse):
         response = {"stateMachines": state_machines, "nextToken": next_token}
         return ActionResult(response)
 
-    def list_state_machine_aliases(self) -> ActionResult:
-        state_machine_arn = self._get_param("stateMachineArn")
-        max_results = self._get_int_param("maxResults")
-        next_token = self._get_param("nextToken")
-        results, next_token = self.stepfunction_backend.list_state_machine_aliases(
-            arn=state_machine_arn, max_results=max_results, next_token=next_token
-        )
-        state_machine_aliases = [
-            {
-                "creationDate": sm_alias.creation_date,
-                "stateMachineAliasArn": sm_alias.arn,
-            }
-            for sm_alias in results
-        ]
-
-        response = {
-            "stateMachineAliases": state_machine_aliases,
-            "nextToken": next_token,
-        }
-        return ActionResult(response)
 
     def describe_state_machine(self) -> ActionResult:
         arn = self._get_param("stateMachineArn")
         return self._describe_state_machine(arn)
 
-    def describe_state_machine_alias(self) -> ActionResult:
-        arn = self._get_param("stateMachineAliasArn")
-        alias = self.stepfunction_backend.describe_state_machine_alias(arn)
-        response = {
-            "stateMachineAliasArn": alias.arn,
-            "name": alias.name,
-            "routingConfiguration": alias.routing_configuration,
-            "creationDate": alias.creation_date,
-            "updateDate": alias.update_date,
-        }
-        if alias.description:
-            response["description"] = alias.description
-        return ActionResult(response)
 
     def _describe_state_machine(self, state_machine_arn: str) -> ActionResult:
         state_machine = self.stepfunction_backend.describe_state_machine(
@@ -160,10 +111,6 @@ class StepFunctionResponse(BaseResponse):
         self.stepfunction_backend.delete_state_machine(arn)
         return EmptyResult()
 
-    def delete_state_machine_alias(self) -> ActionResult:
-        arn = self._get_param("stateMachineAliasArn")
-        self.stepfunction_backend.delete_state_machine_alias(arn)
-        return EmptyResult()
 
     def update_state_machine(self) -> ActionResult:
         arn = self._get_param("stateMachineArn")
@@ -195,28 +142,6 @@ class StepFunctionResponse(BaseResponse):
             response["stateMachineVersionArn"] = state_machine.latest_version.arn  # type: ignore
         return ActionResult(response)
 
-    def update_state_machine_alias(self) -> ActionResult:
-        arn = self._get_param("stateMachineAliasArn")
-        description = self._get_param("description")
-        routing_configuration = self._get_param("routingConfiguration")
-
-        if description is None and routing_configuration is None:
-            raise ValidationException(
-                "You must provide at least one of routingConfiguration or description"
-            )
-
-        if routing_configuration:
-            self._validate_routing_configuration(routing_configuration)
-
-        state_machine_alias = self.stepfunction_backend.update_state_machine_alias(
-            arn=arn,
-            description=description,
-            routing_configuration=routing_configuration,
-        )
-
-        response = {"updateDate": state_machine_alias.update_date}
-
-        return ActionResult(response)
 
     def list_tags_for_resource(self) -> ActionResult:
         arn = self._get_param("resourceArn")

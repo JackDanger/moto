@@ -129,18 +129,6 @@ class VPCLatticeResponse(BaseResponse):
         )
         return json.dumps(assoc.to_dict())
 
-    def list_service_network_vpc_associations(self) -> str:
-        service_network_identifier = self._get_param("serviceNetworkIdentifier")
-        vpc_identifier = self._get_param("vpcIdentifier")
-        max_results = self._get_param("maxResults")
-        next_token = self._get_param("nextToken")
-        assocs, next_token = self.backend.list_service_network_vpc_associations(
-            service_network_identifier=service_network_identifier,
-            vpc_identifier=vpc_identifier,
-            max_results=max_results,
-            next_token=next_token,
-        )
-        return json.dumps({"items": [a.to_dict() for a in assocs], "nextToken": next_token})
 
     def update_service_network_vpc_association(self) -> str:
         path = unquote(self.path)
@@ -159,34 +147,8 @@ class VPCLatticeResponse(BaseResponse):
 
     # ---- Service Network Service Associations ----
 
-    def create_service_network_service_association(self) -> str:
-        assoc = self.backend.create_service_network_service_association(
-            client_token=self._get_param("clientToken") or "",
-            service_identifier=self._get_param("serviceIdentifier"),
-            service_network_identifier=self._get_param("serviceNetworkIdentifier"),
-            tags=self._get_param("tags"),
-        )
-        return json.dumps(assoc.to_dict())
 
-    def get_service_network_service_association(self) -> str:
-        path = unquote(self.path)
-        assoc = self.backend.get_service_network_service_association(
-            service_network_service_association_identifier=path.split("/")[-1]
-        )
-        return json.dumps(assoc.to_dict())
 
-    def list_service_network_service_associations(self) -> str:
-        service_network_identifier = self._get_param("serviceNetworkIdentifier")
-        service_identifier = self._get_param("serviceIdentifier")
-        max_results = self._get_param("maxResults")
-        next_token = self._get_param("nextToken")
-        assocs, next_token = self.backend.list_service_network_service_associations(
-            service_network_identifier=service_network_identifier,
-            service_identifier=service_identifier,
-            max_results=max_results,
-            next_token=next_token,
-        )
-        return json.dumps({"items": [a.to_dict() for a in assocs], "nextToken": next_token})
 
     def delete_service_network_service_association(self) -> str:
         path = unquote(self.path)
@@ -199,47 +161,8 @@ class VPCLatticeResponse(BaseResponse):
 
     # ---- Listeners ----
 
-    def create_listener(self) -> str:
-        path = unquote(self.path)
-        # path: /services/{serviceIdentifier}/listeners
-        parts = path.split("/")
-        service_identifier = parts[-2]
-        listener = self.backend.create_listener(
-            client_token=self._get_param("clientToken") or "",
-            default_action=self._get_param("defaultAction") or {},
-            name=self._get_param("name"),
-            port=self._get_param("port"),
-            protocol=self._get_param("protocol"),
-            service_identifier=service_identifier,
-            tags=self._get_param("tags"),
-        )
-        return json.dumps(listener.to_dict())
 
-    def get_listener(self) -> str:
-        path = unquote(self.path)
-        parts = path.split("/")
-        # /services/{serviceIdentifier}/listeners/{listenerIdentifier}
-        listener_identifier = parts[-1]
-        service_identifier = parts[-3]
-        listener = self.backend.get_listener(
-            service_identifier=service_identifier,
-            listener_identifier=listener_identifier,
-        )
-        return json.dumps(listener.to_dict())
 
-    def list_listeners(self) -> str:
-        path = unquote(self.path)
-        parts = path.split("/")
-        # /services/{serviceIdentifier}/listeners
-        service_identifier = parts[-2]
-        max_results = self._get_param("maxResults")
-        next_token = self._get_param("nextToken")
-        listeners, next_token = self.backend.list_listeners(
-            service_identifier=service_identifier,
-            max_results=max_results,
-            next_token=next_token,
-        )
-        return json.dumps({"items": [l.to_dict() for l in listeners], "nextToken": next_token})
 
     def update_listener(self) -> str:
         path = unquote(self.path)
@@ -359,35 +282,8 @@ class VPCLatticeResponse(BaseResponse):
 
     # ---- Target Groups ----
 
-    def create_target_group(self) -> str:
-        tg = self.backend.create_target_group(
-            client_token=self._get_param("clientToken") or "",
-            config=self._get_param("config"),
-            name=self._get_param("name"),
-            tg_type=self._get_param("type"),
-            tags=self._get_param("tags"),
-        )
-        return json.dumps(tg.to_dict())
 
-    def get_target_group(self) -> str:
-        path = unquote(self.path)
-        tg = self.backend.get_target_group(
-            target_group_identifier=path.split("/")[-1]
-        )
-        return json.dumps(tg.to_dict())
 
-    def list_target_groups(self) -> str:
-        target_group_type = self._get_param("targetGroupType")
-        vpc_identifier = self._get_param("vpcIdentifier")
-        max_results = self._get_param("maxResults")
-        next_token = self._get_param("nextToken")
-        tgs, next_token = self.backend.list_target_groups(
-            target_group_type=target_group_type,
-            vpc_identifier=vpc_identifier,
-            max_results=max_results,
-            next_token=next_token,
-        )
-        return json.dumps({"items": [tg.to_dict() for tg in tgs], "nextToken": next_token})
 
     def update_target_group(self) -> str:
         path = unquote(self.path)

@@ -41,20 +41,8 @@ class ResourceNotFound(TransferError):
         )
 
 
-class AccessNotFound(TransferError):
-    def __init__(self, server_id: str, external_id: str) -> None:
-        super().__init__(
-            "ResourceNotFoundException",
-            f"Access for ExternalId {external_id} and ServerId {server_id} does not exist.",
-        )
 
 
-class InvalidRequestError(TransferError):
-    def __init__(self, message: str) -> None:
-        super().__init__(
-            "InvalidRequestException",
-            message,
-        )
 
 
 class ConnectorNotFound(TransferError):

@@ -123,27 +123,7 @@ class DataSyncBackend(BaseBackend):
         self.task_executions: dict[str, TaskExecution] = OrderedDict()
         self._tags: dict[str, list[dict[str, str]]] = {}
 
-    def create_agent(
-        self,
-        activation_key: str,
-        agent_name: str,
-        tags: Optional[list[dict[str, str]]] = None,
-    ) -> str:
-        self.arn_counter += 1
-        agent = Agent(
-            activation_key=activation_key,
-            agent_name=agent_name,
-            region_name=self.region_name,
-            tags=tags,
-            arn_counter=self.arn_counter,
-        )
-        self.agents[agent.arn] = agent
-        return agent.arn
 
-    def describe_agent(self, agent_arn: str) -> Agent:
-        if agent_arn not in self.agents:
-            raise InvalidRequestException(f"Agent {agent_arn} is not found.")
-        return self.agents[agent_arn]
 
     def update_agent(
         self, agent_arn: str, name: Optional[str] = None

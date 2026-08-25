@@ -2485,29 +2485,8 @@ class RDSBackend(BaseBackend, TaggableResourcesMixin):
         validated_key = kms_key.arn
         return validated_key
 
-    @overload
-    def get_backend(
-        self,
-        service: Literal["kms"],
-        region: str,
-        account_id: str | None = None,
-    ) -> KmsBackend: ...
 
-    @overload
-    def get_backend(
-        self,
-        service: Literal["rds"],
-        region: str,
-        account_id: str | None = None,
-    ) -> RDSBackend: ...
 
-    @overload
-    def get_backend(
-        self,
-        service: Literal["secretsmanager"],
-        region: str,
-        account_id: str | None = None,
-    ) -> SecretsManagerBackend: ...
 
     def get_backend(
         self,
@@ -2522,21 +2501,7 @@ class RDSBackend(BaseBackend, TaggableResourcesMixin):
 
         return get_moto_backend(service)[account_id][region]
 
-    @overload
-    def get_snapshot(
-        self,
-        identifier: str,
-        resource_type: type[DBSnapshot],
-        not_found_exception: type[DBSnapshotNotFoundFault],
-    ) -> DBSnapshot: ...
 
-    @overload
-    def get_snapshot(
-        self,
-        identifier: str,
-        resource_type: type[DBClusterSnapshot],
-        not_found_exception: type[DBClusterSnapshotNotFoundError],
-    ) -> DBClusterSnapshot: ...
 
     def get_snapshot(
         self,

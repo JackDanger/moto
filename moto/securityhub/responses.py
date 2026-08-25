@@ -623,59 +623,12 @@ class SecurityHubResponse(BaseResponse):
             {"Members": members, "UnprocessedAccounts": unprocessed_accounts}
         )
 
-    def tag_resource(self) -> str:
-        body = self._parse_body()
-        resource_arn = self._extract_arn_from_path("tags")
-        self.securityhub_backend.tag_resource(
-            resource_arn=resource_arn,
-            tags=body.get("Tags", {}),
-        )
-        return json.dumps({})
 
-    def untag_resource(self) -> str:
-        resource_arn = self._extract_arn_from_path("tags")
-        tag_keys = self.querystring.get("tagKeys", [])
-        if isinstance(tag_keys, str):
-            tag_keys = [tag_keys]
-        self.securityhub_backend.untag_resource(
-            resource_arn=resource_arn,
-            tag_keys=tag_keys,
-        )
-        return json.dumps({})
 
-    def list_tags_for_resource(self) -> str:
-        resource_arn = self._extract_arn_from_path("tags")
-        tags = self.securityhub_backend.list_tags_for_resource(resource_arn)
-        return json.dumps({"Tags": tags})
 
     # --- V2 APIs ---
 
-    def batch_update_findings_v2(self) -> str:
-        body = self._parse_body()
-        processed, unprocessed = self.securityhub_backend.batch_update_findings_v2(
-            metadata_uids=body.get("MetadataUids"),
-            finding_identifiers=body.get("FindingIdentifiers"),
-            comment=body.get("Comment"),
-            severity_id=body.get("SeverityId"),
-            status_id=body.get("StatusId"),
-        )
-        return json.dumps({
-            "ProcessedFindings": processed,
-            "UnprocessedFindings": unprocessed,
-        })
 
-    def get_findings_v2(self) -> str:
-        body = self._parse_body()
-        findings, next_token = self.securityhub_backend.get_findings_v2(
-            filters=body.get("Filters"),
-            sort_criteria=body.get("SortCriteria"),
-            max_results=body.get("MaxResults"),
-            next_token=body.get("NextToken"),
-        )
-        response: dict[str, Any] = {"Findings": findings}
-        if next_token:
-            response["NextToken"] = next_token
-        return json.dumps(response)
 
     def delete_members(self) -> str:
         body = self._parse_body()

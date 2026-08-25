@@ -942,17 +942,7 @@ class DirectoryServiceBackend(BaseBackend):
         directory = self.directories[directory_id]
         directory.enable_ldaps(False)
 
-    def enable_radius(self, directory_id: str, radius_settings: dict[str, Any]) -> None:
-        """Enable RADIUS for a directory."""
-        self._validate_directory_id(directory_id)
-        directory = self.directories[directory_id]
-        directory.enable_radius(radius_settings)
 
-    def disable_radius(self, directory_id: str) -> None:
-        """Disable RADIUS for a directory."""
-        self._validate_directory_id(directory_id)
-        directory = self.directories[directory_id]
-        directory.disable_radius()
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def describe_settings(

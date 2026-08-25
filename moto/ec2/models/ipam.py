@@ -37,12 +37,6 @@ class IpamScope(TaggedEC2Resource):
     def owner_id(self) -> str:
         return self.ec2_backend.account_id
 
-    @property
-    def ipam_arn(self) -> str:
-        return (
-            f"arn:{self.ec2_backend.partition}:ec2:{self.ec2_backend.region_name}"
-            f":{self.ec2_backend.account_id}:ipam/{self.ipam_id}"
-        )
 
     @property
     def arn(self) -> str:
@@ -59,27 +53,8 @@ class IpamScope(TaggedEC2Resource):
         )
 
 
-class IpamPoolCidr:
-    def __init__(self, cidr: str, state: str = "provisioned"):
-        self.id = random_ipam_pool_cidr_id()
-        self.cidr = cidr
-        self.state = state
 
 
-class IpamPoolAllocation:
-    def __init__(
-        self,
-        cidr: str,
-        ipam_pool_allocation_id: str,
-        resource_type: str = "custom",
-        resource_id: Optional[str] = None,
-        resource_owner: Optional[str] = None,
-    ):
-        self.cidr = cidr
-        self.ipam_pool_allocation_id = ipam_pool_allocation_id
-        self.resource_type = resource_type
-        self.resource_id = resource_id or ""
-        self.resource_owner = resource_owner or ""
 
 
 class IpamPoolCidr:
