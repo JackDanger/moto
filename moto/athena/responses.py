@@ -269,10 +269,12 @@ class AthenaResponse(BaseResponse):
         next_token = self._get_param("NextToken")
         max_results = self._get_param("MaxResults")
         work_group = self._get_param("WorkGroup") or "primary"
-        named_query_ids, next_token = self.athena_backend.list_named_queries(
+        named_queries, next_token = self.athena_backend.list_named_queries(
             next_token=next_token, max_results=max_results, work_group=work_group
         )
-        return json.dumps({"NamedQueryIds": named_query_ids, "NextToken": next_token})
+        return json.dumps(
+            {"NamedQueryIds": [q.id for q in named_queries], "NextToken": next_token}
+        )
 
     def create_prepared_statement(self) -> str | tuple[str, dict[str, int]]:
         statement_name = self._get_param("StatementName")

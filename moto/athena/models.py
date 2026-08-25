@@ -12,7 +12,7 @@ from moto.athena.exceptions import (
 from moto.athena.exceptions import AthenaClientError
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.core.resource_tagging import TaggedResource
+from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.s3.models import s3_backends
@@ -244,7 +244,9 @@ class TableMetadata(BaseModel):
         self.create_time = time.time()
 
 
-class AthenaBackend(BaseBackend):
+class AthenaBackend(BaseBackend, TaggableResourcesMixin):
+    SERVICE_NAMESPACE = "athena"
+
     PAGINATION_MODEL = {
         "list_named_queries": {
             "input_token": "next_token",
