@@ -223,13 +223,21 @@ class BudgetsBackend(BaseBackend):
         notification: dict[str, Any],
         subscribers: list[dict[str, Any]],
     ) -> None:
-        budget = self._get_budget(account_id, budget_name)
+        if budget_name not in self.budgets[account_id]:
+            raise NotFoundException(
+                "Unable to create notification - the budget doesn't exist."
+            )
+        budget = self.budgets[account_id][budget_name]
         budget.add_notification(details=notification, subscribers=subscribers)
 
     def delete_notification(
         self, account_id: str, budget_name: str, notification: dict[str, Any]
     ) -> None:
-        budget = self._get_budget(account_id, budget_name)
+        if budget_name not in self.budgets[account_id]:
+            raise NotFoundException(
+                "Unable to delete notification - the budget doesn't exist."
+            )
+        budget = self.budgets[account_id][budget_name]
         budget.delete_notification(details=notification)
 
     def update_notification(

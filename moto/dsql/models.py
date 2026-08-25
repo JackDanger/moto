@@ -388,10 +388,10 @@ class AuroraDSQLBackend(BaseBackend, TaggableResourcesMixin):
         return self.get_stream(cluster_identifier, stream_identifier)
 
     def tag_resource(self, identifier: str, tags: dict[str, str]) -> None:
-        cluster = self.get_cluster(identifier=identifier)
-        existing = dict(cluster.tags or {})
+        resource = self._get_resource(self._identifier_from_arn(identifier))
+        existing = dict(resource.tags or {})
         existing.update(tags)
-        cluster.tags = existing
+        resource.tags = existing
 
 
 dsql_backends = BackendDict(
