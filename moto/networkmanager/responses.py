@@ -26,8 +26,9 @@ class NetworkManagerResponse(BaseResponse):
         gn = self.networkmanager_backend.create_global_network(
             description=params.get("Description"), tags=params.get("Tags"),
         )
+        resp_dict = {"GlobalNetwork": gn.to_dict()}
         self.networkmanager_backend.update_resource_state(gn.global_network_arn, "AVAILABLE")
-        return json.dumps({"GlobalNetwork": gn.to_dict()})
+        return json.dumps(resp_dict)
 
     def delete_global_network(self) -> str:
         gn_id = unquote(self.path.split("/")[-1])
@@ -59,8 +60,9 @@ class NetworkManagerResponse(BaseResponse):
             description=params.get("Description"), tags=params.get("Tags"),
             policy_document=params.get("PolicyDocument"), client_token=params.get("ClientToken"),
         )
+        resp_dict = {"CoreNetwork": cn.to_dict()}
         self.networkmanager_backend.update_resource_state(cn.core_network_arn, "AVAILABLE")
-        return json.dumps({"CoreNetwork": cn.to_dict()})
+        return json.dumps(resp_dict)
 
     def delete_core_network(self) -> str:
         cn_id = unquote(self.path.split("/")[-1])
@@ -114,8 +116,9 @@ class NetworkManagerResponse(BaseResponse):
             global_network_id=gn_id, description=params.get("Description"),
             location=params.get("Location"), tags=params.get("Tags"),
         )
+        resp_dict = {"Site": site.to_dict()}
         self.networkmanager_backend.update_resource_state(site.site_arn, "AVAILABLE")
-        return json.dumps({"Site": site.to_dict()})
+        return json.dumps(resp_dict)
 
     def delete_site(self) -> str:
         gn_id = unquote(self.path.split("/")[-3])
@@ -152,8 +155,9 @@ class NetworkManagerResponse(BaseResponse):
             type=params.get("Type"), bandwidth=params.get("Bandwidth"),
             provider=params.get("Provider"), site_id=params.get("SiteId"), tags=params.get("Tags"),
         )
+        resp_dict = {"Link": link.to_dict()}
         self.networkmanager_backend.update_resource_state(link.link_arn, "AVAILABLE")
-        return json.dumps({"Link": link.to_dict()})
+        return json.dumps(resp_dict)
 
     def get_links(self) -> str:
         params = self._get_params()
@@ -195,8 +199,9 @@ class NetworkManagerResponse(BaseResponse):
             serial_number=params.get("SerialNumber"), location=params.get("Location"),
             site_id=params.get("SiteId"), tags=params.get("Tags"),
         )
+        resp_dict = {"Device": device.to_dict()}
         self.networkmanager_backend.update_resource_state(device.device_arn, "AVAILABLE")
-        return json.dumps({"Device": device.to_dict()})
+        return json.dumps(resp_dict)
 
     def get_devices(self) -> str:
         params = self._get_params()

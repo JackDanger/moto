@@ -149,10 +149,18 @@ class KafkaResponse(BaseResponse):
         return json.dumps(self.kafka_backend.get_bootstrap_brokers(cluster_arn=self._cluster_arn_from_path()))
 
     def get_cluster_policy(self) -> str:
-        return json.dumps(self.kafka_backend.get_cluster_policy(cluster_arn=self._cluster_arn_from_path()))
+        policy, current_version = self.kafka_backend.get_cluster_policy(
+            cluster_arn=self._cluster_arn_from_path()
+        )
+        return json.dumps({"currentVersion": current_version, "policy": policy})
 
     def put_cluster_policy(self) -> str:
-        return json.dumps(self.kafka_backend.put_cluster_policy(cluster_arn=self._cluster_arn_from_path(), current_version=self._get_param("currentVersion"), policy=self._get_param("policy") or ""))
+        current_version = self.kafka_backend.put_cluster_policy(
+            cluster_arn=self._cluster_arn_from_path(),
+            current_version=self._get_param("currentVersion"),
+            policy=self._get_param("policy") or "",
+        )
+        return json.dumps({"currentVersion": current_version})
 
     def delete_cluster_policy(self) -> str:
         self.kafka_backend.delete_cluster_policy(cluster_arn=self._cluster_arn_from_path())

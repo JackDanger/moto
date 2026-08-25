@@ -1266,7 +1266,7 @@ class GlueResponse(BaseResponse):
         timeout = self._get_int_param("Timeout")
         max_retries = self._get_int_param("MaxRetries")
         tags = self._get_param("Tags")
-        transform = self.glue_backend.create_ml_transform(
+        transform_id = self.glue_backend.create_ml_transform(
             name=name,
             input_record_tables=input_record_tables,
             parameters=parameters,
@@ -1280,7 +1280,7 @@ class GlueResponse(BaseResponse):
             max_retries=max_retries,
             tags=tags,
         )
-        return ActionResult({"TransformId": transform.transform_id})
+        return ActionResult({"TransformId": transform_id})
 
     def get_ml_transform(self) -> ActionResult:
         transform_id = self._get_param("TransformId")

@@ -586,16 +586,11 @@ class SESV2Response(BaseResponse):
 
     def untag_resource(self) -> str:
         resource_arn = self._get_param("ResourceArn")
-        tag_keys = self.__dict__["data"]["TagKeys"]
-        self.sesv2_backend.untag_resource(resource_arn, tag_keys)
         # TagKeys come as query params for DELETE requests
         tag_keys = self.querystring.get("TagKeys", [])
-        if not tag_keys and hasattr(self, "data") and isinstance(self.data, dict):
+        if not tag_keys and isinstance(getattr(self, "data", None), dict):
             tag_keys = self.data.get("TagKeys", [])
-        self.sesv2_backend.untag_resource(
-            resource_arn=resource_arn,
-            tag_keys=tag_keys,
-        )
+        self.sesv2_backend.untag_resource(resource_arn, tag_keys)
         return json.dumps({})
 
     def list_tags_for_resource(self) -> str:
