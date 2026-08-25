@@ -1,7 +1,7 @@
 import json
 import re
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel

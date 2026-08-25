@@ -1,8 +1,9 @@
 """FSxBackend class with methods for supported APIs."""
+from __future__ import annotations
 
 import time
 from collections.abc import Iterator
-from typing import Any
+from typing import Any, Optional
 from uuid import uuid4
 
 from moto.core.base_backend import BackendDict, BaseBackend

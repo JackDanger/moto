@@ -1,4 +1,5 @@
 """SESV2Backend class with methods for supported APIs."""
+from __future__ import annotations
 
 from collections.abc import Iterator
 from typing import Any

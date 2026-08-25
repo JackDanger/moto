@@ -4,7 +4,7 @@ import datetime
 import ipaddress
 import re
 from collections.abc import Iterable, Iterator
-from typing import Any
+from typing import Any, Optional
 
 import cryptography.hazmat.primitives.asymmetric.rsa
 import cryptography.x509

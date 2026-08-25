@@ -1,8 +1,9 @@
+from __future__ import annotations
 import json
 import math
 from collections.abc import Iterable, Iterator
 from datetime import datetime, timedelta
-from typing import Any, SupportsFloat
+from typing import Any, Optional, SupportsFloat
 from uuid import uuid4
 
 from moto.core.base_backend import BaseBackend

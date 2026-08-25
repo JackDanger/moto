@@ -1,3 +1,4 @@
+import json
 from moto.core.responses import ActionResult, BaseResponse
 
 from .exceptions import ResourceGroupsTaggingAPIError

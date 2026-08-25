@@ -4,7 +4,7 @@ import json
 from collections import OrderedDict
 from collections.abc import Iterable, Iterator
 from datetime import timedelta
-from typing import Any
+from typing import Any, Optional
 
 import yaml
 from yaml.parser import ParserError

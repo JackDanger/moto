@@ -49,7 +49,7 @@ class ConnectorNotFound(TransferError):
     def __init__(self, connector_id: str) -> None:
         super().__init__(
             "ResourceNotFoundException",
-            f"{resource_type} not found: {resource_id}",
+            f"Connector not found: {connector_id}",
         )
 
 

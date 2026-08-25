@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Literal
+from typing import Any, Literal, Optional
 
 from moto.core.common_models import BaseModel
 from moto.core.utils import unix_time
@@ -477,7 +477,7 @@ class Connector(BaseModel):
             "SecurityPolicyName": self.security_policy_name,
         }
         if self.service_managed_egress_ip_addresses:
-            connector["ServiceManagedEgressIpAddresses"] = (
+            result["ServiceManagedEgressIpAddresses"] = (
                 self.service_managed_egress_ip_addresses
             )
         if self.as2_config:
@@ -494,23 +494,18 @@ class Connector(BaseModel):
                 "PreserveContentType": self.as2_config.get("preserve_content_type"),
             }
             # TODO: AsyncMdnConfig not implemented
-            connector["As2Config"] = as2
+            result["As2Config"] = as2
         if self.sftp_config:
-            connector["SftpConfig"] = {
+            result["SftpConfig"] = {
                 "UserSecretId": self.sftp_config.get("user_secret_id"),
                 "TrustedHostKeys": self.sftp_config.get("trusted_host_keys"),
                 "MaxConcurrentConnections": self.sftp_config.get(
                     "max_concurrent_connections"
                 ),
             }
-        return prune_unset(connector)
-        if self.as2_config is not None:
-            result["As2Config"] = self.as2_config
-        if self.sftp_config is not None:
-            result["SftpConfig"] = self.sftp_config
         if self.egress_config is not None:
             result["EgressConfig"] = self.egress_config
-        return result
+        return prune_unset(result)
 
     def to_short_dict(self) -> dict[str, Any]:
 

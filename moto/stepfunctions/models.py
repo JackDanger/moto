@@ -5,7 +5,7 @@ import re
 from collections.abc import Iterator
 from datetime import datetime, timezone
 from re import Pattern
-from typing import Any, cast
+from typing import Any, Optional, cast
 
 from moto import settings
 from moto.core.base_backend import BackendDict, BaseBackend

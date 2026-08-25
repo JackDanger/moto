@@ -4,7 +4,7 @@ import random
 import uuid
 from collections.abc import Iterable, Iterator
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel

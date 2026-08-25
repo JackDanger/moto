@@ -1,7 +1,7 @@
 """S3VectorsBackend class with methods for supported APIs."""
 
 from collections.abc import Iterable
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, Optional, TypedDict
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel

@@ -1,6 +1,7 @@
+from __future__ import annotations
 from collections.abc import Iterator
 from copy import deepcopy
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -16,6 +17,76 @@ from .exceptions import (
     InvalidRequestException,
     ResourceNotFoundException,
 )
+
+
+BACKUP_PLAN_TEMPLATES = [
+    {
+        "BackupPlanTemplateId": "87c0c1ef-254d-4a46-945e-a37e8a17891c",
+        "BackupPlanTemplateName": "Daily-35day-Retention",
+    },
+    {
+        "BackupPlanTemplateId": "d3e5f678-7ab2-4c56-8a1b-234567890abc",
+        "BackupPlanTemplateName": "Daily-Monthly-1yr-Retention",
+    },
+]
+
+
+BACKUP_PLAN_TEMPLATE_DETAILS = {
+    "87c0c1ef-254d-4a46-945e-a37e8a17891c": {
+        "BackupPlanName": "Daily-35day-Retention",
+        "Rules": [
+            {
+                "RuleName": "DailyBackups",
+                "ScheduleExpression": "cron(0 5 ? * * *)",
+                "StartWindowMinutes": 480,
+                "CompletionWindowMinutes": 10080,
+                "Lifecycle": {"DeleteAfterDays": 35},
+                "TargetBackupVaultName": "Default",
+            }
+        ],
+    },
+    "d3e5f678-7ab2-4c56-8a1b-234567890abc": {
+        "BackupPlanName": "Daily-Monthly-1yr-Retention",
+        "Rules": [
+            {
+                "RuleName": "DailyBackups",
+                "ScheduleExpression": "cron(0 5 ? * * *)",
+                "StartWindowMinutes": 480,
+                "CompletionWindowMinutes": 10080,
+                "Lifecycle": {"DeleteAfterDays": 35},
+                "TargetBackupVaultName": "Default",
+            },
+            {
+                "RuleName": "MonthlyBackups",
+                "ScheduleExpression": "cron(0 5 1 * ? *)",
+                "StartWindowMinutes": 480,
+                "CompletionWindowMinutes": 10080,
+                "Lifecycle": {"DeleteAfterDays": 365},
+                "TargetBackupVaultName": "Default",
+            },
+        ],
+    },
+}
+
+
+SUPPORTED_RESOURCE_TYPES = [
+    "Aurora",
+    "CloudFormation",
+    "DocumentDB",
+    "DynamoDB",
+    "EBS",
+    "EC2",
+    "EFS",
+    "FSx",
+    "Neptune",
+    "RDS",
+    "Redshift",
+    "S3",
+    "SAP HANA on Amazon EC2",
+    "Storage Gateway",
+    "Timestream",
+    "VirtualMachine",
+]
 
 
 class ReportPlan(BaseModel):

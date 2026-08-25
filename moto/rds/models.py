@@ -15,10 +15,11 @@ from enum import Enum
 from functools import lru_cache, partialmethod
 from re import compile as re_compile
 from typing import (
-    TYPE_CHECKING,
     Any,
     Literal,
+    Optional,
     Protocol,
+    TYPE_CHECKING,
     overload,
 )
 
@@ -4371,7 +4372,7 @@ class RDSBackend(BaseBackend, TaggableResourcesMixin):
             r for r in cluster._associated_roles if r.role_arn != role_arn
         ]
 
-    def reboot_db_cluster(self, db_cluster_identifier: str) -> "Cluster":
+    def reboot_db_cluster(self, db_cluster_identifier: str) -> DBCluster:
         if db_cluster_identifier not in self.clusters:
             raise DBClusterNotFoundError(db_cluster_identifier)
         return self.clusters[db_cluster_identifier]

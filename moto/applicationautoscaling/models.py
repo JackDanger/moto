@@ -2,7 +2,7 @@ import re
 import time
 from collections import OrderedDict
 from enum import Enum, unique
-from typing import TYPE_CHECKING, Any
+from typing import Any, Optional, TYPE_CHECKING
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel

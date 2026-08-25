@@ -4,7 +4,7 @@ import json
 import re
 import time
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from moto.config.exceptions import (
     DuplicateTags,

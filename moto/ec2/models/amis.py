@@ -5,7 +5,7 @@ import os
 import re
 from datetime import datetime
 from os import environ
-from typing import Any
+from typing import Any, Optional
 
 from moto import settings
 from moto.core.parse import default_timestamp_parser as parse_timestamp

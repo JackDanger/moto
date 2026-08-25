@@ -1,6 +1,6 @@
 """AgentsforBedrockBackend class with methods for supported APIs."""
 
-from typing import Any
+from typing import Any, Optional
 
 from moto.bedrockagent.exceptions import (
     ConflictException,

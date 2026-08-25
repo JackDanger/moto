@@ -1,6 +1,6 @@
 import datetime
 import json
-from typing import Any
+from typing import Any, Union
 from urllib.parse import urlsplit
 
 from moto.core.exceptions import AWSError

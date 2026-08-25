@@ -1,6 +1,6 @@
 """AppMeshBackend class with methods for supported APIs."""
 
-from typing import Literal
+from typing import Literal, Optional
 
 from moto.appmesh.dataclasses.gateway_route import (
     GatewayRoute,

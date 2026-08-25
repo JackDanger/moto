@@ -1,7 +1,7 @@
 import re
 from collections.abc import Iterator
 from os import getenv
-from typing import Any
+from typing import Any, Optional
 
 from moto import settings
 from moto.core.base_backend import BackendDict, BaseBackend

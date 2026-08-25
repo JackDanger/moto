@@ -22,6 +22,7 @@ from .utils import (
     random_appplication_id,
     random_job_id,
 )
+from moto.emrcontainers.utils import paginated_list
 
 APPLICATION_ARN_TEMPLATE = "arn:{partition}:emr-serverless:{region}:{account_id}:/applications/{application_id}"
 JOB_RUN_ARN_TEMPLATE = "arn:{partition}:emr-serverless:{region}:{account_id}:/applications/{application_id}/jobruns/{job_run_id}"

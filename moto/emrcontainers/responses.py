@@ -1,8 +1,13 @@
 """Handles incoming emrcontainers requests, invokes methods, returns responses."""
+import json
+from moto.core.common_types import TYPE_RESPONSE
 
 from moto.core.responses import ActionResult, BaseResponse, PaginatedResult
 
 from .models import EMRContainersBackend, emrcontainers_backends
+
+DEFAULT_MAX_RESULTS = 100
+DEFAULT_NEXT_TOKEN = ""
 
 DEFAULT_CONTAINER_PROVIDER_TYPE = "EKS"
 

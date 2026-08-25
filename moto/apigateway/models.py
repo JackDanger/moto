@@ -3,7 +3,7 @@ import string
 import time
 from collections import defaultdict
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 from urllib.parse import urlparse
 
 import requests

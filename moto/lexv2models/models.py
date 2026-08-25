@@ -3,7 +3,7 @@
 import uuid
 from collections.abc import Iterator
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource

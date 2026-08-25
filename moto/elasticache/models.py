@@ -1,9 +1,10 @@
+from __future__ import annotations
 import copy
 import random
 import string
 from collections.abc import Iterator
 from re import compile as re_compile
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel

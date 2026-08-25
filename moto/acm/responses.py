@@ -1,6 +1,8 @@
+import json
 import base64
 
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
+from moto.core.common_types import TYPE_RESPONSE
 
 from .exceptions import AWSError, AWSValidationException
 from .models import AWSCertificateManagerBackend, acm_backends
@@ -253,7 +255,7 @@ class AWSCertificateManagerResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def renew_certificate(self) -> GENERIC_RESPONSE_TYPE:
+    def renew_certificate(self) -> TYPE_RESPONSE:
         arn = self._get_param("CertificateArn")
         if arn is None:
             msg = "A required parameter for the specified action is not supplied."
@@ -261,7 +263,7 @@ class AWSCertificateManagerResponse(BaseResponse):
         self.acm_backend.renew_certificate(arn)
         return ""
 
-    def revoke_certificate(self) -> GENERIC_RESPONSE_TYPE:
+    def revoke_certificate(self) -> TYPE_RESPONSE:
         arn = self._get_param("CertificateArn")
         reason = self._get_param("RevocationReason")
         if arn is None:
@@ -270,7 +272,7 @@ class AWSCertificateManagerResponse(BaseResponse):
         self.acm_backend.revoke_certificate(arn, reason)
         return ""
 
-    def update_certificate_options(self) -> GENERIC_RESPONSE_TYPE:
+    def update_certificate_options(self) -> TYPE_RESPONSE:
         arn = self._get_param("CertificateArn")
         options = self._get_param("Options")
         if arn is None:

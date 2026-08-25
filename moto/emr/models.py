@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from functools import cache, cached_property
-from typing import TYPE_CHECKING, Any
+from typing import Any, Optional, TYPE_CHECKING
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel

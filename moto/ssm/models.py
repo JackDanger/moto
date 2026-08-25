@@ -8,7 +8,7 @@ import re
 from collections import defaultdict
 from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Optional
 from uuid import uuid4
 
 import yaml

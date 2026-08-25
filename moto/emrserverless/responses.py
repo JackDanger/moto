@@ -1,8 +1,13 @@
 """Handles incoming emrserverless requests, invokes methods, returns responses."""
+import json
+from moto.core.common_types import TYPE_RESPONSE
 
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult, PaginatedResult
 
 from .models import EMRServerlessBackend, emrserverless_backends
+
+DEFAULT_MAX_RESULTS = 100
+DEFAULT_NEXT_TOKEN = ""
 
 
 class EMRServerlessResponse(BaseResponse):
@@ -184,7 +189,6 @@ class EMRServerlessResponse(BaseResponse):
             ]
         }
         return PaginatedResult(result)
-        return 200, {}, json.dumps({"jobRuns": job_runs, "nextToken": next_token})
 
     def get_dashboard_for_job_run(self) -> TYPE_RESPONSE:
         application_id = self._get_param("applicationId")

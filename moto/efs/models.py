@@ -8,7 +8,7 @@ import json
 import time
 from collections.abc import Iterator
 from copy import deepcopy
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import CloudFormationModel

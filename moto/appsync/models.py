@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import json
 from collections.abc import Iterable, Iterator
-from datetime import datetime, timedelta
-from typing import Any
+from datetime import datetime, timedelta, timezone
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel

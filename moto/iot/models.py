@@ -11,8 +11,9 @@ from datetime import datetime, timedelta
 from json import JSONDecodeError
 from re import Pattern
 from typing import (
-    TYPE_CHECKING,
     Any,
+    Optional,
+    TYPE_CHECKING,
 )
 
 from cryptography import x509

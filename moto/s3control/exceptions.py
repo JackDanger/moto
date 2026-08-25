@@ -1,3 +1,4 @@
+from typing import Any
 from moto.core.exceptions import ServiceException
 
 

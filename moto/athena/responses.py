@@ -1,5 +1,5 @@
 import json
-from typing import Any
+from typing import Any, Union
 
 from moto.core.responses import BaseResponse
 

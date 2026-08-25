@@ -1,3 +1,4 @@
+from typing import Optional
 from moto.core.exceptions import JsonRESTError
 
 

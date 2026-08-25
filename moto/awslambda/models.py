@@ -21,7 +21,7 @@ from datetime import datetime
 from datetime import timezone
 from gzip import GzipFile
 from sys import platform
-from typing import Any, TypedDict
+from typing import Any, Optional, TypedDict
 
 import requests.exceptions
 

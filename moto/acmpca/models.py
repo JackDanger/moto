@@ -3,7 +3,7 @@
 import base64
 import contextlib
 import datetime
-from typing import Any, cast
+from typing import Any, Optional, cast
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend

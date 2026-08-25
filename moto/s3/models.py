@@ -238,6 +238,8 @@ class FakeKey(BaseModel, ManagedState):
         return new_status
 
     @status.setter
+    def status(self, value: str) -> None:
+        self._status = value
 
     def set_metadata(self, metadata: Any, replace: bool = False) -> None:
         if replace:

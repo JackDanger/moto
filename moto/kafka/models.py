@@ -1,9 +1,10 @@
 """KafkaBackend class with methods for supported APIs."""
+from __future__ import annotations
 
 import uuid
 from collections.abc import Iterator
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -16,6 +17,58 @@ from moto.kafka.exceptions import (
 from moto.utilities.utils import get_partition
 
 from ..utilities.tagging_service import TaggingService
+
+
+COMPATIBLE_KAFKA_VERSIONS = {
+    "1.1.1": ['2.2.1'],
+    "2.2.1": ['2.3.1'],
+    "2.3.1": ['2.4.1', '2.4.1.1'],
+    "2.4.1": ['2.5.1'],
+    "2.4.1.1": ['2.5.1'],
+    "2.5.1": ['2.6.0', '2.6.1', '2.6.2'],
+    "2.6.0": ['2.6.1', '2.6.2', '2.7.0'],
+    "2.6.1": ['2.6.2', '2.7.0', '2.7.1'],
+    "2.6.2": ['2.7.0', '2.7.1', '2.7.2'],
+    "2.7.0": ['2.7.1', '2.7.2', '2.8.0'],
+    "2.7.1": ['2.7.2', '2.8.0', '2.8.1'],
+    "2.7.2": ['2.8.0', '2.8.1'],
+    "2.8.0": ['2.8.1', '2.8.2.tiered', '3.1.1'],
+    "2.8.1": ['2.8.2.tiered', '3.1.1', '3.2.0'],
+    "2.8.2.tiered": ['3.1.1', '3.2.0'],
+    "3.1.1": ['3.2.0', '3.3.1'],
+    "3.2.0": ['3.3.1', '3.3.2'],
+    "3.3.1": ['3.3.2', '3.4.0'],
+    "3.3.2": ['3.4.0', '3.5.1'],
+    "3.4.0": ['3.5.1', '3.6.0'],
+    "3.5.1": ['3.6.0'],
+    "3.6.0": [],
+}
+
+
+KAFKA_VERSIONS = [
+    "1.1.1",
+    "2.2.1",
+    "2.3.1",
+    "2.4.1",
+    "2.4.1.1",
+    "2.5.1",
+    "2.6.0",
+    "2.6.1",
+    "2.6.2",
+    "2.7.0",
+    "2.7.1",
+    "2.7.2",
+    "2.8.0",
+    "2.8.1",
+    "2.8.2.tiered",
+    "3.1.1",
+    "3.2.0",
+    "3.3.1",
+    "3.3.2",
+    "3.4.0",
+    "3.5.1",
+    "3.6.0",
+]
 
 
 class FakeKafkaCluster(BaseModel):

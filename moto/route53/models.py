@@ -6,7 +6,7 @@ import re
 import string
 from collections import defaultdict
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel
@@ -36,6 +36,7 @@ from moto.utilities.utils import PARTITION_NAMES, get_partition
 
 from ..utilities.id_generator import ExistingIds, ResourceIdentifier, Tags, moto_id
 from .utils import PAGINATION_MODEL, validate_domain_name
+from jinja2 import Template
 
 ROUTE53_ID_CHOICE = string.ascii_uppercase + string.digits
 LOGS_GROUP_REGION = "us-east-1"

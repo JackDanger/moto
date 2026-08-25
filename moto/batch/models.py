@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from itertools import cycle
 from sys import platform
 from time import sleep
-from typing import Any
+from typing import Any, Optional
 
 from moto import settings
 from moto.core.base_backend import BackendDict, BaseBackend

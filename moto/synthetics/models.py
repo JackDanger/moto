@@ -1,4 +1,5 @@
 """SyntheticsBackend class with methods for supported APIs."""
+from typing import Optional
 
 import uuid
 

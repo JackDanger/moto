@@ -1,7 +1,7 @@
 """CloudHSMV2Backend class with methods for supported APIs."""
 
 import uuid
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.utils import utcnow

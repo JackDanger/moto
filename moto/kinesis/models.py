@@ -8,7 +8,7 @@ from collections import OrderedDict
 from collections.abc import Iterable
 from gzip import GzipFile
 from operator import attrgetter
-from typing import TYPE_CHECKING, Any
+from typing import Any, Optional, TYPE_CHECKING
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel, CloudFormationModel

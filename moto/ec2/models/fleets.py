@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from moto.ec2.models.spot_requests import SpotFleetLaunchSpec, SpotInstanceRequest
 

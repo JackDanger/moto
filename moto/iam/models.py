@@ -6,7 +6,7 @@ import re
 import string
 from collections.abc import Iterable
 from datetime import date, datetime
-from typing import Any
+from typing import Any, Optional
 from urllib import parse
 
 from cryptography import x509

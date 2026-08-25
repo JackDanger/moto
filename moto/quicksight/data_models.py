@@ -1,5 +1,5 @@
 import datetime
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.common_models import BaseModel
 from moto.moto_api._internal import mock_random as random

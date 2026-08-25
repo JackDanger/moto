@@ -2,7 +2,7 @@ import re
 import time
 from collections.abc import Iterable, Iterator
 from datetime import datetime
-from typing import Any
+from typing import Any, Optional
 
 from moto.athena.exceptions import (
     InvalidArgumentException,

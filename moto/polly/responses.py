@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Any
+from typing import Any, Union
 from urllib.parse import urlsplit
 
 from moto.core.responses import BaseResponse

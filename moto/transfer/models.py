@@ -1,6 +1,6 @@
 """TransferBackend class with methods for supported APIs."""
 
-from typing import Any
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.utils import camelcase_to_underscores, unix_time

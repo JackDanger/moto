@@ -1,4 +1,5 @@
 """Handles incoming appsync requests, invokes methods, returns responses."""
+from urllib.parse import unquote
 
 import json
 import re

@@ -1,3 +1,4 @@
+from moto.core.common_types import TYPE_RESPONSE
 from typing import Any
 
 import xmltodict
