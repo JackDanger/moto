@@ -800,3 +800,18 @@ class GapStubs(EC2BaseResponse):
 
     def create_transit_gateway_policy_table(self) -> str:
         return EmptyResult()
+
+    def bundle_instance(self) -> ActionResult:
+        return EmptyResult()
+
+    def cancel_bundle_task(self) -> ActionResult:
+        return EmptyResult()
+
+    def cancel_reserved_instances_listing(self) -> ActionResult:
+        return EmptyResult()
+
+    def create_reserved_instances_listing(self) -> ActionResult:
+        return EmptyResult()
+
+    def purchase_reserved_instances_offering(self) -> ActionResult:
+        return EmptyResult()
