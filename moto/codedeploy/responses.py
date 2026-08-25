@@ -61,10 +61,12 @@ class CodeDeployResponse(BaseResponse):
             application_name=application_name,
             deployment_group_names=deployment_group_names,
         )
-        return json.dumps({
-            "deploymentGroupsInfo": [g.to_dict() for g in groups],
-            "errorMessage": "",
-        })
+        return json.dumps(
+            {
+                "deploymentGroupsInfo": [g.to_dict() for g in groups],
+                "errorMessage": "",
+            }
+        )
 
     def batch_get_deployments(self) -> str:
         deployment_ids = self._get_param("deploymentIds")
@@ -84,10 +86,12 @@ class CodeDeployResponse(BaseResponse):
             deployment_id=deployment_id,
             instance_ids=instance_ids,
         )
-        return json.dumps({
-            "instancesSummary": instances,
-            "errorMessage": "",
-        })
+        return json.dumps(
+            {
+                "instancesSummary": instances,
+                "errorMessage": "",
+            }
+        )
 
     def batch_get_deployment_targets(self) -> str:
         deployment_id = self._get_param("deploymentId")
@@ -103,9 +107,11 @@ class CodeDeployResponse(BaseResponse):
         instances = self.codedeploy_backend.batch_get_on_premises_instances(
             instance_names=instance_names,
         )
-        return json.dumps({
-            "instanceInfos": [inst.to_dict() for inst in instances],
-        })
+        return json.dumps(
+            {
+                "instanceInfos": [inst.to_dict() for inst in instances],
+            }
+        )
 
     def batch_get_application_revisions(self) -> str:
         application_name = self._get_param("applicationName")
@@ -114,11 +120,13 @@ class CodeDeployResponse(BaseResponse):
             application_name=application_name,
             revisions=revisions,
         )
-        return json.dumps({
-            "applicationName": application_name,
-            "errorMessage": "",
-            "revisions": result,
-        })
+        return json.dumps(
+            {
+                "applicationName": application_name,
+                "errorMessage": "",
+                "revisions": result,
+            }
+        )
 
     def create_application(self) -> str:
         application_name = self._get_param("applicationName")
@@ -281,7 +289,9 @@ class CodeDeployResponse(BaseResponse):
         new_deployment_group_name = self._get_param("newDeploymentGroupName")
         deployment_config_name = self._get_param("deploymentConfigName")
         ec2_tag_filters = self._get_param("ec2TagFilters")
-        on_premises_instance_tag_filters = self._get_param("onPremisesInstanceTagFilters")
+        on_premises_instance_tag_filters = self._get_param(
+            "onPremisesInstanceTagFilters"
+        )
         auto_scaling_groups = self._get_param("autoScalingGroups")
         service_role_arn = self._get_param("serviceRoleArn")
         trigger_configurations = self._get_param("triggerConfigurations")
@@ -289,7 +299,9 @@ class CodeDeployResponse(BaseResponse):
         auto_rollback_configuration = self._get_param("autoRollbackConfiguration")
         outdated_instances_strategy = self._get_param("outdatedInstancesStrategy")
         deployment_style = self._get_param("deploymentStyle")
-        blue_green_deployment_configuration = self._get_param("blueGreenDeploymentConfiguration")
+        blue_green_deployment_configuration = self._get_param(
+            "blueGreenDeploymentConfiguration"
+        )
         load_balancer_info = self._get_param("loadBalancerInfo")
         ec2_tag_set = self._get_param("ec2TagSet")
         ecs_services = self._get_param("ecsServices")
@@ -354,10 +366,12 @@ class CodeDeployResponse(BaseResponse):
 
     def list_deployment_configs(self) -> str:
         configs = self.codedeploy_backend.list_deployment_configs()
-        return json.dumps({
-            "deploymentConfigsList": configs,
-            "nextToken": "",
-        })
+        return json.dumps(
+            {
+                "deploymentConfigsList": configs,
+                "nextToken": "",
+            }
+        )
 
     def list_deployment_instances(self) -> str:
         deployment_id = self._get_param("deploymentId")
@@ -368,10 +382,12 @@ class CodeDeployResponse(BaseResponse):
             instance_status_filter=instance_status_filter,
             instance_type_filter=instance_type_filter,
         )
-        return json.dumps({
-            "instancesList": instances,
-            "nextToken": "",
-        })
+        return json.dumps(
+            {
+                "instancesList": instances,
+                "nextToken": "",
+            }
+        )
 
     def list_deployment_targets(self) -> str:
         deployment_id = self._get_param("deploymentId")
@@ -380,17 +396,21 @@ class CodeDeployResponse(BaseResponse):
             deployment_id=deployment_id,
             target_filters=target_filters,
         )
-        return json.dumps({
-            "targetIds": targets,
-            "nextToken": "",
-        })
+        return json.dumps(
+            {
+                "targetIds": targets,
+                "nextToken": "",
+            }
+        )
 
     def list_git_hub_account_token_names(self) -> str:
         tokens = self.codedeploy_backend.list_git_hub_account_token_names()
-        return json.dumps({
-            "tokenNameList": tokens,
-            "nextToken": "",
-        })
+        return json.dumps(
+            {
+                "tokenNameList": tokens,
+                "nextToken": "",
+            }
+        )
 
     def list_on_premises_instances(self) -> str:
         registration_status = self._get_param("registrationStatus")
@@ -399,10 +419,12 @@ class CodeDeployResponse(BaseResponse):
             registration_status=registration_status,
             tag_filters=tag_filters,
         )
-        return json.dumps({
-            "instanceNames": instances,
-            "nextToken": "",
-        })
+        return json.dumps(
+            {
+                "instanceNames": instances,
+                "nextToken": "",
+            }
+        )
 
     def list_application_revisions(self) -> str:
         application_name = self._get_param("applicationName")
@@ -419,10 +441,12 @@ class CodeDeployResponse(BaseResponse):
             s3_key_prefix=s3_key_prefix,
             deployed=deployed,
         )
-        return json.dumps({
-            "revisions": revisions,
-            "nextToken": "",
-        })
+        return json.dumps(
+            {
+                "revisions": revisions,
+                "nextToken": "",
+            }
+        )
 
     def register_application_revision(self) -> str:
         application_name = self._get_param("applicationName")
@@ -530,7 +554,9 @@ class CodeDeployResponse(BaseResponse):
 
     def put_lifecycle_event_hook_execution_status(self) -> str:
         deployment_id = self._get_param("deploymentId")
-        lifecycle_event_hook_execution_id = self._get_param("lifecycleEventHookExecutionId")
+        lifecycle_event_hook_execution_id = self._get_param(
+            "lifecycleEventHookExecutionId"
+        )
         status = self._get_param("status")
         result = self.codedeploy_backend.put_lifecycle_event_hook_execution_status(
             deployment_id=deployment_id,

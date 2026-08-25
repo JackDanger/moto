@@ -157,7 +157,11 @@ class IVSBackend(BaseBackend):
         found = [channel for channel in self.channels if channel["arn"] in arns]
         found_arns = {ch["arn"] for ch in found}
         errors = [
-            {"arn": arn, "code": "ChannelNotBroadcasting", "message": "Channel does not exist"}
+            {
+                "arn": arn,
+                "code": "ChannelNotBroadcasting",
+                "message": "Channel does not exist",
+            }
             for arn in arns
             if arn not in found_arns
         ]
@@ -222,7 +226,11 @@ class IVSBackend(BaseBackend):
         found = [sk for sk in self.stream_keys if sk["arn"] in arns]
         found_arns = {sk["arn"] for sk in found}
         errors = [
-            {"arn": arn, "code": "StreamKeyNotFound", "message": "Stream key does not exist"}
+            {
+                "arn": arn,
+                "code": "StreamKeyNotFound",
+                "message": "Stream key does not exist",
+            }
             for arn in arns
             if arn not in found_arns
         ]
@@ -434,9 +442,7 @@ class IVSBackend(BaseBackend):
             try:
                 session = next(s for s in sessions if s["streamId"] == stream_id)
             except StopIteration:
-                raise ResourceNotFoundException(
-                    f"Resource: {stream_id} not found"
-                )
+                raise ResourceNotFoundException(f"Resource: {stream_id} not found")
         elif sessions:
             session = sessions[-1]
         else:

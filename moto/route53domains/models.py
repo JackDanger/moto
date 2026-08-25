@@ -2,7 +2,6 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
-from moto.core.utils import iso_8601_datetime_with_milliseconds
 from moto.moto_api._internal import mock_random
 from moto.route53 import route53_backends
 from moto.route53.models import Route53Backend
@@ -14,7 +13,6 @@ from .exceptions import (
     DomainLimitExceededException,
     DuplicateRequestException,
     InvalidInputException,
-    OperationLimitExceededException,
 )
 from .validators import (
     DOMAIN_OPERATION_STATUSES,
@@ -326,14 +324,27 @@ class Route53DomainsBackend(BaseBackend):
         base_name = domain_name.split(".")[0]
         tld = domain_name.split(".")[-1] if "." in domain_name else "com"
         suggestions = []
-        suffixes = ["online", "site", "tech", "store", "shop", "app", "dev", "io", "co", "net"]
+        suffixes = [
+            "online",
+            "site",
+            "tech",
+            "store",
+            "shop",
+            "app",
+            "dev",
+            "io",
+            "co",
+            "net",
+        ]
         for i, suffix in enumerate(suffixes):
             if len(suggestions) >= suggestion_count:
                 break
-            suggestions.append({
-                "DomainName": f"{base_name}.{suffix}",
-                "Availability": "AVAILABLE",
-            })
+            suggestions.append(
+                {
+                    "DomainName": f"{base_name}.{suffix}",
+                    "Availability": "AVAILABLE",
+                }
+            )
         return suggestions[:suggestion_count]
 
     def transfer_domain(
@@ -356,14 +367,18 @@ class Route53DomainsBackend(BaseBackend):
         )
         self.__validate_duplicate_operations(requested_operation)
 
-        expiration_date = datetime.now(timezone.utc) + timedelta(days=365 * duration_in_years)
+        expiration_date = datetime.now(timezone.utc) + timedelta(
+            days=365 * duration_in_years
+        )
 
         try:
             domain = Route53Domain.validate(
                 domain_name=domain_name,
                 auto_renew=auto_renew,
                 admin_contact=Route53DomainsContactDetail.validate_dict(admin_contact),
-                registrant_contact=Route53DomainsContactDetail.validate_dict(registrant_contact),
+                registrant_contact=Route53DomainsContactDetail.validate_dict(
+                    registrant_contact
+                ),
                 tech_contact=Route53DomainsContactDetail.validate_dict(tech_contact),
                 admin_privacy=private_protect_admin_contact,
                 registrant_privacy=private_protect_registrant_contact,
@@ -386,7 +401,9 @@ class Route53DomainsBackend(BaseBackend):
         self._get_domain_or_raise(domain_name)
         password = str(mock_random.uuid4())[:12]
         operation = Route53DomainsOperation.validate(
-            domain_name=domain_name, status="SUCCESSFUL", type_="INTERNAL_TRANSFER_OUT_DOMAIN"
+            domain_name=domain_name,
+            status="SUCCESSFUL",
+            type_="INTERNAL_TRANSFER_OUT_DOMAIN",
         )
         self.__operations[operation.id] = operation
         self.__pending_transfers[domain_name] = {
@@ -407,28 +424,30 @@ class Route53DomainsBackend(BaseBackend):
         if transfer["password"] != password:
             raise InvalidInputException(["Invalid password for transfer"])
         operation = Route53DomainsOperation.validate(
-            domain_name=domain_name, status="SUCCESSFUL", type_="INTERNAL_TRANSFER_IN_DOMAIN"
+            domain_name=domain_name,
+            status="SUCCESSFUL",
+            type_="INTERNAL_TRANSFER_IN_DOMAIN",
         )
         self.__operations[operation.id] = operation
         del self.__pending_transfers[domain_name]
         return operation.id
 
-    def reject_domain_transfer_from_another_aws_account(
-        self, domain_name: str
-    ) -> str:
+    def reject_domain_transfer_from_another_aws_account(self, domain_name: str) -> str:
         self.__pending_transfers.pop(domain_name, None)
         operation = Route53DomainsOperation.validate(
-            domain_name=domain_name, status="SUCCESSFUL", type_="INTERNAL_TRANSFER_IN_DOMAIN"
+            domain_name=domain_name,
+            status="SUCCESSFUL",
+            type_="INTERNAL_TRANSFER_IN_DOMAIN",
         )
         self.__operations[operation.id] = operation
         return operation.id
 
-    def cancel_domain_transfer_to_another_aws_account(
-        self, domain_name: str
-    ) -> str:
+    def cancel_domain_transfer_to_another_aws_account(self, domain_name: str) -> str:
         self.__pending_transfers.pop(domain_name, None)
         operation = Route53DomainsOperation.validate(
-            domain_name=domain_name, status="SUCCESSFUL", type_="INTERNAL_TRANSFER_OUT_DOMAIN"
+            domain_name=domain_name,
+            status="SUCCESSFUL",
+            type_="INTERNAL_TRANSFER_OUT_DOMAIN",
         )
         self.__operations[operation.id] = operation
         return operation.id
@@ -471,11 +490,17 @@ class Route53DomainsBackend(BaseBackend):
         domain = self._get_domain_or_raise(domain_name)
         try:
             if admin_contact:
-                domain.admin_contact = Route53DomainsContactDetail.validate_dict(admin_contact)
+                domain.admin_contact = Route53DomainsContactDetail.validate_dict(
+                    admin_contact
+                )
             if registrant_contact:
-                domain.registrant_contact = Route53DomainsContactDetail.validate_dict(registrant_contact)
+                domain.registrant_contact = Route53DomainsContactDetail.validate_dict(
+                    registrant_contact
+                )
             if tech_contact:
-                domain.tech_contact = Route53DomainsContactDetail.validate_dict(tech_contact)
+                domain.tech_contact = Route53DomainsContactDetail.validate_dict(
+                    tech_contact
+                )
         except ValidationException as e:
             raise InvalidInputException(e.errors)
         operation = Route53DomainsOperation.validate(
@@ -499,7 +524,9 @@ class Route53DomainsBackend(BaseBackend):
         if tech_privacy is not None:
             domain.tech_privacy = tech_privacy
         operation = Route53DomainsOperation.validate(
-            domain_name=domain_name, status="SUCCESSFUL", type_="CHANGE_PRIVACY_PROTECTION"
+            domain_name=domain_name,
+            status="SUCCESSFUL",
+            type_="CHANGE_PRIVACY_PROTECTION",
         )
         self.__operations[operation.id] = operation
         return operation.id
@@ -535,7 +562,9 @@ class Route53DomainsBackend(BaseBackend):
         self, domain_name: str, current_expiry_year: int, duration_in_years: int = 1
     ) -> str:
         domain = self._get_domain_or_raise(domain_name)
-        domain.expiration_date = domain.expiration_date + timedelta(days=365 * duration_in_years)
+        domain.expiration_date = domain.expiration_date + timedelta(
+            days=365 * duration_in_years
+        )
         operation = Route53DomainsOperation.validate(
             domain_name=domain_name, status="SUCCESSFUL", type_="RENEW_DOMAIN"
         )
@@ -566,21 +595,21 @@ class Route53DomainsBackend(BaseBackend):
             t for t in existing if t["Key"] not in tags_to_delete
         ]
 
-    def list_prices(
-        self, tld: Optional[str] = None
-    ) -> list[dict[str, Any]]:
+    def list_prices(self, tld: Optional[str] = None) -> list[dict[str, Any]]:
         # Return a stub price list
         tlds = [tld] if tld else ["com", "net", "org", "io", "info"]
         prices = []
         for t in tlds:
-            prices.append({
-                "Name": t,
-                "RegistrationPrice": {"Price": 12.0, "Currency": "USD"},
-                "TransferPrice": {"Price": 12.0, "Currency": "USD"},
-                "RenewalPrice": {"Price": 12.0, "Currency": "USD"},
-                "ChangeOwnershipPrice": {"Price": 12.0, "Currency": "USD"},
-                "RestorationPrice": {"Price": 80.0, "Currency": "USD"},
-            })
+            prices.append(
+                {
+                    "Name": t,
+                    "RegistrationPrice": {"Price": 12.0, "Currency": "USD"},
+                    "TransferPrice": {"Price": 12.0, "Currency": "USD"},
+                    "RenewalPrice": {"Price": 12.0, "Currency": "USD"},
+                    "ChangeOwnershipPrice": {"Price": 12.0, "Currency": "USD"},
+                    "RestorationPrice": {"Price": 80.0, "Currency": "USD"},
+                }
+            )
         return prices
 
     def associate_delegation_signer_to_domain(
@@ -590,10 +619,12 @@ class Route53DomainsBackend(BaseBackend):
         key_id = str(mock_random.uuid4())
         if domain_name not in self.__dnssec_keys:
             self.__dnssec_keys[domain_name] = []
-        self.__dnssec_keys[domain_name].append({
-            "id": key_id,
-            **signing_attributes,
-        })
+        self.__dnssec_keys[domain_name].append(
+            {
+                "id": key_id,
+                **signing_attributes,
+            }
+        )
         operation = Route53DomainsOperation.validate(
             domain_name=domain_name, status="SUCCESSFUL", type_="ADD_DNSSEC"
         )

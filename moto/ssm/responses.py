@@ -788,7 +788,9 @@ class SimpleSystemManagerResponse(BaseResponse):
             notifications=notifications,
             tags=tags,
         )
-        return ActionResult({"OpsItemId": ops_item.ops_item_id, "OpsItemArn": ops_item.arn})
+        return ActionResult(
+            {"OpsItemId": ops_item.ops_item_id, "OpsItemArn": ops_item.arn}
+        )
 
     def get_ops_item(self) -> ActionResult:
         ops_item_id = self._get_param("OpsItemId")
@@ -833,7 +835,12 @@ class SimpleSystemManagerResponse(BaseResponse):
             expiration_date=expiration_date,
             tags=tags,
         )
-        return ActionResult({"ActivationId": activation.activation_id, "ActivationCode": str(activation.activation_id)})
+        return ActionResult(
+            {
+                "ActivationId": activation.activation_id,
+                "ActivationCode": str(activation.activation_id),
+            }
+        )
 
     def delete_activation(self) -> ActionResult:
         activation_id = self._get_param("ActivationId")
@@ -877,7 +884,9 @@ class SimpleSystemManagerResponse(BaseResponse):
             max_concurrency=max_concurrency,
             max_errors=max_errors,
         )
-        return ActionResult({"AutomationExecutionId": execution.automation_execution_id})
+        return ActionResult(
+            {"AutomationExecutionId": execution.automation_execution_id}
+        )
 
     def get_automation_execution(self) -> ActionResult:
         automation_execution_id = self._get_param("AutomationExecutionId")
@@ -1351,8 +1360,12 @@ class SimpleSystemManagerResponse(BaseResponse):
             global_filters=self._get_param("GlobalFilters"),
             approval_rules=self._get_param("ApprovalRules"),
             approved_patches=self._get_param("ApprovedPatches"),
-            approved_patches_compliance_level=self._get_param("ApprovedPatchesComplianceLevel"),
-            approved_patches_enable_non_security=self._get_param("ApprovedPatchesEnableNonSecurity"),
+            approved_patches_compliance_level=self._get_param(
+                "ApprovedPatchesComplianceLevel"
+            ),
+            approved_patches_enable_non_security=self._get_param(
+                "ApprovedPatchesEnableNonSecurity"
+            ),
             rejected_patches=self._get_param("RejectedPatches"),
             rejected_patches_action=self._get_param("RejectedPatchesAction"),
             description=self._get_param("Description"),

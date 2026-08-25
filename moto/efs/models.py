@@ -897,9 +897,7 @@ class EFSBackend(BaseBackend, TaggableResourcesMixin):
         fs._replication_configuration = replication_config
         return replication_config
 
-    def delete_replication_configuration(
-        self, source_file_system_id: str
-    ) -> None:
+    def delete_replication_configuration(self, source_file_system_id: str) -> None:
         if source_file_system_id not in self.file_systems_by_id:
             raise FileSystemNotFound(source_file_system_id)
         fs = self.file_systems_by_id[source_file_system_id]
@@ -907,18 +905,14 @@ class EFSBackend(BaseBackend, TaggableResourcesMixin):
             raise ReplicationNotFound(source_file_system_id)
         fs._replication_configuration = None
 
-    def create_tags(
-        self, file_system_id: str, tags: list[dict[str, str]]
-    ) -> None:
+    def create_tags(self, file_system_id: str, tags: list[dict[str, str]]) -> None:
         if file_system_id not in self.file_systems_by_id:
             raise FileSystemNotFound(file_system_id)
         self.tag_resource(
             file_system_id, {tag["Key"]: tag.get("Value", "") for tag in tags}
         )
 
-    def delete_tags(
-        self, file_system_id: str, tag_keys: list[str]
-    ) -> None:
+    def delete_tags(self, file_system_id: str, tag_keys: list[str]) -> None:
         if file_system_id not in self.file_systems_by_id:
             raise FileSystemNotFound(file_system_id)
         self.untag_resource(file_system_id, tag_keys)

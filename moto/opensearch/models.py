@@ -1,7 +1,7 @@
 import datetime
 from typing import Any
 import uuid
-from typing import Any, Optional
+from typing import Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel

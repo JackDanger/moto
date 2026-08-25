@@ -140,9 +140,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
     def create_replication_instance(self) -> str:
         params = json.loads(self.body)
         replication_instance = self.dms_backend.create_replication_instance(
-            replication_instance_identifier=params.get(
-                "ReplicationInstanceIdentifier"
-            ),
+            replication_instance_identifier=params.get("ReplicationInstanceIdentifier"),
             allocated_storage=params.get("AllocatedStorage"),
             replication_instance_class=params.get("ReplicationInstanceClass"),
             vpc_security_group_ids=self._get_param("VpcSecurityGroupIds"),
@@ -200,9 +198,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
             multi_az=params.get("MultiAZ"),
             engine_version=params.get("EngineVersion"),
             auto_minor_version_upgrade=params.get("AutoMinorVersionUpgrade"),
-            replication_instance_identifier=params.get(
-                "ReplicationInstanceIdentifier"
-            ),
+            replication_instance_identifier=params.get("ReplicationInstanceIdentifier"),
             network_type=params.get("NetworkType"),
         )
         return json.dumps({"ReplicationInstance": instance.to_dict()})
@@ -454,9 +450,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
             max_records=params.get("MaxRecords"),
             marker=params.get("Marker"),
         )
-        return json.dumps(
-            {"EventSubscriptionsList": [s.to_dict() for s in subs]}
-        )
+        return json.dumps({"EventSubscriptionsList": [s.to_dict() for s in subs]})
 
     def delete_event_subscription(self) -> str:
         subscription_name = self._get_param("SubscriptionName")
@@ -499,9 +493,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
 
     def delete_certificate(self) -> str:
         certificate_arn = self._get_param("CertificateArn")
-        cert = self.dms_backend.delete_certificate(
-            certificate_arn=certificate_arn
-        )
+        cert = self.dms_backend.delete_certificate(certificate_arn=certificate_arn)
         return json.dumps({"Certificate": cert.to_dict()})
 
     # ── Replication Configs (Serverless) ─────────────────────────────
@@ -529,9 +521,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
             max_records=params.get("MaxRecords"),
             marker=params.get("Marker"),
         )
-        return json.dumps(
-            {"ReplicationConfigs": [c.to_dict() for c in configs]}
-        )
+        return json.dumps({"ReplicationConfigs": [c.to_dict() for c in configs]})
 
     def delete_replication_config(self) -> str:
         replication_config_arn = self._get_param("ReplicationConfigArn")
@@ -617,9 +607,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
             max_records=params.get("MaxRecords"),
             marker=params.get("Marker"),
         )
-        return json.dumps(
-            {"DataProviders": [p.to_dict() for p in providers]}
-        )
+        return json.dumps({"DataProviders": [p.to_dict() for p in providers]})
 
     def modify_data_provider(self) -> str:
         params = json.loads(self.body)
@@ -664,9 +652,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
             max_records=params.get("MaxRecords"),
             marker=params.get("Marker"),
         )
-        return json.dumps(
-            {"InstanceProfiles": [p.to_dict() for p in profiles]}
-        )
+        return json.dumps({"InstanceProfiles": [p.to_dict() for p in profiles]})
 
     def modify_instance_profile(self) -> str:
         params = json.loads(self.body)
@@ -684,9 +670,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
         return json.dumps({"InstanceProfile": ip.to_dict()})
 
     def delete_instance_profile(self) -> str:
-        instance_profile_identifier = self._get_param(
-            "InstanceProfileIdentifier"
-        )
+        instance_profile_identifier = self._get_param("InstanceProfileIdentifier")
         ip = self.dms_backend.delete_instance_profile(
             instance_profile_identifier=instance_profile_identifier
         )
@@ -721,9 +705,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
             max_records=params.get("MaxRecords"),
             marker=params.get("Marker"),
         )
-        return json.dumps(
-            {"MigrationProjects": [p.to_dict() for p in projects]}
-        )
+        return json.dumps({"MigrationProjects": [p.to_dict() for p in projects]})
 
     def modify_migration_project(self) -> str:
         params = json.loads(self.body)
@@ -746,9 +728,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
         return json.dumps({"MigrationProject": mp.to_dict()})
 
     def delete_migration_project(self) -> str:
-        migration_project_identifier = self._get_param(
-            "MigrationProjectIdentifier"
-        )
+        migration_project_identifier = self._get_param("MigrationProjectIdentifier")
         mp = self.dms_backend.delete_migration_project(
             migration_project_identifier=migration_project_identifier
         )
@@ -776,9 +756,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
             max_records=params.get("MaxRecords"),
             marker=params.get("Marker"),
         )
-        return json.dumps(
-            {"DataMigrations": [m.to_dict() for m in migrations]}
-        )
+        return json.dumps({"DataMigrations": [m.to_dict() for m in migrations]})
 
     def modify_data_migration(self) -> str:
         params = json.loads(self.body)
@@ -1006,9 +984,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
             max_records=params.get("MaxRecords"),
             marker=params.get("Marker"),
         )
-        return json.dumps(
-            {"ReplicationTaskIndividualAssessments": assessments}
-        )
+        return json.dumps({"ReplicationTaskIndividualAssessments": assessments})
 
     def describe_pending_maintenance_actions(self) -> str:
         params = json.loads(self.body)
@@ -1130,9 +1106,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
 
     def batch_start_recommendations(self) -> str:
         params = json.loads(self.body)
-        errors = self.dms_backend.batch_start_recommendations(
-            data=params.get("Data")
-        )
+        errors = self.dms_backend.batch_start_recommendations(data=params.get("Data"))
         return json.dumps({"ErrorEntries": errors})
 
     def describe_recommendations(self) -> str:
@@ -1156,9 +1130,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
     # ── Metadata model / conversion ──────────────────────────────────
 
     def describe_conversion_configuration(self) -> str:
-        migration_project_identifier = self._get_param(
-            "MigrationProjectIdentifier"
-        )
+        migration_project_identifier = self._get_param("MigrationProjectIdentifier")
         result = self.dms_backend.describe_conversion_configuration(
             migration_project_identifier=migration_project_identifier
         )
@@ -1226,18 +1198,14 @@ class DatabaseMigrationServiceResponse(BaseResponse):
         return json.dumps(result)
 
     def cancel_metadata_model_conversion(self) -> str:
-        migration_project_identifier = self._get_param(
-            "MigrationProjectIdentifier"
-        )
+        migration_project_identifier = self._get_param("MigrationProjectIdentifier")
         result = self.dms_backend.cancel_metadata_model_conversion(
             migration_project_identifier=migration_project_identifier
         )
         return json.dumps(result)
 
     def cancel_metadata_model_creation(self) -> str:
-        migration_project_identifier = self._get_param(
-            "MigrationProjectIdentifier"
-        )
+        migration_project_identifier = self._get_param("MigrationProjectIdentifier")
         result = self.dms_backend.cancel_metadata_model_creation(
             migration_project_identifier=migration_project_identifier
         )
@@ -1335,9 +1303,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
         return json.dumps(result)
 
     def start_extension_pack_association(self) -> str:
-        migration_project_identifier = self._get_param(
-            "MigrationProjectIdentifier"
-        )
+        migration_project_identifier = self._get_param("MigrationProjectIdentifier")
         result = self.dms_backend.start_extension_pack_association(
             migration_project_identifier=migration_project_identifier
         )
@@ -1354,9 +1320,7 @@ class DatabaseMigrationServiceResponse(BaseResponse):
         return json.dumps({"Requests": result})
 
     def get_target_selection_rules(self) -> str:
-        migration_project_identifier = self._get_param(
-            "MigrationProjectIdentifier"
-        )
+        migration_project_identifier = self._get_param("MigrationProjectIdentifier")
         result = self.dms_backend.get_target_selection_rules(
             migration_project_identifier=migration_project_identifier
         )

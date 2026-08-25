@@ -381,6 +381,7 @@ class CodePipelineResponse(BaseResponse):
         rule_types = self.codepipeline_backend.list_rule_types()
 
         return json.dumps({"ruleTypes": rule_types})
+
     # --- Deploy Action Execution Targets ---
 
     def list_deploy_action_execution_targets(self) -> str:
@@ -403,13 +404,11 @@ class CodePipelineResponse(BaseResponse):
     # --- Action Revision operations ---
 
     def put_action_revision(self) -> str:
-        new_revision, execution_id = (
-            self.codepipeline_backend.put_action_revision(
-                pipeline_name=self._get_param("pipelineName"),
-                stage_name=self._get_param("stageName"),
-                action_name=self._get_param("actionName"),
-                action_revision=self._get_param("actionRevision"),
-            )
+        new_revision, execution_id = self.codepipeline_backend.put_action_revision(
+            pipeline_name=self._get_param("pipelineName"),
+            stage_name=self._get_param("stageName"),
+            action_name=self._get_param("actionName"),
+            action_revision=self._get_param("actionRevision"),
         )
 
         return json.dumps(

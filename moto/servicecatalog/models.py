@@ -16,7 +16,7 @@ from .exceptions import (
     InvalidParametersException,
     ResourceNotFoundException,
 )
-from .exceptions import DuplicateResourceException, ResourceInUseException
+from .exceptions import DuplicateResourceException
 
 PAGINATION_MODEL = {
     "list_portfolio_access": {
@@ -462,7 +462,9 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
         if product_id:
             product = self.products.get(product_id)
             if not product:
-                raise ResourceNotFoundException(f"Product with Id '{product_id}' not found.")
+                raise ResourceNotFoundException(
+                    f"Product with Id '{product_id}' not found."
+                )
         else:
             product = self.lookup_by_name(name)
             if not product:
@@ -519,9 +521,7 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
         accept_language: Optional[str],
     ) -> tuple[dict[str, Any], list[dict[str, str]]]:
         if portfolio_id not in self.portfolios:
-            raise ResourceNotFoundException(
-                f"Portfolio {portfolio_id} not found."
-            )
+            raise ResourceNotFoundException(f"Portfolio {portfolio_id} not found.")
         portfolio = self.portfolios[portfolio_id]
         if display_name is not None:
             portfolio.display_name = display_name
@@ -553,13 +553,13 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
         share_principals: Optional[bool],
     ) -> tuple[Optional[str], str]:
         if portfolio_id not in self.portfolios:
-            raise ResourceNotFoundException(
-                f"Portfolio {portfolio_id} not found."
-            )
+            raise ResourceNotFoundException(f"Portfolio {portfolio_id} not found.")
         status = "COMPLETED"
         portfolio_share_token = None
         if organization_node:
-            portfolio_share_token = f"share-{portfolio_id}-update-{uuid.uuid4().hex[:8]}"
+            portfolio_share_token = (
+                f"share-{portfolio_id}-update-{uuid.uuid4().hex[:8]}"
+            )
         return portfolio_share_token, status
 
     def describe_portfolio_share_status(
@@ -581,9 +581,7 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
         portfolio_share_type: Optional[str],
     ) -> None:
         if portfolio_id not in self.portfolios:
-            raise ResourceNotFoundException(
-                f"Portfolio {portfolio_id} not found."
-            )
+            raise ResourceNotFoundException(f"Portfolio {portfolio_id} not found.")
         if portfolio_id not in self.accepted_portfolio_shares:
             self.accepted_portfolio_shares.append(portfolio_id)
 
@@ -642,7 +640,11 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
             if organization_node_type in token:
                 parts = token.split("-")
                 for part in parts:
-                    if part.startswith("o-") or part.startswith("ou-") or part.startswith("r-"):
+                    if (
+                        part.startswith("o-")
+                        or part.startswith("ou-")
+                        or part.startswith("r-")
+                    ):
                         org_nodes.append(part)
         return org_nodes, None
 
@@ -652,7 +654,9 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
         product_id: Optional[str],
         name: Optional[str],
         source_portfolio_id: Optional[str],
-    ) -> tuple[dict[str, Any], list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    ) -> tuple[
+        dict[str, Any], list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]
+    ]:
         if not product_id and not name:
             raise InvalidParametersException("Either Id or Name must be specified.")
         if product_id:
@@ -707,9 +711,7 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
         source_connection: Optional[dict[str, Any]],
     ) -> Product:
         if product_id not in self.products:
-            raise ResourceNotFoundException(
-                f"Product {product_id} not found."
-            )
+            raise ResourceNotFoundException(f"Product {product_id} not found.")
         product = self.products[product_id]
         if name is not None:
             product.name = name
@@ -801,7 +803,10 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
                             match = False
                     elif filter_key == "Owner" and product.owner not in filter_values:
                         match = False
-                    elif filter_key == "ProductType" and product.product_type not in filter_values:
+                    elif (
+                        filter_key == "ProductType"
+                        and product.product_type not in filter_values
+                    ):
                         match = False
                 if not match:
                     continue
@@ -846,7 +851,10 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
                             match = False
                     elif filter_key == "Owner" and product.owner not in filter_values:
                         match = False
-                    elif filter_key == "ProductType" and product.product_type not in filter_values:
+                    elif (
+                        filter_key == "ProductType"
+                        and product.product_type not in filter_values
+                    ):
                         match = False
                 if not match:
                     continue
@@ -1069,7 +1077,9 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
         provisioning_artifact_name: Optional[str],
         path_id: Optional[str],
         path_name: Optional[str],
-    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], list[str]]:
+    ) -> tuple[
+        list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]], list[str]
+    ]:
         provisioning_artifact_parameters: list[dict[str, Any]] = []
         constraint_summaries: list[dict[str, Any]] = []
         usage_instructions: list[dict[str, Any]] = []
@@ -1135,9 +1145,7 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
     ) -> tuple[dict[str, Any], str, str]:
         constraint = self.constraints.get(constraint_id)
         if not constraint:
-            raise ResourceNotFoundException(
-                f"Constraint {constraint_id} not found."
-            )
+            raise ResourceNotFoundException(f"Constraint {constraint_id} not found.")
         return constraint.to_detail_dict(), constraint.parameters, "AVAILABLE"
 
     def update_constraint(
@@ -1149,9 +1157,7 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
     ) -> tuple[dict[str, Any], str, str]:
         constraint = self.constraints.get(constraint_id)
         if not constraint:
-            raise ResourceNotFoundException(
-                f"Constraint {constraint_id} not found."
-            )
+            raise ResourceNotFoundException(f"Constraint {constraint_id} not found.")
         if description is not None:
             constraint.description = description
         if parameters is not None:
@@ -1164,9 +1170,7 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
         constraint_id: str,
     ) -> None:
         if constraint_id not in self.constraints:
-            raise ResourceNotFoundException(
-                f"Constraint {constraint_id} not found."
-            )
+            raise ResourceNotFoundException(f"Constraint {constraint_id} not found.")
         del self.constraints[constraint_id]
 
     def list_constraints_for_portfolio(
@@ -1386,9 +1390,7 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
     ) -> dict[str, Any]:
         tag_option = self.tag_options.get(tag_option_id)
         if not tag_option:
-            raise ResourceNotFoundException(
-                f"TagOption {tag_option_id} not found."
-            )
+            raise ResourceNotFoundException(f"TagOption {tag_option_id} not found.")
         return tag_option.to_dict()
 
     def update_tag_option(
@@ -1399,9 +1401,7 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
     ) -> dict[str, Any]:
         tag_option = self.tag_options.get(tag_option_id)
         if not tag_option:
-            raise ResourceNotFoundException(
-                f"TagOption {tag_option_id} not found."
-            )
+            raise ResourceNotFoundException(f"TagOption {tag_option_id} not found.")
         if value is not None:
             tag_option.value = value
         if active is not None:
@@ -1413,14 +1413,10 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
         tag_option_id: str,
     ) -> None:
         if tag_option_id not in self.tag_options:
-            raise ResourceNotFoundException(
-                f"TagOption {tag_option_id} not found."
-            )
+            raise ResourceNotFoundException(f"TagOption {tag_option_id} not found.")
         # Remove associations
         self.tag_option_resource_associations = [
-            a
-            for a in self.tag_option_resource_associations
-            if a[0] != tag_option_id
+            a for a in self.tag_option_resource_associations if a[0] != tag_option_id
         ]
         del self.tag_options[tag_option_id]
 
@@ -1449,9 +1445,7 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
         tag_option_id: str,
     ) -> None:
         if tag_option_id not in self.tag_options:
-            raise ResourceNotFoundException(
-                f"TagOption {tag_option_id} not found."
-            )
+            raise ResourceNotFoundException(f"TagOption {tag_option_id} not found.")
         assoc = (tag_option_id, resource_id)
         if assoc not in self.tag_option_resource_associations:
             self.tag_option_resource_associations.append(assoc)
@@ -1473,9 +1467,7 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
         page_token: Optional[str],
     ) -> tuple[list[dict[str, Any]], Optional[str]]:
         resource_ids = [
-            a[1]
-            for a in self.tag_option_resource_associations
-            if a[0] == tag_option_id
+            a[1] for a in self.tag_option_resource_associations if a[0] == tag_option_id
         ]
         resource_details = []
         for rid in resource_ids:
@@ -1701,9 +1693,7 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
                 match = True
                 for fk, fv in filters.items():
                     if fk == "SearchQuery":
-                        text_match = any(
-                            v.lower() in pp.name.lower() for v in fv
-                        )
+                        text_match = any(v.lower() in pp.name.lower() for v in fv)
                         if not text_match:
                             match = False
                 if not match:
@@ -1828,7 +1818,12 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
             account_id=self.account_id,
         )
         self.provisioned_product_plans[plan.plan_id] = plan
-        return plan.plan_id, plan.plan_name, plan.provision_product_id, plan.provisioning_artifact_id
+        return (
+            plan.plan_id,
+            plan.plan_name,
+            plan.provision_product_id,
+            plan.provisioning_artifact_id,
+        )
 
     def describe_provisioned_product_plan(
         self,
@@ -1884,7 +1879,10 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
     ) -> tuple[list[dict[str, Any]], Optional[str]]:
         summaries = []
         for plan in self.provisioned_product_plans.values():
-            if provision_product_id and plan.provision_product_id != provision_product_id:
+            if (
+                provision_product_id
+                and plan.provision_product_id != provision_product_id
+            ):
                 continue
             summaries.append(plan.to_summary())
         return summaries, None
@@ -1923,9 +1921,7 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
     ) -> tuple[list[dict[str, Any]], Optional[str]]:
         launch_path_summaries: list[dict[str, Any]] = []
         portfolio_ids = [
-            a[1]
-            for a in self.product_portfolio_associations
-            if a[0] == product_id
+            a[1] for a in self.product_portfolio_associations if a[0] == product_id
         ]
         for pid in portfolio_ids:
             if pid in self.portfolios:
@@ -1975,7 +1971,9 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
             if outputs:
                 record.record_outputs = outputs
             if failure_reason:
-                record.record_errors = [{"Code": "FAILED", "Description": failure_reason}]
+                record.record_errors = [
+                    {"Code": "FAILED", "Description": failure_reason}
+                ]
 
     def notify_terminate_provisioned_product_engine_workflow_result(
         self,
@@ -1990,7 +1988,9 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
             record.status = status
             record.updated_time = utcnow()
             if failure_reason:
-                record.record_errors = [{"Code": "FAILED", "Description": failure_reason}]
+                record.record_errors = [
+                    {"Code": "FAILED", "Description": failure_reason}
+                ]
 
     def notify_update_provisioned_product_engine_workflow_result(
         self,
@@ -2008,9 +2008,9 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
             if outputs:
                 record.record_outputs = outputs
             if failure_reason:
-                record.record_errors = [{"Code": "FAILED", "Description": failure_reason}]
-
-
+                record.record_errors = [
+                    {"Code": "FAILED", "Description": failure_reason}
+                ]
 
 
 class ProvisioningArtifact(BaseModel):
@@ -2370,4 +2370,6 @@ class Record(BaseModel):
             "RecordErrors": self.record_errors,
             "RecordTags": self.record_tags,
         }
+
+
 servicecatalog_backends = BackendDict(ServiceCatalogBackend, "servicecatalog")

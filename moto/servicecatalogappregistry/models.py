@@ -271,9 +271,7 @@ class AppRegistryBackend(BaseBackend):
         app.associated_attribute_groups.pop(ag.arn, None)
         return {"applicationArn": app.arn, "attributeGroupArn": ag.arn}
 
-    def list_associated_attribute_groups(
-        self, application: str
-    ) -> list[str]:
+    def list_associated_attribute_groups(self, application: str) -> list[str]:
         app = self._find_app(application)
         return list(app.associated_attribute_groups.keys())
 
@@ -285,7 +283,14 @@ class AppRegistryBackend(BaseBackend):
         for ag_arn in app.associated_attribute_groups.keys():
             if ag_arn in self.attribute_groups:
                 ag = self.attribute_groups[ag_arn]
-                result.append({"id": ag.id, "arn": ag.arn, "name": ag.name, "createdBy": self.account_id})
+                result.append(
+                    {
+                        "id": ag.id,
+                        "arn": ag.arn,
+                        "name": ag.name,
+                        "createdBy": self.account_id,
+                    }
+                )
         return result
 
     def associate_resource(
@@ -321,9 +326,7 @@ class AppRegistryBackend(BaseBackend):
                 return res.to_json()
         raise ResourceNotFoundException(f"Resource not found: {resource}")
 
-    def sync_resource(
-        self, resource_type: str, resource: str
-    ) -> dict[str, Any]:
+    def sync_resource(self, resource_type: str, resource: str) -> dict[str, Any]:
         # Find which application this resource is associated with
         for app in self.applications.values():
             for res in app.associated_resources.values():

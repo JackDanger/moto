@@ -1,7 +1,5 @@
 """Exceptions raised by the kinesisanalyticsv2 service."""
 
-import json
-
 from moto.core.exceptions import JsonRESTError
 
 

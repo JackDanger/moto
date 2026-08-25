@@ -25,7 +25,6 @@ url_paths = {
     r"{0}/(?P<api_version>[\d_-]+)/healthcheck/(?P<health_check_id>[^/]+)/lastfailurereason$": Route53.dispatch,
     r"{0}/(?P<api_version>[\d_-]+)/tags/healthcheck/(?P<zone_id>[^/]+)$": Route53.dispatch,
     r"{0}/(?P<api_version>[\d_-]+)/tags/hostedzone/(?P<zone_id>.+)$": Route53.dispatch,
-
     r"{0}/(?P<api_version>[\d_-]+)/tags/healthcheck$": Route53.dispatch,
     r"{0}/(?P<api_version>[\d_-]+)/tags/hostedzone$": Route53.dispatch,
     r"{0}/(?P<api_version>[\d_-]+)/trafficpolicyinstances/*": Route53.dispatch,

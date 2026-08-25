@@ -4692,15 +4692,6 @@ class FakeTrigger(BaseModel):
         return data
 
 
-
-
-
-
-
-
-
-
-
 class FakeConnection(BaseModel):
     def __init__(
         self,
@@ -4840,8 +4831,6 @@ class FakeWorkflow:
             raise EntityNotFoundException("Entity not found")
 
 
-
-
 class FakeIntegration(BaseModel):
     def __init__(
         self,
@@ -4882,43 +4871,18 @@ class FakeIntegration(BaseModel):
             result["AdditionalEncryptionContext"] = self.additional_encryption_context
         return result
 
-
     # --- Catalogs ---
-
-
-
-
-
 
     # --- Data Quality Rulesets ---
 
-
-
-
-
-
     # --- Blueprints ---
-
-
-
-
-
 
     # --- ML Transforms ---
 
-
-
-
-
-
     # --- Classifiers ---
-
-
-
 
     def get_name(self) -> str:
         return self.job_name
-
 
 
 class FakeCatalog(BaseModel):
@@ -5253,4 +5217,6 @@ class FakeMaterializedViewRefreshTaskRun(BaseModel):
             "Status": self.status,
             "StartedOn": self.started_on,
         }
+
+
 glue_backends = BackendDict(GlueBackend, "glue")

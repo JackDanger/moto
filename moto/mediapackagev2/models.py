@@ -96,8 +96,14 @@ class HarvestJob(BaseModel):
 
 
 class Channel(BaseModel):
-    def __init__(self, group: "ChannelGroup", channel_name: str, description: str = "",
-                 input_type: str = "HLS", tags: Optional[dict[str, str]] = None):
+    def __init__(
+        self,
+        group: "ChannelGroup",
+        channel_name: str,
+        description: str = "",
+        input_type: str = "HLS",
+        tags: Optional[dict[str, str]] = None,
+    ):
         self.group = group
         self.channel_group_name = group.channel_group_name
         self.channel_name = channel_name
@@ -181,7 +187,9 @@ class MediaPackagev2Backend(BaseBackend):
         )
         self.channel_groups[channel_group_name] = group
         if tags:
-            self.tagger.tag_resource(group.arn, [{"Key": k, "Value": v} for k, v in tags.items()])
+            self.tagger.tag_resource(
+                group.arn, [{"Key": k, "Value": v} for k, v in tags.items()]
+            )
         return group
 
     def update_channel_group(
@@ -285,9 +293,7 @@ class MediaPackagev2Backend(BaseBackend):
             "Policy": channel.policy,
         }
 
-    def delete_channel_policy(
-        self, channel_group_name: str, channel_name: str
-    ) -> None:
+    def delete_channel_policy(self, channel_group_name: str, channel_name: str) -> None:
         channel = self.get_channel(channel_group_name, channel_name)
         channel.policy = None
 
@@ -522,7 +528,10 @@ class MediaPackagev2Backend(BaseBackend):
             if channel_name and ch.channel_name != channel_name:
                 continue
             for ep in ch.origin_endpoints.values():
-                if origin_endpoint_name and ep.origin_endpoint_name != origin_endpoint_name:
+                if (
+                    origin_endpoint_name
+                    and ep.origin_endpoint_name != origin_endpoint_name
+                ):
                     continue
                 for job in ep.harvest_jobs.values():
                     if status and job.status != status:

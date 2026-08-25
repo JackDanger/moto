@@ -81,18 +81,20 @@ class SecurityHubResponse(BaseResponse):
         failed_count, success_count, failed_findings = (
             self.securityhub_backend.batch_import_findings(findings=findings)
         )
-        return json.dumps({
-            "FailedCount": failed_count,
-            "FailedFindings": [
-                {
-                    "ErrorCode": f.get("ErrorCode"),
-                    "ErrorMessage": f.get("ErrorMessage"),
-                    "Id": f.get("Id"),
-                }
-                for f in failed_findings
-            ],
-            "SuccessCount": success_count,
-        })
+        return json.dumps(
+            {
+                "FailedCount": failed_count,
+                "FailedFindings": [
+                    {
+                        "ErrorCode": f.get("ErrorCode"),
+                        "ErrorMessage": f.get("ErrorMessage"),
+                        "Id": f.get("Id"),
+                    }
+                    for f in failed_findings
+                ],
+                "SuccessCount": success_count,
+            }
+        )
 
     def batch_update_findings(self) -> str:
         body = self._parse_body()
@@ -108,10 +110,12 @@ class SecurityHubResponse(BaseResponse):
             workflow=body.get("Workflow"),
             related_findings=body.get("RelatedFindings"),
         )
-        return json.dumps({
-            "ProcessedFindings": processed,
-            "UnprocessedFindings": unprocessed,
-        })
+        return json.dumps(
+            {
+                "ProcessedFindings": processed,
+                "UnprocessedFindings": unprocessed,
+            }
+        )
 
     def update_findings(self) -> str:
         body = self._parse_body()
@@ -289,10 +293,12 @@ class SecurityHubResponse(BaseResponse):
                 ),
             )
         )
-        return json.dumps({
-            "StandardsControlAssociationDetails": details,
-            "UnprocessedAssociations": unprocessed,
-        })
+        return json.dumps(
+            {
+                "StandardsControlAssociationDetails": details,
+                "UnprocessedAssociations": unprocessed,
+            }
+        )
 
     def batch_update_standards_control_associations(self) -> str:
         body = self._parse_body()
@@ -342,34 +348,36 @@ class SecurityHubResponse(BaseResponse):
         rules, unprocessed = self.securityhub_backend.batch_get_automation_rules(
             automation_rules_arns=body.get("AutomationRulesArns", []),
         )
-        return json.dumps({
-            "Rules": rules,
-            "UnprocessedAutomationRules": unprocessed,
-        })
+        return json.dumps(
+            {
+                "Rules": rules,
+                "UnprocessedAutomationRules": unprocessed,
+            }
+        )
 
     def batch_update_automation_rules(self) -> str:
         body = self._parse_body()
-        processed, unprocessed = (
-            self.securityhub_backend.batch_update_automation_rules(
-                update_items=body.get("UpdateAutomationRulesRequestItems", []),
-            )
+        processed, unprocessed = self.securityhub_backend.batch_update_automation_rules(
+            update_items=body.get("UpdateAutomationRulesRequestItems", []),
         )
-        return json.dumps({
-            "ProcessedAutomationRules": processed,
-            "UnprocessedAutomationRules": unprocessed,
-        })
+        return json.dumps(
+            {
+                "ProcessedAutomationRules": processed,
+                "UnprocessedAutomationRules": unprocessed,
+            }
+        )
 
     def batch_delete_automation_rules(self) -> str:
         body = self._parse_body()
-        processed, unprocessed = (
-            self.securityhub_backend.batch_delete_automation_rules(
-                automation_rules_arns=body.get("AutomationRulesArns", []),
-            )
+        processed, unprocessed = self.securityhub_backend.batch_delete_automation_rules(
+            automation_rules_arns=body.get("AutomationRulesArns", []),
         )
-        return json.dumps({
-            "ProcessedAutomationRules": processed,
-            "UnprocessedAutomationRules": unprocessed,
-        })
+        return json.dumps(
+            {
+                "ProcessedAutomationRules": processed,
+                "UnprocessedAutomationRules": unprocessed,
+            }
+        )
 
     def list_automation_rules(self) -> str:
         rules, next_token = self.securityhub_backend.list_automation_rules(
@@ -455,11 +463,9 @@ class SecurityHubResponse(BaseResponse):
         return json.dumps({})
 
     def list_configuration_policies(self) -> str:
-        summaries, next_token = (
-            self.securityhub_backend.list_configuration_policies(
-                max_results=self._get_param("MaxResults"),
-                next_token=self._get_param("NextToken"),
-            )
+        summaries, next_token = self.securityhub_backend.list_configuration_policies(
+            max_results=self._get_param("MaxResults"),
+            next_token=self._get_param("NextToken"),
         )
         response: dict[str, Any] = {"ConfigurationPolicySummaries": summaries}
         if next_token:
@@ -504,10 +510,12 @@ class SecurityHubResponse(BaseResponse):
                 ),
             )
         )
-        return json.dumps({
-            "ConfigurationPolicyAssociations": results,
-            "UnprocessedConfigurationPolicyAssociations": unprocessed,
-        })
+        return json.dumps(
+            {
+                "ConfigurationPolicyAssociations": results,
+                "UnprocessedConfigurationPolicyAssociations": unprocessed,
+            }
+        )
 
     def list_configuration_policy_associations(self) -> str:
         body = self._parse_body()
@@ -532,10 +540,12 @@ class SecurityHubResponse(BaseResponse):
         controls, unprocessed = self.securityhub_backend.batch_get_security_controls(
             security_control_ids=body.get("SecurityControlIds", []),
         )
-        return json.dumps({
-            "SecurityControls": controls,
-            "UnprocessedIds": unprocessed,
-        })
+        return json.dumps(
+            {
+                "SecurityControls": controls,
+                "UnprocessedIds": unprocessed,
+            }
+        )
 
     def update_security_control(self) -> str:
         body = self._parse_body()
@@ -554,12 +564,10 @@ class SecurityHubResponse(BaseResponse):
         return json.dumps(result)
 
     def list_security_control_definitions(self) -> str:
-        defs, next_token = (
-            self.securityhub_backend.list_security_control_definitions(
-                standards_arn=self._get_param("StandardsArn"),
-                max_results=self._get_param("MaxResults"),
-                next_token=self._get_param("NextToken"),
-            )
+        defs, next_token = self.securityhub_backend.list_security_control_definitions(
+            standards_arn=self._get_param("StandardsArn"),
+            max_results=self._get_param("MaxResults"),
+            next_token=self._get_param("NextToken"),
         )
         response: dict[str, Any] = {"SecurityControlDefinitions": defs}
         if next_token:
@@ -592,11 +600,9 @@ class SecurityHubResponse(BaseResponse):
         return json.dumps({})
 
     def list_enabled_products_for_import(self) -> str:
-        subs, next_token = (
-            self.securityhub_backend.list_enabled_products_for_import(
-                max_results=self._get_param("MaxResults"),
-                next_token=self._get_param("NextToken"),
-            )
+        subs, next_token = self.securityhub_backend.list_enabled_products_for_import(
+            max_results=self._get_param("MaxResults"),
+            next_token=self._get_param("NextToken"),
         )
         response: dict[str, Any] = {"ProductSubscriptions": subs}
         if next_token:
@@ -623,12 +629,7 @@ class SecurityHubResponse(BaseResponse):
             {"Members": members, "UnprocessedAccounts": unprocessed_accounts}
         )
 
-
-
-
     # --- V2 APIs ---
-
-
 
     def delete_members(self) -> str:
         body = self._parse_body()
@@ -796,10 +797,12 @@ class SecurityHubResponse(BaseResponse):
             severity_id=body.get("SeverityId"),
             status_id=body.get("StatusId"),
         )
-        return json.dumps({
-            "ProcessedFindings": processed,
-            "UnprocessedFindings": unprocessed,
-        })
+        return json.dumps(
+            {
+                "ProcessedFindings": processed,
+                "UnprocessedFindings": unprocessed,
+            }
+        )
 
     def get_findings_v2(self) -> str:
         body = self._parse_body()

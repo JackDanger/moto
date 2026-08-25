@@ -343,7 +343,11 @@ class GreengrassResponse(BaseResponse):
     def list_connector_definitions(self) -> str:
         res = self.greengrass_backend.list_connector_definitions()
         return json.dumps(
-            {"Definitions": [connector_definition.to_dict() for connector_definition in res]}
+            {
+                "Definitions": [
+                    connector_definition.to_dict() for connector_definition in res
+                ]
+            }
         )
 
     def get_connector_definition(self) -> str:
@@ -635,16 +639,30 @@ class GreengrassResponse(BaseResponse):
         return json.dumps({"GroupCertificateAuthorities": []})
 
     def get_group_certificate_authority(self) -> str:
-        return json.dumps({"CertificateAuthorityArn": "", "CertificateAuthorityId": "", "PemEncodedCertificate": ""})
+        return json.dumps(
+            {
+                "CertificateAuthorityArn": "",
+                "CertificateAuthorityId": "",
+                "PemEncodedCertificate": "",
+            }
+        )
 
     def get_group_certificate_configuration(self) -> str:
-        return json.dumps({"CertificateAuthorityExpiryInMilliseconds": "", "CertificateExpiryInMilliseconds": "", "GroupId": ""})
+        return json.dumps(
+            {
+                "CertificateAuthorityExpiryInMilliseconds": "",
+                "CertificateExpiryInMilliseconds": "",
+                "GroupId": "",
+            }
+        )
 
     def list_bulk_deployment_detailed_reports(self) -> str:
         return json.dumps({"Deployments": []})
 
     def get_bulk_deployment_status(self) -> str:
-        return json.dumps({"BulkDeploymentMetrics": {}, "BulkDeploymentStatus": "Completed"})
+        return json.dumps(
+            {"BulkDeploymentMetrics": {}, "BulkDeploymentStatus": "Completed"}
+        )
 
     def start_bulk_deployment(self) -> TYPE_RESPONSE:
         return 200, {}, json.dumps({"BulkDeploymentArn": "", "BulkDeploymentId": ""})
@@ -656,7 +674,13 @@ class GreengrassResponse(BaseResponse):
         return 200, {}, json.dumps({"CertificateAuthorityArn": ""})
 
     def create_software_update_job(self) -> TYPE_RESPONSE:
-        return 200, {}, json.dumps({"IotJobArn": "", "IotJobId": "", "PlatformSoftwareVersion": ""})
+        return (
+            200,
+            {},
+            json.dumps(
+                {"IotJobArn": "", "IotJobId": "", "PlatformSoftwareVersion": ""}
+            ),
+        )
 
     def get_thing_runtime_configuration(self) -> str:
         return json.dumps({"RuntimeConfiguration": {}})
@@ -665,9 +689,13 @@ class GreengrassResponse(BaseResponse):
         return json.dumps({})
 
     def update_group_certificate_configuration(self) -> str:
-        group_id = self.path.rstrip("/").split("/")[-2] if "/groups/" in self.path else ""
-        return json.dumps({
-            "CertificateAuthorityExpiryInMilliseconds": "",
-            "CertificateExpiryInMilliseconds": "",
-            "GroupId": group_id,
-        })
+        group_id = (
+            self.path.rstrip("/").split("/")[-2] if "/groups/" in self.path else ""
+        )
+        return json.dumps(
+            {
+                "CertificateAuthorityExpiryInMilliseconds": "",
+                "CertificateExpiryInMilliseconds": "",
+                "GroupId": group_id,
+            }
+        )

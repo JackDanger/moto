@@ -737,7 +737,9 @@ class ElasticMapReduceResponse(BaseResponse):
     def get_cluster_session_credentials(self) -> "ActionResult":
         cluster_id = self._get_param("ClusterId")
         execution_role_arn = self._get_param("ExecutionRoleArn")
-        result = self.backend.get_cluster_session_credentials(cluster_id, execution_role_arn)
+        result = self.backend.get_cluster_session_credentials(
+            cluster_id, execution_role_arn
+        )
         return ActionResult(result)
 
     def start_notebook_execution(self) -> "ActionResult":
@@ -759,11 +761,15 @@ class ElasticMapReduceResponse(BaseResponse):
     def get_persistent_app_ui_presigned_url(self) -> "ActionResult":
         persistent_app_ui_id = self._get_param("PersistentAppUIId")
         presentation_type = self._get_param("PresentationType", "ATHENA")
-        result = self.backend.get_persistent_app_ui_presigned_url(persistent_app_ui_id, presentation_type)
+        result = self.backend.get_persistent_app_ui_presigned_url(
+            persistent_app_ui_id, presentation_type
+        )
         return ActionResult(result)
 
     def get_on_cluster_app_ui_presigned_url(self) -> "ActionResult":
         cluster_id = self._get_param("ClusterId")
         app_ui_type = self._get_param("OnClusterAppUIType", "SPARK_HISTORY_SERVER")
-        result = self.backend.get_on_cluster_app_ui_presigned_url(cluster_id, app_ui_type)
+        result = self.backend.get_on_cluster_app_ui_presigned_url(
+            cluster_id, app_ui_type
+        )
         return ActionResult(result)

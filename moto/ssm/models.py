@@ -2819,7 +2819,9 @@ class SimpleSystemManagerBackend(BaseBackend, TaggableResourcesMixin):
         association.last_update_association_date = utcnow()
         return association
 
-    def delete_association(self, name: Optional[str] = None, association_id: Optional[str] = None) -> None:
+    def delete_association(
+        self, name: Optional[str] = None, association_id: Optional[str] = None
+    ) -> None:
         if association_id:
             if association_id not in self.associations:
                 raise DoesNotExistException(association_id)
@@ -2881,19 +2883,23 @@ class SimpleSystemManagerBackend(BaseBackend, TaggableResourcesMixin):
             for os_name, baseline_id in pg.associations.items():
                 if baseline_id in self.baselines:
                     baseline = self.baselines[baseline_id]
-                    mappings.append({
-                        "PatchGroup": pg_name,
-                        "BaselineIdentity": {
-                            "BaselineId": baseline_id,
-                            "BaselineName": baseline.name,
-                            "OperatingSystem": baseline.operating_system,
-                            "BaselineDescription": baseline.description,
-                            "DefaultBaseline": baseline.default_baseline,
-                        },
-                    })
+                    mappings.append(
+                        {
+                            "PatchGroup": pg_name,
+                            "BaselineIdentity": {
+                                "BaselineId": baseline_id,
+                                "BaselineName": baseline.name,
+                                "OperatingSystem": baseline.operating_system,
+                                "BaselineDescription": baseline.description,
+                                "DefaultBaseline": baseline.default_baseline,
+                            },
+                        }
+                    )
         return mappings
 
-    def get_default_patch_baseline(self, operating_system: Optional[str] = None) -> dict[str, str]:
+    def get_default_patch_baseline(
+        self, operating_system: Optional[str] = None
+    ) -> dict[str, str]:
         os_name = operating_system or "WINDOWS"
         return {
             "BaselineId": f"pb-{os_name.lower()[:8]}0000000000000",
@@ -3119,12 +3125,16 @@ class SimpleSystemManagerBackend(BaseBackend, TaggableResourcesMixin):
         self.automation_executions[execution.automation_execution_id] = execution
         return execution
 
-    def get_automation_execution(self, automation_execution_id: str) -> FakeAutomationExecution:
+    def get_automation_execution(
+        self, automation_execution_id: str
+    ) -> FakeAutomationExecution:
         if automation_execution_id not in self.automation_executions:
             raise DoesNotExistException(automation_execution_id)
         return self.automation_executions[automation_execution_id]
 
-    def stop_automation_execution(self, automation_execution_id: str, type_: Optional[str] = None) -> None:
+    def stop_automation_execution(
+        self, automation_execution_id: str, type_: Optional[str] = None
+    ) -> None:
         if automation_execution_id not in self.automation_executions:
             raise DoesNotExistException(automation_execution_id)
         execution = self.automation_executions[automation_execution_id]
@@ -3165,20 +3175,26 @@ class SimpleSystemManagerBackend(BaseBackend, TaggableResourcesMixin):
         results = []
         for assoc in self.associations.values():
             if assoc.instance_id == instance_id:
-                results.append({
-                    "AssociationId": assoc.association_id,
-                    "InstanceId": instance_id,
-                    "Content": assoc.name,
-                    "AssociationVersion": assoc.association_version,
-                })
-            for target in assoc.targets:
-                if target.get("Key") == "InstanceIds" and instance_id in target.get("Values", []):
-                    results.append({
+                results.append(
+                    {
                         "AssociationId": assoc.association_id,
                         "InstanceId": instance_id,
                         "Content": assoc.name,
                         "AssociationVersion": assoc.association_version,
-                    })
+                    }
+                )
+            for target in assoc.targets:
+                if target.get("Key") == "InstanceIds" and instance_id in target.get(
+                    "Values", []
+                ):
+                    results.append(
+                        {
+                            "AssociationId": assoc.association_id,
+                            "InstanceId": instance_id,
+                            "Content": assoc.name,
+                            "AssociationVersion": assoc.association_version,
+                        }
+                    )
         return results
 
     def describe_instance_associations_status(
@@ -3190,21 +3206,25 @@ class SimpleSystemManagerBackend(BaseBackend, TaggableResourcesMixin):
             if assoc.instance_id == instance_id:
                 match = True
             for target in assoc.targets:
-                if target.get("Key") == "InstanceIds" and instance_id in target.get("Values", []):
+                if target.get("Key") == "InstanceIds" and instance_id in target.get(
+                    "Values", []
+                ):
                     match = True
             if match:
-                results.append({
-                    "AssociationId": assoc.association_id,
-                    "Name": assoc.name,
-                    "DocumentVersion": assoc.document_version,
-                    "AssociationVersion": assoc.association_version,
-                    "InstanceId": instance_id,
-                    "ExecutionDate": assoc.last_execution_date.isoformat(),
-                    "ExecutionSummary": assoc.status,
-                    "Status": assoc.status,
-                    "DetailedStatus": "Success",
-                    "OutputUrl": {},
-                })
+                results.append(
+                    {
+                        "AssociationId": assoc.association_id,
+                        "Name": assoc.name,
+                        "DocumentVersion": assoc.document_version,
+                        "AssociationVersion": assoc.association_version,
+                        "InstanceId": instance_id,
+                        "ExecutionDate": assoc.last_execution_date.isoformat(),
+                        "ExecutionSummary": assoc.status,
+                        "Status": assoc.status,
+                        "DetailedStatus": "Success",
+                        "OutputUrl": {},
+                    }
+                )
         return results
 
     def describe_instance_patch_states(
@@ -3232,9 +3252,7 @@ class SimpleSystemManagerBackend(BaseBackend, TaggableResourcesMixin):
     ) -> list[dict[str, Any]]:
         return []
 
-    def describe_patch_group_state(
-        self, patch_group: str
-    ) -> dict[str, int]:
+    def describe_patch_group_state(self, patch_group: str) -> dict[str, int]:
         return {
             "Instances": 0,
             "InstancesWithInstalledPatches": 0,
@@ -3254,31 +3272,23 @@ class SimpleSystemManagerBackend(BaseBackend, TaggableResourcesMixin):
     ) -> list[dict[str, str]]:
         return []
 
-    def describe_sessions(
-        self, state: str
-    ) -> list[dict[str, Any]]:
+    def describe_sessions(self, state: str) -> list[dict[str, Any]]:
         return []
 
-    def get_calendar_state(
-        self, calendar_names: list[str]
-    ) -> dict[str, Any]:
+    def get_calendar_state(self, calendar_names: list[str]) -> dict[str, Any]:
         return {
             "State": "OPEN",
             "AtTime": utcnow().isoformat(),
             "NextTransitionTime": "",
         }
 
-    def get_connection_status(
-        self, target: str
-    ) -> dict[str, str]:
+    def get_connection_status(self, target: str) -> dict[str, str]:
         return {
             "Target": target,
             "Status": "notconnected",
         }
 
-    def get_ops_metadata(
-        self, ops_metadata_arn: str
-    ) -> dict[str, Any]:
+    def get_ops_metadata(self, ops_metadata_arn: str) -> dict[str, Any]:
         for meta in self.ops_metadata.values():
             if meta.ops_metadata_arn == ops_metadata_arn:
                 return {
@@ -3353,17 +3363,19 @@ class SimpleSystemManagerBackend(BaseBackend, TaggableResourcesMixin):
         if ops_item_id not in self.ops_items:
             raise DoesNotExistException(ops_item_id)
         association_id = str(random.uuid4())
-        self.ops_items[ops_item_id].related_items.append({
-            "AssociationId": association_id,
-            "OpsItemId": ops_item_id,
-            "AssociationType": association_type,
-            "ResourceType": resource_type,
-            "ResourceUri": resource_uri,
-            "CreatedBy": f"arn:{self.partition}:iam::{self.account_id}:root",
-            "CreatedTime": utcnow().isoformat(),
-            "LastModifiedBy": f"arn:{self.partition}:iam::{self.account_id}:root",
-            "LastModifiedTime": utcnow().isoformat(),
-        })
+        self.ops_items[ops_item_id].related_items.append(
+            {
+                "AssociationId": association_id,
+                "OpsItemId": ops_item_id,
+                "AssociationType": association_type,
+                "ResourceType": resource_type,
+                "ResourceUri": resource_uri,
+                "CreatedBy": f"arn:{self.partition}:iam::{self.account_id}:root",
+                "CreatedTime": utcnow().isoformat(),
+                "LastModifiedBy": f"arn:{self.partition}:iam::{self.account_id}:root",
+                "LastModifiedTime": utcnow().isoformat(),
+            }
+        )
         return association_id
 
     def disassociate_ops_item_related_item(
@@ -3375,8 +3387,7 @@ class SimpleSystemManagerBackend(BaseBackend, TaggableResourcesMixin):
             raise DoesNotExistException(ops_item_id)
         item = self.ops_items[ops_item_id]
         item.related_items = [
-            ri for ri in item.related_items
-            if ri["AssociationId"] != association_id
+            ri for ri in item.related_items if ri["AssociationId"] != association_id
         ]
 
     def delete_inventory(
@@ -3400,11 +3411,7 @@ class SimpleSystemManagerBackend(BaseBackend, TaggableResourcesMixin):
         instance_id: str,
         type_name: str,
     ) -> dict[str, Any]:
-        entries = (
-            self.inventory_entries
-            .get(instance_id, {})
-            .get(type_name, [])
-        )
+        entries = self.inventory_entries.get(instance_id, {}).get(type_name, [])
         return {
             "TypeName": type_name,
             "InstanceId": instance_id,
@@ -3428,10 +3435,12 @@ class SimpleSystemManagerBackend(BaseBackend, TaggableResourcesMixin):
         for window in self.windows.values():
             for target in window.targets.values():
                 if target.resource_type == resource_type:
-                    results.append({
-                        "WindowId": window.id,
-                        "Name": window.name,
-                    })
+                    results.append(
+                        {
+                            "WindowId": window.id,
+                            "Name": window.name,
+                        }
+                    )
                     break
         return results
 
@@ -3444,15 +3453,17 @@ class SimpleSystemManagerBackend(BaseBackend, TaggableResourcesMixin):
         assoc = self.associations[association_id]
         versions = []
         for v in range(1, int(assoc.association_version) + 1):
-            versions.append({
-                "AssociationId": assoc.association_id,
-                "AssociationVersion": str(v),
-                "Name": assoc.name,
-                "DocumentVersion": assoc.document_version,
-                "Targets": assoc.targets,
-                "Parameters": assoc.parameters,
-                "CreatedDate": assoc.date.isoformat(),
-            })
+            versions.append(
+                {
+                    "AssociationId": assoc.association_id,
+                    "AssociationVersion": str(v),
+                    "Name": assoc.name,
+                    "DocumentVersion": assoc.document_version,
+                    "Targets": assoc.targets,
+                    "Parameters": assoc.parameters,
+                    "CreatedDate": assoc.date.isoformat(),
+                }
+            )
         return versions
 
     def list_document_versions(
@@ -3652,9 +3663,7 @@ class SimpleSystemManagerBackend(BaseBackend, TaggableResourcesMixin):
         self.automation_executions[execution.automation_execution_id] = execution
         return execution.automation_execution_id
 
-    def get_patch_baseline(
-        self, baseline_id: str
-    ) -> dict[str, Any]:
+    def get_patch_baseline(self, baseline_id: str) -> dict[str, Any]:
         if baseline_id not in self.baselines:
             raise BaselineDoesNotExistException()
         baseline = self.baselines[baseline_id]
@@ -3873,9 +3882,13 @@ class SimpleSystemManagerBackend(BaseBackend, TaggableResourcesMixin):
         if approved_patches is not None:
             baseline.approved_patches = approved_patches
         if approved_patches_compliance_level is not None:
-            baseline.approved_patches_compliance_level = approved_patches_compliance_level
+            baseline.approved_patches_compliance_level = (
+                approved_patches_compliance_level
+            )
         if approved_patches_enable_non_security is not None:
-            baseline.approved_patches_enable_non_security = approved_patches_enable_non_security
+            baseline.approved_patches_enable_non_security = (
+                approved_patches_enable_non_security
+            )
         if rejected_patches is not None:
             baseline.rejected_patches = rejected_patches
         if rejected_patches_action is not None:
@@ -3920,8 +3933,6 @@ class SimpleSystemManagerBackend(BaseBackend, TaggableResourcesMixin):
         }
 
 
-
-
 class FakeAssociation:
     def __init__(
         self,
@@ -3960,7 +3971,10 @@ class FakeAssociation:
         self.last_update_association_date = now
         self.last_execution_date = now
         self.status = "Success"
-        self.overview = {"Status": "Success", "AssociationStatusAggregatedCount": {"Success": 1}}
+        self.overview = {
+            "Status": "Success",
+            "AssociationStatusAggregatedCount": {"Success": 1},
+        }
         self.account_id = account_id
         self.region_name = region_name
         self.partition = partition
@@ -4275,4 +4289,6 @@ class FakeAutomationExecution:
         if self.target_parameter_name:
             result["TargetParameterName"] = self.target_parameter_name
         return result
+
+
 ssm_backends = BackendDict(SimpleSystemManagerBackend, "ssm")

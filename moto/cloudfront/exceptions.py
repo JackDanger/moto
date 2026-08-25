@@ -59,34 +59,6 @@ class NoSuchInvalidation(CloudFrontException):
         )
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class NoSuchFunctionExists(CloudFrontException):
     code = "NoSuchFunctionExists"
 
@@ -217,9 +189,7 @@ class NoSuchPublicKey(CloudFrontException):
     code = "NoSuchPublicKey"
 
     def __init__(self) -> None:
-        super().__init__(
-            "NoSuchPublicKey", "The specified public key does not exist."
-        )
+        super().__init__("NoSuchPublicKey", "The specified public key does not exist.")
 
 
 class NoSuchResource(CloudFrontException):

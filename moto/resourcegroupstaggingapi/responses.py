@@ -96,12 +96,16 @@ class ResourceGroupsTaggingAPIResponse(BaseResponse):
         )
 
         return ActionResult({"FailedResourcesMap": failed_resources})
+
     def start_report_creation(self) -> str:
         # Accept any S3Bucket param and return success (no actual report created)
         return json.dumps({})
+
     def describe_report_creation(self) -> str:
         return json.dumps({"Status": "", "ErrorMessage": ""})
+
     def get_compliance_summary(self) -> str:
         return json.dumps({"SummaryList": [], "PaginationToken": ""})
+
     def list_required_tags(self) -> str:
         return json.dumps({"RequiredTagsList": [], "PaginationToken": ""})

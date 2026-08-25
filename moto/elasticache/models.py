@@ -31,7 +31,18 @@ from .exceptions import (
     UserNotFound,
 )
 from .utils import AuthenticationTypes
-from .exceptions import (CacheParameterGroupAlreadyExists, CacheParameterGroupNotFound, CacheSecurityGroupAlreadyExists, CacheSecurityGroupNotFound, GlobalReplicationGroupAlreadyExists, GlobalReplicationGroupNotFound, ServerlessCacheAlreadyExists, ServerlessCacheNotFound, UserGroupAlreadyExists, UserGroupNotFound)
+from .exceptions import (
+    CacheParameterGroupAlreadyExists,
+    CacheParameterGroupNotFound,
+    CacheSecurityGroupAlreadyExists,
+    CacheSecurityGroupNotFound,
+    GlobalReplicationGroupAlreadyExists,
+    GlobalReplicationGroupNotFound,
+    ServerlessCacheAlreadyExists,
+    ServerlessCacheNotFound,
+    UserGroupAlreadyExists,
+    UserGroupNotFound,
+)
 
 
 class User(BaseModel):
@@ -1315,7 +1326,11 @@ class ElastiCacheBackend(BaseBackend, TaggableResourcesMixin):
         defaults_spec = [
             ("default.redis7", "redis7", "Default parameter group for redis7"),
             ("default.redis6.x", "redis6.x", "Default parameter group for redis6.x"),
-            ("default.memcached1.6", "memcached1.6", "Default parameter group for memcached1.6"),
+            (
+                "default.memcached1.6",
+                "memcached1.6",
+                "Default parameter group for memcached1.6",
+            ),
         ]
         result = []
         for name, family, desc in defaults_spec:
@@ -1397,33 +1412,41 @@ class ElastiCacheBackend(BaseBackend, TaggableResourcesMixin):
         if replication_group_ids:
             for rg_id in replication_group_ids:
                 if rg_id in self.replication_groups:
-                    processed.append({
-                        "ReplicationGroupId": rg_id,
-                        "ServiceUpdateName": service_update_name,
-                        "UpdateActionStatus": "waiting-to-start",
-                    })
+                    processed.append(
+                        {
+                            "ReplicationGroupId": rg_id,
+                            "ServiceUpdateName": service_update_name,
+                            "UpdateActionStatus": "waiting-to-start",
+                        }
+                    )
                 else:
-                    unprocessed.append({
-                        "ReplicationGroupId": rg_id,
-                        "ServiceUpdateName": service_update_name,
-                        "ErrorType": "replication-group-not-found",
-                        "ErrorMessage": f"Replication group {rg_id} not found",
-                    })
+                    unprocessed.append(
+                        {
+                            "ReplicationGroupId": rg_id,
+                            "ServiceUpdateName": service_update_name,
+                            "ErrorType": "replication-group-not-found",
+                            "ErrorMessage": f"Replication group {rg_id} not found",
+                        }
+                    )
         if cache_cluster_ids:
             for cc_id in cache_cluster_ids:
                 if cc_id in self.cache_clusters:
-                    processed.append({
-                        "CacheClusterId": cc_id,
-                        "ServiceUpdateName": service_update_name,
-                        "UpdateActionStatus": "waiting-to-start",
-                    })
+                    processed.append(
+                        {
+                            "CacheClusterId": cc_id,
+                            "ServiceUpdateName": service_update_name,
+                            "UpdateActionStatus": "waiting-to-start",
+                        }
+                    )
                 else:
-                    unprocessed.append({
-                        "CacheClusterId": cc_id,
-                        "ServiceUpdateName": service_update_name,
-                        "ErrorType": "cache-cluster-not-found",
-                        "ErrorMessage": f"Cache cluster {cc_id} not found",
-                    })
+                    unprocessed.append(
+                        {
+                            "CacheClusterId": cc_id,
+                            "ServiceUpdateName": service_update_name,
+                            "ErrorType": "cache-cluster-not-found",
+                            "ErrorMessage": f"Cache cluster {cc_id} not found",
+                        }
+                    )
         return processed, unprocessed
 
     def batch_stop_update_action(
@@ -1437,33 +1460,41 @@ class ElastiCacheBackend(BaseBackend, TaggableResourcesMixin):
         if replication_group_ids:
             for rg_id in replication_group_ids:
                 if rg_id in self.replication_groups:
-                    processed.append({
-                        "ReplicationGroupId": rg_id,
-                        "ServiceUpdateName": service_update_name,
-                        "UpdateActionStatus": "stopped",
-                    })
+                    processed.append(
+                        {
+                            "ReplicationGroupId": rg_id,
+                            "ServiceUpdateName": service_update_name,
+                            "UpdateActionStatus": "stopped",
+                        }
+                    )
                 else:
-                    unprocessed.append({
-                        "ReplicationGroupId": rg_id,
-                        "ServiceUpdateName": service_update_name,
-                        "ErrorType": "replication-group-not-found",
-                        "ErrorMessage": f"Replication group {rg_id} not found",
-                    })
+                    unprocessed.append(
+                        {
+                            "ReplicationGroupId": rg_id,
+                            "ServiceUpdateName": service_update_name,
+                            "ErrorType": "replication-group-not-found",
+                            "ErrorMessage": f"Replication group {rg_id} not found",
+                        }
+                    )
         if cache_cluster_ids:
             for cc_id in cache_cluster_ids:
                 if cc_id in self.cache_clusters:
-                    processed.append({
-                        "CacheClusterId": cc_id,
-                        "ServiceUpdateName": service_update_name,
-                        "UpdateActionStatus": "stopped",
-                    })
+                    processed.append(
+                        {
+                            "CacheClusterId": cc_id,
+                            "ServiceUpdateName": service_update_name,
+                            "UpdateActionStatus": "stopped",
+                        }
+                    )
                 else:
-                    unprocessed.append({
-                        "CacheClusterId": cc_id,
-                        "ServiceUpdateName": service_update_name,
-                        "ErrorType": "cache-cluster-not-found",
-                        "ErrorMessage": f"Cache cluster {cc_id} not found",
-                    })
+                    unprocessed.append(
+                        {
+                            "CacheClusterId": cc_id,
+                            "ServiceUpdateName": service_update_name,
+                            "ErrorType": "cache-cluster-not-found",
+                            "ErrorMessage": f"Cache cluster {cc_id} not found",
+                        }
+                    )
         return processed, unprocessed
 
     def delete_cache_subnet_group(
@@ -1595,9 +1626,12 @@ class ElastiCacheBackend(BaseBackend, TaggableResourcesMixin):
             raise CacheSecurityGroupNotFound(cache_security_group_name)
         group = self.cache_security_groups[cache_security_group_name]
         group.ec2_security_groups = [
-            sg for sg in group.ec2_security_groups
-            if not (sg.get("EC2SecurityGroupName") == ec2_security_group_name
-                    and sg.get("EC2SecurityGroupOwnerId") == ec2_security_group_owner_id)
+            sg
+            for sg in group.ec2_security_groups
+            if not (
+                sg.get("EC2SecurityGroupName") == ec2_security_group_name
+                and sg.get("EC2SecurityGroupOwnerId") == ec2_security_group_owner_id
+            )
         ]
         return group
 
@@ -1667,7 +1701,10 @@ class ElastiCacheBackend(BaseBackend, TaggableResourcesMixin):
             for uid in user_ids_to_remove:
                 if uid in group.user_ids:
                     group.user_ids.remove(uid)
-                    if uid in self.users and user_group_id in self.users[uid].user_group_ids:
+                    if (
+                        uid in self.users
+                        and user_group_id in self.users[uid].user_group_ids
+                    ):
                         self.users[uid].user_group_ids.remove(user_group_id)
         return group
 
@@ -1789,11 +1826,17 @@ class ElastiCacheBackend(BaseBackend, TaggableResourcesMixin):
     ) -> list[ServerlessCacheSnapshot]:
         snapshots = list(self.serverless_cache_snapshots.values())
         if serverless_cache_snapshot_name:
-            snapshots = [s for s in snapshots if s.serverless_cache_snapshot_name == serverless_cache_snapshot_name]
+            snapshots = [
+                s
+                for s in snapshots
+                if s.serverless_cache_snapshot_name == serverless_cache_snapshot_name
+            ]
             if not snapshots:
                 raise SnapshotNotFound(serverless_cache_snapshot_name)
         if serverless_cache_name:
-            snapshots = [s for s in snapshots if s.serverless_cache_name == serverless_cache_name]
+            snapshots = [
+                s for s in snapshots if s.serverless_cache_name == serverless_cache_name
+            ]
         return snapshots
 
     def create_global_replication_group(
@@ -1863,7 +1906,9 @@ class ElastiCacheBackend(BaseBackend, TaggableResourcesMixin):
         if engine_version is not None:
             grg.engine_version = engine_version
         if global_replication_group_description is not None:
-            grg.global_replication_group_description = global_replication_group_description
+            grg.global_replication_group_description = (
+                global_replication_group_description
+            )
         return grg
 
     def modify_user(
@@ -2001,7 +2046,9 @@ class ElastiCacheBackend(BaseBackend, TaggableResourcesMixin):
         if snapshotting_cluster_id is not None:
             rg.snapshotting_cluster_id = snapshotting_cluster_id
         if automatic_failover_enabled is not None:
-            rg.automatic_failover = "enabled" if automatic_failover_enabled else "disabled"
+            rg.automatic_failover = (
+                "enabled" if automatic_failover_enabled else "disabled"
+            )
         if multi_az_enabled is not None:
             rg.multi_az = "enabled" if multi_az_enabled else "disabled"
         if cache_node_type is not None:
@@ -2023,7 +2070,9 @@ class ElastiCacheBackend(BaseBackend, TaggableResourcesMixin):
         if snapshot_window is not None:
             rg.snapshot_window = snapshot_window
         if log_delivery_configurations is not None:
-            rg.log_delivery_configurations = rg._get_log_delivery_configurations(log_delivery_configurations)
+            rg.log_delivery_configurations = rg._get_log_delivery_configurations(
+                log_delivery_configurations
+            )
         if auth_token is not None:
             rg.auth_token_enabled = bool(auth_token)
         if transit_encryption_enabled is not None:
@@ -2263,8 +2312,6 @@ class ElastiCacheBackend(BaseBackend, TaggableResourcesMixin):
         }
 
 
-
-
 class CacheParameterGroup(BaseModel):
     def __init__(
         self,
@@ -2382,7 +2429,9 @@ class GlobalReplicationGroup(BaseModel):
     ):
         self.global_replication_group_id_suffix = global_replication_group_id_suffix
         self.global_replication_group_id = f"lstgl-{global_replication_group_id_suffix}"
-        self.global_replication_group_description = global_replication_group_description or ""
+        self.global_replication_group_description = (
+            global_replication_group_description or ""
+        )
         self.status = "available"
         self.cache_node_type = "cache.r6g.large"
         self.engine = "redis"
@@ -2427,4 +2476,6 @@ class ServerlessCacheSnapshot(BaseModel):
                 "Engine": serverless_cache.engine,
                 "MajorEngineVersion": serverless_cache.major_engine_version,
             }
+
+
 elasticache_backends = BackendDict(ElastiCacheBackend, "elasticache")

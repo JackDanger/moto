@@ -572,19 +572,25 @@ class LambdaResponse(BaseResponse):
         return 200, {}, json.dumps({"CheckpointToken": None, "NewExecutionState": None})
 
     def get_durable_execution(self) -> TYPE_RESPONSE:
-        return 200, {}, json.dumps({
-            "DurableExecutionArn": None,
-            "DurableExecutionName": None,
-            "FunctionArn": None,
-            "InputPayload": None,
-            "Result": None,
-            "Error": None,
-            "StartTimestamp": None,
-            "Status": None,
-            "EndTimestamp": None,
-            "Version": None,
-            "TraceHeader": None,
-        })
+        return (
+            200,
+            {},
+            json.dumps(
+                {
+                    "DurableExecutionArn": None,
+                    "DurableExecutionName": None,
+                    "FunctionArn": None,
+                    "InputPayload": None,
+                    "Result": None,
+                    "Error": None,
+                    "StartTimestamp": None,
+                    "Status": None,
+                    "EndTimestamp": None,
+                    "Version": None,
+                    "TraceHeader": None,
+                }
+            ),
+        )
 
     def get_durable_execution_history(self) -> TYPE_RESPONSE:
         return 200, {}, json.dumps({"Events": [], "NextMarker": None})

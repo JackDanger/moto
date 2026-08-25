@@ -247,8 +247,9 @@ class ConnectCampaignServiceBackend(BaseBackend, TaggableResourcesMixin):
             operator_logic = {
                 "Eq": lambda campaign: campaign.connect_instance_id == filter_value,
                 "Ne": lambda campaign: campaign.connect_instance_id != filter_value,
-                "Contains": lambda campaign: filter_value
-                in campaign.connect_instance_id,
+                "Contains": lambda campaign: (
+                    filter_value in campaign.connect_instance_id
+                ),
                 "StartsWith": lambda campaign: campaign.connect_instance_id.startswith(
                     filter_value
                 ),
@@ -331,18 +332,21 @@ class ConnectCampaignServiceBackend(BaseBackend, TaggableResourcesMixin):
         self.tagger.untag_resource_using_names(arn, tag_keys)
         return
 
-
     def update_campaign_name(self, id: str, name: str) -> None:
         if id not in self.campaigns:
             raise ResourceNotFoundException(f"Campaign with id {id} not found")
         self.campaigns[id].name = name
 
-    def update_campaign_dialer_config(self, id: str, dialer_config: dict[str, Any]) -> None:
+    def update_campaign_dialer_config(
+        self, id: str, dialer_config: dict[str, Any]
+    ) -> None:
         if id not in self.campaigns:
             raise ResourceNotFoundException(f"Campaign with id {id} not found")
         self.campaigns[id].dialer_config = dialer_config
 
-    def update_campaign_outbound_call_config(self, id: str, outbound_call_config: dict[str, Any]) -> None:
+    def update_campaign_outbound_call_config(
+        self, id: str, outbound_call_config: dict[str, Any]
+    ) -> None:
         if id not in self.campaigns:
             raise ResourceNotFoundException(f"Campaign with id {id} not found")
         self.campaigns[id].outbound_call_config.update(outbound_call_config)

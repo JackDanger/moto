@@ -484,9 +484,7 @@ class MQBackend(BaseBackend):
         if config_id not in self.configs:
             raise UnknownConfiguration(config_id)
         config = self.configs[config_id]
-        revisions = sorted(
-            config.revisions.values(), key=lambda r: int(r.revision_id)
-        )
+        revisions = sorted(config.revisions.values(), key=lambda r: int(r.revision_id))
         return config_id, revisions
 
     def describe_broker_engine_types(self) -> list[dict[str, Any]]:

@@ -1717,8 +1717,6 @@ class BackupBackend(BaseBackend, TaggableResourcesMixin):
             )
 
 
-
-
 class Selection(BaseModel):
     def __init__(
         self,
@@ -2332,4 +2330,6 @@ class LogicallyAirGappedVault(BaseModel):
             "VaultState": self.vault_state,
             "VaultType": self.vault_type,
         }
+
+
 backup_backends = BackendDict(BackupBackend, "backup")

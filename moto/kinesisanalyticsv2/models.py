@@ -11,9 +11,6 @@ from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
 from moto.moto_api._internal import mock_random
 from moto.utilities.tagging_service import TaggingService
 from .exceptions import (
-    ConcurrentModificationException,
-    InvalidArgumentException,
-    ResourceInUseException,
     ResourceNotFoundException,
 )
 
@@ -456,9 +453,7 @@ class KinesisAnalyticsV2Backend(BaseBackend, TaggableResourcesMixin):
             )
         return self.applications[application_name]
 
-    def delete_application(
-        self, application_name: str, create_timestamp: str
-    ) -> None:
+    def delete_application(self, application_name: str, create_timestamp: str) -> None:
         self._get_app(application_name)
         del self.applications[application_name]
 
@@ -984,8 +979,6 @@ class KinesisAnalyticsV2Backend(BaseBackend, TaggableResourcesMixin):
         }
 
 
-
-
 class ApplicationSnapshot(BaseModel):
     def __init__(self, application_name: str, snapshot_name: str, version_id: int):
         self.application_name = application_name
@@ -1002,6 +995,8 @@ class ApplicationOperation(BaseModel):
         self.start_time = datetime.now().isoformat()
         self.end_time = datetime.now().isoformat()
         self.operation_status = "SUCCESSFUL"
+
+
 kinesisanalyticsv2_backends = BackendDict(
     KinesisAnalyticsV2Backend, "kinesisanalyticsv2"
 )

@@ -86,9 +86,7 @@ class TrafficMirrorTarget(TaggedEC2Resource):
         self.id = random_traffic_mirror_target_id()
         self.network_interface_id = network_interface_id
         self.network_load_balancer_arn = network_load_balancer_arn
-        self.gateway_load_balancer_endpoint_id = (
-            gateway_load_balancer_endpoint_id
-        )
+        self.gateway_load_balancer_endpoint_id = gateway_load_balancer_endpoint_id
         self.description = description
         if network_interface_id:
             self.target_type = "network-interface"
@@ -140,17 +138,13 @@ class TrafficMirrorBackend:
         self.traffic_mirror_targets: dict[str, TrafficMirrorTarget] = {}
         self.traffic_mirror_sessions: dict[str, TrafficMirrorSession] = {}
 
-
-    def delete_traffic_mirror_filter(
-        self, traffic_mirror_filter_id: str
-    ) -> str:
+    def delete_traffic_mirror_filter(self, traffic_mirror_filter_id: str) -> str:
         if traffic_mirror_filter_id not in self.traffic_mirror_filters:
             from ..exceptions import InvalidTrafficMirrorFilterIdError
 
             raise InvalidTrafficMirrorFilterIdError(traffic_mirror_filter_id)
         self.traffic_mirror_filters.pop(traffic_mirror_filter_id)
         return traffic_mirror_filter_id
-
 
     def create_traffic_mirror_filter_rule(
         self,
@@ -199,9 +193,7 @@ class TrafficMirrorBackend:
                         return traffic_mirror_filter_rule_id
         from ..exceptions import InvalidTrafficMirrorFilterRuleIdError
 
-        raise InvalidTrafficMirrorFilterRuleIdError(
-            traffic_mirror_filter_rule_id
-        )
+        raise InvalidTrafficMirrorFilterRuleIdError(traffic_mirror_filter_rule_id)
 
     def describe_traffic_mirror_filter_rules(
         self,
@@ -211,29 +203,21 @@ class TrafficMirrorBackend:
         rules: list[TrafficMirrorFilterRule] = []
         filters = list(self.traffic_mirror_filters.values())
         if traffic_mirror_filter_id:
-            filters = [
-                f for f in filters if f.id == traffic_mirror_filter_id
-            ]
+            filters = [f for f in filters if f.id == traffic_mirror_filter_id]
         for tmf in filters:
             rules.extend(tmf.ingress_rules)
             rules.extend(tmf.egress_rules)
         if traffic_mirror_filter_rule_ids:
-            rules = [
-                r for r in rules if r.id in traffic_mirror_filter_rule_ids
-            ]
+            rules = [r for r in rules if r.id in traffic_mirror_filter_rule_ids]
         return rules
 
-
-    def delete_traffic_mirror_target(
-        self, traffic_mirror_target_id: str
-    ) -> str:
+    def delete_traffic_mirror_target(self, traffic_mirror_target_id: str) -> str:
         if traffic_mirror_target_id not in self.traffic_mirror_targets:
             from ..exceptions import InvalidTrafficMirrorTargetIdError
 
             raise InvalidTrafficMirrorTargetIdError(traffic_mirror_target_id)
         self.traffic_mirror_targets.pop(traffic_mirror_target_id)
         return traffic_mirror_target_id
-
 
     def create_traffic_mirror_session(
         self,
@@ -260,15 +244,11 @@ class TrafficMirrorBackend:
         self.traffic_mirror_sessions[tms.id] = tms
         return tms
 
-    def delete_traffic_mirror_session(
-        self, traffic_mirror_session_id: str
-    ) -> str:
+    def delete_traffic_mirror_session(self, traffic_mirror_session_id: str) -> str:
         if traffic_mirror_session_id not in self.traffic_mirror_sessions:
             from ..exceptions import InvalidTrafficMirrorSessionIdError
 
-            raise InvalidTrafficMirrorSessionIdError(
-                traffic_mirror_session_id
-            )
+            raise InvalidTrafficMirrorSessionIdError(traffic_mirror_session_id)
         self.traffic_mirror_sessions.pop(traffic_mirror_session_id)
         return traffic_mirror_session_id
 
@@ -278,9 +258,7 @@ class TrafficMirrorBackend:
     ) -> list[TrafficMirrorSession]:
         sessions = list(self.traffic_mirror_sessions.values())
         if traffic_mirror_session_ids:
-            sessions = [
-                s for s in sessions if s.id in traffic_mirror_session_ids
-            ]
+            sessions = [s for s in sessions if s.id in traffic_mirror_session_ids]
         return sessions
 
     def modify_traffic_mirror_filter_network_services(

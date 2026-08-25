@@ -283,12 +283,14 @@ class PrometheusServiceResponse(BaseResponse):
             role_configuration=params.get("roleConfiguration"),
             tags=params.get("tags"),
         )
-        return json.dumps({
-            "scraperId": scraper.scraper_id,
-            "arn": scraper.arn,
-            "status": scraper.status,
-            "tags": scraper.tags,
-        })
+        return json.dumps(
+            {
+                "scraperId": scraper.scraper_id,
+                "arn": scraper.arn,
+                "status": scraper.status,
+                "tags": scraper.tags,
+            }
+        )
 
     def describe_scraper(self) -> str:
         return self._describe_scraper()
@@ -311,12 +313,14 @@ class PrometheusServiceResponse(BaseResponse):
             destination=params.get("destination"),
             role_configuration=params.get("roleConfiguration"),
         )
-        return json.dumps({
-            "scraperId": scraper.scraper_id,
-            "arn": scraper.arn,
-            "status": scraper.status,
-            "tags": scraper.tags,
-        })
+        return json.dumps(
+            {
+                "scraperId": scraper.scraper_id,
+                "arn": scraper.arn,
+                "status": scraper.status,
+                "tags": scraper.tags,
+            }
+        )
 
     def delete_scraper(self) -> str:
         return self._delete_scraper()
@@ -331,10 +335,12 @@ class PrometheusServiceResponse(BaseResponse):
 
     def _list_scrapers(self) -> str:
         scrapers = self.amp_backend.list_scrapers(filters=None)
-        return json.dumps({
-            "nextToken": None,
-            "scrapers": [s.summary_dict() for s in scrapers],
-        })
+        return json.dumps(
+            {
+                "nextToken": None,
+                "scrapers": [s.summary_dict() for s in scrapers],
+            }
+        )
 
     def scraper_configuration(
         self, request: Any, full_url: str, headers: Any
@@ -433,12 +439,14 @@ class PrometheusServiceResponse(BaseResponse):
             labels=params.get("labels"),
             tags=params.get("tags"),
         )
-        return json.dumps({
-            "anomalyDetectorId": ad.anomaly_detector_id,
-            "arn": ad.arn,
-            "status": ad.status,
-            "tags": ad.tags,
-        })
+        return json.dumps(
+            {
+                "anomalyDetectorId": ad.anomaly_detector_id,
+                "arn": ad.arn,
+                "status": ad.status,
+                "tags": ad.tags,
+            }
+        )
 
     def describe_anomaly_detector(self) -> str:
         return self._describe_anomaly_detector()
@@ -469,12 +477,14 @@ class PrometheusServiceResponse(BaseResponse):
             configuration=params.get("configuration"),
             labels=params.get("labels"),
         )
-        return json.dumps({
-            "anomalyDetectorId": ad.anomaly_detector_id,
-            "arn": ad.arn,
-            "status": ad.status,
-            "tags": ad.tags,
-        })
+        return json.dumps(
+            {
+                "anomalyDetectorId": ad.anomaly_detector_id,
+                "arn": ad.arn,
+                "status": ad.status,
+                "tags": ad.tags,
+            }
+        )
 
     def delete_anomaly_detector(self) -> str:
         return self._delete_anomaly_detector()
@@ -498,16 +508,16 @@ class PrometheusServiceResponse(BaseResponse):
         detectors = self.amp_backend.list_anomaly_detectors(
             workspace_id=workspace_id, alias=alias
         )
-        return json.dumps({
-            "nextToken": None,
-            "anomalyDetectors": [d.to_dict() for d in detectors],
-        })
+        return json.dumps(
+            {
+                "nextToken": None,
+                "anomalyDetectors": [d.to_dict() for d in detectors],
+            }
+        )
 
     # --- Query Logging Configuration ---
 
-    def query_logging(
-        self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:
+    def query_logging(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         if request.method == "POST":
             return _r(self._create_query_logging_configuration(), 202)
@@ -558,9 +568,7 @@ class PrometheusServiceResponse(BaseResponse):
 
     def _delete_query_logging_configuration(self) -> str:
         workspace_id = unquote(self.path).split("/workspaces/")[-1].split("/")[0]
-        self.amp_backend.delete_query_logging_configuration(
-            workspace_id=workspace_id
-        )
+        self.amp_backend.delete_query_logging_configuration(workspace_id=workspace_id)
         return "{}"
 
     # --- Resource Policy ---

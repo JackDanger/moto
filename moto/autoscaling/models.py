@@ -2304,9 +2304,7 @@ class AutoScalingBackend(BaseBackend, TaggableResourcesMixin):
         group = self.autoscaling_groups[auto_scaling_group_name]
         sources = group.traffic_sources
         if traffic_source_type:
-            sources = [
-                s for s in sources if s.get("Type") == traffic_source_type
-            ]
+            sources = [s for s in sources if s.get("Type") == traffic_source_type]
         return sources
 
     def detach_traffic_sources(
@@ -2322,9 +2320,7 @@ class AutoScalingBackend(BaseBackend, TaggableResourcesMixin):
         group = self.autoscaling_groups[auto_scaling_group_name]
         ids_to_remove = {ts["Identifier"] for ts in traffic_sources}
         group.traffic_sources = [
-            ts
-            for ts in group.traffic_sources
-            if ts["Identifier"] not in ids_to_remove
+            ts for ts in group.traffic_sources if ts["Identifier"] not in ids_to_remove
         ]
 
     def get_predictive_scaling_forecast(
@@ -2347,8 +2343,6 @@ class AutoScalingBackend(BaseBackend, TaggableResourcesMixin):
             },
             "UpdateTime": utcnow(),
         }
-
-
 
 
 class InstanceRefresh:
@@ -2381,4 +2375,6 @@ class NotificationConfiguration:
         self.auto_scaling_group_name = auto_scaling_group_name
         self.topic_arn = topic_arn
         self.notification_types = notification_types
+
+
 autoscaling_backends = BackendDict(AutoScalingBackend, "autoscaling")

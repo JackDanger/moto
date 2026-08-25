@@ -117,9 +117,7 @@ class CostExplorerResponse(BaseResponse):
         params = json.loads(self.body)
         monitor = params.get("AnomalyMonitor")
         tags = params.get("ResourceTags")
-        monitor_arn = self.ce_backend.create_anomaly_monitor(
-            monitor=monitor, tags=tags
-        )
+        monitor_arn = self.ce_backend.create_anomaly_monitor(monitor=monitor, tags=tags)
         return json.dumps({"MonitorArn": monitor_arn})
 
     def get_anomaly_monitors(self) -> str:
@@ -347,12 +345,10 @@ class CostExplorerResponse(BaseResponse):
 
     def list_cost_category_resource_associations(self) -> str:
         params = json.loads(self.body)
-        assocs, next_token = (
-            self.ce_backend.list_cost_category_resource_associations(
-                cost_category_arn=params.get("CostCategoryArn"),
-                next_token=params.get("NextToken"),
-                max_results=params.get("MaxResults"),
-            )
+        assocs, next_token = self.ce_backend.list_cost_category_resource_associations(
+            cost_category_arn=params.get("CostCategoryArn"),
+            next_token=params.get("NextToken"),
+            max_results=params.get("MaxResults"),
         )
         result: dict = {"CostCategoryResourceAssociations": assocs}
         if next_token:

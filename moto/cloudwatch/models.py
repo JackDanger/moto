@@ -1375,8 +1375,6 @@ class CloudWatchBackend(BaseBackend, TaggableResourcesMixin):
         return {"Contributors": []}
 
 
-
-
 class MetricStream(BaseModel):
     def __init__(
         self,
@@ -1403,4 +1401,6 @@ class MetricStream(BaseModel):
         self.state = "running"
         self.creation_date = utcnow()
         self.last_update_date = utcnow()
+
+
 cloudwatch_backends = BackendDict(CloudWatchBackend, "cloudwatch")

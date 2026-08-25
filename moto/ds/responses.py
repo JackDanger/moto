@@ -246,8 +246,6 @@ class DirectoryServiceResponse(BaseResponse):
         )
         return ""
 
-
-
     def describe_settings(self) -> str:
         directory_id = self._get_param("DirectoryId")
         status = self._get_param("Status")
@@ -329,7 +327,9 @@ class DirectoryServiceResponse(BaseResponse):
     def register_event_topic(self) -> str:
         directory_id = self._get_param("DirectoryId")
         topic_name = self._get_param("TopicName")
-        sns_topic_arn = self._get_param("TopicName")  # AWS uses TopicName as the SNS topic
+        sns_topic_arn = self._get_param(
+            "TopicName"
+        )  # AWS uses TopicName as the SNS topic
         self.ds_backend.register_event_topic(
             directory_id=directory_id,
             topic_name=topic_name,
@@ -566,8 +566,6 @@ class DirectoryServiceResponse(BaseResponse):
         routes = self.ds_backend.list_ip_routes(directory_id=directory_id)
         return json.dumps({"IpRoutesInfo": routes, "NextToken": None})
 
-
-
     def list_schema_extensions(self) -> str:
         directory_id = self._get_param("DirectoryId")
         next_token = self._get_param("NextToken")
@@ -659,9 +657,7 @@ class DirectoryServiceResponse(BaseResponse):
 
     def start_schema_extension(self) -> str:
         directory_id = self._get_param("DirectoryId")
-        create_snapshot = self._get_param(
-            "CreateSnapshotBeforeSchemaExtension", False
-        )
+        create_snapshot = self._get_param("CreateSnapshotBeforeSchemaExtension", False)
         ldif_content = self._get_param("LdifContent")
         description = self._get_param("Description")
         schema_extension_id = self.ds_backend.start_schema_extension(

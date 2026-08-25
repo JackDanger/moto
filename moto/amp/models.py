@@ -469,9 +469,7 @@ scrape_configs:
 
     # --- Scraper Logging Configuration ---
 
-    def describe_scraper_logging_configuration(
-        self, scraper_id: str
-    ) -> dict[str, Any]:
+    def describe_scraper_logging_configuration(self, scraper_id: str) -> dict[str, Any]:
         scraper = self.describe_scraper(scraper_id)
         result: dict[str, Any] = {
             "scraperId": scraper_id,
@@ -596,9 +594,7 @@ scrape_configs:
         }
         return ws.query_logging_config["status"]
 
-    def describe_query_logging_configuration(
-        self, workspace_id: str
-    ) -> dict[str, Any]:
+    def describe_query_logging_configuration(self, workspace_id: str) -> dict[str, Any]:
         ws = self.describe_workspace(workspace_id)
         if ws.query_logging_config is None:
             raise ResourceNotFoundException(

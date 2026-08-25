@@ -274,6 +274,7 @@ class EFSResponse(BaseResponse):
             provisioned_throughput_in_mibps=provisioned_throughput_in_mibps,
         )
         return json.dumps(fs.info_json()), {"Content-Type": "application/json"}
+
     def create_replication_configuration(self) -> TYPE_RESPONSE:
         source_file_system_id = self._get_param("SourceFileSystemId")
         destinations = self._get_param("Destinations")

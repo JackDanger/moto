@@ -238,9 +238,15 @@ class BedrockResponse(BaseResponse):
             topic_policy_config=params.get("topicPolicyConfig"),
             content_policy_config=params.get("contentPolicyConfig"),
             word_policy_config=params.get("wordPolicyConfig"),
-            sensitive_information_policy_config=params.get("sensitiveInformationPolicyConfig"),
-            contextual_grounding_policy_config=params.get("contextualGroundingPolicyConfig"),
-            automated_reasoning_policy_config=params.get("automatedReasoningPolicyConfig"),
+            sensitive_information_policy_config=params.get(
+                "sensitiveInformationPolicyConfig"
+            ),
+            contextual_grounding_policy_config=params.get(
+                "contextualGroundingPolicyConfig"
+            ),
+            automated_reasoning_policy_config=params.get(
+                "automatedReasoningPolicyConfig"
+            ),
             cross_region_config=params.get("crossRegionConfig"),
             kms_key_id=params.get("kmsKeyId"),
             tags=params.get("tags"),
@@ -270,9 +276,15 @@ class BedrockResponse(BaseResponse):
             topic_policy_config=params.get("topicPolicyConfig"),
             content_policy_config=params.get("contentPolicyConfig"),
             word_policy_config=params.get("wordPolicyConfig"),
-            sensitive_information_policy_config=params.get("sensitiveInformationPolicyConfig"),
-            contextual_grounding_policy_config=params.get("contextualGroundingPolicyConfig"),
-            automated_reasoning_policy_config=params.get("automatedReasoningPolicyConfig"),
+            sensitive_information_policy_config=params.get(
+                "sensitiveInformationPolicyConfig"
+            ),
+            contextual_grounding_policy_config=params.get(
+                "contextualGroundingPolicyConfig"
+            ),
+            automated_reasoning_policy_config=params.get(
+                "automatedReasoningPolicyConfig"
+            ),
             cross_region_config=params.get("crossRegionConfig"),
             kms_key_id=params.get("kmsKeyId"),
         )
@@ -327,7 +339,9 @@ class BedrockResponse(BaseResponse):
 
     def get_provisioned_model_throughput(self) -> str:
         provisioned_model_id = unquote(self.path.split("/")[-1])
-        result = self.bedrock_backend.get_provisioned_model_throughput(provisioned_model_id)
+        result = self.bedrock_backend.get_provisioned_model_throughput(
+            provisioned_model_id
+        )
         return json.dumps(result)
 
     def update_provisioned_model_throughput(self) -> str:
@@ -349,19 +363,23 @@ class BedrockResponse(BaseResponse):
         params = self._get_params()
         max_results = self._get_int_param("maxResults")
         next_token = params.get("nextToken")
-        throughputs, next_token = self.bedrock_backend.list_provisioned_model_throughputs(
-            creation_time_after=params.get("creationTimeAfter"),
-            creation_time_before=params.get("creationTimeBefore"),
-            status_equals=params.get("statusEquals"),
-            model_arn_equals=params.get("modelArnEquals"),
-            name_contains=params.get("nameContains"),
-            sort_by=params.get("sortBy"),
-            sort_order=params.get("sortOrder"),
-            max_results=max_results,
-            next_token=next_token,
+        throughputs, next_token = (
+            self.bedrock_backend.list_provisioned_model_throughputs(
+                creation_time_after=params.get("creationTimeAfter"),
+                creation_time_before=params.get("creationTimeBefore"),
+                status_equals=params.get("statusEquals"),
+                model_arn_equals=params.get("modelArnEquals"),
+                name_contains=params.get("nameContains"),
+                sort_by=params.get("sortBy"),
+                sort_order=params.get("sortOrder"),
+                max_results=max_results,
+                next_token=next_token,
+            )
         )
         summaries = [t.summary() for t in throughputs]
-        return json.dumps({"nextToken": next_token, "provisionedModelSummaries": summaries})
+        return json.dumps(
+            {"nextToken": next_token, "provisionedModelSummaries": summaries}
+        )
 
     # -------------------------------------------------------------------
     # Evaluation Jobs
@@ -453,7 +471,9 @@ class BedrockResponse(BaseResponse):
             next_token=next_token,
         )
         summaries = [p.summary() for p in profiles]
-        return json.dumps({"inferenceProfileSummaries": summaries, "nextToken": next_token})
+        return json.dumps(
+            {"inferenceProfileSummaries": summaries, "nextToken": next_token}
+        )
 
     # -------------------------------------------------------------------
     # Model Import Jobs
@@ -493,7 +513,9 @@ class BedrockResponse(BaseResponse):
             next_token=next_token,
         )
         summaries = [j.summary() for j in jobs]
-        return json.dumps({"nextToken": next_token, "modelImportJobSummaries": summaries})
+        return json.dumps(
+            {"nextToken": next_token, "modelImportJobSummaries": summaries}
+        )
 
     # -------------------------------------------------------------------
     # Imported Models
@@ -609,7 +631,9 @@ class BedrockResponse(BaseResponse):
             next_token=next_token,
         )
         summaries = [j.summary() for j in jobs]
-        return json.dumps({"nextToken": next_token, "invocationJobSummaries": summaries})
+        return json.dumps(
+            {"nextToken": next_token, "invocationJobSummaries": summaries}
+        )
 
     # -------------------------------------------------------------------
     # Foundation Models
@@ -690,7 +714,9 @@ class BedrockResponse(BaseResponse):
             next_token=next_token,
         )
         summaries = [e.summary() for e in endpoints]
-        return json.dumps({"marketplaceModelEndpoints": summaries, "nextToken": next_token})
+        return json.dumps(
+            {"marketplaceModelEndpoints": summaries, "nextToken": next_token}
+        )
 
     # -------------------------------------------------------------------
     # Prompt Routers
@@ -770,7 +796,9 @@ class BedrockResponse(BaseResponse):
             next_token=next_token,
         )
         summaries = [d.summary() for d in deployments]
-        return json.dumps({"modelDeploymentSummaries": summaries, "nextToken": next_token})
+        return json.dumps(
+            {"modelDeploymentSummaries": summaries, "nextToken": next_token}
+        )
 
     # -------------------------------------------------------------------
     # Foundation Model Agreements (stub)
@@ -898,7 +926,9 @@ class BedrockResponse(BaseResponse):
     def export_automated_reasoning_policy_version(self) -> str:
         # Path: /automated-reasoning-policies/{policyArn}/export
         policy_arn = unquote(self.path.split("/")[-2])
-        result = self.bedrock_backend.export_automated_reasoning_policy_version(policy_arn)
+        result = self.bedrock_backend.export_automated_reasoning_policy_version(
+            policy_arn
+        )
         return json.dumps(result)
 
     def create_automated_reasoning_policy_test_case(self) -> str:
@@ -950,7 +980,9 @@ class BedrockResponse(BaseResponse):
     def list_automated_reasoning_policy_test_cases(self) -> str:
         # Path: /automated-reasoning-policies/{policyArn}/test-cases
         policy_arn = unquote(self.path.split("/")[-2])
-        result = self.bedrock_backend.list_automated_reasoning_policy_test_cases(policy_arn)
+        result = self.bedrock_backend.list_automated_reasoning_policy_test_cases(
+            policy_arn
+        )
         return json.dumps({"testCases": result})
 
     def start_automated_reasoning_policy_build_workflow(self) -> str:
@@ -996,7 +1028,9 @@ class BedrockResponse(BaseResponse):
     def list_automated_reasoning_policy_build_workflows(self) -> str:
         # Path: /automated-reasoning-policies/{policyArn}/build-workflows
         policy_arn = unquote(self.path.split("/")[-2])
-        result = self.bedrock_backend.list_automated_reasoning_policy_build_workflows(policy_arn)
+        result = self.bedrock_backend.list_automated_reasoning_policy_build_workflows(
+            policy_arn
+        )
         return json.dumps({"buildWorkflows": result})
 
     def get_automated_reasoning_policy_build_workflow_result_assets(self) -> str:

@@ -26,6 +26,7 @@ def _iso_now() -> str:
 # Model classes
 # ---------------------------------------------------------------------------
 
+
 class ModelCustomizationJob(BaseModel):
     def __init__(
         self,
@@ -300,7 +301,9 @@ class ProvisionedModelThroughput(BaseModel):
         self.provisioned_model_id = str(uuid.uuid4())[:12]
         partition = get_partition(region_name)
         self.provisioned_model_arn = f"arn:{partition}:bedrock:{region_name}:{account_id}:provisioned-model/{self.provisioned_model_id}"
-        self.model_arn = f"arn:{partition}:bedrock:{region_name}::foundation-model/{model_id}"
+        self.model_arn = (
+            f"arn:{partition}:bedrock:{region_name}::foundation-model/{model_id}"
+        )
         self.desired_model_arn = self.model_arn
         self.foundation_model_arn = self.model_arn
         self.status = "InService"
@@ -625,10 +628,14 @@ class ModelCopyJob(BaseModel):
         # Extract source account from ARN
         parts = source_model_arn.split(":")
         self.source_account_id = parts[4] if len(parts) > 4 else account_id
-        self.source_model_name = source_model_arn.split("/")[-1] if "/" in source_model_arn else ""
+        self.source_model_name = (
+            source_model_arn.split("/")[-1] if "/" in source_model_arn else ""
+        )
         self.target_model_kms_key_arn = ""
         if model_kms_key_id:
-            self.target_model_kms_key_arn = f"arn:{partition}:kms:{region_name}:{account_id}:key/{model_kms_key_id}"
+            self.target_model_kms_key_arn = (
+                f"arn:{partition}:kms:{region_name}:{account_id}:key/{model_kms_key_id}"
+            )
 
     def to_dict(self) -> dict[str, Any]:
         d: dict[str, Any] = {
@@ -743,6 +750,7 @@ class ModelInvocationJob(BaseModel):
 
 class FoundationModelInfo(BaseModel):
     """Static foundation model info."""
+
     def __init__(
         self,
         model_id: str,
@@ -1013,6 +1021,7 @@ _FOUNDATION_MODELS = [
 # Backend
 # ---------------------------------------------------------------------------
 
+
 class BedrockBackend(BaseBackend):
     """Implementation of Bedrock APIs."""
 
@@ -1139,7 +1148,9 @@ class BedrockBackend(BaseBackend):
         arns = [job.job_arn for job in self.model_customization_jobs.values()]
         arns += [model.model_arn for model in self.custom_models.values()]
         arns += [g.guardrail_arn for g in self.guardrails.values()]
-        arns += [p.provisioned_model_arn for p in self.provisioned_model_throughputs.values()]
+        arns += [
+            p.provisioned_model_arn for p in self.provisioned_model_throughputs.values()
+        ]
         arns += [e.job_arn for e in self.evaluation_jobs.values()]
         arns += [i.inference_profile_arn for i in self.inference_profiles.values()]
         arns += [j.job_arn for j in self.model_import_jobs.values()]
@@ -1575,8 +1586,12 @@ class BedrockBackend(BaseBackend):
         guardrail.topic_policy_config = topic_policy_config
         guardrail.content_policy_config = content_policy_config
         guardrail.word_policy_config = word_policy_config
-        guardrail.sensitive_information_policy_config = sensitive_information_policy_config
-        guardrail.contextual_grounding_policy_config = contextual_grounding_policy_config
+        guardrail.sensitive_information_policy_config = (
+            sensitive_information_policy_config
+        )
+        guardrail.contextual_grounding_policy_config = (
+            contextual_grounding_policy_config
+        )
         guardrail.automated_reasoning_policy_config = automated_reasoning_policy_config
         guardrail.cross_region_config = cross_region_config
         if kms_key_id is not None:
@@ -1657,7 +1672,9 @@ class BedrockBackend(BaseBackend):
             self.tag_resource(pmt.provisioned_model_arn, tags)
         return pmt.provisioned_model_arn
 
-    def _find_provisioned(self, provisioned_model_id: str) -> ProvisionedModelThroughput:
+    def _find_provisioned(
+        self, provisioned_model_id: str
+    ) -> ProvisionedModelThroughput:
         if provisioned_model_id in self.provisioned_model_throughputs:
             return self.provisioned_model_throughputs[provisioned_model_id]
         for p in self.provisioned_model_throughputs.values():
@@ -1669,7 +1686,9 @@ class BedrockBackend(BaseBackend):
             f"Could not find provisioned model {provisioned_model_id}"
         )
 
-    def get_provisioned_model_throughput(self, provisioned_model_id: str) -> dict[str, Any]:
+    def get_provisioned_model_throughput(
+        self, provisioned_model_id: str
+    ) -> dict[str, Any]:
         pmt = self._find_provisioned(provisioned_model_id)
         return pmt.to_dict()
 
@@ -1780,12 +1799,12 @@ class BedrockBackend(BaseBackend):
         if status_equals:
             results = [r for r in results if r.status == status_equals]
         if application_type_equals:
-            results = [r for r in results if r.application_type == application_type_equals]
+            results = [
+                r for r in results if r.application_type == application_type_equals
+            ]
         return results
 
-    def batch_delete_evaluation_job(
-        self, job_identifiers: list[str]
-    ) -> dict[str, Any]:
+    def batch_delete_evaluation_job(self, job_identifiers: list[str]) -> dict[str, Any]:
         errors: list[dict[str, str]] = []
         deleted: list[dict[str, str]] = []
         for jid in job_identifiers:
@@ -1794,11 +1813,13 @@ class BedrockBackend(BaseBackend):
                 deleted.append({"jobArn": job.job_arn, "status": job.status})
                 del self.evaluation_jobs[job.job_arn]
             except ResourceNotFoundException:
-                errors.append({
-                    "jobIdentifier": jid,
-                    "code": "ResourceNotFoundException",
-                    "message": f"Evaluation job {jid} not found",
-                })
+                errors.append(
+                    {
+                        "jobIdentifier": jid,
+                        "code": "ResourceNotFoundException",
+                        "message": f"Evaluation job {jid} not found",
+                    }
+                )
         return {"errors": errors, "evaluationJobs": deleted}
 
     # -------------------------------------------------------------------
@@ -1831,13 +1852,18 @@ class BedrockBackend(BaseBackend):
         if identifier in self.inference_profiles:
             return self.inference_profiles[identifier]
         for ip in self.inference_profiles.values():
-            if ip.inference_profile_arn == identifier or ip.inference_profile_name == identifier:
+            if (
+                ip.inference_profile_arn == identifier
+                or ip.inference_profile_name == identifier
+            ):
                 return ip
         raise ResourceNotFoundException(
             f"Could not find inference profile {identifier}"
         )
 
-    def get_inference_profile(self, inference_profile_identifier: str) -> dict[str, Any]:
+    def get_inference_profile(
+        self, inference_profile_identifier: str
+    ) -> dict[str, Any]:
         ip = self._find_inference_profile(inference_profile_identifier)
         return ip.to_dict()
 
@@ -2009,11 +2035,17 @@ class BedrockBackend(BaseBackend):
         if status_equals:
             results = [r for r in results if r.status == status_equals]
         if source_account_equals:
-            results = [r for r in results if r.source_account_id == source_account_equals]
+            results = [
+                r for r in results if r.source_account_id == source_account_equals
+            ]
         if source_model_arn_equals:
-            results = [r for r in results if r.source_model_arn == source_model_arn_equals]
+            results = [
+                r for r in results if r.source_model_arn == source_model_arn_equals
+            ]
         if target_model_name_contains:
-            results = [r for r in results if target_model_name_contains in r.target_model_name]
+            results = [
+                r for r in results if target_model_name_contains in r.target_model_name
+            ]
         return results
 
     # -------------------------------------------------------------------
@@ -2115,7 +2147,9 @@ class BedrockBackend(BaseBackend):
         if by_output_modality:
             results = [r for r in results if by_output_modality in r.output_modalities]
         if by_inference_type:
-            results = [r for r in results if by_inference_type in r.inference_types_supported]
+            results = [
+                r for r in results if by_inference_type in r.inference_types_supported
+            ]
         return [r.summary() for r in results]
 
     # -------------------------------------------------------------------
@@ -2189,7 +2223,9 @@ class BedrockBackend(BaseBackend):
     ) -> list[MarketplaceModelEndpoint]:
         results = list(self.marketplace_model_endpoints.values())
         if model_source_equals:
-            results = [r for r in results if r.model_source_identifier == model_source_equals]
+            results = [
+                r for r in results if r.model_source_identifier == model_source_equals
+            ]
         return results
 
     # -------------------------------------------------------------------
@@ -2556,7 +2592,9 @@ class BedrockBackend(BaseBackend):
     ) -> dict[str, Any]:
         policy = self._find_ar_policy(policy_arn)
         if build_workflow_id not in policy.build_workflows:
-            raise ResourceNotFoundException(f"Build workflow {build_workflow_id} not found")
+            raise ResourceNotFoundException(
+                f"Build workflow {build_workflow_id} not found"
+            )
         return policy.build_workflows[build_workflow_id]
 
     def cancel_automated_reasoning_policy_build_workflow(
@@ -2566,7 +2604,9 @@ class BedrockBackend(BaseBackend):
     ) -> None:
         policy = self._find_ar_policy(policy_arn)
         if build_workflow_id not in policy.build_workflows:
-            raise ResourceNotFoundException(f"Build workflow {build_workflow_id} not found")
+            raise ResourceNotFoundException(
+                f"Build workflow {build_workflow_id} not found"
+            )
         policy.build_workflows[build_workflow_id]["status"] = "Cancelled"
 
     def delete_automated_reasoning_policy_build_workflow(
@@ -2576,7 +2616,9 @@ class BedrockBackend(BaseBackend):
     ) -> None:
         policy = self._find_ar_policy(policy_arn)
         if build_workflow_id not in policy.build_workflows:
-            raise ResourceNotFoundException(f"Build workflow {build_workflow_id} not found")
+            raise ResourceNotFoundException(
+                f"Build workflow {build_workflow_id} not found"
+            )
         del policy.build_workflows[build_workflow_id]
 
     def list_automated_reasoning_policy_build_workflows(
@@ -2593,7 +2635,9 @@ class BedrockBackend(BaseBackend):
     ) -> dict[str, Any]:
         policy = self._find_ar_policy(policy_arn)
         if build_workflow_id not in policy.build_workflows:
-            raise ResourceNotFoundException(f"Build workflow {build_workflow_id} not found")
+            raise ResourceNotFoundException(
+                f"Build workflow {build_workflow_id} not found"
+            )
         return {"assets": []}
 
     def get_automated_reasoning_policy_annotations(
@@ -2603,7 +2647,9 @@ class BedrockBackend(BaseBackend):
     ) -> dict[str, Any]:
         policy = self._find_ar_policy(policy_arn)
         if build_workflow_id not in policy.build_workflows:
-            raise ResourceNotFoundException(f"Build workflow {build_workflow_id} not found")
+            raise ResourceNotFoundException(
+                f"Build workflow {build_workflow_id} not found"
+            )
         return {"annotations": []}
 
     def update_automated_reasoning_policy_annotations(
@@ -2614,7 +2660,9 @@ class BedrockBackend(BaseBackend):
     ) -> dict[str, Any]:
         policy = self._find_ar_policy(policy_arn)
         if build_workflow_id not in policy.build_workflows:
-            raise ResourceNotFoundException(f"Build workflow {build_workflow_id} not found")
+            raise ResourceNotFoundException(
+                f"Build workflow {build_workflow_id} not found"
+            )
         return {"annotations": annotations or []}
 
     def get_automated_reasoning_policy_next_scenario(
@@ -2624,7 +2672,9 @@ class BedrockBackend(BaseBackend):
     ) -> dict[str, Any]:
         policy = self._find_ar_policy(policy_arn)
         if build_workflow_id not in policy.build_workflows:
-            raise ResourceNotFoundException(f"Build workflow {build_workflow_id} not found")
+            raise ResourceNotFoundException(
+                f"Build workflow {build_workflow_id} not found"
+            )
         return {"scenario": None}
 
     def get_automated_reasoning_policy_test_result(
@@ -2635,7 +2685,9 @@ class BedrockBackend(BaseBackend):
     ) -> dict[str, Any]:
         policy = self._find_ar_policy(policy_arn)
         if build_workflow_id not in policy.build_workflows:
-            raise ResourceNotFoundException(f"Build workflow {build_workflow_id} not found")
+            raise ResourceNotFoundException(
+                f"Build workflow {build_workflow_id} not found"
+            )
         return {
             "testCaseId": test_case_id,
             "buildWorkflowId": build_workflow_id,
@@ -2649,7 +2701,9 @@ class BedrockBackend(BaseBackend):
     ) -> dict[str, Any]:
         policy = self._find_ar_policy(policy_arn)
         if build_workflow_id not in policy.build_workflows:
-            raise ResourceNotFoundException(f"Build workflow {build_workflow_id} not found")
+            raise ResourceNotFoundException(
+                f"Build workflow {build_workflow_id} not found"
+            )
         return {"testResults": []}
 
     def start_automated_reasoning_policy_test_workflow(
@@ -2659,7 +2713,9 @@ class BedrockBackend(BaseBackend):
     ) -> dict[str, Any]:
         policy = self._find_ar_policy(policy_arn)
         if build_workflow_id not in policy.build_workflows:
-            raise ResourceNotFoundException(f"Build workflow {build_workflow_id} not found")
+            raise ResourceNotFoundException(
+                f"Build workflow {build_workflow_id} not found"
+            )
         return {
             "policyArn": policy_arn,
             "buildWorkflowId": build_workflow_id,

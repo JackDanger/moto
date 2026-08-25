@@ -9,10 +9,10 @@ from moto.athena.exceptions import (
     MetadataException,
     QueryStillRunning,
 )
-from moto.athena.exceptions import AthenaClientError, InvalidArgumentException, QueryStillRunning
+from moto.athena.exceptions import AthenaClientError
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
-from moto.core.resource_tagging import TaggableResourcesMixin, TaggedResource
+from moto.core.resource_tagging import TaggedResource
 from moto.moto_api._internal import mock_random
 from moto.moto_api._internal.managed_state_model import ManagedState
 from moto.s3.models import s3_backends
@@ -221,9 +221,6 @@ class PreparedStatement(BaseModel):
         self.query_statement = query_statement
         self.description = description
         self.last_modified_time = datetime.now()
-
-
-
 
 
 class TableMetadata(BaseModel):
@@ -794,12 +791,6 @@ class AthenaBackend(BaseBackend):
         cr = self.capacity_reservations.pop(name)
         self.tagger.delete_all_tags_for_resource(cr.arn)
 
-
-
-
-
-
-
     def get_query_runtime_statistics(self, query_execution_id: str) -> Execution | None:
         if query_execution_id in self.executions:
             return self.executions[query_execution_id]
@@ -845,8 +836,6 @@ class AthenaBackend(BaseBackend):
         db = Database(catalog_name, database_name, description, parameters)
         self.databases[catalog_name][database_name] = db
         return db
-
-
 
     # --- Table metadata operations ---
 
@@ -985,9 +974,7 @@ class AthenaBackend(BaseBackend):
             if s.get("WorkGroup") == work_group
         ]
 
-    def create_presigned_notebook_url(
-        self, session_id: str
-    ) -> dict[str, Any] | None:
+    def create_presigned_notebook_url(self, session_id: str) -> dict[str, Any] | None:
         if session_id in self.sessions:
             return {
                 "NotebookUrl": f"https://athena-notebooks.amazonaws.com/{session_id}",
@@ -1168,9 +1155,7 @@ class AthenaBackend(BaseBackend):
         self.calculation_executions[calc_id] = calc
         return {"CalculationExecutionId": calc_id, "State": "RUNNING"}
 
-    def stop_calculation_execution(
-        self, calculation_execution_id: str
-    ) -> str | None:
+    def stop_calculation_execution(self, calculation_execution_id: str) -> str | None:
         if calculation_execution_id in self.calculation_executions:
             calc = self.calculation_executions[calculation_execution_id]
             calc["Status"]["State"] = "CANCELED"

@@ -308,9 +308,7 @@ class KmsResponse(BaseResponse):
             custom_key_store_id=custom_key_store_id,
             custom_key_store_name=custom_key_store_name,
         )
-        return json.dumps(
-            {"CustomKeyStores": custom_key_stores, "Truncated": False}
-        )
+        return json.dumps({"CustomKeyStores": custom_key_stores, "Truncated": False})
 
     def create_grant(self) -> str:
         key_id = self._get_param("KeyId")
@@ -976,9 +974,7 @@ class KmsResponse(BaseResponse):
         return json.dumps(
             {
                 "KeyId": result["key_id"],
-                "ImportToken": base64.b64encode(
-                    result["import_token"]
-                ).decode("utf-8"),
+                "ImportToken": base64.b64encode(result["import_token"]).decode("utf-8"),
                 "PublicKey": base64.b64encode(result["public_key"]).decode("utf-8"),
                 "ParametersValidTo": result["parameters_valid_to"],
             }
@@ -1041,9 +1037,9 @@ class KmsResponse(BaseResponse):
         return json.dumps(
             {
                 "KeyId": result["key_id"],
-                "SharedSecret": base64.b64encode(
-                    result["shared_secret"]
-                ).decode("utf-8"),
+                "SharedSecret": base64.b64encode(result["shared_secret"]).decode(
+                    "utf-8"
+                ),
                 "KeyAgreementAlgorithm": key_agreement_algorithm,
                 "KeyOrigin": result["key_origin"],
             }

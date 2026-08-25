@@ -3483,35 +3483,25 @@ class IAMBackend(BaseBackend):
         provider.tags = [tag for tag in provider.tags if tag["Key"] not in new_keys]
         provider.tags.extend(tags)
 
-    def untag_saml_provider(
-        self, saml_provider_arn: str, tag_keys: list[str]
-    ) -> None:
+    def untag_saml_provider(self, saml_provider_arn: str, tag_keys: list[str]) -> None:
         provider = self.get_saml_provider(saml_provider_arn)
         provider.tags = [tag for tag in provider.tags if tag["Key"] not in tag_keys]
 
-    def list_saml_provider_tags(
-        self, saml_provider_arn: str
-    ) -> list[dict[str, str]]:
+    def list_saml_provider_tags(self, saml_provider_arn: str) -> list[dict[str, str]]:
         provider = self.get_saml_provider(saml_provider_arn)
         return provider.tags
 
-    def tag_mfa_device(
-        self, serial_number: str, tags: list[dict[str, str]]
-    ) -> None:
+    def tag_mfa_device(self, serial_number: str, tags: list[dict[str, str]]) -> None:
         device = self._get_virtual_mfa_device(serial_number)
         new_keys = [tag["Key"] for tag in tags]
         device.tags = [tag for tag in device.tags if tag["Key"] not in new_keys]
         device.tags.extend(tags)
 
-    def untag_mfa_device(
-        self, serial_number: str, tag_keys: list[str]
-    ) -> None:
+    def untag_mfa_device(self, serial_number: str, tag_keys: list[str]) -> None:
         device = self._get_virtual_mfa_device(serial_number)
         device.tags = [tag for tag in device.tags if tag["Key"] not in tag_keys]
 
-    def list_mfa_device_tags(
-        self, serial_number: str
-    ) -> list[dict[str, str]]:
+    def list_mfa_device_tags(self, serial_number: str) -> list[dict[str, str]]:
         device = self._get_virtual_mfa_device(serial_number)
         return device.tags
 

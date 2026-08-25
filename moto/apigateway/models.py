@@ -2541,7 +2541,9 @@ class APIGatewayBackend(BaseBackend):
 
         api = self.get_rest_api(rest_api_id)
         if name in api.models:
-            raise ConflictException(f"Model with name {name!r} already exists for REST API {rest_api_id!r}")
+            raise ConflictException(
+                f"Model with name {name!r} already exists for REST API {rest_api_id!r}"
+            )
         new_model = api.add_model(
             name=name,
             description=description,

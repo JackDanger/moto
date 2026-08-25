@@ -143,7 +143,6 @@ class SageMakerRuntimeBackend(BaseBackend):
         )
         return self.async_results[endpoint_name][input_location]
 
-
     def invoke_endpoint_with_response_stream(
         self, endpoint_name: str, unique_repr: bytes
     ) -> tuple[str, str, str, str]:

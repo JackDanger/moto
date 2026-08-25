@@ -62,9 +62,7 @@ class IpamResponse(EC2BaseResponse):
         )
         allocation_min = int(self._get_param("AllocationMinNetmaskLength", "0"))
         allocation_max = int(self._get_param("AllocationMaxNetmaskLength", "32"))
-        allocation_default = int(
-            self._get_param("AllocationDefaultNetmaskLength", "0")
-        )
+        allocation_default = int(self._get_param("AllocationDefaultNetmaskLength", "0"))
         source_ipam_pool_id = self._get_param("SourceIpamPoolId")
         tags = add_tag_specification(self._get_param("TagSpecifications", []))
 
@@ -151,7 +149,9 @@ class IpamResponse(EC2BaseResponse):
             auto_import=auto_import,
             allocation_min_netmask_length=int(alloc_min) if alloc_min else None,
             allocation_max_netmask_length=int(alloc_max) if alloc_max else None,
-            allocation_default_netmask_length=int(alloc_default) if alloc_default else None,
+            allocation_default_netmask_length=int(alloc_default)
+            if alloc_default
+            else None,
         )
         result = {
             "IpamPool": {
@@ -257,7 +257,9 @@ class IpamResponse(EC2BaseResponse):
                 "State": scope.state,
                 "PoolCount": scope.pool_count,
                 "OwnerId": scope.owner_id,
-                "Tags": [{"Key": tag.key, "Value": tag.value} for tag in scope.get_tags()],
+                "Tags": [
+                    {"Key": tag.key, "Value": tag.value} for tag in scope.get_tags()
+                ],
             }
         }
         return ActionResult(result)

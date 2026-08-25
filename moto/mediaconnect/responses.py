@@ -307,9 +307,7 @@ class MediaConnectResponse(BaseResponse):
         self.mediaconnect_backend.remove_flow_media_stream(
             flow_arn=flow_arn, media_stream_name=media_stream_name
         )
-        return json.dumps(
-            {"flowArn": flow_arn, "mediaStreamName": media_stream_name}
-        )
+        return json.dumps({"flowArn": flow_arn, "mediaStreamName": media_stream_name})
 
     def update_flow_media_stream(self) -> str:
         flow_arn = self.get_flow_arn()
@@ -484,9 +482,7 @@ class MediaConnectResponse(BaseResponse):
 
     def delete_gateway(self) -> str:
         gateway_arn = self.get_gateway_arn()
-        result_arn = self.mediaconnect_backend.delete_gateway(
-            gateway_arn=gateway_arn
-        )
+        result_arn = self.mediaconnect_backend.delete_gateway(gateway_arn=gateway_arn)
         return json.dumps({"gatewayArn": result_arn})
 
     # --- Gateway Instance operations ---
@@ -520,18 +516,18 @@ class MediaConnectResponse(BaseResponse):
             gateway_instance_arn=gateway_instance_arn,
             bridge_placement=bridge_placement,
         )
-        return json.dumps({
-            "bridgePlacement": instance.bridge_placement,
-            "gatewayInstanceArn": instance.gateway_instance_arn,
-        })
+        return json.dumps(
+            {
+                "bridgePlacement": instance.bridge_placement,
+                "gatewayInstanceArn": instance.gateway_instance_arn,
+            }
+        )
 
     # --- Offering operations ---
 
     def list_offerings(self) -> str:
         max_results = self._get_int_param("maxResults")
-        offerings = self.mediaconnect_backend.list_offerings(
-            max_results=max_results
-        )
+        offerings = self.mediaconnect_backend.list_offerings(max_results=max_results)
         return json.dumps({"offerings": offerings})
 
     def describe_offering(self) -> str:
@@ -864,9 +860,7 @@ class MediaConnectResponse(BaseResponse):
         return unquote(arn)
 
     def get_reservation_arn(self) -> str:
-        arn = self._get_param("reservationArn") or self._get_param(
-            "ReservationArn", ""
-        )
+        arn = self._get_param("reservationArn") or self._get_param("ReservationArn", "")
         return unquote(arn)
 
     def get_bridge_output_name(self) -> str:

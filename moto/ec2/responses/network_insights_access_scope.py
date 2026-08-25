@@ -18,43 +18,50 @@ class NetworkInsightsAccessScopeResponse(EC2BaseResponse):
             client_token=client_token,
             tags=tags,
         )
-        return ActionResult({
-            "NetworkInsightsAccessScope": {
-                "NetworkInsightsAccessScopeId": scope.id,
-                "NetworkInsightsAccessScopeArn": scope.arn,
-                "CreatedDate": scope.created_date,
-                "Tags": [{"Key": tag.key, "Value": tag.value} for tag in scope.get_tags()],
-            },
-            "NetworkInsightsAccessScopeContent": {
-                "NetworkInsightsAccessScopeId": scope.id,
+        return ActionResult(
+            {
+                "NetworkInsightsAccessScope": {
+                    "NetworkInsightsAccessScopeId": scope.id,
+                    "NetworkInsightsAccessScopeArn": scope.arn,
+                    "CreatedDate": scope.created_date,
+                    "Tags": [
+                        {"Key": tag.key, "Value": tag.value} for tag in scope.get_tags()
+                    ],
+                },
+                "NetworkInsightsAccessScopeContent": {
+                    "NetworkInsightsAccessScopeId": scope.id,
+                },
             }
-        })
+        )
 
     def delete_network_insights_access_scope(self) -> ActionResult:
         scope_id = self._get_param("NetworkInsightsAccessScopeId")
         scope = self.ec2_backend.delete_network_insights_access_scope(
             network_insights_access_scope_id=scope_id,
         )
-        return ActionResult({
-            "NetworkInsightsAccessScopeId": scope.id
-        })
+        return ActionResult({"NetworkInsightsAccessScopeId": scope.id})
 
     def describe_network_insights_access_scopes(self) -> ActionResult:
         scope_ids = self._get_param("NetworkInsightsAccessScopeId", [])
         scopes = self.ec2_backend.describe_network_insights_access_scopes(
             scope_ids=scope_ids or None,
         )
-        return ActionResult({
-            "NetworkInsightsAccessScopeSet": [
-                {
-                    "NetworkInsightsAccessScopeId": scope.id,
-                    "NetworkInsightsAccessScopeArn": scope.arn,
-                    "CreatedDate": scope.created_date,
-                    "Tags": [{"Key": tag.key, "Value": tag.value} for tag in scope.get_tags()],
-                }
-                for scope in scopes
-            ]
-        })
+        return ActionResult(
+            {
+                "NetworkInsightsAccessScopeSet": [
+                    {
+                        "NetworkInsightsAccessScopeId": scope.id,
+                        "NetworkInsightsAccessScopeArn": scope.arn,
+                        "CreatedDate": scope.created_date,
+                        "Tags": [
+                            {"Key": tag.key, "Value": tag.value}
+                            for tag in scope.get_tags()
+                        ],
+                    }
+                    for scope in scopes
+                ]
+            }
+        )
 
     def start_network_insights_access_scope_analysis(self) -> ActionResult:
         scope_id = self._get_param("NetworkInsightsAccessScopeId")
@@ -63,17 +70,22 @@ class NetworkInsightsAccessScopeResponse(EC2BaseResponse):
             network_insights_access_scope_id=scope_id,
             tags=tags,
         )
-        return ActionResult({
-            "NetworkInsightsAccessScopeAnalysis": {
-                "NetworkInsightsAccessScopeAnalysisId": analysis.id,
-                "NetworkInsightsAccessScopeAnalysisArn": analysis.arn,
-                "NetworkInsightsAccessScopeId": analysis.network_insights_access_scope_id,
-                "Status": analysis.status,
-                "StartDate": analysis.start_date,
-                "AnalyzedEniCount": analysis.analyzed_eni_count,
-                "Tags": [{"Key": tag.key, "Value": tag.value} for tag in analysis.get_tags()],
+        return ActionResult(
+            {
+                "NetworkInsightsAccessScopeAnalysis": {
+                    "NetworkInsightsAccessScopeAnalysisId": analysis.id,
+                    "NetworkInsightsAccessScopeAnalysisArn": analysis.arn,
+                    "NetworkInsightsAccessScopeId": analysis.network_insights_access_scope_id,
+                    "Status": analysis.status,
+                    "StartDate": analysis.start_date,
+                    "AnalyzedEniCount": analysis.analyzed_eni_count,
+                    "Tags": [
+                        {"Key": tag.key, "Value": tag.value}
+                        for tag in analysis.get_tags()
+                    ],
+                }
             }
-        })
+        )
 
     def describe_network_insights_access_scope_analyses(self) -> ActionResult:
         analysis_ids = self._get_param("NetworkInsightsAccessScopeAnalysisId", [])
@@ -82,22 +94,27 @@ class NetworkInsightsAccessScopeResponse(EC2BaseResponse):
             analysis_ids=analysis_ids or None,
             scope_id=scope_id,
         )
-        return ActionResult({
-            "NetworkInsightsAccessScopeAnalysisSet": [
-                {
-                    "NetworkInsightsAccessScopeAnalysisId": analysis.id,
-                    "NetworkInsightsAccessScopeAnalysisArn": analysis.arn,
-                    "NetworkInsightsAccessScopeId": analysis.network_insights_access_scope_id,
-                    "Status": analysis.status,
-                    "StartDate": analysis.start_date,
-                    "EndDate": analysis.end_date,
-                    "FindingsFound": analysis.findings_found,
-                    "AnalyzedEniCount": analysis.analyzed_eni_count,
-                    "Tags": [{"Key": tag.key, "Value": tag.value} for tag in analysis.get_tags()],
-                }
-                for analysis in analyses
-            ]
-        })
+        return ActionResult(
+            {
+                "NetworkInsightsAccessScopeAnalysisSet": [
+                    {
+                        "NetworkInsightsAccessScopeAnalysisId": analysis.id,
+                        "NetworkInsightsAccessScopeAnalysisArn": analysis.arn,
+                        "NetworkInsightsAccessScopeId": analysis.network_insights_access_scope_id,
+                        "Status": analysis.status,
+                        "StartDate": analysis.start_date,
+                        "EndDate": analysis.end_date,
+                        "FindingsFound": analysis.findings_found,
+                        "AnalyzedEniCount": analysis.analyzed_eni_count,
+                        "Tags": [
+                            {"Key": tag.key, "Value": tag.value}
+                            for tag in analysis.get_tags()
+                        ],
+                    }
+                    for analysis in analyses
+                ]
+            }
+        )
 
     def get_network_insights_access_scope_analysis_findings(self) -> ActionResult:
         analysis_id = self._get_param("NetworkInsightsAccessScopeAnalysisId")

@@ -123,8 +123,6 @@ class DataSyncBackend(BaseBackend):
         self.task_executions: dict[str, TaskExecution] = OrderedDict()
         self._tags: dict[str, list[dict[str, str]]] = {}
 
-
-
     def update_agent(
         self, agent_arn: str, name: Optional[str] = None
     ) -> dict[str, Any]:

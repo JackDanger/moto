@@ -1,6 +1,6 @@
 from typing import Any
 import json
-from typing import Any, Optional
+from typing import Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -391,7 +391,8 @@ class RecommendationTemplate(BaseModel):
         self.start_time = unix_time()
         self.end_time = unix_time()
         self.templates_location = {
-            "bucket": bucket_name or f"resiliencehub-{backend.region_name}-{backend.account_id}",
+            "bucket": bucket_name
+            or f"resiliencehub-{backend.region_name}-{backend.account_id}",
             "prefix": f"recommendations/{mock_random.uuid4()}",
         }
 
@@ -744,22 +745,25 @@ class ResilienceHubBackend(BaseBackend):
         # Find resource by physical_resource_id, logical_resource_id, or resource_name
         target = None
         for resource in app_version.resources:
-            if physical_resource_id and resource.physical_resource_id == physical_resource_id:
+            if (
+                physical_resource_id
+                and resource.physical_resource_id == physical_resource_id
+            ):
                 target = resource
                 break
             if resource_name and resource.resource_name == resource_name:
                 target = resource
                 break
-            if (
-                logical_resource_id
-                and resource.logical_resource_id.get("identifier")
-                == logical_resource_id.get("identifier")
-            ):
+            if logical_resource_id and resource.logical_resource_id.get(
+                "identifier"
+            ) == logical_resource_id.get("identifier"):
                 target = resource
                 break
 
         if target is None:
-            raise AppVersionResourceNotFound(resource_name or physical_resource_id or "unknown")
+            raise AppVersionResourceNotFound(
+                resource_name or physical_resource_id or "unknown"
+            )
 
         if additional_info is not None:
             target.additional_info = additional_info
@@ -790,18 +794,21 @@ class ResilienceHubBackend(BaseBackend):
         app_version = app.get_version("draft")
 
         for idx, resource in enumerate(app_version.resources):
-            if physical_resource_id and resource.physical_resource_id == physical_resource_id:
+            if (
+                physical_resource_id
+                and resource.physical_resource_id == physical_resource_id
+            ):
                 return app_version.resources.pop(idx)
             if resource_name and resource.resource_name == resource_name:
                 return app_version.resources.pop(idx)
-            if (
-                logical_resource_id
-                and resource.logical_resource_id.get("identifier")
-                == logical_resource_id.get("identifier")
-            ):
+            if logical_resource_id and resource.logical_resource_id.get(
+                "identifier"
+            ) == logical_resource_id.get("identifier"):
                 return app_version.resources.pop(idx)
 
-        raise AppVersionResourceNotFound(resource_name or physical_resource_id or "unknown")
+        raise AppVersionResourceNotFound(
+            resource_name or physical_resource_id or "unknown"
+        )
 
     def describe_app_version_resource(
         self,
@@ -815,18 +822,21 @@ class ResilienceHubBackend(BaseBackend):
         version = app.get_version(app_version_name)
 
         for resource in version.resources:
-            if physical_resource_id and resource.physical_resource_id == physical_resource_id:
+            if (
+                physical_resource_id
+                and resource.physical_resource_id == physical_resource_id
+            ):
                 return resource
             if resource_name and resource.resource_name == resource_name:
                 return resource
-            if (
-                logical_resource_id
-                and resource.logical_resource_id.get("identifier")
-                == logical_resource_id.get("identifier")
-            ):
+            if logical_resource_id and resource.logical_resource_id.get(
+                "identifier"
+            ) == logical_resource_id.get("identifier"):
                 return resource
 
-        raise AppVersionResourceNotFound(resource_name or physical_resource_id or "unknown")
+        raise AppVersionResourceNotFound(
+            resource_name or physical_resource_id or "unknown"
+        )
 
     def list_app_version_resources(
         self, app_arn: str, app_version: str
@@ -870,7 +880,9 @@ class ResilienceHubBackend(BaseBackend):
     ) -> tuple[str, str, str]:
         app = self.describe_app(app_arn)
         app.get_version(app_version_name)  # Validate version exists
-        body = app.app_template_body or json.dumps({"resources": [], "appComponents": []})
+        body = app.app_template_body or json.dumps(
+            {"resources": [], "appComponents": []}
+        )
         return app_arn, body, app_version_name
 
     def put_draft_app_version_template(
@@ -1044,7 +1056,8 @@ class ResilienceHubBackend(BaseBackend):
                 m
                 for m in version.resource_mappings
                 if m.get("resourceName") not in names_to_remove
-                and m.get("physicalResourceId", {}).get("identifier") not in names_to_remove
+                and m.get("physicalResourceId", {}).get("identifier")
+                not in names_to_remove
             ]
 
         return app_arn, "draft"
@@ -1069,7 +1082,9 @@ class ResilienceHubBackend(BaseBackend):
         app = self.describe_app(app_arn)
         removed_source: dict[str, Any] = {}
         if source_arn:
-            app.input_sources = [s for s in app.input_sources if s.get("sourceArn") != source_arn]
+            app.input_sources = [
+                s for s in app.input_sources if s.get("sourceArn") != source_arn
+            ]
             removed_source = {"sourceArn": source_arn, "importType": "CFN_STACK"}
         elif eks_source_cluster_namespace:
             removed_source = {
@@ -1077,7 +1092,10 @@ class ResilienceHubBackend(BaseBackend):
                 "importType": "EKS",
             }
         elif terraform_source:
-            removed_source = {"terraformSource": terraform_source, "importType": "TERRAFORM"}
+            removed_source = {
+                "terraformSource": terraform_source,
+                "importType": "TERRAFORM",
+            }
         return app_arn, removed_source
 
     @paginate(pagination_model=PAGINATION_MODEL)
@@ -1090,11 +1108,21 @@ class ResilienceHubBackend(BaseBackend):
         version = app.get_version(app_version_name)
         sources: list[dict[str, Any]] = []
         for arn in version.source_arns:
-            sources.append({"importType": "CFN_STACK", "sourceArn": arn, "resourceCount": 0})
+            sources.append(
+                {"importType": "CFN_STACK", "sourceArn": arn, "resourceCount": 0}
+            )
         for eks in version.eks_sources:
-            sources.append({"importType": "EKS", "eksSourceClusterNamespace": eks, "resourceCount": 0})
+            sources.append(
+                {
+                    "importType": "EKS",
+                    "eksSourceClusterNamespace": eks,
+                    "resourceCount": 0,
+                }
+            )
         for tf in version.terraform_sources:
-            sources.append({"importType": "TERRAFORM", "terraformSource": tf, "resourceCount": 0})
+            sources.append(
+                {"importType": "TERRAFORM", "terraformSource": tf, "resourceCount": 0}
+            )
         sources.extend(app.input_sources)
         return sources
 

@@ -314,7 +314,10 @@ class S3VectorsBackend(BaseBackend):
         vectors = list(index.vectors.values())
         # Return up to top_k results (no real distance computation needed for stub)
         result = vectors[:top_k]
-        return [v.to_dict(return_data=return_data, return_metadata=return_metadata) for v in result]
+        return [
+            v.to_dict(return_data=return_data, return_metadata=return_metadata)
+            for v in result
+        ]
 
 
 s3vectors_backends = BackendDict(

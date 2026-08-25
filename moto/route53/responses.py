@@ -542,9 +542,7 @@ class Route53(BaseResponse):
         vpc = req["VPC"]
         vpc_id = vpc["VPCId"]
         vpc_region = vpc.get("VPCRegion", "us-east-1")
-        self.backend.delete_vpc_association_authorization(
-            zone_id, vpc_id, vpc_region
-        )
+        self.backend.delete_vpc_association_authorization(zone_id, vpc_id, vpc_region)
         template = Template(DELETE_VPC_ASSOCIATION_AUTHORIZATION_RESPONSE)
         return template.render()
 

@@ -554,7 +554,6 @@ class Snapshot(TaggableResourceMixin, BaseModel):
         ]
 
 
-
 class ScheduledAction(BaseModel):
     def __init__(
         self,
@@ -667,9 +666,7 @@ class HsmClientCertificate(TaggableResourceMixin, BaseModel):
     ):
         super().__init__(account_id, region_name, tags)
         self.hsm_client_certificate_identifier = hsm_client_certificate_identifier
-        self.hsm_client_certificate_public_key = (
-            f"-----BEGIN CERTIFICATE-----\nMOCK{mock_random.get_random_hex(20)}\n-----END CERTIFICATE-----"
-        )
+        self.hsm_client_certificate_public_key = f"-----BEGIN CERTIFICATE-----\nMOCK{mock_random.get_random_hex(20)}\n-----END CERTIFICATE-----"
 
     @property
     def resource_id(self) -> str:
@@ -1443,9 +1440,7 @@ class RedshiftBackend(BaseBackend):
         if endpoint_name:
             if endpoint_name not in self.endpoint_access:
                 raise EndpointNotFoundError(endpoint_name)
-            return [
-                self._endpoint_access_to_dict(self.endpoint_access[endpoint_name])
-            ]
+            return [self._endpoint_access_to_dict(self.endpoint_access[endpoint_name])]
         results = []
         for ep in self.endpoint_access.values():
             if cluster_identifier and ep.cluster_identifier != cluster_identifier:
@@ -1633,9 +1628,7 @@ class RedshiftBackend(BaseBackend):
         self, hsm_client_certificate_identifier: str
     ) -> None:
         if hsm_client_certificate_identifier not in self.hsm_client_certificates:
-            raise HsmClientCertificateNotFoundError(
-                hsm_client_certificate_identifier
-            )
+            raise HsmClientCertificateNotFoundError(hsm_client_certificate_identifier)
         del self.hsm_client_certificates[hsm_client_certificate_identifier]
 
     def describe_hsm_configurations(
@@ -1647,8 +1640,7 @@ class RedshiftBackend(BaseBackend):
             config = self.hsm_configurations[hsm_configuration_identifier]
             return [self._hsm_configuration_to_dict(config)]
         return [
-            self._hsm_configuration_to_dict(c)
-            for c in self.hsm_configurations.values()
+            self._hsm_configuration_to_dict(c) for c in self.hsm_configurations.values()
         ]
 
     def create_hsm_configuration(
@@ -1677,9 +1669,7 @@ class RedshiftBackend(BaseBackend):
         self.hsm_configurations[hsm_configuration_identifier] = config
         return self._hsm_configuration_to_dict(config)
 
-    def delete_hsm_configuration(
-        self, hsm_configuration_identifier: str
-    ) -> None:
+    def delete_hsm_configuration(self, hsm_configuration_identifier: str) -> None:
         if hsm_configuration_identifier not in self.hsm_configurations:
             raise HsmConfigurationNotFoundError(hsm_configuration_identifier)
         del self.hsm_configurations[hsm_configuration_identifier]
@@ -1717,8 +1707,7 @@ class RedshiftBackend(BaseBackend):
                 )
             ]
         return [
-            self._scheduled_action_to_dict(a)
-            for a in self.scheduled_actions.values()
+            self._scheduled_action_to_dict(a) for a in self.scheduled_actions.values()
         ]
 
     def describe_storage(self) -> dict[str, Any]:
@@ -1785,14 +1774,23 @@ class RedshiftBackend(BaseBackend):
         source = self.snapshots[source_snapshot_identifier]
         cluster = self.clusters.get(source.cluster_identifier)
         if cluster is None:
+
             class _FakeCluster:
                 pass
+
             fake = _FakeCluster()
             for attr in (
-                "cluster_identifier", "port", "availability_zone",
-                "master_username", "master_user_password", "cluster_version",
-                "node_type", "number_of_nodes", "db_name",
-                "enhanced_vpc_routing", "encrypted",
+                "cluster_identifier",
+                "port",
+                "availability_zone",
+                "master_username",
+                "master_user_password",
+                "cluster_version",
+                "node_type",
+                "number_of_nodes",
+                "db_name",
+                "enhanced_vpc_routing",
+                "encrypted",
             ):
                 setattr(fake, attr, getattr(source, attr))
             cluster = fake  # type: ignore[assignment]
@@ -2220,9 +2218,7 @@ class RedshiftBackend(BaseBackend):
         """
         return []
 
-    def put_resource_policy(
-        self, resource_arn: str, policy: str
-    ) -> dict[str, Any]:
+    def put_resource_policy(self, resource_arn: str, policy: str) -> dict[str, Any]:
         self.resource_policies[resource_arn] = {
             "ResourceArn": resource_arn,
             "Policy": policy,
@@ -2253,9 +2249,7 @@ class RedshiftBackend(BaseBackend):
         if cluster_identifier not in self.clusters:
             raise ClusterNotFoundError(cluster_identifier)
         cluster = self.clusters[cluster_identifier]
-        cluster_type = (
-            "multi-node" if cluster.number_of_nodes > 1 else "single-node"
-        )
+        cluster_type = "multi-node" if cluster.number_of_nodes > 1 else "single-node"
         return {
             "TargetNodeType": cluster.node_type,
             "TargetNumberOfNodes": int(cluster.number_of_nodes or 1),
@@ -2525,9 +2519,7 @@ class RedshiftBackend(BaseBackend):
             "AllowedVPCs": auth.allowed_vpcs,
         }
 
-    def _event_subscription_to_dict(
-        self, sub: EventSubscription
-    ) -> dict[str, Any]:
+    def _event_subscription_to_dict(self, sub: EventSubscription) -> dict[str, Any]:
         return {
             "CustomerAwsId": sub.account_id,
             "CustSubscriptionId": sub.subscription_name,
@@ -2551,9 +2543,7 @@ class RedshiftBackend(BaseBackend):
             "Tags": cert.tags,
         }
 
-    def _hsm_configuration_to_dict(
-        self, config: HsmConfiguration
-    ) -> dict[str, Any]:
+    def _hsm_configuration_to_dict(self, config: HsmConfiguration) -> dict[str, Any]:
         return {
             "HsmConfigurationIdentifier": config.hsm_configuration_identifier,
             "Description": config.description,

@@ -486,11 +486,17 @@ class PinpointBackend(BaseBackend):
         self.apps: dict[str, App] = {}
         self.tagger = TaggingService()
         # Per-app resources
-        self.campaigns: dict[str, dict[str, Campaign]] = {}  # app_id -> {campaign_id -> Campaign}
+        self.campaigns: dict[
+            str, dict[str, Campaign]
+        ] = {}  # app_id -> {campaign_id -> Campaign}
         self.segments: dict[str, dict[str, Segment]] = {}
         self.journeys: dict[str, dict[str, Journey]] = {}
-        self.channels: dict[str, dict[str, Channel]] = {}  # app_id -> {channel_type -> Channel}
-        self.endpoints: dict[str, dict[str, Endpoint]] = {}  # app_id -> {endpoint_id -> Endpoint}
+        self.channels: dict[
+            str, dict[str, Channel]
+        ] = {}  # app_id -> {channel_type -> Channel}
+        self.endpoints: dict[
+            str, dict[str, Endpoint]
+        ] = {}  # app_id -> {endpoint_id -> Endpoint}
         self.export_jobs: dict[str, list[ExportJob]] = {}
         self.import_jobs: dict[str, list[ImportJob]] = {}
         # Global resources
@@ -576,14 +582,10 @@ class PinpointBackend(BaseBackend):
 
     # --- Campaign ---
 
-    def create_campaign(
-        self, application_id: str, params: dict[str, Any]
-    ) -> Campaign:
+    def create_campaign(self, application_id: str, params: dict[str, Any]) -> Campaign:
         self.get_app(application_id)
         self._ensure_app_stores(application_id)
-        campaign = Campaign(
-            self.account_id, self.region_name, application_id, params
-        )
+        campaign = Campaign(self.account_id, self.region_name, application_id, params)
         self.campaigns[application_id][campaign.campaign_id] = campaign
         tag_list = self.tagger.convert_dict_to_tags_input(params.get("tags", {}))
         self.tagger.tag_resource(campaign.arn, tag_list)
@@ -636,14 +638,10 @@ class PinpointBackend(BaseBackend):
 
     # --- Segment ---
 
-    def create_segment(
-        self, application_id: str, params: dict[str, Any]
-    ) -> Segment:
+    def create_segment(self, application_id: str, params: dict[str, Any]) -> Segment:
         self.get_app(application_id)
         self._ensure_app_stores(application_id)
-        segment = Segment(
-            self.account_id, self.region_name, application_id, params
-        )
+        segment = Segment(self.account_id, self.region_name, application_id, params)
         self.segments[application_id][segment.segment_id] = segment
         tag_list = self.tagger.convert_dict_to_tags_input(params.get("tags", {}))
         self.tagger.tag_resource(segment.arn, tag_list)
@@ -710,14 +708,10 @@ class PinpointBackend(BaseBackend):
 
     # --- Journey ---
 
-    def create_journey(
-        self, application_id: str, params: dict[str, Any]
-    ) -> Journey:
+    def create_journey(self, application_id: str, params: dict[str, Any]) -> Journey:
         self.get_app(application_id)
         self._ensure_app_stores(application_id)
-        journey = Journey(
-            self.account_id, self.region_name, application_id, params
-        )
+        journey = Journey(self.account_id, self.region_name, application_id, params)
         self.journeys[application_id][journey.journey_id] = journey
         tag_list = self.tagger.convert_dict_to_tags_input(params.get("tags", {}))
         self.tagger.tag_resource(journey.arn, tag_list)
@@ -966,9 +960,7 @@ class PinpointBackend(BaseBackend):
         self.recommenders[rec.recommender_id] = rec
         return rec
 
-    def get_recommender_configuration(
-        self, recommender_id: str
-    ) -> RecommenderConfig:
+    def get_recommender_configuration(self, recommender_id: str) -> RecommenderConfig:
         if recommender_id not in self.recommenders:
             raise RecommenderNotFound()
         return self.recommenders[recommender_id]
@@ -992,9 +984,7 @@ class PinpointBackend(BaseBackend):
 
     # --- Events ---
 
-    def put_events(
-        self, application_id: str, events: dict[str, Any]
-    ) -> dict[str, Any]:
+    def put_events(self, application_id: str, events: dict[str, Any]) -> dict[str, Any]:
         self.get_app(application_id)
         # Accept events and return success for all
         results: dict[str, Any] = {}

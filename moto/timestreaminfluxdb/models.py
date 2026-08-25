@@ -492,9 +492,7 @@ class TimestreamInfluxDBBackend(BaseBackend):
         self.db_clusters.pop(db_cluster_id)
         return cluster
 
-    def list_db_instances_for_cluster(
-        self, db_cluster_id: str
-    ) -> list[dict[str, Any]]:
+    def list_db_instances_for_cluster(self, db_cluster_id: str) -> list[dict[str, Any]]:
         cluster = self.db_clusters.get(db_cluster_id)
         if not cluster:
             raise ResourceNotFoundException(

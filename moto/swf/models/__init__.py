@@ -555,9 +555,7 @@ class SWFBackend(BaseBackend, TaggableResourcesMixin):
             wfe for wfe in domain.workflow_executions if wfe.execution_status == "OPEN"
         ]
         if tag_filter:
-            open_wfes = [
-                wfe for wfe in open_wfes if tag_filter["tag"] in wfe.tag_list
-            ]
+            open_wfes = [wfe for wfe in open_wfes if tag_filter["tag"] in wfe.tag_list]
         return len(open_wfes)
 
     def request_cancel_workflow_execution(
@@ -597,9 +595,7 @@ class SWFBackend(BaseBackend, TaggableResourcesMixin):
                 return domain
         raise SWFUnknownResourceFault("domain", arn)
 
-    def delete_type(
-        self, kind: str, domain_name: str, name: str, version: str
-    ) -> None:
+    def delete_type(self, kind: str, domain_name: str, name: str, version: str) -> None:
         domain = self._get_domain(domain_name)
         _type: GenericType = domain.get_type(kind, name, version)
         if _type.status != "DEPRECATED":

@@ -1,4 +1,4 @@
-from moto.core.responses import ActionResult, EmptyResult
+from moto.core.responses import ActionResult
 
 from ._base_response import EC2BaseResponse
 

@@ -174,9 +174,7 @@ class DAXResponse(BaseResponse):
         groups = self.dax_backend.describe_parameter_groups(
             parameter_group_names=params.get("ParameterGroupNames", []),
         )
-        return json.dumps(
-            {"ParameterGroups": [g.to_describe_json() for g in groups]}
-        )
+        return json.dumps({"ParameterGroups": [g.to_describe_json() for g in groups]})
 
     def describe_parameters(self) -> str:
         params = json.loads(self.body)
@@ -221,9 +219,7 @@ class DAXResponse(BaseResponse):
         groups = self.dax_backend.describe_subnet_groups(
             subnet_group_names=params.get("SubnetGroupNames", []),
         )
-        return json.dumps(
-            {"SubnetGroups": [g.to_json() for g in groups]}
-        )
+        return json.dumps({"SubnetGroups": [g.to_json() for g in groups]})
 
     def update_subnet_group(self) -> str:
         params = json.loads(self.body)
@@ -243,4 +239,3 @@ class DAXResponse(BaseResponse):
             source_type=params.get("SourceType"),
         )
         return json.dumps({"Events": events})
-

@@ -140,7 +140,9 @@ class VerifiedAccessEndpoint(TaggedEC2Resource):
         self.domain_certificate_arn = domain_certificate_arn
         self.application_domain = application_domain
         self.endpoint_domain_prefix = endpoint_domain_prefix
-        self.endpoint_domain = f"{self.id}.prod.verified-access.{backend.region_name}.amazonaws.com"
+        self.endpoint_domain = (
+            f"{self.id}.prod.verified-access.{backend.region_name}.amazonaws.com"
+        )
         self.security_group_ids = security_group_ids or []
         self.load_balancer_options = load_balancer_options
         self.network_interface_options = network_interface_options
@@ -169,7 +171,9 @@ class VerifiedAccessEndpoint(TaggedEC2Resource):
 class VerifiedAccessBackend:
     def __init__(self) -> None:
         self.verified_access_instances: dict[str, VerifiedAccessInstance] = {}
-        self.verified_access_trust_providers: dict[str, VerifiedAccessTrustProvider] = {}
+        self.verified_access_trust_providers: dict[
+            str, VerifiedAccessTrustProvider
+        ] = {}
         self.verified_access_groups: dict[str, VerifiedAccessGroup] = {}
         self.verified_access_endpoints: dict[str, VerifiedAccessEndpoint] = {}
 
@@ -529,8 +533,13 @@ class VerifiedAccessBackend:
                 "InvalidVerifiedAccessTrustProviderId.NotFound",
                 f"The verified access trust provider ID '{verified_access_trust_provider_id}' does not exist",
             )
-        if verified_access_trust_provider_id not in instance.verified_access_trust_provider_ids:
-            instance.verified_access_trust_provider_ids.append(verified_access_trust_provider_id)
+        if (
+            verified_access_trust_provider_id
+            not in instance.verified_access_trust_provider_ids
+        ):
+            instance.verified_access_trust_provider_ids.append(
+                verified_access_trust_provider_id
+            )
         return {
             "VerifiedAccessTrustProvider": {
                 "VerifiedAccessTrustProviderId": provider.id,
@@ -560,8 +569,13 @@ class VerifiedAccessBackend:
                 "InvalidVerifiedAccessTrustProviderId.NotFound",
                 f"The verified access trust provider ID '{verified_access_trust_provider_id}' does not exist",
             )
-        if verified_access_trust_provider_id in instance.verified_access_trust_provider_ids:
-            instance.verified_access_trust_provider_ids.remove(verified_access_trust_provider_id)
+        if (
+            verified_access_trust_provider_id
+            in instance.verified_access_trust_provider_ids
+        ):
+            instance.verified_access_trust_provider_ids.remove(
+                verified_access_trust_provider_id
+            )
         return {
             "VerifiedAccessTrustProvider": {
                 "VerifiedAccessTrustProviderId": provider.id,

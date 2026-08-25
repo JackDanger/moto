@@ -387,7 +387,10 @@ class CodeDeployBackend(BaseBackend):
             )
         groups = []
         for name in deployment_group_names:
-            if application_name in self.deployment_groups and name in self.deployment_groups[application_name]:
+            if (
+                application_name in self.deployment_groups
+                and name in self.deployment_groups[application_name]
+            ):
                 groups.append(self.deployment_groups[application_name][name])
         return groups
 
@@ -440,10 +443,12 @@ class CodeDeployBackend(BaseBackend):
         for rev in revisions:
             rev_key = str(rev)
             info = app.revisions.get(rev_key, {})
-            result.append({
-                "revisionLocation": rev,
-                "genericRevisionInfo": info,
-            })
+            result.append(
+                {
+                    "revisionLocation": rev,
+                    "genericRevisionInfo": info,
+                }
+            )
         return result
 
     def create_application(
@@ -602,7 +607,10 @@ class CodeDeployBackend(BaseBackend):
         compute_platform: Optional[str],
         zonal_config: Optional[dict[str, Any]],
     ) -> str:
-        if deployment_config_name in self.deployment_configs or deployment_config_name in DEFAULT_DEPLOYMENT_CONFIGS:
+        if (
+            deployment_config_name in self.deployment_configs
+            or deployment_config_name in DEFAULT_DEPLOYMENT_CONFIGS
+        ):
             raise DeploymentConfigAlreadyExistsException(
                 f"A deployment configuration with the name {deployment_config_name} already exists."
             )
@@ -702,7 +710,9 @@ class CodeDeployBackend(BaseBackend):
             self.applications[new_application_name] = app
             # Update deployment groups key
             if application_name in self.deployment_groups:
-                self.deployment_groups[new_application_name] = self.deployment_groups.pop(application_name)
+                self.deployment_groups[new_application_name] = (
+                    self.deployment_groups.pop(application_name)
+                )
 
     def update_deployment_group(
         self,
@@ -728,8 +738,13 @@ class CodeDeployBackend(BaseBackend):
     ) -> list[dict[str, Any]]:
         dg = self.get_deployment_group(application_name, current_deployment_group_name)
 
-        if new_deployment_group_name and new_deployment_group_name != current_deployment_group_name:
-            if new_deployment_group_name in self.deployment_groups.get(application_name, {}):
+        if (
+            new_deployment_group_name
+            and new_deployment_group_name != current_deployment_group_name
+        ):
+            if new_deployment_group_name in self.deployment_groups.get(
+                application_name, {}
+            ):
                 raise DeploymentGroupAlreadyExistsException(
                     f"Deployment group {new_deployment_group_name} already exists."
                 )
@@ -885,10 +900,7 @@ class CodeDeployBackend(BaseBackend):
                 f"The application {application_name} does not exist with the user or AWS account."
             )
         app = self.applications[application_name]
-        return [
-            {"revisionType": "S3", "s3Location": {}}
-            for _ in app.revisions
-        ]
+        return [{"revisionType": "S3", "s3Location": {}} for _ in app.revisions]
 
     def register_application_revision(
         self,

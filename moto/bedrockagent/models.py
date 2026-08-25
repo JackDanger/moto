@@ -1253,7 +1253,9 @@ class AgentsforBedrockBackend(BaseBackend):
         if description is not None:
             ds.description = description
         if server_side_encryption_configuration is not None:
-            ds.server_side_encryption_configuration = server_side_encryption_configuration
+            ds.server_side_encryption_configuration = (
+                server_side_encryption_configuration
+            )
         if vector_ingestion_configuration is not None:
             ds.vector_ingestion_configuration = vector_ingestion_configuration
         ds.updated_at = unix_time()
@@ -1309,7 +1311,9 @@ class AgentsforBedrockBackend(BaseBackend):
         data_source_id: str,
         ingestion_job_id: str,
     ) -> IngestionJob:
-        job = self.get_ingestion_job(knowledge_base_id, data_source_id, ingestion_job_id)
+        job = self.get_ingestion_job(
+            knowledge_base_id, data_source_id, ingestion_job_id
+        )
         job.status = "STOPPED"
         return job
 
@@ -1531,7 +1535,9 @@ class AgentsforBedrockBackend(BaseBackend):
         self.prompts[prompt.id] = prompt
         return prompt
 
-    def get_prompt(self, prompt_identifier: str, prompt_version: Optional[str]) -> Prompt:
+    def get_prompt(
+        self, prompt_identifier: str, prompt_version: Optional[str]
+    ) -> Prompt:
         if prompt_identifier not in self.prompts:
             raise ResourceNotFoundException(f"Prompt {prompt_identifier} not found")
         return self.prompts[prompt_identifier]

@@ -319,11 +319,13 @@ class CodeBuildResponse(BaseResponse):
         status_code, deleted, not_deleted = self.codebuild_backend.delete_build_batch(
             batch_id
         )
-        return json.dumps({
-            "statusCode": status_code,
-            "buildsDeleted": deleted,
-            "buildsNotDeleted": not_deleted,
-        })
+        return json.dumps(
+            {
+                "statusCode": status_code,
+                "buildsDeleted": deleted,
+                "buildsNotDeleted": not_deleted,
+            }
+        )
 
     def retry_build_batch(self) -> str:
         batch_id = self._get_param("id")
@@ -344,10 +346,12 @@ class CodeBuildResponse(BaseResponse):
         if not ids:
             raise InvalidInputException("Build batch IDs are required")
         found, not_found = self.codebuild_backend.batch_get_build_batches(ids)
-        return json.dumps({
-            "buildBatches": found,
-            "buildBatchesNotFound": not_found,
-        })
+        return json.dumps(
+            {
+                "buildBatches": found,
+                "buildBatchesNotFound": not_found,
+            }
+        )
 
     # ---- Webhook operations ----
 
@@ -454,10 +458,12 @@ class CodeBuildResponse(BaseResponse):
         if not arns:
             raise InvalidInputException("Report group ARNs are required")
         found, not_found = self.codebuild_backend.batch_get_report_groups(arns)
-        return json.dumps({
-            "reportGroups": found,
-            "reportGroupsNotFound": not_found,
-        })
+        return json.dumps(
+            {
+                "reportGroups": found,
+                "reportGroupsNotFound": not_found,
+            }
+        )
 
     def list_report_groups(self) -> str:
         arns = self.codebuild_backend.list_report_groups()
@@ -693,7 +699,9 @@ class CodeBuildResponse(BaseResponse):
         found, not_found = self.codebuild_backend.batch_get_command_executions(
             sandbox_id, command_execution_ids
         )
-        return json.dumps({
-            "commandExecutions": found,
-            "commandExecutionsNotFound": not_found,
-        })
+        return json.dumps(
+            {
+                "commandExecutions": found,
+                "commandExecutionsNotFound": not_found,
+            }
+        )

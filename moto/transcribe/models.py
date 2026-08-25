@@ -1320,18 +1320,14 @@ class TranscribeBackend(BaseBackend):
         filters = list(self.vocabulary_filters.values())
 
         if name_contains:
-            filters = [
-                f for f in filters if name_contains in f.vocabulary_filter_name
-            ]
+            filters = [f for f in filters if name_contains in f.vocabulary_filter_name]
 
         start_offset = int(next_token) if next_token else 0
         end_offset = start_offset + (max_results if max_results else 100)
         filters_paginated = filters[start_offset:end_offset]
 
         response: dict[str, Any] = {
-            "VocabularyFilters": [
-                f.response_object("LIST") for f in filters_paginated
-            ]
+            "VocabularyFilters": [f.response_object("LIST") for f in filters_paginated]
         }
         if end_offset < len(filters):
             response["NextToken"] = str(end_offset)
@@ -1692,9 +1688,7 @@ class TranscribeBackend(BaseBackend):
             return None
         return store.get(resource_name)
 
-    def tag_resource(
-        self, resource_arn: str, tags: list[dict[str, str]]
-    ) -> None:
+    def tag_resource(self, resource_arn: str, tags: list[dict[str, str]]) -> None:
         resource = self._arn_for_resource(resource_arn)
         if resource is None:
             raise BadRequestException(
@@ -1711,9 +1705,7 @@ class TranscribeBackend(BaseBackend):
         # Also track in central store for ARN-based lookups
         self._resource_tags[resource_arn] = list(resource.tags)
 
-    def untag_resource(
-        self, resource_arn: str, tag_keys: list[str]
-    ) -> None:
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         resource = self._arn_for_resource(resource_arn)
         if resource is None:
             raise BadRequestException(

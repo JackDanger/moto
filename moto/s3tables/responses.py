@@ -372,9 +372,7 @@ class S3TablesResponse(BaseResponse):
         return (
             200,
             self.default_response_headers,
-            json.dumps(
-                {"tableBucketARN": table_bucket_arn, "configuration": config}
-            ),
+            json.dumps({"tableBucketARN": table_bucket_arn, "configuration": config}),
         )
 
     def put_table_bucket_maintenance_configuration(self) -> TYPE_RESPONSE:
@@ -421,9 +419,7 @@ class S3TablesResponse(BaseResponse):
         return (
             200,
             self.default_response_headers,
-            json.dumps(
-                {"tableBucketARN": table_bucket_arn, "id": metrics_id or ""}
-            ),
+            json.dumps({"tableBucketARN": table_bucket_arn, "id": metrics_id or ""}),
         )
 
     def put_table_bucket_metrics_configuration(self) -> TYPE_RESPONSE:
@@ -517,9 +513,7 @@ class S3TablesResponse(BaseResponse):
 
     def delete_table_policy(self) -> TYPE_RESPONSE:
         table_bucket_arn, namespace, name, _ = _parse_path(self.raw_path, 3)
-        self.s3tables_backend.delete_table_policy(
-            table_bucket_arn, namespace, name
-        )
+        self.s3tables_backend.delete_table_policy(table_bucket_arn, namespace, name)
         return 204, {}, ""
 
     # --- Table Maintenance Configuration ---
@@ -630,9 +624,7 @@ class S3TablesResponse(BaseResponse):
         return (
             200,
             self.default_response_headers,
-            json.dumps(
-                {"sourceTableArn": source_arn, "destinations": destinations}
-            ),
+            json.dumps({"sourceTableArn": source_arn, "destinations": destinations}),
         )
 
     # --- Table Record Expiration ---
@@ -661,9 +653,7 @@ class S3TablesResponse(BaseResponse):
     def get_table_record_expiration_job_status(self) -> TYPE_RESPONSE:
         params = self._get_params()
         table_arn = unquote(params["tableArn"])
-        result = self.s3tables_backend.get_table_record_expiration_job_status(
-            table_arn
-        )
+        result = self.s3tables_backend.get_table_record_expiration_job_status(table_arn)
         return (
             200,
             self.default_response_headers,

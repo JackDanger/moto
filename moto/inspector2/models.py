@@ -651,9 +651,7 @@ class Inspector2Backend(BaseBackend):
     def list_cis_scans(self) -> list[dict[str, Any]]:
         return []
 
-    def get_cis_scan_report(
-        self, scan_arn: str
-    ) -> dict[str, Any]:
+    def get_cis_scan_report(self, scan_arn: str) -> dict[str, Any]:
         return {"url": "", "status": "NO_FINDINGS_FOUND"}
 
     def get_cis_scan_result_details(
@@ -671,9 +669,7 @@ class Inspector2Backend(BaseBackend):
     ) -> list[dict[str, Any]]:
         return []
 
-    def start_cis_session(
-        self, scan_job_id: str, message: dict[str, Any]
-    ) -> None:
+    def start_cis_session(self, scan_job_id: str, message: dict[str, Any]) -> None:
         session_token = message.get("sessionToken", "")
         session = CisSession(scan_job_id=scan_job_id, session_token=session_token)
         self.cis_sessions[scan_job_id] = session
@@ -687,9 +683,7 @@ class Inspector2Backend(BaseBackend):
             session.stopped_at = unix_time()
             session.stop_message = message
 
-    def send_cis_session_health(
-        self, scan_job_id: str, session_token: str
-    ) -> None:
+    def send_cis_session_health(self, scan_job_id: str, session_token: str) -> None:
         session = self.cis_sessions.get(scan_job_id)
         if session:
             session.last_health_at = unix_time()
@@ -725,9 +719,7 @@ class Inspector2Backend(BaseBackend):
             report.status = "CANCELLED"
         return report_id
 
-    def get_findings_report_status(
-        self, report_id: Optional[str]
-    ) -> dict[str, Any]:
+    def get_findings_report_status(self, report_id: Optional[str]) -> dict[str, Any]:
         if report_id and report_id in self.findings_reports:
             return self.findings_reports[report_id].to_json()
         return {"reportId": report_id or "", "status": "NOT_FOUND"}
@@ -801,9 +793,7 @@ class Inspector2Backend(BaseBackend):
 
     # Encryption key
 
-    def get_encryption_key(
-        self, scan_type: str, resource_type: str
-    ) -> str:
+    def get_encryption_key(self, scan_type: str, resource_type: str) -> str:
         key = f"{scan_type}:{resource_type}"
         return self.encryption_keys.get(key, "")
 
@@ -889,9 +879,7 @@ class Inspector2Backend(BaseBackend):
         self.code_security_integrations.pop(integration_arn, None)
         return integration_arn
 
-    def get_code_security_integration(
-        self, integration_arn: str
-    ) -> dict[str, Any]:
+    def get_code_security_integration(self, integration_arn: str) -> dict[str, Any]:
         integration = self.code_security_integrations.get(integration_arn)
         if integration:
             return integration.to_json()
@@ -974,9 +962,7 @@ class Inspector2Backend(BaseBackend):
             config = self.code_security_scan_configurations.get(arn)
             if config:
                 config.associations.append(resource)
-                successful.append(
-                    {"scanConfigurationArn": arn, "resource": resource}
-                )
+                successful.append({"scanConfigurationArn": arn, "resource": resource})
             else:
                 failed.append(
                     {
@@ -998,9 +984,7 @@ class Inspector2Backend(BaseBackend):
             resource = req.get("resource", {})
             config = self.code_security_scan_configurations.get(arn)
             if config:
-                successful.append(
-                    {"scanConfigurationArn": arn, "resource": resource}
-                )
+                successful.append({"scanConfigurationArn": arn, "resource": resource})
             else:
                 failed.append(
                     {
@@ -1023,9 +1007,7 @@ class Inspector2Backend(BaseBackend):
             ]
         return []
 
-    def start_code_security_scan(
-        self, resource: dict[str, Any]
-    ) -> tuple[str, str]:
+    def start_code_security_scan(self, resource: dict[str, Any]) -> tuple[str, str]:
         scan_id = mock_random.get_random_hex(16)
         self.code_security_scans[scan_id] = {
             "scanId": scan_id,

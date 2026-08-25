@@ -312,7 +312,10 @@ class ApplicationAutoscalingBackend(BaseBackend):
         end_time: str,
     ) -> dict[str, Any]:
         """Returns an empty forecast (predictive scaling requires historical metrics)."""
-        return {"LoadForecast": [], "CapacityForecast": {"Timestamps": [], "Values": []}}
+        return {
+            "LoadForecast": [],
+            "CapacityForecast": {"Timestamps": [], "Values": []},
+        }
 
     def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
         """Return tags for a scalable target by ARN."""
@@ -329,9 +332,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
                 if target.arn == resource_arn:
                     target.tags.update(tags)
                     return
-        raise AWSValidationException(
-            f"Resource ARN '{resource_arn}' does not exist."
-        )
+        raise AWSValidationException(f"Resource ARN '{resource_arn}' does not exist.")
 
     def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         """Remove tags from a scalable target."""
@@ -341,9 +342,7 @@ class ApplicationAutoscalingBackend(BaseBackend):
                     for key in tag_keys:
                         target.tags.pop(key, None)
                     return
-        raise AWSValidationException(
-            f"Resource ARN '{resource_arn}' does not exist."
-        )
+        raise AWSValidationException(f"Resource ARN '{resource_arn}' does not exist.")
 
     def put_scheduled_action(
         self,

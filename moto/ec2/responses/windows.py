@@ -1,4 +1,4 @@
-from moto.core.responses import ActionResult, EmptyResult
+from moto.core.responses import ActionResult
 from moto.core.utils import utcnow
 
 from ._base_response import EC2BaseResponse

@@ -178,7 +178,9 @@ class FakeIpAccessSettings(BaseModel):
         account_id: str,
     ):
         self.ip_access_settings_id = str(uuid.uuid4())
-        self.arn = self.arn_formatter(self.ip_access_settings_id, account_id, region_name)
+        self.arn = self.arn_formatter(
+            self.ip_access_settings_id, account_id, region_name
+        )
         self.additional_encryption_context = additional_encryption_context
         self.client_token = client_token
         self.customer_managed_key = customer_managed_key
@@ -239,7 +241,9 @@ class FakeIdentityProvider(BaseModel):
         account_id: str,
     ):
         self.identity_provider_id = str(uuid.uuid4())
-        self.arn = self.arn_formatter(self.identity_provider_id, account_id, region_name)
+        self.arn = self.arn_formatter(
+            self.identity_provider_id, account_id, region_name
+        )
         self.portal_arn = portal_arn
         self.identity_provider_details = identity_provider_details or {}
         self.identity_provider_name = identity_provider_name
@@ -272,7 +276,9 @@ class FakeDataProtectionSettings(BaseModel):
         account_id: str,
     ):
         self.data_protection_settings_id = str(uuid.uuid4())
-        self.arn = self.arn_formatter(self.data_protection_settings_id, account_id, region_name)
+        self.arn = self.arn_formatter(
+            self.data_protection_settings_id, account_id, region_name
+        )
         self.additional_encryption_context = additional_encryption_context
         self.client_token = client_token
         self.customer_managed_key = customer_managed_key
@@ -469,7 +475,9 @@ class WorkSpacesWebBackend(BaseBackend, TaggableResourcesMixin):
 
     def get_network_settings(self, network_settings_arn: str) -> dict[str, Any]:
         if network_settings_arn not in self.network_settings:
-            raise ResourceNotFoundException(f"NetworkSettings {network_settings_arn} not found")
+            raise ResourceNotFoundException(
+                f"NetworkSettings {network_settings_arn} not found"
+            )
         return self.network_settings[network_settings_arn].to_dict()
 
     def delete_network_settings(self, network_settings_arn: str) -> None:
@@ -483,7 +491,9 @@ class WorkSpacesWebBackend(BaseBackend, TaggableResourcesMixin):
         vpc_id: Optional[str],
     ) -> dict[str, Any]:
         if network_settings_arn not in self.network_settings:
-            raise ResourceNotFoundException(f"NetworkSettings {network_settings_arn} not found")
+            raise ResourceNotFoundException(
+                f"NetworkSettings {network_settings_arn} not found"
+            )
         obj = self.network_settings[network_settings_arn]
         if security_group_ids is not None:
             obj.security_group_ids = security_group_ids
@@ -522,7 +532,9 @@ class WorkSpacesWebBackend(BaseBackend, TaggableResourcesMixin):
 
     def get_browser_settings(self, browser_settings_arn: str) -> dict[str, Any]:
         if browser_settings_arn not in self.browser_settings:
-            raise ResourceNotFoundException(f"BrowserSettings {browser_settings_arn} not found")
+            raise ResourceNotFoundException(
+                f"BrowserSettings {browser_settings_arn} not found"
+            )
         return self.browser_settings[browser_settings_arn].to_dict()
 
     def delete_browser_settings(self, browser_settings_arn: str) -> None:
@@ -534,7 +546,9 @@ class WorkSpacesWebBackend(BaseBackend, TaggableResourcesMixin):
         browser_policy: Optional[str],
     ) -> dict[str, Any]:
         if browser_settings_arn not in self.browser_settings:
-            raise ResourceNotFoundException(f"BrowserSettings {browser_settings_arn} not found")
+            raise ResourceNotFoundException(
+                f"BrowserSettings {browser_settings_arn} not found"
+            )
         obj = self.browser_settings[browser_settings_arn]
         if browser_policy is not None:
             obj.browser_policy = browser_policy
@@ -711,7 +725,9 @@ class WorkSpacesWebBackend(BaseBackend, TaggableResourcesMixin):
 
     def get_user_settings(self, user_settings_arn: str) -> dict[str, Any]:
         if user_settings_arn not in self.user_settings:
-            raise ResourceNotFoundException(f"UserSettings {user_settings_arn} not found")
+            raise ResourceNotFoundException(
+                f"UserSettings {user_settings_arn} not found"
+            )
         return self.user_settings[user_settings_arn].to_dict()
 
     def delete_user_settings(self, user_settings_arn: str) -> None:
@@ -731,7 +747,9 @@ class WorkSpacesWebBackend(BaseBackend, TaggableResourcesMixin):
         cookie_synchronization_configuration: Optional[Any],
     ) -> dict[str, Any]:
         if user_settings_arn not in self.user_settings:
-            raise ResourceNotFoundException(f"UserSettings {user_settings_arn} not found")
+            raise ResourceNotFoundException(
+                f"UserSettings {user_settings_arn} not found"
+            )
         obj = self.user_settings[user_settings_arn]
         if copy_allowed is not None:
             obj.copy_allowed = copy_allowed
@@ -750,7 +768,9 @@ class WorkSpacesWebBackend(BaseBackend, TaggableResourcesMixin):
         if deep_link_allowed is not None:
             obj.deep_link_allowed = deep_link_allowed
         if cookie_synchronization_configuration is not None:
-            obj.cookie_synchronization_configuration = cookie_synchronization_configuration
+            obj.cookie_synchronization_configuration = (
+                cookie_synchronization_configuration
+            )
         return obj.to_dict()
 
     def create_user_access_logging_settings(
@@ -770,7 +790,9 @@ class WorkSpacesWebBackend(BaseBackend, TaggableResourcesMixin):
         self, user_access_logging_settings_arn: str
     ) -> dict[str, Any]:
         if user_access_logging_settings_arn not in self.user_access_logging_settings:
-            raise ResourceNotFoundException(f"UserAccessLoggingSettings {user_access_logging_settings_arn} not found")
+            raise ResourceNotFoundException(
+                f"UserAccessLoggingSettings {user_access_logging_settings_arn} not found"
+            )
         return self.user_access_logging_settings[
             user_access_logging_settings_arn
         ].to_dict()
@@ -786,7 +808,9 @@ class WorkSpacesWebBackend(BaseBackend, TaggableResourcesMixin):
         kinesis_stream_arn: Optional[str],
     ) -> dict[str, Any]:
         if user_access_logging_settings_arn not in self.user_access_logging_settings:
-            raise ResourceNotFoundException(f"UserAccessLoggingSettings {user_access_logging_settings_arn} not found")
+            raise ResourceNotFoundException(
+                f"UserAccessLoggingSettings {user_access_logging_settings_arn} not found"
+            )
         obj = self.user_access_logging_settings[user_access_logging_settings_arn]
         if kinesis_stream_arn is not None:
             obj.kinesis_stream_arn = kinesis_stream_arn
@@ -890,7 +914,9 @@ class WorkSpacesWebBackend(BaseBackend, TaggableResourcesMixin):
 
     def get_ip_access_settings(self, ip_access_settings_arn: str) -> dict[str, Any]:
         if ip_access_settings_arn not in self.ip_access_settings:
-            raise ResourceNotFoundException(f"IpAccessSettings {ip_access_settings_arn} not found")
+            raise ResourceNotFoundException(
+                f"IpAccessSettings {ip_access_settings_arn} not found"
+            )
         return self.ip_access_settings[ip_access_settings_arn].to_dict()
 
     def update_ip_access_settings(
@@ -901,7 +927,9 @@ class WorkSpacesWebBackend(BaseBackend, TaggableResourcesMixin):
         ip_rules: Optional[list[dict[str, Any]]],
     ) -> dict[str, Any]:
         if ip_access_settings_arn not in self.ip_access_settings:
-            raise ResourceNotFoundException(f"IpAccessSettings {ip_access_settings_arn} not found")
+            raise ResourceNotFoundException(
+                f"IpAccessSettings {ip_access_settings_arn} not found"
+            )
         obj = self.ip_access_settings[ip_access_settings_arn]
         if description is not None:
             obj.description = description
@@ -920,7 +948,9 @@ class WorkSpacesWebBackend(BaseBackend, TaggableResourcesMixin):
         if portal_arn not in self.portals:
             raise ResourceNotFoundException(f"Portal {portal_arn} not found")
         if ip_access_settings_arn not in self.ip_access_settings:
-            raise ResourceNotFoundException(f"IpAccessSettings {ip_access_settings_arn} not found")
+            raise ResourceNotFoundException(
+                f"IpAccessSettings {ip_access_settings_arn} not found"
+            )
         portal = self.portals[portal_arn]
         obj = self.ip_access_settings[ip_access_settings_arn]
         portal.ip_access_settings_arn = ip_access_settings_arn
@@ -979,13 +1009,17 @@ class WorkSpacesWebBackend(BaseBackend, TaggableResourcesMixin):
         if certificates_to_add:
             obj.certificate_list.extend(certificates_to_add)
         if certificates_to_delete:
-            obj.certificate_list = [c for c in obj.certificate_list if c not in certificates_to_delete]
+            obj.certificate_list = [
+                c for c in obj.certificate_list if c not in certificates_to_delete
+            ]
         return trust_store_arn
 
     def delete_trust_store(self, trust_store_arn: str) -> None:
         self.trust_stores.pop(trust_store_arn, None)
 
-    def get_trust_store_certificate(self, trust_store_arn: str, thumbprint: str) -> dict[str, Any]:
+    def get_trust_store_certificate(
+        self, trust_store_arn: str, thumbprint: str
+    ) -> dict[str, Any]:
         if trust_store_arn not in self.trust_stores:
             raise ResourceNotFoundException(f"TrustStore {trust_store_arn} not found")
         return {
@@ -1000,7 +1034,9 @@ class WorkSpacesWebBackend(BaseBackend, TaggableResourcesMixin):
             "trustStoreArn": trust_store_arn,
         }
 
-    def list_trust_store_certificates(self, trust_store_arn: str) -> list[dict[str, Any]]:
+    def list_trust_store_certificates(
+        self, trust_store_arn: str
+    ) -> list[dict[str, Any]]:
         if trust_store_arn not in self.trust_stores:
             raise ResourceNotFoundException(f"TrustStore {trust_store_arn} not found")
         return [
@@ -1065,7 +1101,9 @@ class WorkSpacesWebBackend(BaseBackend, TaggableResourcesMixin):
 
     def get_identity_provider(self, identity_provider_arn: str) -> dict[str, Any]:
         if identity_provider_arn not in self.identity_providers:
-            raise ResourceNotFoundException(f"IdentityProvider {identity_provider_arn} not found")
+            raise ResourceNotFoundException(
+                f"IdentityProvider {identity_provider_arn} not found"
+            )
         return self.identity_providers[identity_provider_arn].to_dict()
 
     def update_identity_provider(
@@ -1076,7 +1114,9 @@ class WorkSpacesWebBackend(BaseBackend, TaggableResourcesMixin):
         identity_provider_type: str | None,
     ) -> dict[str, Any]:
         if identity_provider_arn not in self.identity_providers:
-            raise ResourceNotFoundException(f"IdentityProvider {identity_provider_arn} not found")
+            raise ResourceNotFoundException(
+                f"IdentityProvider {identity_provider_arn} not found"
+            )
         obj = self.identity_providers[identity_provider_arn]
         if identity_provider_details is not None:
             obj.identity_provider_details = identity_provider_details
@@ -1127,9 +1167,13 @@ class WorkSpacesWebBackend(BaseBackend, TaggableResourcesMixin):
             for obj in self.data_protection_settings.values()
         ]
 
-    def get_data_protection_settings(self, data_protection_settings_arn: str) -> dict[str, Any]:
+    def get_data_protection_settings(
+        self, data_protection_settings_arn: str
+    ) -> dict[str, Any]:
         if data_protection_settings_arn not in self.data_protection_settings:
-            raise ResourceNotFoundException(f"DataProtectionSettings {data_protection_settings_arn} not found")
+            raise ResourceNotFoundException(
+                f"DataProtectionSettings {data_protection_settings_arn} not found"
+            )
         return self.data_protection_settings[data_protection_settings_arn].to_dict()
 
     def update_data_protection_settings(
@@ -1140,7 +1184,9 @@ class WorkSpacesWebBackend(BaseBackend, TaggableResourcesMixin):
         inline_redaction_configuration: Any | None,
     ) -> dict[str, Any]:
         if data_protection_settings_arn not in self.data_protection_settings:
-            raise ResourceNotFoundException(f"DataProtectionSettings {data_protection_settings_arn} not found")
+            raise ResourceNotFoundException(
+                f"DataProtectionSettings {data_protection_settings_arn} not found"
+            )
         obj = self.data_protection_settings[data_protection_settings_arn]
         if description is not None:
             obj.description = description
@@ -1150,7 +1196,9 @@ class WorkSpacesWebBackend(BaseBackend, TaggableResourcesMixin):
             obj.inline_redaction_configuration = inline_redaction_configuration
         return obj.to_dict()
 
-    def delete_data_protection_settings(self, data_protection_settings_arn: str) -> None:
+    def delete_data_protection_settings(
+        self, data_protection_settings_arn: str
+    ) -> None:
         self.data_protection_settings.pop(data_protection_settings_arn, None)
 
     def associate_data_protection_settings(
@@ -1159,7 +1207,9 @@ class WorkSpacesWebBackend(BaseBackend, TaggableResourcesMixin):
         if portal_arn not in self.portals:
             raise ResourceNotFoundException(f"Portal {portal_arn} not found")
         if data_protection_settings_arn not in self.data_protection_settings:
-            raise ResourceNotFoundException(f"DataProtectionSettings {data_protection_settings_arn} not found")
+            raise ResourceNotFoundException(
+                f"DataProtectionSettings {data_protection_settings_arn} not found"
+            )
         portal = self.portals[portal_arn]
         obj = self.data_protection_settings[data_protection_settings_arn]
         portal.data_protection_settings_arn = data_protection_settings_arn
@@ -1214,7 +1264,9 @@ class WorkSpacesWebBackend(BaseBackend, TaggableResourcesMixin):
 
     def get_session_logger(self, session_logger_arn: str) -> dict[str, Any]:
         if session_logger_arn not in self.session_loggers:
-            raise ResourceNotFoundException(f"SessionLogger {session_logger_arn} not found")
+            raise ResourceNotFoundException(
+                f"SessionLogger {session_logger_arn} not found"
+            )
         return self.session_loggers[session_logger_arn].to_dict()
 
     def update_session_logger(
@@ -1225,7 +1277,9 @@ class WorkSpacesWebBackend(BaseBackend, TaggableResourcesMixin):
         log_configuration: Any | None,
     ) -> dict[str, Any]:
         if session_logger_arn not in self.session_loggers:
-            raise ResourceNotFoundException(f"SessionLogger {session_logger_arn} not found")
+            raise ResourceNotFoundException(
+                f"SessionLogger {session_logger_arn} not found"
+            )
         obj = self.session_loggers[session_logger_arn]
         if display_name is not None:
             obj.display_name = display_name
@@ -1244,7 +1298,9 @@ class WorkSpacesWebBackend(BaseBackend, TaggableResourcesMixin):
         if portal_arn not in self.portals:
             raise ResourceNotFoundException(f"Portal {portal_arn} not found")
         if session_logger_arn not in self.session_loggers:
-            raise ResourceNotFoundException(f"SessionLogger {session_logger_arn} not found")
+            raise ResourceNotFoundException(
+                f"SessionLogger {session_logger_arn} not found"
+            )
         portal = self.portals[portal_arn]
         obj = self.session_loggers[session_logger_arn]
         portal.session_logger_arn = session_logger_arn
@@ -1266,11 +1322,7 @@ class WorkSpacesWebBackend(BaseBackend, TaggableResourcesMixin):
 
     # Sessions
     def list_sessions(self, portal_id: str) -> list[dict[str, Any]]:
-        return [
-            s.to_dict()
-            for s in self.sessions.values()
-            if s.portal_id == portal_id
-        ]
+        return [s.to_dict() for s in self.sessions.values() if s.portal_id == portal_id]
 
     def get_session(self, portal_id: str, session_id: str) -> dict[str, Any]:
         key = f"{portal_id}/{session_id}"
@@ -1305,8 +1357,6 @@ class WorkSpacesWebBackend(BaseBackend, TaggableResourcesMixin):
                 tags=self.tagger.get_tag_dict_for_resource(portal.arn),
                 resource_type="workspaces-web:portal",
             )
-
-
 
 
 workspacesweb_backends = BackendDict(WorkSpacesWebBackend, "workspaces-web")

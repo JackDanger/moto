@@ -6,7 +6,7 @@ from moto.core.common_models import BaseModel
 from moto.core.utils import utcnow
 from moto.moto_api._internal import mock_random
 
-from .exceptions import ResourceNotFoundException, ValidationException
+from .exceptions import ResourceNotFoundException
 
 
 class AllowList(BaseModel):
@@ -86,14 +86,14 @@ class ClassificationJob(BaseModel):
         self.allow_list_ids = allow_list_ids or []
         self.custom_data_identifier_ids = custom_data_identifier_ids or []
         self.managed_data_identifier_ids = managed_data_identifier_ids or []
-        self.managed_data_identifier_selector = managed_data_identifier_selector or "ALL"
+        self.managed_data_identifier_selector = (
+            managed_data_identifier_selector or "ALL"
+        )
         self.job_status = "RUNNING"
         now = utcnow()
         self.created_at = now
         self.last_run_time = now
-        self.job_arn = (
-            f"arn:aws:macie2:{region_name}:{account_id}:classification-job/{self.job_id}"
-        )
+        self.job_arn = f"arn:aws:macie2:{region_name}:{account_id}:classification-job/{self.job_id}"
         self.statistics = {
             "approximateNumberOfObjectsToProcess": 0.0,
             "numberOfRuns": 0.0,
@@ -311,7 +311,10 @@ class MacieBackend(BaseBackend):
         self.automated_discovery_auto_enable: str = "NONE"
         self.organization_auto_enable: bool = False
         self.findings_publication_configuration: dict[str, Any] = {
-            "securityHubConfiguration": {"publishClassificationFindings": True, "publishPolicyFindings": True}
+            "securityHubConfiguration": {
+                "publishClassificationFindings": True,
+                "publishPolicyFindings": True,
+            }
         }
         # Tags keyed by resource ARN
         self.tagger: dict[str, dict[str, str]] = {}
@@ -499,7 +502,9 @@ class MacieBackend(BaseBackend):
                 "The request failed because the specified resource doesn't exist."
             )
         if finding_publishing_frequency:
-            self.macie_session["findingPublishingFrequency"] = finding_publishing_frequency
+            self.macie_session["findingPublishingFrequency"] = (
+                finding_publishing_frequency
+            )
         if status:
             self.macie_session["status"] = status
         self.macie_session["updatedAt"] = utcnow()
@@ -694,11 +699,7 @@ class MacieBackend(BaseBackend):
         self.tagger.pop(cdi.arn, None)
 
     def list_custom_data_identifiers(self) -> list[CustomDataIdentifier]:
-        return [
-            cdi
-            for cdi in self.custom_data_identifiers.values()
-            if not cdi.deleted
-        ]
+        return [cdi for cdi in self.custom_data_identifiers.values() if not cdi.deleted]
 
     def batch_get_custom_data_identifiers(
         self, ids: list[str]
@@ -884,14 +885,10 @@ class MacieBackend(BaseBackend):
     def get_findings(self, finding_ids: list[str]) -> list[dict[str, Any]]:
         return []
 
-    def get_finding_statistics(
-        self, group_by: str
-    ) -> list[dict[str, Any]]:
+    def get_finding_statistics(self, group_by: str) -> list[dict[str, Any]]:
         return []
 
-    def create_sample_findings(
-        self, finding_types: Optional[list[str]] = None
-    ) -> None:
+    def create_sample_findings(self, finding_types: Optional[list[str]] = None) -> None:
         # Stub: sample findings are not persisted
         pass
 
@@ -932,7 +929,11 @@ class MacieBackend(BaseBackend):
             "sizeInBytes": 0,
             "sizeInBytesCompressed": 0,
             "unclassifiableObjectCount": {"fileType": 0, "storageClass": 0, "total": 0},
-            "unclassifiableObjectSizeInBytes": {"fileType": 0, "storageClass": 0, "total": 0},
+            "unclassifiableObjectSizeInBytes": {
+                "fileType": 0,
+                "storageClass": 0,
+                "total": 0,
+            },
         }
 
     def search_resources(self) -> list[dict[str, Any]]:
@@ -955,7 +956,9 @@ class MacieBackend(BaseBackend):
             "s3": {"excludes": {"bucketNames": []}},
         }
 
-    def update_classification_scope(self, scope_id: str, s3: Optional[dict[str, Any]] = None) -> None:
+    def update_classification_scope(
+        self, scope_id: str, s3: Optional[dict[str, Any]] = None
+    ) -> None:
         pass
 
     def list_classification_scopes(self) -> list[dict[str, Any]]:

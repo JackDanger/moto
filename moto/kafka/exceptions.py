@@ -31,4 +31,3 @@ class ConflictException(KafkaError):
         self.description = json.dumps(
             {"message": message, "invalidParameter": None, "Message": message}
         )
-

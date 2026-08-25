@@ -100,7 +100,9 @@ class AppRegistryResponse(BaseResponse):
 
     def delete_attribute_group(self) -> str:
         attribute_group = unquote(self._get_param("attributeGroup"))
-        ag = self.servicecatalogappregistry_backend.delete_attribute_group(attribute_group)
+        ag = self.servicecatalogappregistry_backend.delete_attribute_group(
+            attribute_group
+        )
         return json.dumps({"attributeGroup": ag.to_json()})
 
     def list_attribute_groups(self) -> str:
@@ -127,12 +129,16 @@ class AppRegistryResponse(BaseResponse):
 
     def list_associated_attribute_groups(self) -> str:
         application = unquote(self._get_param("application"))
-        arns = self.servicecatalogappregistry_backend.list_associated_attribute_groups(application)
+        arns = self.servicecatalogappregistry_backend.list_associated_attribute_groups(
+            application
+        )
         return json.dumps({"attributeGroups": arns})
 
     def list_attribute_groups_for_application(self) -> str:
         application = unquote(self._get_param("application"))
-        ags = self.servicecatalogappregistry_backend.list_attribute_groups_for_application(application)
+        ags = self.servicecatalogappregistry_backend.list_attribute_groups_for_application(
+            application
+        )
         return json.dumps({"attributeGroupsDetails": ags})
 
     def associate_resource(self) -> str:
@@ -193,7 +199,9 @@ class AppRegistryResponse(BaseResponse):
 
     def list_tags_for_resource(self) -> str:
         resource_arn = unquote(self._get_param("resourceArn"))
-        tags = self.servicecatalogappregistry_backend.list_tags_for_resource(resource_arn)
+        tags = self.servicecatalogappregistry_backend.list_tags_for_resource(
+            resource_arn
+        )
         return json.dumps({"tags": tags})
 
     def tag_resource(self) -> str:

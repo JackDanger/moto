@@ -353,12 +353,8 @@ def random_capacity_reservation_fleet_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["capacity-reservation-fleet"])
 
 
-
-
 def random_traffic_mirror_filter_rule_id() -> str:
     return random_id(prefix=EC2_RESOURCE_TO_PREFIX["traffic-mirror-filter-rule"])
-
-
 
 
 def random_traffic_mirror_session_id() -> str:

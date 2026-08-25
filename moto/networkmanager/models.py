@@ -1,4 +1,5 @@
 """NetworkManagerBackend class with methods for supported APIs."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -326,8 +327,12 @@ class NetworkManagerBackend(BaseBackend):
         self.transit_gateway_peerings: dict[str, TransitGatewayPeering] = {}
         self.core_network_policies: dict[str, list[CoreNetworkPolicy]] = {}
         self.resource_policies: dict[str, str] = {}
-        self.connect_peer_associations: dict[str, dict[str, ConnectPeerAssociation]] = {}
-        self.customer_gateway_associations: dict[str, dict[str, CustomerGatewayAssociation]] = {}
+        self.connect_peer_associations: dict[
+            str, dict[str, ConnectPeerAssociation]
+        ] = {}
+        self.customer_gateway_associations: dict[
+            str, dict[str, CustomerGatewayAssociation]
+        ] = {}
         self.link_associations: dict[str, list[LinkAssociation]] = {}
         self.transit_gateway_connect_peer_associations: dict[
             str, dict[str, TransitGatewayConnectPeerAssociation]
@@ -634,16 +639,24 @@ class NetworkManagerBackend(BaseBackend):
         gn = self.global_networks.pop(global_network_id)
         gn.state = "DELETING"
         for store in [
-            self.sites, self.links, self.devices, self.connections,
-            self.connect_peer_associations, self.customer_gateway_associations,
-            self.link_associations, self.transit_gateway_connect_peer_associations,
-            self.transit_gateway_registrations, self.route_analyses,
+            self.sites,
+            self.links,
+            self.devices,
+            self.connections,
+            self.connect_peer_associations,
+            self.customer_gateway_associations,
+            self.link_associations,
+            self.transit_gateway_connect_peer_associations,
+            self.transit_gateway_registrations,
+            self.route_analyses,
         ]:
             store.pop(global_network_id, None)
         return gn
 
     def update_global_network(
-        self, global_network_id: str, description: Optional[str],
+        self,
+        global_network_id: str,
+        description: Optional[str],
     ) -> GlobalNetwork:
         if global_network_id not in self.global_networks:
             raise ResourceNotFound(global_network_id)
@@ -653,7 +666,9 @@ class NetworkManagerBackend(BaseBackend):
         return gn
 
     def update_core_network(
-        self, core_network_id: str, description: Optional[str],
+        self,
+        core_network_id: str,
+        description: Optional[str],
     ) -> CoreNetwork:
         if core_network_id not in self.core_networks:
             raise ResourceNotFound(core_network_id)
@@ -663,8 +678,11 @@ class NetworkManagerBackend(BaseBackend):
         return cn
 
     def update_site(
-        self, global_network_id: str, site_id: str,
-        description: Optional[str], location: Optional[dict[str, str]],
+        self,
+        global_network_id: str,
+        site_id: str,
+        description: Optional[str],
+        location: Optional[dict[str, str]],
     ) -> Site:
         if global_network_id not in self.global_networks:
             raise ResourceNotFound(global_network_id)
@@ -679,8 +697,13 @@ class NetworkManagerBackend(BaseBackend):
         return site
 
     def update_link(
-        self, global_network_id: str, link_id: str, description: Optional[str],
-        type: Optional[str], bandwidth: Optional[dict[str, Any]], provider: Optional[str],
+        self,
+        global_network_id: str,
+        link_id: str,
+        description: Optional[str],
+        type: Optional[str],
+        bandwidth: Optional[dict[str, Any]],
+        provider: Optional[str],
     ) -> Link:
         if global_network_id not in self.global_networks:
             raise ResourceNotFound(global_network_id)
@@ -699,10 +722,16 @@ class NetworkManagerBackend(BaseBackend):
         return link
 
     def update_device(
-        self, global_network_id: str, device_id: str,
-        aws_location: Optional[dict[str, str]], description: Optional[str],
-        type: Optional[str], vendor: Optional[str], model: Optional[str],
-        serial_number: Optional[str], location: Optional[dict[str, str]],
+        self,
+        global_network_id: str,
+        device_id: str,
+        aws_location: Optional[dict[str, str]],
+        description: Optional[str],
+        type: Optional[str],
+        vendor: Optional[str],
+        model: Optional[str],
+        serial_number: Optional[str],
+        location: Optional[dict[str, str]],
         site_id: Optional[str],
     ) -> Device:
         if global_network_id not in self.global_networks:
@@ -730,23 +759,35 @@ class NetworkManagerBackend(BaseBackend):
         return device
 
     def create_connection(
-        self, global_network_id: str, device_id: str, connected_device_id: str,
-        link_id: Optional[str], connected_link_id: Optional[str],
-        description: Optional[str], tags: Optional[list[dict[str, str]]],
+        self,
+        global_network_id: str,
+        device_id: str,
+        connected_device_id: str,
+        link_id: Optional[str],
+        connected_link_id: Optional[str],
+        description: Optional[str],
+        tags: Optional[list[dict[str, str]]],
     ) -> Connection:
         if global_network_id not in self.global_networks:
             raise ResourceNotFound(global_network_id)
         conn = Connection(
-            account_id=self.account_id, partition=self.partition,
-            global_network_id=global_network_id, device_id=device_id,
-            connected_device_id=connected_device_id, link_id=link_id,
-            connected_link_id=connected_link_id, description=description, tags=tags,
+            account_id=self.account_id,
+            partition=self.partition,
+            global_network_id=global_network_id,
+            device_id=device_id,
+            connected_device_id=connected_device_id,
+            link_id=link_id,
+            connected_link_id=connected_link_id,
+            description=description,
+            tags=tags,
         )
         self.connections[global_network_id][conn.connection_id] = conn
         conn.state = "AVAILABLE"
         return conn
 
-    def delete_connection(self, global_network_id: str, connection_id: str) -> Connection:
+    def delete_connection(
+        self, global_network_id: str, connection_id: str
+    ) -> Connection:
         if global_network_id not in self.global_networks:
             raise ResourceNotFound(global_network_id)
         gn_conns = self.connections.get(global_network_id, {})
@@ -757,8 +798,12 @@ class NetworkManagerBackend(BaseBackend):
         return conn
 
     def update_connection(
-        self, global_network_id: str, connection_id: str,
-        link_id: Optional[str], connected_link_id: Optional[str], description: Optional[str],
+        self,
+        global_network_id: str,
+        connection_id: str,
+        link_id: Optional[str],
+        connected_link_id: Optional[str],
+        description: Optional[str],
     ) -> Connection:
         if global_network_id not in self.global_networks:
             raise ResourceNotFound(global_network_id)
@@ -776,7 +821,9 @@ class NetworkManagerBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def get_connections(
-        self, global_network_id: str, connection_ids: Optional[list[str]],
+        self,
+        global_network_id: str,
+        connection_ids: Optional[list[str]],
         device_id: Optional[str],
     ) -> list[Connection]:
         if global_network_id not in self.global_networks:
@@ -790,17 +837,26 @@ class NetworkManagerBackend(BaseBackend):
         return result
 
     def create_vpc_attachment(
-        self, core_network_id: str, vpc_arn: str, subnet_arns: list[str],
-        options: Optional[dict[str, Any]], tags: Optional[list[dict[str, str]]],
+        self,
+        core_network_id: str,
+        vpc_arn: str,
+        subnet_arns: list[str],
+        options: Optional[dict[str, Any]],
+        tags: Optional[list[dict[str, str]]],
         client_token: Optional[str],
     ) -> VpcAttachment:
         cn = self.core_networks.get(core_network_id)
         if not cn:
             raise ResourceNotFound(core_network_id)
         att = VpcAttachment(
-            account_id=self.account_id, partition=self.partition,
-            core_network_id=core_network_id, core_network_arn=cn.core_network_arn,
-            vpc_arn=vpc_arn, subnet_arns=subnet_arns, options=options, tags=tags,
+            account_id=self.account_id,
+            partition=self.partition,
+            core_network_id=core_network_id,
+            core_network_arn=cn.core_network_arn,
+            vpc_arn=vpc_arn,
+            subnet_arns=subnet_arns,
+            options=options,
+            tags=tags,
         )
         aid = att.attachment.attachment_id
         self.attachments[aid] = att.attachment
@@ -814,8 +870,11 @@ class NetworkManagerBackend(BaseBackend):
         return self.vpc_attachments[attachment_id]
 
     def update_vpc_attachment(
-        self, attachment_id: str, add_subnet_arns: Optional[list[str]],
-        remove_subnet_arns: Optional[list[str]], options: Optional[dict[str, Any]],
+        self,
+        attachment_id: str,
+        add_subnet_arns: Optional[list[str]],
+        remove_subnet_arns: Optional[list[str]],
+        options: Optional[dict[str, Any]],
     ) -> VpcAttachment:
         if attachment_id not in self.vpc_attachments:
             raise ResourceNotFound(attachment_id)
@@ -823,25 +882,35 @@ class NetworkManagerBackend(BaseBackend):
         if add_subnet_arns:
             att.subnet_arns.extend(add_subnet_arns)
         if remove_subnet_arns:
-            att.subnet_arns = [s for s in att.subnet_arns if s not in remove_subnet_arns]
+            att.subnet_arns = [
+                s for s in att.subnet_arns if s not in remove_subnet_arns
+            ]
         if options is not None:
             att.options = options
         att.attachment.updated_at = _now()
         return att
 
     def create_connect_attachment(
-        self, core_network_id: str, edge_location: Optional[str],
-        transport_attachment_id: str, options: Optional[dict[str, Any]],
-        tags: Optional[list[dict[str, str]]], client_token: Optional[str],
+        self,
+        core_network_id: str,
+        edge_location: Optional[str],
+        transport_attachment_id: str,
+        options: Optional[dict[str, Any]],
+        tags: Optional[list[dict[str, str]]],
+        client_token: Optional[str],
     ) -> ConnectAttachment:
         cn = self.core_networks.get(core_network_id)
         if not cn:
             raise ResourceNotFound(core_network_id)
         att = ConnectAttachment(
-            account_id=self.account_id, partition=self.partition,
-            core_network_id=core_network_id, core_network_arn=cn.core_network_arn,
-            edge_location=edge_location, transport_attachment_id=transport_attachment_id,
-            options=options, tags=tags,
+            account_id=self.account_id,
+            partition=self.partition,
+            core_network_id=core_network_id,
+            core_network_arn=cn.core_network_arn,
+            edge_location=edge_location,
+            transport_attachment_id=transport_attachment_id,
+            options=options,
+            tags=tags,
         )
         aid = att.attachment.attachment_id
         self.attachments[aid] = att.attachment
@@ -855,16 +924,22 @@ class NetworkManagerBackend(BaseBackend):
         return self.connect_attachments[attachment_id]
 
     def create_site_to_site_vpn_attachment(
-        self, core_network_id: str, vpn_connection_arn: str,
-        tags: Optional[list[dict[str, str]]], client_token: Optional[str],
+        self,
+        core_network_id: str,
+        vpn_connection_arn: str,
+        tags: Optional[list[dict[str, str]]],
+        client_token: Optional[str],
     ) -> SiteToSiteVpnAttachment:
         cn = self.core_networks.get(core_network_id)
         if not cn:
             raise ResourceNotFound(core_network_id)
         att = SiteToSiteVpnAttachment(
-            account_id=self.account_id, partition=self.partition,
-            core_network_id=core_network_id, core_network_arn=cn.core_network_arn,
-            vpn_connection_arn=vpn_connection_arn, tags=tags,
+            account_id=self.account_id,
+            partition=self.partition,
+            core_network_id=core_network_id,
+            core_network_arn=cn.core_network_arn,
+            vpn_connection_arn=vpn_connection_arn,
+            tags=tags,
         )
         aid = att.attachment.attachment_id
         self.attachments[aid] = att.attachment
@@ -872,14 +947,19 @@ class NetworkManagerBackend(BaseBackend):
         att.attachment.state = "AVAILABLE"
         return att
 
-    def get_site_to_site_vpn_attachment(self, attachment_id: str) -> SiteToSiteVpnAttachment:
+    def get_site_to_site_vpn_attachment(
+        self, attachment_id: str
+    ) -> SiteToSiteVpnAttachment:
         if attachment_id not in self.site_to_site_vpn_attachments:
             raise ResourceNotFound(attachment_id)
         return self.site_to_site_vpn_attachments[attachment_id]
 
     def create_transit_gateway_route_table_attachment(
-        self, peering_id: str, transit_gateway_route_table_arn: str,
-        tags: Optional[list[dict[str, str]]], client_token: Optional[str],
+        self,
+        peering_id: str,
+        transit_gateway_route_table_arn: str,
+        tags: Optional[list[dict[str, str]]],
+        client_token: Optional[str],
     ) -> TransitGatewayRouteTableAttachment:
         peering_obj = None
         for tgp in self.transit_gateway_peerings.values():
@@ -889,9 +969,12 @@ class NetworkManagerBackend(BaseBackend):
         if not peering_obj:
             raise ResourceNotFound(peering_id)
         att = TransitGatewayRouteTableAttachment(
-            account_id=self.account_id, partition=self.partition,
-            peering_id=peering_id, transit_gateway_route_table_arn=transit_gateway_route_table_arn,
-            tags=tags, core_network_id=peering_obj.core_network_id,
+            account_id=self.account_id,
+            partition=self.partition,
+            peering_id=peering_id,
+            transit_gateway_route_table_arn=transit_gateway_route_table_arn,
+            tags=tags,
+            core_network_id=peering_obj.core_network_id,
             core_network_arn=peering_obj.core_network_arn,
         )
         aid = att.attachment.attachment_id
@@ -901,25 +984,32 @@ class NetworkManagerBackend(BaseBackend):
         return att
 
     def get_transit_gateway_route_table_attachment(
-        self, attachment_id: str,
+        self,
+        attachment_id: str,
     ) -> TransitGatewayRouteTableAttachment:
         if attachment_id not in self.transit_gateway_route_table_attachments:
             raise ResourceNotFound(attachment_id)
         return self.transit_gateway_route_table_attachments[attachment_id]
 
     def create_direct_connect_gateway_attachment(
-        self, core_network_id: str, direct_connect_gateway_arn: str,
-        edge_locations: Optional[list[str]], tags: Optional[list[dict[str, str]]],
+        self,
+        core_network_id: str,
+        direct_connect_gateway_arn: str,
+        edge_locations: Optional[list[str]],
+        tags: Optional[list[dict[str, str]]],
         client_token: Optional[str],
     ) -> DirectConnectGatewayAttachment:
         cn = self.core_networks.get(core_network_id)
         if not cn:
             raise ResourceNotFound(core_network_id)
         att = DirectConnectGatewayAttachment(
-            account_id=self.account_id, partition=self.partition,
-            core_network_id=core_network_id, core_network_arn=cn.core_network_arn,
+            account_id=self.account_id,
+            partition=self.partition,
+            core_network_id=core_network_id,
+            core_network_arn=cn.core_network_arn,
             direct_connect_gateway_arn=direct_connect_gateway_arn,
-            edge_locations=edge_locations, tags=tags,
+            edge_locations=edge_locations,
+            tags=tags,
         )
         aid = att.attachment.attachment_id
         self.attachments[aid] = att.attachment
@@ -928,14 +1018,17 @@ class NetworkManagerBackend(BaseBackend):
         return att
 
     def get_direct_connect_gateway_attachment(
-        self, attachment_id: str,
+        self,
+        attachment_id: str,
     ) -> DirectConnectGatewayAttachment:
         if attachment_id not in self.direct_connect_gateway_attachments:
             raise ResourceNotFound(attachment_id)
         return self.direct_connect_gateway_attachments[attachment_id]
 
     def update_direct_connect_gateway_attachment(
-        self, attachment_id: str, edge_locations: Optional[list[str]],
+        self,
+        attachment_id: str,
+        edge_locations: Optional[list[str]],
     ) -> DirectConnectGatewayAttachment:
         if attachment_id not in self.direct_connect_gateway_attachments:
             raise ResourceNotFound(attachment_id)
@@ -975,8 +1068,11 @@ class NetworkManagerBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_attachments(
-        self, core_network_id: Optional[str], attachment_type: Optional[str],
-        edge_location: Optional[str], state: Optional[str],
+        self,
+        core_network_id: Optional[str],
+        attachment_type: Optional[str],
+        edge_location: Optional[str],
+        state: Optional[str],
     ) -> list[Attachment]:
         result = list(self.attachments.values())
         if core_network_id:
@@ -990,19 +1086,29 @@ class NetworkManagerBackend(BaseBackend):
         return result
 
     def create_connect_peer(
-        self, connect_attachment_id: str, core_network_address: Optional[str],
-        peer_address: str, bgp_options: Optional[dict[str, Any]],
-        inside_cidr_blocks: Optional[list[str]], tags: Optional[list[dict[str, str]]],
-        client_token: Optional[str], subnet_arn: Optional[str],
+        self,
+        connect_attachment_id: str,
+        core_network_address: Optional[str],
+        peer_address: str,
+        bgp_options: Optional[dict[str, Any]],
+        inside_cidr_blocks: Optional[list[str]],
+        tags: Optional[list[dict[str, str]]],
+        client_token: Optional[str],
+        subnet_arn: Optional[str],
     ) -> ConnectPeer:
         if connect_attachment_id not in self.connect_attachments:
             raise ResourceNotFound(connect_attachment_id)
         cp = ConnectPeer(
-            account_id=self.account_id, partition=self.partition,
+            account_id=self.account_id,
+            partition=self.partition,
             connect_attachment_id=connect_attachment_id,
-            core_network_address=core_network_address, peer_address=peer_address,
-            bgp_options=bgp_options, inside_cidr_blocks=inside_cidr_blocks,
-            tags=tags, client_token=client_token, subnet_arn=subnet_arn,
+            core_network_address=core_network_address,
+            peer_address=peer_address,
+            bgp_options=bgp_options,
+            inside_cidr_blocks=inside_cidr_blocks,
+            tags=tags,
+            client_token=client_token,
+            subnet_arn=subnet_arn,
         )
         self.connect_peers[cp.connect_peer_id] = cp
         cp.state = "AVAILABLE"
@@ -1022,24 +1128,34 @@ class NetworkManagerBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_connect_peers(
-        self, core_network_id: Optional[str], connect_attachment_id: Optional[str],
+        self,
+        core_network_id: Optional[str],
+        connect_attachment_id: Optional[str],
     ) -> list[ConnectPeer]:
         result = list(self.connect_peers.values())
         if connect_attachment_id:
-            result = [cp for cp in result if cp.connect_attachment_id == connect_attachment_id]
+            result = [
+                cp for cp in result if cp.connect_attachment_id == connect_attachment_id
+            ]
         return result
 
     def create_transit_gateway_peering(
-        self, core_network_id: str, transit_gateway_arn: str,
-        tags: Optional[list[dict[str, str]]], client_token: Optional[str],
+        self,
+        core_network_id: str,
+        transit_gateway_arn: str,
+        tags: Optional[list[dict[str, str]]],
+        client_token: Optional[str],
     ) -> TransitGatewayPeering:
         cn = self.core_networks.get(core_network_id)
         if not cn:
             raise ResourceNotFound(core_network_id)
         tgp = TransitGatewayPeering(
-            account_id=self.account_id, partition=self.partition,
-            core_network_id=core_network_id, core_network_arn=cn.core_network_arn,
-            transit_gateway_arn=transit_gateway_arn, tags=tags,
+            account_id=self.account_id,
+            partition=self.partition,
+            core_network_id=core_network_id,
+            core_network_arn=cn.core_network_arn,
+            transit_gateway_arn=transit_gateway_arn,
+            tags=tags,
         )
         pid = tgp.peering.peering_id
         self.peerings[pid] = tgp.peering
@@ -1062,8 +1178,11 @@ class NetworkManagerBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_peerings(
-        self, core_network_id: Optional[str], peering_type: Optional[str],
-        edge_location: Optional[str], state: Optional[str],
+        self,
+        core_network_id: Optional[str],
+        peering_type: Optional[str],
+        edge_location: Optional[str],
+        state: Optional[str],
     ) -> list[Peering]:
         result = list(self.peerings.values())
         if core_network_id:
@@ -1077,15 +1196,20 @@ class NetworkManagerBackend(BaseBackend):
         return result
 
     def put_core_network_policy(
-        self, core_network_id: str, policy_document: str,
-        description: Optional[str], latest_version_id: Optional[int],
+        self,
+        core_network_id: str,
+        policy_document: str,
+        description: Optional[str],
+        latest_version_id: Optional[int],
         client_token: Optional[str],
     ) -> CoreNetworkPolicy:
         if core_network_id not in self.core_networks:
             raise ResourceNotFound(core_network_id)
         policy = CoreNetworkPolicy(
-            core_network_id=core_network_id, policy_document=policy_document,
-            description=description, client_token=client_token,
+            core_network_id=core_network_id,
+            policy_document=policy_document,
+            description=description,
+            client_token=client_token,
         )
         policies = self.core_network_policies.get(core_network_id, [])
         policy.policy_version_id = len(policies) + 1
@@ -1094,7 +1218,10 @@ class NetworkManagerBackend(BaseBackend):
         return policy
 
     def get_core_network_policy(
-        self, core_network_id: str, policy_version_id: Optional[int], alias: Optional[str],
+        self,
+        core_network_id: str,
+        policy_version_id: Optional[int],
+        alias: Optional[str],
     ) -> CoreNetworkPolicy:
         if core_network_id not in self.core_networks:
             raise ResourceNotFound(core_network_id)
@@ -1113,7 +1240,9 @@ class NetworkManagerBackend(BaseBackend):
         return policies[-1]
 
     def delete_core_network_policy_version(
-        self, core_network_id: str, policy_version_id: int,
+        self,
+        core_network_id: str,
+        policy_version_id: int,
     ) -> CoreNetworkPolicy:
         if core_network_id not in self.core_networks:
             raise ResourceNotFound(core_network_id)
@@ -1124,7 +1253,9 @@ class NetworkManagerBackend(BaseBackend):
         raise ResourceNotFound(str(policy_version_id))
 
     def restore_core_network_policy_version(
-        self, core_network_id: str, policy_version_id: int,
+        self,
+        core_network_id: str,
+        policy_version_id: int,
     ) -> CoreNetworkPolicy:
         if core_network_id not in self.core_networks:
             raise ResourceNotFound(core_network_id)
@@ -1132,8 +1263,10 @@ class NetworkManagerBackend(BaseBackend):
         for p in policies:
             if p.policy_version_id == policy_version_id:
                 new_policy = CoreNetworkPolicy(
-                    core_network_id=core_network_id, policy_document=p.policy_document,
-                    description=p.description, client_token=p.client_token,
+                    core_network_id=core_network_id,
+                    policy_document=p.policy_document,
+                    description=p.description,
+                    client_token=p.client_token,
                 )
                 new_policy.policy_version_id = len(policies) + 1
                 policies.append(new_policy)
@@ -1141,13 +1274,17 @@ class NetworkManagerBackend(BaseBackend):
         raise ResourceNotFound(str(policy_version_id))
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_core_network_policy_versions(self, core_network_id: str) -> list[CoreNetworkPolicy]:
+    def list_core_network_policy_versions(
+        self, core_network_id: str
+    ) -> list[CoreNetworkPolicy]:
         if core_network_id not in self.core_networks:
             raise ResourceNotFound(core_network_id)
         return self.core_network_policies.get(core_network_id, [])
 
     def execute_core_network_change_set(
-        self, core_network_id: str, policy_version_id: int,
+        self,
+        core_network_id: str,
+        policy_version_id: int,
     ) -> None:
         if core_network_id not in self.core_networks:
             raise ResourceNotFound(core_network_id)
@@ -1163,14 +1300,18 @@ class NetworkManagerBackend(BaseBackend):
         raise ResourceNotFound(str(policy_version_id))
 
     def get_core_network_change_set(
-        self, core_network_id: str, policy_version_id: int,
+        self,
+        core_network_id: str,
+        policy_version_id: int,
     ) -> list[dict[str, Any]]:
         if core_network_id not in self.core_networks:
             raise ResourceNotFound(core_network_id)
         return []
 
     def get_core_network_change_events(
-        self, core_network_id: str, policy_version_id: int,
+        self,
+        core_network_id: str,
+        policy_version_id: int,
     ) -> list[dict[str, Any]]:
         if core_network_id not in self.core_networks:
             raise ResourceNotFound(core_network_id)
@@ -1186,20 +1327,27 @@ class NetworkManagerBackend(BaseBackend):
         self.resource_policies.pop(resource_arn, None)
 
     def associate_connect_peer(
-        self, global_network_id: str, connect_peer_id: str,
-        device_id: str, link_id: Optional[str],
+        self,
+        global_network_id: str,
+        connect_peer_id: str,
+        device_id: str,
+        link_id: Optional[str],
     ) -> ConnectPeerAssociation:
         if global_network_id not in self.global_networks:
             raise ResourceNotFound(global_network_id)
         assoc = ConnectPeerAssociation(
-            global_network_id=global_network_id, connect_peer_id=connect_peer_id,
-            device_id=device_id, link_id=link_id,
+            global_network_id=global_network_id,
+            connect_peer_id=connect_peer_id,
+            device_id=device_id,
+            link_id=link_id,
         )
         self.connect_peer_associations[global_network_id][connect_peer_id] = assoc
         return assoc
 
     def disassociate_connect_peer(
-        self, global_network_id: str, connect_peer_id: str,
+        self,
+        global_network_id: str,
+        connect_peer_id: str,
     ) -> ConnectPeerAssociation:
         if global_network_id not in self.global_networks:
             raise ResourceNotFound(global_network_id)
@@ -1212,7 +1360,9 @@ class NetworkManagerBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def get_connect_peer_associations(
-        self, global_network_id: str, connect_peer_ids: Optional[list[str]],
+        self,
+        global_network_id: str,
+        connect_peer_ids: Optional[list[str]],
     ) -> list[ConnectPeerAssociation]:
         if global_network_id not in self.global_networks:
             raise ValidationError("Incorrect input.")
@@ -1222,20 +1372,29 @@ class NetworkManagerBackend(BaseBackend):
         return list(assocs.values())
 
     def associate_customer_gateway(
-        self, global_network_id: str, customer_gateway_arn: str,
-        device_id: str, link_id: Optional[str],
+        self,
+        global_network_id: str,
+        customer_gateway_arn: str,
+        device_id: str,
+        link_id: Optional[str],
     ) -> CustomerGatewayAssociation:
         if global_network_id not in self.global_networks:
             raise ResourceNotFound(global_network_id)
         assoc = CustomerGatewayAssociation(
-            global_network_id=global_network_id, customer_gateway_arn=customer_gateway_arn,
-            device_id=device_id, link_id=link_id,
+            global_network_id=global_network_id,
+            customer_gateway_arn=customer_gateway_arn,
+            device_id=device_id,
+            link_id=link_id,
         )
-        self.customer_gateway_associations[global_network_id][customer_gateway_arn] = assoc
+        self.customer_gateway_associations[global_network_id][customer_gateway_arn] = (
+            assoc
+        )
         return assoc
 
     def disassociate_customer_gateway(
-        self, global_network_id: str, customer_gateway_arn: str,
+        self,
+        global_network_id: str,
+        customer_gateway_arn: str,
     ) -> CustomerGatewayAssociation:
         if global_network_id not in self.global_networks:
             raise ResourceNotFound(global_network_id)
@@ -1248,7 +1407,9 @@ class NetworkManagerBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def get_customer_gateway_associations(
-        self, global_network_id: str, customer_gateway_arns: Optional[list[str]],
+        self,
+        global_network_id: str,
+        customer_gateway_arns: Optional[list[str]],
     ) -> list[CustomerGatewayAssociation]:
         if global_network_id not in self.global_networks:
             raise ValidationError("Incorrect input.")
@@ -1258,18 +1419,26 @@ class NetworkManagerBackend(BaseBackend):
         return list(assocs.values())
 
     def associate_link(
-        self, global_network_id: str, device_id: str, link_id: str,
+        self,
+        global_network_id: str,
+        device_id: str,
+        link_id: str,
     ) -> LinkAssociation:
         if global_network_id not in self.global_networks:
             raise ResourceNotFound(global_network_id)
         assoc = LinkAssociation(
-            global_network_id=global_network_id, device_id=device_id, link_id=link_id,
+            global_network_id=global_network_id,
+            device_id=device_id,
+            link_id=link_id,
         )
         self.link_associations.setdefault(global_network_id, []).append(assoc)
         return assoc
 
     def disassociate_link(
-        self, global_network_id: str, device_id: str, link_id: str,
+        self,
+        global_network_id: str,
+        device_id: str,
+        link_id: str,
     ) -> LinkAssociation:
         if global_network_id not in self.global_networks:
             raise ResourceNotFound(global_network_id)
@@ -1283,7 +1452,10 @@ class NetworkManagerBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def get_link_associations(
-        self, global_network_id: str, device_id: Optional[str], link_id: Optional[str],
+        self,
+        global_network_id: str,
+        device_id: Optional[str],
+        link_id: Optional[str],
     ) -> list[LinkAssociation]:
         if global_network_id not in self.global_networks:
             raise ValidationError("Incorrect input.")
@@ -1295,15 +1467,19 @@ class NetworkManagerBackend(BaseBackend):
         return result
 
     def associate_transit_gateway_connect_peer(
-        self, global_network_id: str, transit_gateway_connect_peer_arn: str,
-        device_id: str, link_id: Optional[str],
+        self,
+        global_network_id: str,
+        transit_gateway_connect_peer_arn: str,
+        device_id: str,
+        link_id: Optional[str],
     ) -> TransitGatewayConnectPeerAssociation:
         if global_network_id not in self.global_networks:
             raise ResourceNotFound(global_network_id)
         assoc = TransitGatewayConnectPeerAssociation(
             global_network_id=global_network_id,
             transit_gateway_connect_peer_arn=transit_gateway_connect_peer_arn,
-            device_id=device_id, link_id=link_id,
+            device_id=device_id,
+            link_id=link_id,
         )
         self.transit_gateway_connect_peer_associations[global_network_id][
             transit_gateway_connect_peer_arn
@@ -1311,11 +1487,15 @@ class NetworkManagerBackend(BaseBackend):
         return assoc
 
     def disassociate_transit_gateway_connect_peer(
-        self, global_network_id: str, transit_gateway_connect_peer_arn: str,
+        self,
+        global_network_id: str,
+        transit_gateway_connect_peer_arn: str,
     ) -> TransitGatewayConnectPeerAssociation:
         if global_network_id not in self.global_networks:
             raise ResourceNotFound(global_network_id)
-        assocs = self.transit_gateway_connect_peer_associations.get(global_network_id, {})
+        assocs = self.transit_gateway_connect_peer_associations.get(
+            global_network_id, {}
+        )
         if transit_gateway_connect_peer_arn not in assocs:
             raise ResourceNotFound(transit_gateway_connect_peer_arn)
         assoc = assocs.pop(transit_gateway_connect_peer_arn)
@@ -1324,22 +1504,29 @@ class NetworkManagerBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def get_transit_gateway_connect_peer_associations(
-        self, global_network_id: str, transit_gateway_connect_peer_arns: Optional[list[str]],
+        self,
+        global_network_id: str,
+        transit_gateway_connect_peer_arns: Optional[list[str]],
     ) -> list[TransitGatewayConnectPeerAssociation]:
         if global_network_id not in self.global_networks:
             raise ValidationError("Incorrect input.")
-        assocs = self.transit_gateway_connect_peer_associations.get(global_network_id, {})
+        assocs = self.transit_gateway_connect_peer_associations.get(
+            global_network_id, {}
+        )
         if transit_gateway_connect_peer_arns:
             return [assocs[a] for a in transit_gateway_connect_peer_arns if a in assocs]
         return list(assocs.values())
 
     def register_transit_gateway(
-        self, global_network_id: str, transit_gateway_arn: str,
+        self,
+        global_network_id: str,
+        transit_gateway_arn: str,
     ) -> TransitGatewayRegistration:
         if global_network_id not in self.global_networks:
             raise ResourceNotFound(global_network_id)
         reg = TransitGatewayRegistration(
-            global_network_id=global_network_id, transit_gateway_arn=transit_gateway_arn,
+            global_network_id=global_network_id,
+            transit_gateway_arn=transit_gateway_arn,
         )
         self.transit_gateway_registrations.setdefault(global_network_id, {})[
             transit_gateway_arn
@@ -1347,7 +1534,9 @@ class NetworkManagerBackend(BaseBackend):
         return reg
 
     def deregister_transit_gateway(
-        self, global_network_id: str, transit_gateway_arn: str,
+        self,
+        global_network_id: str,
+        transit_gateway_arn: str,
     ) -> TransitGatewayRegistration:
         if global_network_id not in self.global_networks:
             raise ResourceNotFound(global_network_id)
@@ -1360,7 +1549,9 @@ class NetworkManagerBackend(BaseBackend):
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def get_transit_gateway_registrations(
-        self, global_network_id: str, transit_gateway_arns: Optional[list[str]],
+        self,
+        global_network_id: str,
+        transit_gateway_arns: Optional[list[str]],
     ) -> list[TransitGatewayRegistration]:
         if global_network_id not in self.global_networks:
             raise ValidationError("Incorrect input.")
@@ -1370,21 +1561,30 @@ class NetworkManagerBackend(BaseBackend):
         return list(regs.values())
 
     def start_route_analysis(
-        self, global_network_id: str, source: Optional[dict[str, Any]],
-        destination: Optional[dict[str, Any]], include_return_path: bool, use_middleboxes: bool,
+        self,
+        global_network_id: str,
+        source: Optional[dict[str, Any]],
+        destination: Optional[dict[str, Any]],
+        include_return_path: bool,
+        use_middleboxes: bool,
     ) -> RouteAnalysis:
         if global_network_id not in self.global_networks:
             raise ResourceNotFound(global_network_id)
         ra = RouteAnalysis(
-            account_id=self.account_id, global_network_id=global_network_id,
-            source=source, destination=destination,
-            include_return_path=include_return_path, use_middleboxes=use_middleboxes,
+            account_id=self.account_id,
+            global_network_id=global_network_id,
+            source=source,
+            destination=destination,
+            include_return_path=include_return_path,
+            use_middleboxes=use_middleboxes,
         )
         self.route_analyses.setdefault(global_network_id, {})[ra.route_analysis_id] = ra
         return ra
 
     def get_route_analysis(
-        self, global_network_id: str, route_analysis_id: str,
+        self,
+        global_network_id: str,
+        route_analysis_id: str,
     ) -> RouteAnalysis:
         if global_network_id not in self.global_networks:
             raise ResourceNotFound(global_network_id)
@@ -1398,24 +1598,34 @@ class NetworkManagerBackend(BaseBackend):
             raise ResourceNotFound(global_network_id)
         return []
 
-    def get_network_resource_relationships(self, global_network_id: str) -> list[dict[str, Any]]:
+    def get_network_resource_relationships(
+        self, global_network_id: str
+    ) -> list[dict[str, Any]]:
         if global_network_id not in self.global_networks:
             raise ResourceNotFound(global_network_id)
         return []
 
-    def get_network_resource_counts(self, global_network_id: str) -> list[dict[str, Any]]:
+    def get_network_resource_counts(
+        self, global_network_id: str
+    ) -> list[dict[str, Any]]:
         if global_network_id not in self.global_networks:
             raise ResourceNotFound(global_network_id)
         return []
 
     def get_network_routes(
-        self, global_network_id: str, route_table_identifier: Optional[dict[str, Any]],
+        self,
+        global_network_id: str,
+        route_table_identifier: Optional[dict[str, Any]],
     ) -> dict[str, Any]:
         if global_network_id not in self.global_networks:
             raise ResourceNotFound(global_network_id)
         return {
-            "RouteTableArn": (route_table_identifier or {}).get("TransitGatewayRouteTableArn", ""),
-            "CoreNetworkSegmentEdge": (route_table_identifier or {}).get("CoreNetworkSegmentEdge"),
+            "RouteTableArn": (route_table_identifier or {}).get(
+                "TransitGatewayRouteTableArn", ""
+            ),
+            "CoreNetworkSegmentEdge": (route_table_identifier or {}).get(
+                "CoreNetworkSegmentEdge"
+            ),
             "RouteTableType": "TRANSIT_GATEWAY_ROUTE_TABLE",
             "RouteTableTimestamp": _now(),
             "NetworkRoutes": [],
@@ -1427,27 +1637,37 @@ class NetworkManagerBackend(BaseBackend):
         return []
 
     def update_network_resource_metadata(
-        self, global_network_id: str, resource_arn: str, metadata: dict[str, str],
+        self,
+        global_network_id: str,
+        resource_arn: str,
+        metadata: dict[str, str],
     ) -> dict[str, Any]:
         if global_network_id not in self.global_networks:
             raise ResourceNotFound(global_network_id)
         return {"ResourceArn": resource_arn, "Metadata": metadata}
 
     def create_core_network_prefix_list_association(
-        self, core_network_id: Optional[str], prefix_list: Optional[str],
+        self,
+        core_network_id: Optional[str],
+        prefix_list: Optional[str],
         segment_name: Optional[str],
     ) -> CoreNetworkPrefixListAssociation:
         if core_network_id and core_network_id not in self.core_networks:
             raise ResourceNotFound(core_network_id)
         assoc = CoreNetworkPrefixListAssociation(
-            core_network_id=core_network_id or "", prefix_list=prefix_list or "",
+            core_network_id=core_network_id or "",
+            prefix_list=prefix_list or "",
             segment_name=segment_name,
         )
-        self.core_network_prefix_list_associations.setdefault(core_network_id or "", []).append(assoc)
+        self.core_network_prefix_list_associations.setdefault(
+            core_network_id or "", []
+        ).append(assoc)
         return assoc
 
     def delete_core_network_prefix_list_association(
-        self, core_network_id: str, prefix_list_arn: str,
+        self,
+        core_network_id: str,
+        prefix_list_arn: str,
     ) -> CoreNetworkPrefixListAssociation:
         assocs = self.core_network_prefix_list_associations.get(core_network_id, [])
         for i, a in enumerate(assocs):
@@ -1456,14 +1676,17 @@ class NetworkManagerBackend(BaseBackend):
         raise ResourceNotFound(prefix_list_arn)
 
     def list_core_network_prefix_list_associations(
-        self, core_network_id: str,
+        self,
+        core_network_id: str,
     ) -> list[CoreNetworkPrefixListAssociation]:
         if core_network_id not in self.core_networks:
             raise ResourceNotFound(core_network_id)
         return self.core_network_prefix_list_associations.get(core_network_id, [])
 
     def put_attachment_routing_policy_label(
-        self, attachment_id: str, label: str,
+        self,
+        attachment_id: str,
+        label: str,
     ) -> dict[str, Any]:
         if attachment_id not in self.attachments:
             raise ResourceNotFound(attachment_id)
@@ -1474,7 +1697,9 @@ class NetworkManagerBackend(BaseBackend):
         return {"AttachmentId": attachment_id, "Label": label}
 
     def remove_attachment_routing_policy_label(
-        self, core_network_id: str, attachment_id: str,
+        self,
+        core_network_id: str,
+        attachment_id: str,
     ) -> dict[str, Any]:
         labels = self.routing_policy_labels.get(core_network_id, {})
         labels.pop(attachment_id, None)
@@ -1483,7 +1708,8 @@ class NetworkManagerBackend(BaseBackend):
         return {"AttachmentId": attachment_id}
 
     def list_attachment_routing_policy_associations(
-        self, core_network_id: str,
+        self,
+        core_network_id: str,
     ) -> list[dict[str, Any]]:
         if core_network_id not in self.core_networks:
             raise ResourceNotFound(core_network_id)
@@ -1491,7 +1717,8 @@ class NetworkManagerBackend(BaseBackend):
         return [{"AttachmentId": aid, "Label": label} for aid, label in labels.items()]
 
     def list_core_network_routing_information(
-        self, core_network_id: str,
+        self,
+        core_network_id: str,
     ) -> list[dict[str, Any]]:
         if core_network_id not in self.core_networks:
             raise ResourceNotFound(core_network_id)
@@ -1502,7 +1729,9 @@ class NetworkManagerBackend(BaseBackend):
         return {
             "OrganizationStatus": {
                 "OrganizationId": "o-" + "".join(mock_random.get_random_hex(10)),
-                "OrganizationAwsServiceAccessStatus": "ENABLED" if action == "ENABLE" else "DISABLED",
+                "OrganizationAwsServiceAccessStatus": "ENABLED"
+                if action == "ENABLE"
+                else "DISABLED",
                 "SLRDeploymentStatus": "SUCCEEDED",
                 "AccountStatusList": [],
             }
@@ -1513,13 +1742,12 @@ class NetworkManagerBackend(BaseBackend):
             "OrganizationStatus": {
                 "OrganizationId": "o-" + "".join(mock_random.get_random_hex(10)),
                 "OrganizationAwsServiceAccessStatus": "ENABLED"
-                if self.organization_service_access == "ENABLE" else "DISABLED",
+                if self.organization_service_access == "ENABLE"
+                else "DISABLED",
                 "SLRDeploymentStatus": "SUCCEEDED",
                 "AccountStatusList": [],
             }
         }
-
-
 
 
 def _now() -> str:
@@ -1547,9 +1775,7 @@ class Connection(BaseModel):
         self.description = description
         self.tags = tags or []
         self.connection_id = "connection-" + "".join(mock_random.get_random_hex(18))
-        self.connection_arn = (
-            f"arn:{partition}:networkmanager:{account_id}:connection/{self.connection_id}"
-        )
+        self.connection_arn = f"arn:{partition}:networkmanager:{account_id}:connection/{self.connection_id}"
         self.created_at = _now()
         self.state = "PENDING"
 
@@ -1587,9 +1813,7 @@ class Attachment(BaseModel):
         self.edge_location = edge_location or "us-east-1"
         self.tags = tags or []
         self.attachment_id = "attachment-" + "".join(mock_random.get_random_hex(18))
-        self.attachment_arn = (
-            f"arn:{partition}:networkmanager:{account_id}:attachment/{self.attachment_id}"
-        )
+        self.attachment_arn = f"arn:{partition}:networkmanager:{account_id}:attachment/{self.attachment_id}"
         self.created_at = _now()
         self.updated_at = self.created_at
         self.state = "CREATING"
@@ -1798,9 +2022,7 @@ class ConnectPeer(BaseModel):
         self.client_token = client_token
         self.subnet_arn = subnet_arn
         self.connect_peer_id = "connect-peer-" + "".join(mock_random.get_random_hex(18))
-        self.connect_peer_arn = (
-            f"arn:{partition}:networkmanager:{account_id}:connect-peer/{self.connect_peer_id}"
-        )
+        self.connect_peer_arn = f"arn:{partition}:networkmanager:{account_id}:connect-peer/{self.connect_peer_id}"
         self.edge_location = "us-east-1"
         self.created_at = _now()
         self.state = "CREATING"
@@ -2068,16 +2290,22 @@ class RouteAnalysis(BaseModel):
     ):
         self.owner_account_id = account_id
         self.global_network_id = global_network_id
-        self.route_analysis_id = "route-analysis-" + "".join(mock_random.get_random_hex(18))
+        self.route_analysis_id = "route-analysis-" + "".join(
+            mock_random.get_random_hex(18)
+        )
         self.source = source or {}
         self.destination = destination or {}
         self.include_return_path = include_return_path
         self.use_middleboxes = use_middleboxes
         self.start_timestamp = _now()
         self.status = "COMPLETED"
-        self.forward_path: dict[str, Any] = {"CompletionStatus": {"ResultCode": "CONNECTED"}}
+        self.forward_path: dict[str, Any] = {
+            "CompletionStatus": {"ResultCode": "CONNECTED"}
+        }
         self.return_path: dict[str, Any] = (
-            {"CompletionStatus": {"ResultCode": "CONNECTED"}} if include_return_path else {}
+            {"CompletionStatus": {"ResultCode": "CONNECTED"}}
+            if include_return_path
+            else {}
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -2113,6 +2341,8 @@ class CoreNetworkPrefixListAssociation(BaseModel):
             "PrefixList": self.prefix_list,
             "SegmentName": self.segment_name,
         }
+
+
 networkmanager_backends = BackendDict(
     NetworkManagerBackend,
     "networkmanager",

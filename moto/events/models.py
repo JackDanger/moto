@@ -2099,6 +2099,7 @@ class EventsBackend(BaseBackend, TaggableResourcesMixin):
     def describe_event_source(self, name: str) -> "PartnerEventSource":
         if name not in self.event_sources:
             from .exceptions import ResourceNotFoundException
+
             raise ResourceNotFoundException(f"Event source {name} does not exist.")
         return self.event_sources[name]
 

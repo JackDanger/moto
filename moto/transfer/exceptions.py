@@ -41,10 +41,6 @@ class ResourceNotFound(TransferError):
         )
 
 
-
-
-
-
 class ConnectorNotFound(TransferError):
     def __init__(self, connector_id: str) -> None:
         super().__init__(

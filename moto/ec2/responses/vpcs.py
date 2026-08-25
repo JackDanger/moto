@@ -359,9 +359,7 @@ class VPCs(EC2BaseResponse):
     def detach_classic_link_vpc(self) -> ActionResult:
         instance_id = self._get_param("InstanceId")
         vpc_id = self._get_param("VpcId")
-        self.ec2_backend.detach_classic_link_vpc(
-            instance_id=instance_id, vpc_id=vpc_id
-        )
+        self.ec2_backend.detach_classic_link_vpc(instance_id=instance_id, vpc_id=vpc_id)
         return ActionResult({"Return": True})
 
     def attach_classic_link_vpc(self) -> ActionResult:
@@ -369,6 +367,8 @@ class VPCs(EC2BaseResponse):
         vpc_id = self._get_param("VpcId")
         security_group_ids = self._get_param("SecurityGroupIds", [])
         self.ec2_backend.attach_classic_link_vpc(
-            instance_id=instance_id, vpc_id=vpc_id, security_group_ids=security_group_ids
+            instance_id=instance_id,
+            vpc_id=vpc_id,
+            security_group_ids=security_group_ids,
         )
         return ActionResult({"Return": True})

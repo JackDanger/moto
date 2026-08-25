@@ -171,10 +171,10 @@ class Webhook(BaseModel):
         self.branch_filter = branch_filter or ""
         self.filter_groups = filter_groups or []
         self.build_type = build_type or "BUILD"
-        self.url = f"https://codebuild.{region_name}.amazonaws.com/webhooks/{project_name}"
-        self.payload_url = (
-            f"https://codebuild.{region_name}.amazonaws.com/webhook-trigger/{mock_random.uuid4()}"
+        self.url = (
+            f"https://codebuild.{region_name}.amazonaws.com/webhooks/{project_name}"
         )
+        self.payload_url = f"https://codebuild.{region_name}.amazonaws.com/webhook-trigger/{mock_random.uuid4()}"
         self.secret = mock_random.get_random_hex(40)
         self.last_modified_secret = unix_time()
 
@@ -201,9 +201,7 @@ class SourceCredential(BaseModel):
         auth_type: str,
         username: Optional[str],
     ):
-        self.arn = (
-            f"arn:{get_partition(region_name)}:codebuild:{region_name}:{account_id}:token/{server_type}"
-        )
+        self.arn = f"arn:{get_partition(region_name)}:codebuild:{region_name}:{account_id}:token/{server_type}"
         self.token = token
         self.server_type = server_type
         self.auth_type = auth_type
@@ -232,7 +230,9 @@ class ReportGroup(BaseModel):
     ):
         partition = get_partition(region_name)
         self.name = name
-        self.arn = f"arn:{partition}:codebuild:{region_name}:{account_id}:report-group/{name}"
+        self.arn = (
+            f"arn:{partition}:codebuild:{region_name}:{account_id}:report-group/{name}"
+        )
         self.report_type = report_type
         self.export_config = export_config
         self.tags = tags or []
@@ -712,7 +712,6 @@ class CodeBuildBackend(BaseBackend):
             ids += build_ids
         return ids
 
-
     def stop_build(self, build_id: str) -> dict[str, Any] | None:  # type: ignore[return]
         for metadata in self.build_metadata_history.values():
             for build in metadata:
@@ -775,9 +774,7 @@ class CodeBuildBackend(BaseBackend):
             self.build_batch_history[project_name].remove(batch_id)
         return "200", [batch_id], []
 
-    def retry_build_batch(
-        self, batch_id: Optional[str]
-    ) -> dict[str, Any]:
+    def retry_build_batch(self, batch_id: Optional[str]) -> dict[str, Any]:
         if not batch_id:
             raise InvalidInputException("Build batch ID is required")
         if batch_id not in self.build_batches:
@@ -789,9 +786,7 @@ class CodeBuildBackend(BaseBackend):
     def list_build_batches(self) -> list[str]:
         return list(self.build_batches.keys())
 
-    def list_build_batches_for_project(
-        self, project_name: Optional[str]
-    ) -> list[str]:
+    def list_build_batches_for_project(self, project_name: Optional[str]) -> list[str]:
         if project_name and project_name not in self.codebuild_projects:
             raise ResourceNotFoundException(
                 f"The provided project arn:{get_partition(self.region_name)}:codebuild:"
@@ -925,9 +920,7 @@ class CodeBuildBackend(BaseBackend):
         if name in self.report_groups:
             from .exceptions import ResourceAlreadyExistsException
 
-            raise ResourceAlreadyExistsException(
-                f"Report group already exists: {name}"
-            )
+            raise ResourceAlreadyExistsException(f"Report group already exists: {name}")
         rg = ReportGroup(
             self.account_id,
             self.region_name,
@@ -970,8 +963,7 @@ class CodeBuildBackend(BaseBackend):
         self.report_groups.pop(to_delete)
         # Also delete associated reports
         to_remove = [
-            r_arn for r_arn, r in self.reports.items()
-            if r.get("reportGroupArn") == arn
+            r_arn for r_arn, r in self.reports.items() if r.get("reportGroupArn") == arn
         ]
         for r_arn in to_remove:
             self.reports.pop(r_arn)
@@ -1005,7 +997,8 @@ class CodeBuildBackend(BaseBackend):
 
     def list_reports_for_report_group(self, report_group_arn: str) -> list[str]:
         return [
-            arn for arn, r in self.reports.items()
+            arn
+            for arn, r in self.reports.items()
             if r.get("reportGroupArn") == report_group_arn
         ]
 
@@ -1187,9 +1180,7 @@ class CodeBuildBackend(BaseBackend):
 
     # ---- Sandbox operations ----
 
-    def start_sandbox(
-        self, project_name: Optional[str]
-    ) -> dict[str, Any]:
+    def start_sandbox(self, project_name: Optional[str]) -> dict[str, Any]:
         sandbox_id = str(mock_random.uuid4())
         sandbox = Sandbox(
             self.account_id,
@@ -1228,9 +1219,7 @@ class CodeBuildBackend(BaseBackend):
     def list_sandboxes_for_project(self, project_name: str) -> list[str]:
         return self.sandbox_history.get(project_name, [])
 
-    def start_sandbox_connection(
-        self, sandbox_id: str
-    ) -> dict[str, Any]:
+    def start_sandbox_connection(self, sandbox_id: str) -> dict[str, Any]:
         if sandbox_id not in self.sandboxes:
             raise ResourceNotFoundException(f"Sandbox {sandbox_id} does not exist")
         return {
@@ -1262,7 +1251,8 @@ class CodeBuildBackend(BaseBackend):
         self, sandbox_id: str
     ) -> list[dict[str, Any]]:
         return [
-            ex for ex in self.command_executions.values()
+            ex
+            for ex in self.command_executions.values()
             if ex.get("sandboxId") == sandbox_id
         ]
 

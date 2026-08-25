@@ -299,7 +299,6 @@ class ManagedPermission(BaseModel):
             "permissionType": self.permission_type,
         }
 
-
     def describe_detail(self, version: Optional[int] = None) -> dict[str, Any]:
         result = self.describe()
         result["permission"] = self.policy_template or "{}"
@@ -333,9 +332,7 @@ class ManagedPermission(BaseModel):
         }
 
     def delete_version(self, version: int) -> None:
-        self.versions = [
-            v for v in self.versions if v["version"] != str(version)
-        ]
+        self.versions = [v for v in self.versions if v["version"] != str(version)]
 
     def set_default_version(self, version: int) -> None:
         for v in self.versions:
@@ -624,29 +621,19 @@ class ResourceAccessManagerBackend(BaseBackend):
         return {"permissions": permissions}
 
     def _find_resource_share(self, arn: str) -> ResourceShare:
-        resource = next(
-            (rs for rs in self.resource_shares if rs.arn == arn), None
-        )
+        resource = next((rs for rs in self.resource_shares if rs.arn == arn), None)
         if not resource:
-            raise UnknownResourceException(
-                f"ResourceShare {arn} could not be found."
-            )
+            raise UnknownResourceException(f"ResourceShare {arn} could not be found.")
         return resource
 
     def _find_permission(self, arn: str) -> ManagedPermission:
-        permission = next(
-            (p for p in self.managed_permissions if p.arn == arn), None
-        )
+        permission = next((p for p in self.managed_permissions if p.arn == arn), None)
         if not permission:
-            raise UnknownResourceException(
-                f"Permission {arn} could not be found."
-            )
+            raise UnknownResourceException(f"Permission {arn} could not be found.")
         return permission
 
     def _find_invitation(self, arn: str) -> "ResourceShareInvitation":
-        invitation = next(
-            (inv for inv in self.invitations if inv.arn == arn), None
-        )
+        invitation = next((inv for inv in self.invitations if inv.arn == arn), None)
         if not invitation:
             raise UnknownResourceException(
                 f"ResourceShareInvitation {arn} could not be found."
@@ -821,9 +808,7 @@ class ResourceAccessManagerBackend(BaseBackend):
         permission.set_default_version(permission_version)
         return {"returnValue": True}
 
-    def list_permission_versions(
-        self, permission_arn: str
-    ) -> dict[str, Any]:
+    def list_permission_versions(self, permission_arn: str) -> dict[str, Any]:
         permission = self._find_permission(permission_arn)
         return {"permissions": permission.list_versions()}
 
@@ -848,9 +833,7 @@ class ResourceAccessManagerBackend(BaseBackend):
         invitations = self.invitations
         if resource_share_invitation_arns:
             invitations = [
-                inv
-                for inv in invitations
-                if inv.arn in resource_share_invitation_arns
+                inv for inv in invitations if inv.arn in resource_share_invitation_arns
             ]
         if resource_share_arns:
             invitations = [
@@ -858,11 +841,7 @@ class ResourceAccessManagerBackend(BaseBackend):
                 for inv in invitations
                 if inv.resource_share_arn in resource_share_arns
             ]
-        return {
-            "resourceShareInvitations": [
-                inv.describe() for inv in invitations
-            ]
-        }
+        return {"resourceShareInvitations": [inv.describe() for inv in invitations]}
 
     def accept_resource_share_invitation(
         self, resource_share_invitation_arn: str
@@ -878,9 +857,7 @@ class ResourceAccessManagerBackend(BaseBackend):
         invitation.reject()
         return {"resourceShareInvitation": invitation.describe()}
 
-    def get_resource_policies(
-        self, resource_arns: list[str]
-    ) -> dict[str, Any]:
+    def get_resource_policies(self, resource_arns: list[str]) -> dict[str, Any]:
         # Return empty policies - resource policies are not tracked in RAM mock
         return {"policies": []}
 
@@ -912,9 +889,7 @@ class ResourceAccessManagerBackend(BaseBackend):
                         "id": principal,
                         "resourceShareArn": resource_share.arn,
                         "creationTime": unix_time(resource_share.creation_time),
-                        "lastUpdatedTime": unix_time(
-                            resource_share.last_updated_time
-                        ),
+                        "lastUpdatedTime": unix_time(resource_share.last_updated_time),
                         "external": not re.match(r"^\d{12}$", principal),
                     }
                 )
@@ -960,9 +935,7 @@ class ResourceAccessManagerBackend(BaseBackend):
                         "resourceGroupArn": None,
                         "status": "AVAILABLE",
                         "creationTime": unix_time(resource_share.creation_time),
-                        "lastUpdatedTime": unix_time(
-                            resource_share.last_updated_time
-                        ),
+                        "lastUpdatedTime": unix_time(resource_share.last_updated_time),
                     }
                 )
 
@@ -995,9 +968,7 @@ class ResourceAccessManagerBackend(BaseBackend):
                         "resourceShareArn": resource_share.arn,
                         "status": "AVAILABLE",
                         "creationTime": unix_time(resource_share.creation_time),
-                        "lastUpdatedTime": unix_time(
-                            resource_share.last_updated_time
-                        ),
+                        "lastUpdatedTime": unix_time(resource_share.last_updated_time),
                     }
                 )
         return {"resources": resources}
@@ -1019,9 +990,7 @@ class ResourceAccessManagerBackend(BaseBackend):
                         "resourceShareArn": resource_share.arn,
                         "status": "ASSOCIATED",
                         "featureSet": resource_share.feature_set,
-                        "lastUpdatedTime": unix_time(
-                            resource_share.last_updated_time
-                        ),
+                        "lastUpdatedTime": unix_time(resource_share.last_updated_time),
                         "resourceType": "",
                     }
                 )
@@ -1107,9 +1076,7 @@ class ResourceAccessManagerBackend(BaseBackend):
             resource_share.add_tags(tags)
             return {}
         # Try permission
-        permission = next(
-            (p for p in self.managed_permissions if p.arn == arn), None
-        )
+        permission = next((p for p in self.managed_permissions if p.arn == arn), None)
         if permission:
             existing_keys = {t["key"]: i for i, t in enumerate(permission.tags)}
             for tag in tags:
@@ -1137,13 +1104,9 @@ class ResourceAccessManagerBackend(BaseBackend):
         if resource_share:
             resource_share.remove_tags(tag_keys)
             return {}
-        permission = next(
-            (p for p in self.managed_permissions if p.arn == arn), None
-        )
+        permission = next((p for p in self.managed_permissions if p.arn == arn), None)
         if permission:
-            permission.tags = [
-                t for t in permission.tags if t["key"] not in tag_keys
-            ]
+            permission.tags = [t for t in permission.tags if t["key"] not in tag_keys]
             return {}
         raise UnknownResourceException(f"Resource {arn} could not be found.")
 

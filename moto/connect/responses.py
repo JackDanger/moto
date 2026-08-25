@@ -1943,9 +1943,7 @@ class ConnectResponse(BaseResponse):
             instance_id=instance_id,
             contact_flow_module_id=contact_flow_module_id,
             name=str(params["AliasName"]),
-            target_contact_flow_module_version=str(
-                params["ContactFlowModuleVersion"]
-            ),
+            target_contact_flow_module_version=str(params["ContactFlowModuleVersion"]),
             description=params.get("Description", ""),
         )
         return json.dumps(result)
@@ -2657,7 +2655,9 @@ class ConnectResponse(BaseResponse):
             blocked_ips=params.get("BlockedIps"),
             periodic_session_duration=params.get("PeriodicSessionDuration"),
             session_inactivity_duration=params.get("SessionInactivityDuration"),
-            session_inactivity_handling_enabled=params.get("SessionInactivityHandlingEnabled"),
+            session_inactivity_handling_enabled=params.get(
+                "SessionInactivityHandlingEnabled"
+            ),
         )
         return "{}"
 
@@ -2713,7 +2713,9 @@ class ConnectResponse(BaseResponse):
         self.connect_backend.associate_hours_of_operations(
             instance_id=instance_id,
             hours_of_operation_id=hours_of_operation_id,
-            parent_hours_of_operation_configs=params.get("ParentHoursOfOperationConfigs", []),
+            parent_hours_of_operation_configs=params.get(
+                "ParentHoursOfOperationConfigs", []
+            ),
         )
         return "{}"
 
@@ -2908,9 +2910,7 @@ class ConnectResponse(BaseResponse):
     def delete_attached_file(self) -> str:
         instance_id = self._get_instance_id()
         file_id = self._get_param_from_path("FileId")
-        associated_resource_arn = self.querystring.get(
-            "associatedResourceArn", [""]
-        )[0]
+        associated_resource_arn = self.querystring.get("associatedResourceArn", [""])[0]
         self.connect_backend.delete_attached_file(
             instance_id=instance_id,
             file_id=file_id,
@@ -3082,9 +3082,7 @@ class ConnectResponse(BaseResponse):
     def get_attached_file(self) -> str:
         instance_id = self._get_instance_id()
         file_id = self._get_param_from_path("FileId")
-        associated_resource_arn = self.querystring.get(
-            "associatedResourceArn", [""]
-        )[0]
+        associated_resource_arn = self.querystring.get("associatedResourceArn", [""])[0]
         url_expiry = self.querystring.get("urlExpiryInSeconds", [None])[0]
         result = self.connect_backend.get_attached_file(
             instance_id=instance_id,
@@ -3324,9 +3322,7 @@ class ConnectResponse(BaseResponse):
 
     def list_test_case_executions(self) -> str:
         instance_id = self._get_instance_id()
-        result = self.connect_backend.list_test_case_executions(
-            instance_id=instance_id
-        )
+        result = self.connect_backend.list_test_case_executions(instance_id=instance_id)
         return json.dumps({"TestCaseExecutionSummaryList": result})
 
     def list_traffic_distribution_group_users(self) -> str:

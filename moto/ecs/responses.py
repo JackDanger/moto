@@ -696,7 +696,14 @@ class EC2ContainerServiceResponse(BaseResponse):
 
     def stop_service_deployment(self) -> "ActionResult":
         service_deployment_arn = self._get_param("serviceDeploymentArn")
-        return ActionResult({"serviceDeployment": {"serviceDeploymentArn": service_deployment_arn, "status": "STOPPED"}})
+        return ActionResult(
+            {
+                "serviceDeployment": {
+                    "serviceDeploymentArn": service_deployment_arn,
+                    "status": "STOPPED",
+                }
+            }
+        )
 
     def submit_attachment_state_changes(self) -> "ActionResult":
         attachments = self._get_param("attachments", [])
@@ -705,19 +712,51 @@ class EC2ContainerServiceResponse(BaseResponse):
     def create_express_gateway_service(self) -> "ActionResult":
         cluster = self._get_param("cluster")
         name = self._get_param("name")
-        return ActionResult({"expressGatewayService": {"clusterArn": cluster, "expressGatewayServiceName": name, "status": "ACTIVE"}})
+        return ActionResult(
+            {
+                "expressGatewayService": {
+                    "clusterArn": cluster,
+                    "expressGatewayServiceName": name,
+                    "status": "ACTIVE",
+                }
+            }
+        )
 
     def describe_express_gateway_service(self) -> "ActionResult":
         cluster = self._get_param("cluster")
         name = self._get_param("expressGatewayService")
-        return ActionResult({"expressGatewayService": {"clusterArn": cluster, "expressGatewayServiceName": name, "status": "ACTIVE"}})
+        return ActionResult(
+            {
+                "expressGatewayService": {
+                    "clusterArn": cluster,
+                    "expressGatewayServiceName": name,
+                    "status": "ACTIVE",
+                }
+            }
+        )
 
     def update_express_gateway_service(self) -> "ActionResult":
         cluster = self._get_param("cluster")
         name = self._get_param("expressGatewayService")
-        return ActionResult({"expressGatewayService": {"clusterArn": cluster, "expressGatewayServiceName": name, "status": "ACTIVE"}})
+        return ActionResult(
+            {
+                "expressGatewayService": {
+                    "clusterArn": cluster,
+                    "expressGatewayServiceName": name,
+                    "status": "ACTIVE",
+                }
+            }
+        )
 
     def delete_express_gateway_service(self) -> "ActionResult":
         cluster = self._get_param("cluster")
         name = self._get_param("expressGatewayService")
-        return ActionResult({"expressGatewayService": {"clusterArn": cluster, "expressGatewayServiceName": name, "status": "DELETING"}})
+        return ActionResult(
+            {
+                "expressGatewayService": {
+                    "clusterArn": cluster,
+                    "expressGatewayServiceName": name,
+                    "status": "DELETING",
+                }
+            }
+        )

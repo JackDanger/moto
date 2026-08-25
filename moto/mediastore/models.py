@@ -83,6 +83,7 @@ class MediaStoreBackend(BaseBackend):
             raise ContainerNotFoundException()
         tags = self._containers[name].tags
         return tags
+
     def _resolve_resource(self, resource: str) -> Container:
         """Resolve a container by name or ARN."""
         if resource in self._containers:

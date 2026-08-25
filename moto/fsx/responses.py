@@ -345,9 +345,7 @@ class FSxResponse(BaseResponse):
     def describe_file_caches(self) -> str:
         params = json.loads(self.body)
         file_cache_ids = params.get("FileCacheIds")
-        caches = self.fsx_backend.describe_file_caches(
-            file_cache_ids=file_cache_ids
-        )
+        caches = self.fsx_backend.describe_file_caches(file_cache_ids=file_cache_ids)
         return json.dumps({"FileCaches": caches, "NextToken": None})
 
     def describe_file_system_aliases(self) -> str:
@@ -369,9 +367,7 @@ class FSxResponse(BaseResponse):
         attachments = self.fsx_backend.describe_s3_access_point_attachments(
             file_system_id=file_system_id, filters=filters
         )
-        return json.dumps(
-            {"S3AccessPointAttachments": attachments, "NextToken": None}
-        )
+        return json.dumps({"S3AccessPointAttachments": attachments, "NextToken": None})
 
     def tag_resource(self) -> TYPE_RESPONSE:
         params = json.loads(self.body)
@@ -402,6 +398,7 @@ class FSxResponse(BaseResponse):
             if svm.svm_id == svm_id:
                 return json.dumps({"StorageVirtualMachine": svm.to_dict()})
         from .exceptions import StorageVirtualMachineNotFoundException
+
         raise StorageVirtualMachineNotFoundException(svm_id)
 
     def restore_volume_from_snapshot(self) -> str:
@@ -410,8 +407,15 @@ class FSxResponse(BaseResponse):
         volumes = self.fsx_backend.describe_volumes()
         for volume in volumes:
             if volume.volume_id == volume_id:
-                return json.dumps({"Lifecycle": "AVAILABLE", "VolumeId": volume_id, "AdministrativeActions": []})
+                return json.dumps(
+                    {
+                        "Lifecycle": "AVAILABLE",
+                        "VolumeId": volume_id,
+                        "AdministrativeActions": [],
+                    }
+                )
         from .exceptions import VolumeNotFoundException
+
         raise VolumeNotFoundException(volume_id)
 
     def update_volume(self) -> str:
@@ -422,17 +426,22 @@ class FSxResponse(BaseResponse):
             if volume.volume_id == volume_id:
                 return json.dumps({"Volume": volume.to_dict()})
         from .exceptions import VolumeNotFoundException
+
         raise VolumeNotFoundException(volume_id)
 
     def release_file_system_nfs_v3_locks(self) -> str:
         params = json.loads(self.body)
         file_system_id = params.get("FileSystemId")
-        return json.dumps({"FileSystem": {"FileSystemId": file_system_id, "Lifecycle": "AVAILABLE"}})
+        return json.dumps(
+            {"FileSystem": {"FileSystemId": file_system_id, "Lifecycle": "AVAILABLE"}}
+        )
 
     def start_misconfigured_state_recovery(self) -> str:
         params = json.loads(self.body)
         file_system_id = params.get("FileSystemId")
-        return json.dumps({"FileSystem": {"FileSystemId": file_system_id, "Lifecycle": "AVAILABLE"}})
+        return json.dumps(
+            {"FileSystem": {"FileSystemId": file_system_id, "Lifecycle": "AVAILABLE"}}
+        )
 
     def update_shared_vpc_configuration(self) -> str:
         return json.dumps({"EnableFsxRouteTableUpdatesFromParticipantAccounts": "true"})
@@ -450,16 +459,26 @@ class FSxResponse(BaseResponse):
     def copy_snapshot_and_update_volume(self) -> str:
         params = json.loads(self.body)
         volume_id = params.get("VolumeId", "")
-        return json.dumps({"VolumeId": volume_id, "Lifecycle": "UPDATING", "AdministrativeActions": []})
+        return json.dumps(
+            {
+                "VolumeId": volume_id,
+                "Lifecycle": "UPDATING",
+                "AdministrativeActions": [],
+            }
+        )
 
     def create_and_attach_s3_access_point(self) -> str:
         return json.dumps({"ResourceARN": "", "AccessPoint": {}})
 
     def create_data_repository_task(self) -> str:
-        return json.dumps({"DataRepositoryTask": {"TaskId": "stub", "Lifecycle": "EXECUTING"}})
+        return json.dumps(
+            {"DataRepositoryTask": {"TaskId": "stub", "Lifecycle": "EXECUTING"}}
+        )
 
     def create_file_cache(self) -> str:
-        return json.dumps({"FileCache": {"FileCacheId": "stub", "Lifecycle": "CREATING"}})
+        return json.dumps(
+            {"FileCache": {"FileCacheId": "stub", "Lifecycle": "CREATING"}}
+        )
 
     def delete_file_cache(self) -> str:
         params = json.loads(self.body)
@@ -472,4 +491,6 @@ class FSxResponse(BaseResponse):
     def update_file_cache(self) -> str:
         params = json.loads(self.body)
         file_cache_id = params.get("FileCacheId", "stub")
-        return json.dumps({"FileCache": {"FileCacheId": file_cache_id, "Lifecycle": "UPDATING"}})
+        return json.dumps(
+            {"FileCache": {"FileCacheId": file_cache_id, "Lifecycle": "UPDATING"}}
+        )

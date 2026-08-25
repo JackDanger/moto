@@ -362,7 +362,9 @@ class WorkSpacesWebResponse(BaseResponse):
         return json.dumps({"tags": tags})
 
     @staticmethod
-    def ip_access_settings_resource(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
+    def ip_access_settings_resource(
+        request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore[misc]
         handler = WorkSpacesWebResponse()
         handler.setup_class(request, full_url, headers)
         if request.method == "GET":
@@ -373,7 +375,9 @@ class WorkSpacesWebResponse(BaseResponse):
             return handler.delete_ip_access_settings()
 
     @staticmethod
-    def trust_store_resource(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
+    def trust_store_resource(
+        request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore[misc]
         handler = WorkSpacesWebResponse()
         handler.setup_class(request, full_url, headers)
         if request.method == "GET":
@@ -384,7 +388,9 @@ class WorkSpacesWebResponse(BaseResponse):
             return handler.delete_trust_store()
 
     @staticmethod
-    def identity_provider_resource(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
+    def identity_provider_resource(
+        request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore[misc]
         handler = WorkSpacesWebResponse()
         handler.setup_class(request, full_url, headers)
         if request.method == "GET":
@@ -395,7 +401,9 @@ class WorkSpacesWebResponse(BaseResponse):
             return handler.delete_identity_provider()
 
     @staticmethod
-    def data_protection_settings_resource(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
+    def data_protection_settings_resource(
+        request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore[misc]
         handler = WorkSpacesWebResponse()
         handler.setup_class(request, full_url, headers)
         if request.method == "GET":
@@ -406,7 +414,9 @@ class WorkSpacesWebResponse(BaseResponse):
             return handler.delete_data_protection_settings()
 
     @staticmethod
-    def session_logger_resource(request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:  # type: ignore[misc]
+    def session_logger_resource(
+        request: Any, full_url: str, headers: Any
+    ) -> TYPE_RESPONSE:  # type: ignore[misc]
         handler = WorkSpacesWebResponse()
         handler.setup_class(request, full_url, headers)
         if request.method == "GET":
@@ -486,9 +496,13 @@ class WorkSpacesWebResponse(BaseResponse):
         print_allowed = self._get_param("printAllowed")
         upload_allowed = self._get_param("uploadAllowed")
         disconnect_timeout_in_minutes = self._get_param("disconnectTimeoutInMinutes")
-        idle_disconnect_timeout_in_minutes = self._get_param("idleDisconnectTimeoutInMinutes")
+        idle_disconnect_timeout_in_minutes = self._get_param(
+            "idleDisconnectTimeoutInMinutes"
+        )
         deep_link_allowed = self._get_param("deepLinkAllowed")
-        cookie_synchronization_configuration = self._get_param("cookieSynchronizationConfiguration")
+        cookie_synchronization_configuration = self._get_param(
+            "cookieSynchronizationConfiguration"
+        )
         user_settings = self.workspacesweb_backend.update_user_settings(
             user_settings_arn=user_settings_arn,
             copy_allowed=copy_allowed,
@@ -514,7 +528,11 @@ class WorkSpacesWebResponse(BaseResponse):
                 kinesis_stream_arn=kinesis_stream_arn,
             )
         )
-        return 200, {}, json.dumps({"userAccessLoggingSettings": user_access_logging_settings})
+        return (
+            200,
+            {},
+            json.dumps({"userAccessLoggingSettings": user_access_logging_settings}),
+        )
 
     def disassociate_user_settings(self) -> TYPE_RESPONSE:
         portal_arn = unquote(
@@ -529,7 +547,9 @@ class WorkSpacesWebResponse(BaseResponse):
                 "/userAccessLoggingSettings"
             )[0]
         )
-        self.workspacesweb_backend.disassociate_user_access_logging_settings(portal_arn=portal_arn)
+        self.workspacesweb_backend.disassociate_user_access_logging_settings(
+            portal_arn=portal_arn
+        )
         return 200, {}, "{}"
 
     def create_ip_access_settings(self) -> str:
@@ -557,7 +577,9 @@ class WorkSpacesWebResponse(BaseResponse):
 
     def get_ip_access_settings(self) -> TYPE_RESPONSE:
         arn = unquote(self.parsed_url.path.split("/ipAccessSettings/")[-1])
-        result = self.workspacesweb_backend.get_ip_access_settings(ip_access_settings_arn=arn)
+        result = self.workspacesweb_backend.get_ip_access_settings(
+            ip_access_settings_arn=arn
+        )
         return 200, {}, json.dumps({"ipAccessSettings": result})
 
     def update_ip_access_settings(self) -> TYPE_RESPONSE:
@@ -593,7 +615,9 @@ class WorkSpacesWebResponse(BaseResponse):
         portal_arn = unquote(
             self.parsed_url.path.split("/portals/")[-1].split("/ipAccessSettings")[0]
         )
-        self.workspacesweb_backend.disassociate_ip_access_settings(portal_arn=portal_arn)
+        self.workspacesweb_backend.disassociate_ip_access_settings(
+            portal_arn=portal_arn
+        )
         return 200, {}, "{}"
 
     def create_trust_store(self) -> str:
@@ -634,9 +658,14 @@ class WorkSpacesWebResponse(BaseResponse):
 
     def get_trust_store_certificate(self) -> TYPE_RESPONSE:
         path = self.parsed_url.path
-        trust_store_arn = unquote(path.split("/trustStores/")[-1].split("/certificate")[0])
+        trust_store_arn = unquote(
+            path.split("/trustStores/")[-1].split("/certificate")[0]
+        )
         from urllib.parse import parse_qs
-        qs = parse_qs(self.parsed_url.query if hasattr(self.parsed_url, 'query') else "")
+
+        qs = parse_qs(
+            self.parsed_url.query if hasattr(self.parsed_url, "query") else ""
+        )
         thumbprint = qs.get("thumbprint", [""])[0]
         result = self.workspacesweb_backend.get_trust_store_certificate(
             trust_store_arn=trust_store_arn,
@@ -648,7 +677,9 @@ class WorkSpacesWebResponse(BaseResponse):
         trust_store_arn = unquote(
             self.parsed_url.path.split("/trustStores/")[-1].split("/certificates")[0]
         )
-        items = self.workspacesweb_backend.list_trust_store_certificates(trust_store_arn=trust_store_arn)
+        items = self.workspacesweb_backend.list_trust_store_certificates(
+            trust_store_arn=trust_store_arn
+        )
         return json.dumps({"certificateList": items, "trustStoreArn": trust_store_arn})
 
     def associate_trust_store(self) -> str:
@@ -690,12 +721,16 @@ class WorkSpacesWebResponse(BaseResponse):
         portal_arn = unquote(
             self.parsed_url.path.split("/portals/")[-1].split("/identityProviders")[0]
         )
-        items = self.workspacesweb_backend.list_identity_providers(portal_arn=portal_arn)
+        items = self.workspacesweb_backend.list_identity_providers(
+            portal_arn=portal_arn
+        )
         return json.dumps({"identityProviders": items})
 
     def get_identity_provider(self) -> TYPE_RESPONSE:
         arn = unquote(self.parsed_url.path.split("/identityProviders/")[-1])
-        result = self.workspacesweb_backend.get_identity_provider(identity_provider_arn=arn)
+        result = self.workspacesweb_backend.get_identity_provider(
+            identity_provider_arn=arn
+        )
         return 200, {}, json.dumps({"identityProvider": result})
 
     def update_identity_provider(self) -> TYPE_RESPONSE:
@@ -741,7 +776,9 @@ class WorkSpacesWebResponse(BaseResponse):
 
     def get_data_protection_settings(self) -> TYPE_RESPONSE:
         arn = unquote(self.parsed_url.path.split("/dataProtectionSettings/")[-1])
-        result = self.workspacesweb_backend.get_data_protection_settings(data_protection_settings_arn=arn)
+        result = self.workspacesweb_backend.get_data_protection_settings(
+            data_protection_settings_arn=arn
+        )
         return 200, {}, json.dumps({"dataProtectionSettings": result})
 
     def update_data_protection_settings(self) -> TYPE_RESPONSE:
@@ -759,13 +796,19 @@ class WorkSpacesWebResponse(BaseResponse):
 
     def delete_data_protection_settings(self) -> TYPE_RESPONSE:
         arn = unquote(self.parsed_url.path.split("/dataProtectionSettings/")[-1])
-        self.workspacesweb_backend.delete_data_protection_settings(data_protection_settings_arn=arn)
+        self.workspacesweb_backend.delete_data_protection_settings(
+            data_protection_settings_arn=arn
+        )
         return 200, {}, "{}"
 
     def associate_data_protection_settings(self) -> str:
-        data_protection_settings_arn = unquote(self._get_param("dataProtectionSettingsArn"))
+        data_protection_settings_arn = unquote(
+            self._get_param("dataProtectionSettingsArn")
+        )
         portal_arn = unquote(
-            self.parsed_url.path.split("/portals/")[-1].split("/dataProtectionSettings")[0]
+            self.parsed_url.path.split("/portals/")[-1].split(
+                "/dataProtectionSettings"
+            )[0]
         )
         dps_arn, p_arn = self.workspacesweb_backend.associate_data_protection_settings(
             portal_arn=portal_arn,
@@ -775,9 +818,13 @@ class WorkSpacesWebResponse(BaseResponse):
 
     def disassociate_data_protection_settings(self) -> TYPE_RESPONSE:
         portal_arn = unquote(
-            self.parsed_url.path.split("/portals/")[-1].split("/dataProtectionSettings")[0]
+            self.parsed_url.path.split("/portals/")[-1].split(
+                "/dataProtectionSettings"
+            )[0]
         )
-        self.workspacesweb_backend.disassociate_data_protection_settings(portal_arn=portal_arn)
+        self.workspacesweb_backend.disassociate_data_protection_settings(
+            portal_arn=portal_arn
+        )
         return 200, {}, "{}"
 
     def create_session_logger(self) -> str:
@@ -849,12 +896,16 @@ class WorkSpacesWebResponse(BaseResponse):
         parts = self.path_url.split("/portals/")[-1].split("/sessions/")
         portal_id = parts[0]
         session_id = parts[1] if len(parts) > 1 else ""
-        result = self.workspacesweb_backend.get_session(portal_id=portal_id, session_id=session_id)
+        result = self.workspacesweb_backend.get_session(
+            portal_id=portal_id, session_id=session_id
+        )
         return 200, {}, json.dumps({"session": result})
 
     def expire_session(self) -> TYPE_RESPONSE:
         parts = self.path_url.split("/portals/")[-1].split("/sessions/")
         portal_id = parts[0]
         session_id = parts[1] if len(parts) > 1 else ""
-        self.workspacesweb_backend.expire_session(portal_id=portal_id, session_id=session_id)
+        self.workspacesweb_backend.expire_session(
+            portal_id=portal_id, session_id=session_id
+        )
         return 200, {}, "{}"

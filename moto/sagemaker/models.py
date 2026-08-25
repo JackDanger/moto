@@ -4477,15 +4477,18 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         model_package_group_summary_list = list(
             filter(
                 lambda x: (
-                    creation_time_after is None or x.creation_time > creation_time_after
-                )
-                and (
-                    creation_time_before is None
-                    or x.creation_time < creation_time_before
-                )
-                and (
-                    name_contains is None
-                    or x.model_package_group_name.find(name_contains) != -1
+                    (
+                        creation_time_after is None
+                        or x.creation_time > creation_time_after
+                    )
+                    and (
+                        creation_time_before is None
+                        or x.creation_time < creation_time_before
+                    )
+                    and (
+                        name_contains is None
+                        or x.model_package_group_name.find(name_contains) != -1
+                    )
                 ),
                 self.model_package_groups.values(),
             )
@@ -4536,26 +4539,29 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         model_package_summary_list = list(
             filter(
                 lambda x: (
-                    creation_time_after is None or x.creation_time > creation_time_after
-                )
-                and (
-                    creation_time_before is None
-                    or x.creation_time < creation_time_before
-                )
-                and (
-                    name_contains is None
-                    or x.model_package_name.find(name_contains) != -1
-                )
-                and (
-                    model_approval_status is None
-                    or x.model_approval_status == model_approval_status
-                )
-                and (
-                    model_package_group_name is None
-                    or x.model_package_group_name == model_package_group_name
-                )
-                and self._get_versioned_or_not(
-                    model_package_type, x.model_package_version
+                    (
+                        creation_time_after is None
+                        or x.creation_time > creation_time_after
+                    )
+                    and (
+                        creation_time_before is None
+                        or x.creation_time < creation_time_before
+                    )
+                    and (
+                        name_contains is None
+                        or x.model_package_name.find(name_contains) != -1
+                    )
+                    and (
+                        model_approval_status is None
+                        or x.model_approval_status == model_approval_status
+                    )
+                    and (
+                        model_package_group_name is None
+                        or x.model_package_group_name == model_package_group_name
+                    )
+                    and self._get_versioned_or_not(
+                        model_package_type, x.model_package_version
+                    )
                 ),
                 self.model_packages.values(),
             )
@@ -5806,8 +5812,17 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
     def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
         self.delete_tags(arn, tag_keys)
 
-
-    def create_action(self, actionname: Any = None, source: Any = None, actiontype: Any = None, description: Any = None, status: Any = None, properties: Any = None, metadataproperties: Any = None, tags: Any = None) -> dict[str, Any]:
+    def create_action(
+        self,
+        actionname: Any = None,
+        source: Any = None,
+        actiontype: Any = None,
+        description: Any = None,
+        status: Any = None,
+        properties: Any = None,
+        metadataproperties: Any = None,
+        tags: Any = None,
+    ) -> dict[str, Any]:
         name = actionname
         store_key = name
         arn = arn_formatter("action", store_key, self.account_id, self.region_name)
@@ -5837,7 +5852,16 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
     def list_actions(self) -> list[dict[str, Any]]:
         return list(self.actions.values())
 
-    def update_action(self, actionname: Any = None, source: Any = None, actiontype: Any = None, description: Any = None, status: Any = None, properties: Any = None, metadataproperties: Any = None) -> dict[str, Any]:
+    def update_action(
+        self,
+        actionname: Any = None,
+        source: Any = None,
+        actiontype: Any = None,
+        description: Any = None,
+        status: Any = None,
+        properties: Any = None,
+        metadataproperties: Any = None,
+    ) -> dict[str, Any]:
         store_key = actionname
         resource = self.actions.get(store_key)
         if not resource:
@@ -5861,7 +5885,16 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         store_key = name
         self.actions.pop(store_key, None)
 
-    def create_algorithm(self, algorithmname: Any = None, algorithmdescription: Any = None, trainingspecification: Any = None, inferencespecification: Any = None, validationspecification: Any = None, certifyformarketplace: Any = None, tags: Any = None) -> dict[str, Any]:
+    def create_algorithm(
+        self,
+        algorithmname: Any = None,
+        algorithmdescription: Any = None,
+        trainingspecification: Any = None,
+        inferencespecification: Any = None,
+        validationspecification: Any = None,
+        certifyformarketplace: Any = None,
+        tags: Any = None,
+    ) -> dict[str, Any]:
         name = algorithmname
         store_key = name
         arn = arn_formatter("algorithm", store_key, self.account_id, self.region_name)
@@ -5895,9 +5928,20 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         store_key = name
         self.algorithms.pop(store_key, None)
 
-    def create_app(self, appname: Any = None, domainid: Any = None, userprofilename: Any = None, spacename: Any = None, apptype: Any = None, resourcespec: Any = None, tags: Any = None) -> dict[str, Any]:
+    def create_app(
+        self,
+        appname: Any = None,
+        domainid: Any = None,
+        userprofilename: Any = None,
+        spacename: Any = None,
+        apptype: Any = None,
+        resourcespec: Any = None,
+        tags: Any = None,
+    ) -> dict[str, Any]:
         name = appname
-        store_key = str(domainid or '') + '/' + str(apptype or '') + '/' + str(appname or '')
+        store_key = (
+            str(domainid or "") + "/" + str(apptype or "") + "/" + str(appname or "")
+        )
         arn = arn_formatter("app", store_key, self.account_id, self.region_name)
         resource = {
             "AppName": name,
@@ -5915,8 +5959,12 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         self.apps[store_key] = resource
         return {"AppArn": arn}
 
-    def describe_app(self, domainid: Any = None, apptype: Any = None, appname: Any = None) -> dict[str, Any]:
-        store_key = str(domainid or '') + '/' + str(apptype or '') + '/' + str(appname or '')
+    def describe_app(
+        self, domainid: Any = None, apptype: Any = None, appname: Any = None
+    ) -> dict[str, Any]:
+        store_key = (
+            str(domainid or "") + "/" + str(apptype or "") + "/" + str(appname or "")
+        )
         resource = self.apps.get(store_key)
         if not resource:
             raise ValidationError(message=f"Could not find app {store_key}")
@@ -5925,14 +5973,27 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
     def list_apps(self) -> list[dict[str, Any]]:
         return list(self.apps.values())
 
-    def delete_app(self, domainid: Any = None, apptype: Any = None, appname: Any = None) -> None:
-        store_key = str(domainid or '') + '/' + str(apptype or '') + '/' + str(appname or '')
+    def delete_app(
+        self, domainid: Any = None, apptype: Any = None, appname: Any = None
+    ) -> None:
+        store_key = (
+            str(domainid or "") + "/" + str(apptype or "") + "/" + str(appname or "")
+        )
         self.apps.pop(store_key, None)
 
-    def create_app_image_config(self, appimageconfigname: Any = None, kernelgatewayimageconfig: Any = None, jupyterlabappimageconfig: Any = None, codeeditorappimageconfig: Any = None, tags: Any = None) -> dict[str, Any]:
+    def create_app_image_config(
+        self,
+        appimageconfigname: Any = None,
+        kernelgatewayimageconfig: Any = None,
+        jupyterlabappimageconfig: Any = None,
+        codeeditorappimageconfig: Any = None,
+        tags: Any = None,
+    ) -> dict[str, Any]:
         name = appimageconfigname
         store_key = name
-        arn = arn_formatter("app-image-config", store_key, self.account_id, self.region_name)
+        arn = arn_formatter(
+            "app-image-config", store_key, self.account_id, self.region_name
+        )
         resource = {
             "AppImageConfigName": name,
             "AppImageConfigArn": arn,
@@ -5950,17 +6011,27 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         store_key = name
         resource = self.app_image_configs.get(store_key)
         if not resource:
-            raise ValidationError(message=f"Could not find app image config {store_key}")
+            raise ValidationError(
+                message=f"Could not find app image config {store_key}"
+            )
         return resource
 
     def list_app_image_configs(self) -> list[dict[str, Any]]:
         return list(self.app_image_configs.values())
 
-    def update_app_image_config(self, appimageconfigname: Any = None, kernelgatewayimageconfig: Any = None, jupyterlabappimageconfig: Any = None, codeeditorappimageconfig: Any = None) -> dict[str, Any]:
+    def update_app_image_config(
+        self,
+        appimageconfigname: Any = None,
+        kernelgatewayimageconfig: Any = None,
+        jupyterlabappimageconfig: Any = None,
+        codeeditorappimageconfig: Any = None,
+    ) -> dict[str, Any]:
         store_key = appimageconfigname
         resource = self.app_image_configs.get(store_key)
         if not resource:
-            raise ValidationError(message=f"Could not find app image config {store_key}")
+            raise ValidationError(
+                message=f"Could not find app image config {store_key}"
+            )
         if kernelgatewayimageconfig is not None:
             resource["KernelGatewayImageConfig"] = kernelgatewayimageconfig
         if jupyterlabappimageconfig is not None:
@@ -5974,7 +6045,15 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         store_key = name
         self.app_image_configs.pop(store_key, None)
 
-    def create_artifact(self, artifactname: Any = None, source: Any = None, artifacttype: Any = None, properties: Any = None, metadataproperties: Any = None, tags: Any = None) -> dict[str, Any]:
+    def create_artifact(
+        self,
+        artifactname: Any = None,
+        source: Any = None,
+        artifacttype: Any = None,
+        properties: Any = None,
+        metadataproperties: Any = None,
+        tags: Any = None,
+    ) -> dict[str, Any]:
         name = artifactname
         store_key = name
         arn = arn_formatter("artifact", store_key, self.account_id, self.region_name)
@@ -6002,7 +6081,14 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
     def list_artifacts(self) -> list[dict[str, Any]]:
         return list(self.artifacts.values())
 
-    def update_artifact(self, artifactname: Any = None, source: Any = None, artifacttype: Any = None, properties: Any = None, metadataproperties: Any = None) -> dict[str, Any]:
+    def update_artifact(
+        self,
+        artifactname: Any = None,
+        source: Any = None,
+        artifacttype: Any = None,
+        properties: Any = None,
+        metadataproperties: Any = None,
+    ) -> dict[str, Any]:
         store_key = artifactname
         resource = self.artifacts.get(store_key)
         if not resource:
@@ -6022,10 +6108,14 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         store_key = name
         self.artifacts.pop(store_key, None)
 
-    def create_code_repository(self, coderepositoryname: Any = None, gitconfig: Any = None, tags: Any = None) -> dict[str, Any]:
+    def create_code_repository(
+        self, coderepositoryname: Any = None, gitconfig: Any = None, tags: Any = None
+    ) -> dict[str, Any]:
         name = coderepositoryname
         store_key = name
-        arn = arn_formatter("code-repository", store_key, self.account_id, self.region_name)
+        arn = arn_formatter(
+            "code-repository", store_key, self.account_id, self.region_name
+        )
         resource = {
             "CodeRepositoryName": name,
             "CodeRepositoryArn": arn,
@@ -6047,7 +6137,9 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
     def list_code_repositories(self) -> list[dict[str, Any]]:
         return list(self.code_repositories.values())
 
-    def update_code_repository(self, coderepositoryname: Any = None, gitconfig: Any = None) -> dict[str, Any]:
+    def update_code_repository(
+        self, coderepositoryname: Any = None, gitconfig: Any = None
+    ) -> dict[str, Any]:
         store_key = coderepositoryname
         resource = self.code_repositories.get(store_key)
         if not resource:
@@ -6061,7 +6153,15 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         store_key = name
         self.code_repositories.pop(store_key, None)
 
-    def create_context(self, contextname: Any = None, source: Any = None, contexttype: Any = None, description: Any = None, properties: Any = None, tags: Any = None) -> dict[str, Any]:
+    def create_context(
+        self,
+        contextname: Any = None,
+        source: Any = None,
+        contexttype: Any = None,
+        description: Any = None,
+        properties: Any = None,
+        tags: Any = None,
+    ) -> dict[str, Any]:
         name = contextname
         store_key = name
         arn = arn_formatter("context", store_key, self.account_id, self.region_name)
@@ -6089,7 +6189,14 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
     def list_contexts(self) -> list[dict[str, Any]]:
         return list(self.contexts.values())
 
-    def update_context(self, contextname: Any = None, source: Any = None, contexttype: Any = None, description: Any = None, properties: Any = None) -> dict[str, Any]:
+    def update_context(
+        self,
+        contextname: Any = None,
+        source: Any = None,
+        contexttype: Any = None,
+        description: Any = None,
+        properties: Any = None,
+    ) -> dict[str, Any]:
         store_key = contextname
         resource = self.contexts.get(store_key)
         if not resource:
@@ -6109,10 +6216,20 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         store_key = name
         self.contexts.pop(store_key, None)
 
-    def create_device_fleet(self, devicefleetname: Any = None, rolearn: Any = None, description: Any = None, outputconfig: Any = None, enableiotrolealias: Any = None, tags: Any = None) -> dict[str, Any]:
+    def create_device_fleet(
+        self,
+        devicefleetname: Any = None,
+        rolearn: Any = None,
+        description: Any = None,
+        outputconfig: Any = None,
+        enableiotrolealias: Any = None,
+        tags: Any = None,
+    ) -> dict[str, Any]:
         name = devicefleetname
         store_key = name
-        arn = arn_formatter("device-fleet", store_key, self.account_id, self.region_name)
+        arn = arn_formatter(
+            "device-fleet", store_key, self.account_id, self.region_name
+        )
         resource = {
             "DeviceFleetName": name,
             "DeviceFleetArn": arn,
@@ -6137,7 +6254,14 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
     def list_device_fleets(self) -> list[dict[str, Any]]:
         return list(self.device_fleets.values())
 
-    def update_device_fleet(self, devicefleetname: Any = None, rolearn: Any = None, description: Any = None, outputconfig: Any = None, enableiotrolealias: Any = None) -> dict[str, Any]:
+    def update_device_fleet(
+        self,
+        devicefleetname: Any = None,
+        rolearn: Any = None,
+        description: Any = None,
+        outputconfig: Any = None,
+        enableiotrolealias: Any = None,
+    ) -> dict[str, Any]:
         store_key = devicefleetname
         resource = self.device_fleets.get(store_key)
         if not resource:
@@ -6157,10 +6281,19 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         store_key = name
         self.device_fleets.pop(store_key, None)
 
-    def create_edge_deployment_plan(self, edgedeploymentplanname: Any = None, modelconfigs: Any = None, devicefleetname: Any = None, stages: Any = None, tags: Any = None) -> dict[str, Any]:
+    def create_edge_deployment_plan(
+        self,
+        edgedeploymentplanname: Any = None,
+        modelconfigs: Any = None,
+        devicefleetname: Any = None,
+        stages: Any = None,
+        tags: Any = None,
+    ) -> dict[str, Any]:
         name = edgedeploymentplanname
         store_key = name
-        arn = arn_formatter("edge-deployment", store_key, self.account_id, self.region_name)
+        arn = arn_formatter(
+            "edge-deployment", store_key, self.account_id, self.region_name
+        )
         resource = {
             "EdgeDeploymentPlanName": name,
             "EdgeDeploymentPlanArn": arn,
@@ -6178,7 +6311,9 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         store_key = name
         resource = self.edge_deployment_plans.get(store_key)
         if not resource:
-            raise ValidationError(message=f"Could not find edge deployment plan {store_key}")
+            raise ValidationError(
+                message=f"Could not find edge deployment plan {store_key}"
+            )
         return resource
 
     def list_edge_deployment_plans(self) -> list[dict[str, Any]]:
@@ -6188,10 +6323,21 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         store_key = name
         self.edge_deployment_plans.pop(store_key, None)
 
-    def create_flow_definition(self, flowdefinitionname: Any = None, humanloopconfig: Any = None, humanlooprequestsource: Any = None, humanloopactivationconfig: Any = None, outputconfig: Any = None, rolearn: Any = None, tags: Any = None) -> dict[str, Any]:
+    def create_flow_definition(
+        self,
+        flowdefinitionname: Any = None,
+        humanloopconfig: Any = None,
+        humanlooprequestsource: Any = None,
+        humanloopactivationconfig: Any = None,
+        outputconfig: Any = None,
+        rolearn: Any = None,
+        tags: Any = None,
+    ) -> dict[str, Any]:
         name = flowdefinitionname
         store_key = name
-        arn = arn_formatter("flow-definition", store_key, self.account_id, self.region_name)
+        arn = arn_formatter(
+            "flow-definition", store_key, self.account_id, self.region_name
+        )
         resource = {
             "FlowDefinitionName": name,
             "FlowDefinitionArn": arn,
@@ -6222,7 +6368,15 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         store_key = name
         self.flow_definitions.pop(store_key, None)
 
-    def create_hub(self, hubname: Any = None, hubdescription: Any = None, hubdisplayname: Any = None, hubsearchkeywords: Any = None, s3storageconfig: Any = None, tags: Any = None) -> dict[str, Any]:
+    def create_hub(
+        self,
+        hubname: Any = None,
+        hubdescription: Any = None,
+        hubdisplayname: Any = None,
+        hubsearchkeywords: Any = None,
+        s3storageconfig: Any = None,
+        tags: Any = None,
+    ) -> dict[str, Any]:
         name = hubname
         store_key = name
         arn = arn_formatter("hub", store_key, self.account_id, self.region_name)
@@ -6251,7 +6405,14 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
     def list_hubs(self) -> list[dict[str, Any]]:
         return list(self.hubs.values())
 
-    def update_hub(self, hubname: Any = None, hubdescription: Any = None, hubdisplayname: Any = None, hubsearchkeywords: Any = None, s3storageconfig: Any = None) -> dict[str, Any]:
+    def update_hub(
+        self,
+        hubname: Any = None,
+        hubdescription: Any = None,
+        hubdisplayname: Any = None,
+        hubsearchkeywords: Any = None,
+        s3storageconfig: Any = None,
+    ) -> dict[str, Any]:
         store_key = hubname
         resource = self.hubs.get(store_key)
         if not resource:
@@ -6271,10 +6432,14 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         store_key = name
         self.hubs.pop(store_key, None)
 
-    def create_human_task_ui(self, humantaskuiname: Any = None, uitemplate: Any = None, tags: Any = None) -> dict[str, Any]:
+    def create_human_task_ui(
+        self, humantaskuiname: Any = None, uitemplate: Any = None, tags: Any = None
+    ) -> dict[str, Any]:
         name = humantaskuiname
         store_key = name
-        arn = arn_formatter("human-task-ui", store_key, self.account_id, self.region_name)
+        arn = arn_formatter(
+            "human-task-ui", store_key, self.account_id, self.region_name
+        )
         resource = {
             "HumanTaskUiName": name,
             "HumanTaskUiArn": arn,
@@ -6301,7 +6466,14 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         store_key = name
         self.human_task_uis.pop(store_key, None)
 
-    def create_image(self, imagename: Any = None, rolearn: Any = None, displayname: Any = None, description: Any = None, tags: Any = None) -> dict[str, Any]:
+    def create_image(
+        self,
+        imagename: Any = None,
+        rolearn: Any = None,
+        displayname: Any = None,
+        description: Any = None,
+        tags: Any = None,
+    ) -> dict[str, Any]:
         name = imagename
         store_key = name
         arn = arn_formatter("image", store_key, self.account_id, self.region_name)
@@ -6329,7 +6501,13 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
     def list_images(self) -> list[dict[str, Any]]:
         return list(self.images.values())
 
-    def update_image(self, imagename: Any = None, rolearn: Any = None, displayname: Any = None, description: Any = None) -> dict[str, Any]:
+    def update_image(
+        self,
+        imagename: Any = None,
+        rolearn: Any = None,
+        displayname: Any = None,
+        description: Any = None,
+    ) -> dict[str, Any]:
         store_key = imagename
         resource = self.images.get(store_key)
         if not resource:
@@ -6347,10 +6525,20 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         store_key = name
         self.images.pop(store_key, None)
 
-    def create_inference_component(self, inferencecomponentname: Any = None, endpointname: Any = None, variantname: Any = None, specification: Any = None, runtimeconfig: Any = None, tags: Any = None) -> dict[str, Any]:
+    def create_inference_component(
+        self,
+        inferencecomponentname: Any = None,
+        endpointname: Any = None,
+        variantname: Any = None,
+        specification: Any = None,
+        runtimeconfig: Any = None,
+        tags: Any = None,
+    ) -> dict[str, Any]:
         name = inferencecomponentname
         store_key = name
-        arn = arn_formatter("inference-component", store_key, self.account_id, self.region_name)
+        arn = arn_formatter(
+            "inference-component", store_key, self.account_id, self.region_name
+        )
         resource = {
             "InferenceComponentName": name,
             "InferenceComponentArn": arn,
@@ -6370,17 +6558,28 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         store_key = name
         resource = self.inference_components.get(store_key)
         if not resource:
-            raise ValidationError(message=f"Could not find inference component {store_key}")
+            raise ValidationError(
+                message=f"Could not find inference component {store_key}"
+            )
         return resource
 
     def list_inference_components(self) -> list[dict[str, Any]]:
         return list(self.inference_components.values())
 
-    def update_inference_component(self, inferencecomponentname: Any = None, endpointname: Any = None, variantname: Any = None, specification: Any = None, runtimeconfig: Any = None) -> dict[str, Any]:
+    def update_inference_component(
+        self,
+        inferencecomponentname: Any = None,
+        endpointname: Any = None,
+        variantname: Any = None,
+        specification: Any = None,
+        runtimeconfig: Any = None,
+    ) -> dict[str, Any]:
         store_key = inferencecomponentname
         resource = self.inference_components.get(store_key)
         if not resource:
-            raise ValidationError(message=f"Could not find inference component {store_key}")
+            raise ValidationError(
+                message=f"Could not find inference component {store_key}"
+            )
         if endpointname is not None:
             resource["EndpointName"] = endpointname
         if variantname is not None:
@@ -6396,10 +6595,23 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         store_key = name
         self.inference_components.pop(store_key, None)
 
-    def create_inference_experiment(self, name: Any = None, type: Any = None, endpointname: Any = None, modelvariants: Any = None, description: Any = None, schedule: Any = None, datastorageconfig: Any = None, shadowmodeconfig: Any = None, tags: Any = None) -> dict[str, Any]:
+    def create_inference_experiment(
+        self,
+        name: Any = None,
+        type: Any = None,
+        endpointname: Any = None,
+        modelvariants: Any = None,
+        description: Any = None,
+        schedule: Any = None,
+        datastorageconfig: Any = None,
+        shadowmodeconfig: Any = None,
+        tags: Any = None,
+    ) -> dict[str, Any]:
         name = name
         store_key = name
-        arn = arn_formatter("inference-experiment", store_key, self.account_id, self.region_name)
+        arn = arn_formatter(
+            "inference-experiment", store_key, self.account_id, self.region_name
+        )
         resource = {
             "Name": name,
             "Arn": arn,
@@ -6422,17 +6634,31 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         store_key = name
         resource = self.inference_experiments.get(store_key)
         if not resource:
-            raise ValidationError(message=f"Could not find inference experiment {store_key}")
+            raise ValidationError(
+                message=f"Could not find inference experiment {store_key}"
+            )
         return resource
 
     def list_inference_experiments(self) -> list[dict[str, Any]]:
         return list(self.inference_experiments.values())
 
-    def update_inference_experiment(self, name: Any = None, type: Any = None, endpointname: Any = None, modelvariants: Any = None, description: Any = None, schedule: Any = None, datastorageconfig: Any = None, shadowmodeconfig: Any = None) -> dict[str, Any]:
+    def update_inference_experiment(
+        self,
+        name: Any = None,
+        type: Any = None,
+        endpointname: Any = None,
+        modelvariants: Any = None,
+        description: Any = None,
+        schedule: Any = None,
+        datastorageconfig: Any = None,
+        shadowmodeconfig: Any = None,
+    ) -> dict[str, Any]:
         store_key = name
         resource = self.inference_experiments.get(store_key)
         if not resource:
-            raise ValidationError(message=f"Could not find inference experiment {store_key}")
+            raise ValidationError(
+                message=f"Could not find inference experiment {store_key}"
+            )
         if type is not None:
             resource["Type"] = type
         if endpointname is not None:
@@ -6454,10 +6680,22 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         store_key = name
         self.inference_experiments.pop(store_key, None)
 
-    def create_labeling_job(self, labelingjobname: Any = None, labelattributename: Any = None, inputconfig: Any = None, outputconfig: Any = None, rolearn: Any = None, labelcategoryconfigs3uri: Any = None, humantaskconfig: Any = None, tags: Any = None) -> dict[str, Any]:
+    def create_labeling_job(
+        self,
+        labelingjobname: Any = None,
+        labelattributename: Any = None,
+        inputconfig: Any = None,
+        outputconfig: Any = None,
+        rolearn: Any = None,
+        labelcategoryconfigs3uri: Any = None,
+        humantaskconfig: Any = None,
+        tags: Any = None,
+    ) -> dict[str, Any]:
         name = labelingjobname
         store_key = name
-        arn = arn_formatter("labeling-job", store_key, self.account_id, self.region_name)
+        arn = arn_formatter(
+            "labeling-job", store_key, self.account_id, self.region_name
+        )
         resource = {
             "LabelingJobName": name,
             "LabelingJobArn": arn,
@@ -6490,7 +6728,14 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         if resource:
             resource["LabelingJobStatus"] = "Stopped"
 
-    def create_mlflow_app(self, name: Any = None, spacesettingsoverride: Any = None, userprofilename: Any = None, domainid: Any = None, tags: Any = None) -> dict[str, Any]:
+    def create_mlflow_app(
+        self,
+        name: Any = None,
+        spacesettingsoverride: Any = None,
+        userprofilename: Any = None,
+        domainid: Any = None,
+        tags: Any = None,
+    ) -> dict[str, Any]:
         name = name
         store_key = name
         arn = arn_formatter("mlflow-app", store_key, self.account_id, self.region_name)
@@ -6518,7 +6763,13 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
     def list_mlflow_apps(self) -> list[dict[str, Any]]:
         return list(self.mlflow_apps.values())
 
-    def update_mlflow_app(self, name: Any = None, spacesettingsoverride: Any = None, userprofilename: Any = None, domainid: Any = None) -> dict[str, Any]:
+    def update_mlflow_app(
+        self,
+        name: Any = None,
+        spacesettingsoverride: Any = None,
+        userprofilename: Any = None,
+        domainid: Any = None,
+    ) -> dict[str, Any]:
         store_key = name
         resource = self.mlflow_apps.get(store_key)
         if not resource:
@@ -6536,10 +6787,22 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         store_key = name
         self.mlflow_apps.pop(store_key, None)
 
-    def create_mlflow_tracking_server(self, trackingservername: Any = None, artifactstoreuri: Any = None, trackingserversize: Any = None, mlflowversion: Any = None, rolearn: Any = None, automaticmodelregistration: Any = None, weeklymaintenancewindowstart: Any = None, tags: Any = None) -> dict[str, Any]:
+    def create_mlflow_tracking_server(
+        self,
+        trackingservername: Any = None,
+        artifactstoreuri: Any = None,
+        trackingserversize: Any = None,
+        mlflowversion: Any = None,
+        rolearn: Any = None,
+        automaticmodelregistration: Any = None,
+        weeklymaintenancewindowstart: Any = None,
+        tags: Any = None,
+    ) -> dict[str, Any]:
         name = trackingservername
         store_key = name
-        arn = arn_formatter("mlflow-tracking-server", store_key, self.account_id, self.region_name)
+        arn = arn_formatter(
+            "mlflow-tracking-server", store_key, self.account_id, self.region_name
+        )
         resource = {
             "TrackingServerName": name,
             "TrackingServerArn": arn,
@@ -6561,17 +6824,30 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         store_key = name
         resource = self.mlflow_tracking_servers.get(store_key)
         if not resource:
-            raise ValidationError(message=f"Could not find mlflow tracking server {store_key}")
+            raise ValidationError(
+                message=f"Could not find mlflow tracking server {store_key}"
+            )
         return resource
 
     def list_mlflow_tracking_servers(self) -> list[dict[str, Any]]:
         return list(self.mlflow_tracking_servers.values())
 
-    def update_mlflow_tracking_server(self, trackingservername: Any = None, artifactstoreuri: Any = None, trackingserversize: Any = None, mlflowversion: Any = None, rolearn: Any = None, automaticmodelregistration: Any = None, weeklymaintenancewindowstart: Any = None) -> dict[str, Any]:
+    def update_mlflow_tracking_server(
+        self,
+        trackingservername: Any = None,
+        artifactstoreuri: Any = None,
+        trackingserversize: Any = None,
+        mlflowversion: Any = None,
+        rolearn: Any = None,
+        automaticmodelregistration: Any = None,
+        weeklymaintenancewindowstart: Any = None,
+    ) -> dict[str, Any]:
         store_key = trackingservername
         resource = self.mlflow_tracking_servers.get(store_key)
         if not resource:
-            raise ValidationError(message=f"Could not find mlflow tracking server {store_key}")
+            raise ValidationError(
+                message=f"Could not find mlflow tracking server {store_key}"
+            )
         if artifactstoreuri is not None:
             resource["ArtifactStoreUri"] = artifactstoreuri
         if trackingserversize is not None:
@@ -6591,10 +6867,17 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         store_key = name
         self.mlflow_tracking_servers.pop(store_key, None)
 
-    def create_monitoring_schedule(self, monitoringschedulename: Any = None, monitoringscheduleconfig: Any = None, tags: Any = None) -> dict[str, Any]:
+    def create_monitoring_schedule(
+        self,
+        monitoringschedulename: Any = None,
+        monitoringscheduleconfig: Any = None,
+        tags: Any = None,
+    ) -> dict[str, Any]:
         name = monitoringschedulename
         store_key = name
-        arn = arn_formatter("monitoring-schedule", store_key, self.account_id, self.region_name)
+        arn = arn_formatter(
+            "monitoring-schedule", store_key, self.account_id, self.region_name
+        )
         resource = {
             "MonitoringScheduleName": name,
             "MonitoringScheduleArn": arn,
@@ -6611,17 +6894,23 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         store_key = name
         resource = self.monitoring_schedules.get(store_key)
         if not resource:
-            raise ValidationError(message=f"Could not find monitoring schedule {store_key}")
+            raise ValidationError(
+                message=f"Could not find monitoring schedule {store_key}"
+            )
         return resource
 
     def list_monitoring_schedules(self) -> list[dict[str, Any]]:
         return list(self.monitoring_schedules.values())
 
-    def update_monitoring_schedule(self, monitoringschedulename: Any = None, monitoringscheduleconfig: Any = None) -> dict[str, Any]:
+    def update_monitoring_schedule(
+        self, monitoringschedulename: Any = None, monitoringscheduleconfig: Any = None
+    ) -> dict[str, Any]:
         store_key = monitoringschedulename
         resource = self.monitoring_schedules.get(store_key)
         if not resource:
-            raise ValidationError(message=f"Could not find monitoring schedule {store_key}")
+            raise ValidationError(
+                message=f"Could not find monitoring schedule {store_key}"
+            )
         if monitoringscheduleconfig is not None:
             resource["MonitoringScheduleConfig"] = monitoringscheduleconfig
         resource["LastModifiedTime"] = utcnow().isoformat()
@@ -6631,10 +6920,22 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         store_key = name
         self.monitoring_schedules.pop(store_key, None)
 
-    def create_optimization_job(self, optimizationjobname: Any = None, rolearn: Any = None, modelsource: Any = None, deploymentinstancetype: Any = None, optimizationconfigs: Any = None, outputconfig: Any = None, stoppingcondition: Any = None, tags: Any = None) -> dict[str, Any]:
+    def create_optimization_job(
+        self,
+        optimizationjobname: Any = None,
+        rolearn: Any = None,
+        modelsource: Any = None,
+        deploymentinstancetype: Any = None,
+        optimizationconfigs: Any = None,
+        outputconfig: Any = None,
+        stoppingcondition: Any = None,
+        tags: Any = None,
+    ) -> dict[str, Any]:
         name = optimizationjobname
         store_key = name
-        arn = arn_formatter("optimization-job", store_key, self.account_id, self.region_name)
+        arn = arn_formatter(
+            "optimization-job", store_key, self.account_id, self.region_name
+        )
         resource = {
             "OptimizationJobName": name,
             "OptimizationJobArn": arn,
@@ -6656,7 +6957,9 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         store_key = name
         resource = self.optimization_jobs.get(store_key)
         if not resource:
-            raise ValidationError(message=f"Could not find optimization job {store_key}")
+            raise ValidationError(
+                message=f"Could not find optimization job {store_key}"
+            )
         return resource
 
     def list_optimization_jobs(self) -> list[dict[str, Any]]:
@@ -6671,7 +6974,19 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         if resource:
             resource["OptimizationJobStatus"] = "Stopped"
 
-    def create_partner_app(self, name: Any = None, type: Any = None, executionrolearn: Any = None, maintenanceconfig: Any = None, tier: Any = None, applicationconfig: Any = None, authtype: Any = None, enableiamsessionbasedidentity: Any = None, clienttoken: Any = None, tags: Any = None) -> dict[str, Any]:
+    def create_partner_app(
+        self,
+        name: Any = None,
+        type: Any = None,
+        executionrolearn: Any = None,
+        maintenanceconfig: Any = None,
+        tier: Any = None,
+        applicationconfig: Any = None,
+        authtype: Any = None,
+        enableiamsessionbasedidentity: Any = None,
+        clienttoken: Any = None,
+        tags: Any = None,
+    ) -> dict[str, Any]:
         name = name
         store_key = name
         arn = arn_formatter("partner-app", store_key, self.account_id, self.region_name)
@@ -6704,7 +7019,18 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
     def list_partner_apps(self) -> list[dict[str, Any]]:
         return list(self.partner_apps.values())
 
-    def update_partner_app(self, name: Any = None, type: Any = None, executionrolearn: Any = None, maintenanceconfig: Any = None, tier: Any = None, applicationconfig: Any = None, authtype: Any = None, enableiamsessionbasedidentity: Any = None, clienttoken: Any = None) -> dict[str, Any]:
+    def update_partner_app(
+        self,
+        name: Any = None,
+        type: Any = None,
+        executionrolearn: Any = None,
+        maintenanceconfig: Any = None,
+        tier: Any = None,
+        applicationconfig: Any = None,
+        authtype: Any = None,
+        enableiamsessionbasedidentity: Any = None,
+        clienttoken: Any = None,
+    ) -> dict[str, Any]:
         store_key = name
         resource = self.partner_apps.get(store_key)
         if not resource:
@@ -6732,7 +7058,13 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         store_key = name
         self.partner_apps.pop(store_key, None)
 
-    def create_project(self, projectname: Any = None, projectdescription: Any = None, servicecatalogprovisioningdetails: Any = None, tags: Any = None) -> dict[str, Any]:
+    def create_project(
+        self,
+        projectname: Any = None,
+        projectdescription: Any = None,
+        servicecatalogprovisioningdetails: Any = None,
+        tags: Any = None,
+    ) -> dict[str, Any]:
         name = projectname
         store_key = name
         arn = arn_formatter("project", store_key, self.account_id, self.region_name)
@@ -6760,7 +7092,12 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
     def list_projects(self) -> list[dict[str, Any]]:
         return list(self.projects.values())
 
-    def update_project(self, projectname: Any = None, projectdescription: Any = None, servicecatalogprovisioningdetails: Any = None) -> dict[str, Any]:
+    def update_project(
+        self,
+        projectname: Any = None,
+        projectdescription: Any = None,
+        servicecatalogprovisioningdetails: Any = None,
+    ) -> dict[str, Any]:
         store_key = projectname
         resource = self.projects.get(store_key)
         if not resource:
@@ -6768,7 +7105,9 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         if projectdescription is not None:
             resource["ProjectDescription"] = projectdescription
         if servicecatalogprovisioningdetails is not None:
-            resource["ServiceCatalogProvisioningDetails"] = servicecatalogprovisioningdetails
+            resource["ServiceCatalogProvisioningDetails"] = (
+                servicecatalogprovisioningdetails
+            )
         resource["LastModifiedTime"] = utcnow().isoformat()
         return {"ProjectArn": resource["ProjectArn"]}
 
@@ -6776,7 +7115,16 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         store_key = name
         self.projects.pop(store_key, None)
 
-    def create_space(self, spacename: Any = None, domainid: Any = None, spacesettings: Any = None, spacedisplayname: Any = None, ownershipsettings: Any = None, spacesharingsettings: Any = None, tags: Any = None) -> dict[str, Any]:
+    def create_space(
+        self,
+        spacename: Any = None,
+        domainid: Any = None,
+        spacesettings: Any = None,
+        spacedisplayname: Any = None,
+        ownershipsettings: Any = None,
+        spacesharingsettings: Any = None,
+        tags: Any = None,
+    ) -> dict[str, Any]:
         name = spacename
         store_key = name
         arn = arn_formatter("space", store_key, self.account_id, self.region_name)
@@ -6806,7 +7154,15 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
     def list_spaces(self) -> list[dict[str, Any]]:
         return list(self.spaces.values())
 
-    def update_space(self, spacename: Any = None, domainid: Any = None, spacesettings: Any = None, spacedisplayname: Any = None, ownershipsettings: Any = None, spacesharingsettings: Any = None) -> dict[str, Any]:
+    def update_space(
+        self,
+        spacename: Any = None,
+        domainid: Any = None,
+        spacesettings: Any = None,
+        spacedisplayname: Any = None,
+        ownershipsettings: Any = None,
+        spacesharingsettings: Any = None,
+    ) -> dict[str, Any]:
         store_key = spacename
         resource = self.spaces.get(store_key)
         if not resource:
@@ -6828,10 +7184,18 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         store_key = name
         self.spaces.pop(store_key, None)
 
-    def create_studio_lifecycle_config(self, studiolifecycleconfigname: Any = None, studiolifecycleconfigcontent: Any = None, studiolifecycleconfigapptype: Any = None, tags: Any = None) -> dict[str, Any]:
+    def create_studio_lifecycle_config(
+        self,
+        studiolifecycleconfigname: Any = None,
+        studiolifecycleconfigcontent: Any = None,
+        studiolifecycleconfigapptype: Any = None,
+        tags: Any = None,
+    ) -> dict[str, Any]:
         name = studiolifecycleconfigname
         store_key = name
-        arn = arn_formatter("studio-lifecycle-config", store_key, self.account_id, self.region_name)
+        arn = arn_formatter(
+            "studio-lifecycle-config", store_key, self.account_id, self.region_name
+        )
         resource = {
             "StudioLifecycleConfigName": name,
             "StudioLifecycleConfigArn": arn,
@@ -6848,7 +7212,9 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         store_key = name
         resource = self.studio_lifecycle_configs.get(store_key)
         if not resource:
-            raise ValidationError(message=f"Could not find studio lifecycle config {store_key}")
+            raise ValidationError(
+                message=f"Could not find studio lifecycle config {store_key}"
+            )
         return resource
 
     def list_studio_lifecycle_configs(self) -> list[dict[str, Any]]:
@@ -6858,10 +7224,20 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         store_key = name
         self.studio_lifecycle_configs.pop(store_key, None)
 
-    def create_user_profile(self, userprofilename: Any = None, domainid: Any = None, singlesignonuseridentifier: Any = None, singlesignonuservalue: Any = None, usersettings: Any = None, tags: Any = None) -> dict[str, Any]:
+    def create_user_profile(
+        self,
+        userprofilename: Any = None,
+        domainid: Any = None,
+        singlesignonuseridentifier: Any = None,
+        singlesignonuservalue: Any = None,
+        usersettings: Any = None,
+        tags: Any = None,
+    ) -> dict[str, Any]:
         name = userprofilename
         store_key = name
-        arn = arn_formatter("user-profile", store_key, self.account_id, self.region_name)
+        arn = arn_formatter(
+            "user-profile", store_key, self.account_id, self.region_name
+        )
         resource = {
             "UserProfileName": name,
             "UserProfileArn": arn,
@@ -6887,7 +7263,14 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
     def list_user_profiles(self) -> list[dict[str, Any]]:
         return list(self.user_profiles.values())
 
-    def update_user_profile(self, userprofilename: Any = None, domainid: Any = None, singlesignonuseridentifier: Any = None, singlesignonuservalue: Any = None, usersettings: Any = None) -> dict[str, Any]:
+    def update_user_profile(
+        self,
+        userprofilename: Any = None,
+        domainid: Any = None,
+        singlesignonuseridentifier: Any = None,
+        singlesignonuservalue: Any = None,
+        usersettings: Any = None,
+    ) -> dict[str, Any]:
         store_key = userprofilename
         resource = self.user_profiles.get(store_key)
         if not resource:
@@ -6907,7 +7290,15 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         store_key = name
         self.user_profiles.pop(store_key, None)
 
-    def create_workforce(self, workforcename: Any = None, cognitoconfig: Any = None, oidcconfig: Any = None, sourceipconfig: Any = None, workforcevpcconfig: Any = None, tags: Any = None) -> dict[str, Any]:
+    def create_workforce(
+        self,
+        workforcename: Any = None,
+        cognitoconfig: Any = None,
+        oidcconfig: Any = None,
+        sourceipconfig: Any = None,
+        workforcevpcconfig: Any = None,
+        tags: Any = None,
+    ) -> dict[str, Any]:
         name = workforcename
         store_key = name
         arn = arn_formatter("workforce", store_key, self.account_id, self.region_name)
@@ -6935,7 +7326,14 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
     def list_workforces(self) -> list[dict[str, Any]]:
         return list(self.workforces.values())
 
-    def update_workforce(self, workforcename: Any = None, cognitoconfig: Any = None, oidcconfig: Any = None, sourceipconfig: Any = None, workforcevpcconfig: Any = None) -> dict[str, Any]:
+    def update_workforce(
+        self,
+        workforcename: Any = None,
+        cognitoconfig: Any = None,
+        oidcconfig: Any = None,
+        sourceipconfig: Any = None,
+        workforcevpcconfig: Any = None,
+    ) -> dict[str, Any]:
         store_key = workforcename
         resource = self.workforces.get(store_key)
         if not resource:
@@ -6955,7 +7353,15 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
         store_key = name
         self.workforces.pop(store_key, None)
 
-    def create_workteam(self, workteamname: Any = None, workforcename: Any = None, memberdefinitions: Any = None, description: Any = None, notificationconfiguration: Any = None, tags: Any = None) -> dict[str, Any]:
+    def create_workteam(
+        self,
+        workteamname: Any = None,
+        workforcename: Any = None,
+        memberdefinitions: Any = None,
+        description: Any = None,
+        notificationconfiguration: Any = None,
+        tags: Any = None,
+    ) -> dict[str, Any]:
         name = workteamname
         store_key = name
         arn = arn_formatter("workteam", store_key, self.account_id, self.region_name)
@@ -6983,7 +7389,14 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
     def list_workteams(self) -> list[dict[str, Any]]:
         return list(self.workteams.values())
 
-    def update_workteam(self, workteamname: Any = None, workforcename: Any = None, memberdefinitions: Any = None, description: Any = None, notificationconfiguration: Any = None) -> dict[str, Any]:
+    def update_workteam(
+        self,
+        workteamname: Any = None,
+        workforcename: Any = None,
+        memberdefinitions: Any = None,
+        description: Any = None,
+        notificationconfiguration: Any = None,
+    ) -> dict[str, Any]:
         store_key = workteamname
         resource = self.workteams.get(store_key)
         if not resource:
@@ -7002,7 +7415,6 @@ class SageMakerModelBackend(BaseBackend, TaggableResourcesMixin):
     def delete_workteam(self, name: Any) -> None:
         store_key = name
         self.workteams.pop(store_key, None)
-
 
 
 class FakeDataQualityJobDefinition(BaseObject):

@@ -246,19 +246,9 @@ class DataBrewResponse(BaseResponse):
 
     # region Projects
 
-
-
-
-
-
     # endregion
 
     # region Schedules
-
-
-
-
-
 
     # endregion
 
@@ -485,7 +475,9 @@ class DataBrewResponse(BaseResponse):
         # https://docs.aws.amazon.com/databrew/latest/dg/API_UntagResource.html
         resource_arn = unquote(self._get_path().split("/tags/", 1)[1])
         tag_keys = self.querystring.get("tagKeys", [])
-        self.databrew_backend.untag_resource(resource_arn=resource_arn, tag_keys=tag_keys)
+        self.databrew_backend.untag_resource(
+            resource_arn=resource_arn, tag_keys=tag_keys
+        )
         return json.dumps({})
 
     def list_tags_for_resource(self) -> str:
@@ -540,7 +532,9 @@ class DataBrewResponse(BaseResponse):
         path_parts = self._get_path().strip("/").split("/")
         recipe_name = path_parts[1]
         recipe_versions = self._get_param("RecipeVersions")
-        errors = self.databrew_backend.batch_delete_recipe_version(recipe_name, recipe_versions)
+        errors = self.databrew_backend.batch_delete_recipe_version(
+            recipe_name, recipe_versions
+        )
         return json.dumps({"Errors": errors, "Name": recipe_name})
 
     # endregion
@@ -551,8 +545,12 @@ class DataBrewResponse(BaseResponse):
         # Path: /projects/{name}/startProjectSession
         path_parts = self._get_path().strip("/").split("/")
         project_name = path_parts[1]
-        project_name_result, client_session_id = self.databrew_backend.start_project_session(project_name)
-        return json.dumps({"Name": project_name_result, "ClientSessionId": client_session_id})
+        project_name_result, client_session_id = (
+            self.databrew_backend.start_project_session(project_name)
+        )
+        return json.dumps(
+            {"Name": project_name_result, "ClientSessionId": client_session_id}
+        )
 
     def send_project_session_action(self) -> str:
         # https://docs.aws.amazon.com/databrew/latest/dg/API_SendProjectSessionAction.html

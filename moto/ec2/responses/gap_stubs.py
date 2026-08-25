@@ -1,7 +1,9 @@
 """Stub responses for EC2 operations not yet fully implemented in Moto."""
+
 from moto.core.responses import ActionResult, EmptyResult
 
 from ._base_response import EC2BaseResponse
+
 
 class GapStubs(EC2BaseResponse):
     """Minimal stubs returning empty results for unimplemented EC2 operations."""
@@ -23,8 +25,6 @@ class GapStubs(EC2BaseResponse):
 
     def create_public_ipv4_pool(self) -> str:
         return EmptyResult()
-
-
 
     def create_verified_access_instance(self) -> str:
         return EmptyResult()
@@ -107,7 +107,6 @@ class GapStubs(EC2BaseResponse):
     def describe_fast_snapshot_restores(self) -> str:
         return EmptyResult()
 
-
     def describe_fpga_image_attribute(self) -> str:
         return EmptyResult()
 
@@ -186,7 +185,9 @@ class GapStubs(EC2BaseResponse):
     def describe_ipv6_pools(self) -> str:
         return EmptyResult()
 
-    def describe_local_gateway_route_table_virtual_interface_group_associations(self) -> str:
+    def describe_local_gateway_route_table_virtual_interface_group_associations(
+        self,
+    ) -> str:
         return EmptyResult()
 
     def describe_local_gateway_route_table_vpc_associations(self) -> str:
@@ -282,17 +283,14 @@ class GapStubs(EC2BaseResponse):
     def describe_stale_security_groups(self) -> str:
         return EmptyResult()
 
-
     def describe_store_image_tasks(self) -> str:
         return EmptyResult()
 
     def describe_traffic_mirror_filter_rules(self) -> str:
         return EmptyResult()
 
-
     def describe_traffic_mirror_sessions(self) -> str:
         return EmptyResult()
-
 
     def describe_transit_gateway_connect_peers(self) -> str:
         return EmptyResult()
@@ -564,9 +562,11 @@ class GapStubs(EC2BaseResponse):
     def modify_address_attribute(self) -> str:
         allocation_id = self._get_param("AllocationId", "")
         return EmptyResult()
+
     def reset_address_attribute(self) -> str:
         allocation_id = self._get_param("AllocationId", "")
         return EmptyResult()
+
     def modify_availability_zone_group(self) -> str:
         return EmptyResult()
 
@@ -574,6 +574,7 @@ class GapStubs(EC2BaseResponse):
         instance_family = self._get_param("InstanceFamily", "")
         cpu_credits = self._get_param("CpuCredits", "standard")
         return EmptyResult()
+
     def modify_fpga_image_attribute(self) -> str:
         return EmptyResult()
 
@@ -589,29 +590,36 @@ class GapStubs(EC2BaseResponse):
     def modify_instance_event_start_time(self) -> str:
         instance_event_id = self._get_param("InstanceEventId", "")
         return EmptyResult()
+
     def modify_instance_maintenance_options(self) -> str:
         instance_id = self._get_param("InstanceId", "")
         auto_recovery = self._get_param("AutoRecovery", "default")
         return EmptyResult()
+
     def modify_instance_network_performance_options(self) -> str:
         instance_id = self._get_param("InstanceId", "")
         bandwidth_weighting = self._get_param("BandwidthWeighting", "default")
         return EmptyResult()
+
     def modify_instance_placement(self) -> str:
         return EmptyResult()
 
     def modify_ipam_resource_cidr(self) -> str:
         resource_cidr = self._get_param("ResourceCidr", "")
         return EmptyResult()
+
     def modify_ipam_resource_discovery(self) -> str:
         resource_discovery_id = self._get_param("IpamResourceDiscoveryId", "")
         return EmptyResult()
+
     def modify_ipam_scope(self) -> str:
         scope_id = self._get_param("IpamScopeId", "")
         return EmptyResult()
+
     def modify_local_gateway_route(self) -> str:
         route_table_id = self._get_param("LocalGatewayRouteTableId", "")
         return EmptyResult()
+
     def modify_private_dns_name_options(self) -> str:
         return EmptyResult()
 
@@ -622,6 +630,7 @@ class GapStubs(EC2BaseResponse):
         route_table_id = self._get_param("TransitGatewayRouteTableId", "")
         prefix_list_id = self._get_param("PrefixListId", "")
         return EmptyResult()
+
     def modify_vpc_endpoint_connection_notification(self) -> str:
         return EmptyResult()
 
@@ -631,15 +640,19 @@ class GapStubs(EC2BaseResponse):
     def modify_vpn_connection(self) -> str:
         vpn_connection_id = self._get_param("VpnConnectionId", "")
         return EmptyResult()
+
     def modify_vpn_connection_options(self) -> str:
         vpn_connection_id = self._get_param("VpnConnectionId", "")
         return EmptyResult()
+
     def modify_vpn_tunnel_certificate(self) -> str:
         vpn_connection_id = self._get_param("VpnConnectionId", "")
         return EmptyResult()
+
     def modify_vpn_tunnel_options(self) -> str:
         vpn_connection_id = self._get_param("VpnConnectionId", "")
         return EmptyResult()
+
     def move_address_to_vpc(self) -> str:
         return EmptyResult()
 
@@ -656,15 +669,18 @@ class GapStubs(EC2BaseResponse):
     def register_transit_gateway_multicast_group_members(self) -> str:
         domain_id = self._get_param("TransitGatewayMulticastDomainId", "")
         return EmptyResult()
+
     def register_transit_gateway_multicast_group_sources(self) -> str:
         domain_id = self._get_param("TransitGatewayMulticastDomainId", "")
         return EmptyResult()
+
     def replace_vpn_tunnel(self) -> str:
         return EmptyResult()
 
     def restore_address_to_classic(self) -> str:
         public_ip = self._get_param("PublicIp", "")
         return EmptyResult()
+
     def revoke_client_vpn_ingress(self) -> str:
         return EmptyResult()
 
@@ -684,21 +700,27 @@ class GapStubs(EC2BaseResponse):
         snapshot_id = self._get_param("SnapshotId", "")
         lock_mode = self._get_param("LockMode", "governance")
         return EmptyResult()
+
     def unlock_snapshot(self) -> str:
         snapshot_id = self._get_param("SnapshotId", "")
         return EmptyResult()
+
     def unassign_private_nat_gateway_address(self) -> str:
         nat_gateway_id = self._get_param("NatGatewayId", "")
         return EmptyResult()
+
     def withdraw_byoip_cidr(self) -> str:
         cidr = self._get_param("Cidr", "")
         return EmptyResult()
+
     def restore_image_from_recycle_bin(self) -> str:
         image_id = self._get_param("ImageId", "")
         return EmptyResult()
+
     def restore_snapshot_from_recycle_bin(self) -> str:
         snapshot_id = self._get_param("SnapshotId", "")
         return EmptyResult()
+
     def import_client_vpn_client_certificate_revocation_list(self) -> str:
         return EmptyResult()
 
@@ -745,11 +767,8 @@ class GapStubs(EC2BaseResponse):
     def associate_transit_gateway_policy_table(self) -> str:
         return EmptyResult()
 
-
     def attach_verified_access_trust_provider(self) -> str:
         return EmptyResult()
-
-
 
     def cancel_conversion_task(self) -> str:
         return EmptyResult()
@@ -762,7 +781,6 @@ class GapStubs(EC2BaseResponse):
 
     def cancel_image_launch_permission(self) -> str:
         return EmptyResult()
-
 
     def copy_fpga_image(self) -> str:
         return EmptyResult()
@@ -782,7 +800,9 @@ class GapStubs(EC2BaseResponse):
     def create_ipam_external_resource_verification_token(self) -> str:
         return EmptyResult()
 
-    def create_local_gateway_route_table_virtual_interface_group_association(self) -> str:
+    def create_local_gateway_route_table_virtual_interface_group_association(
+        self,
+    ) -> str:
         return EmptyResult()
 
     def create_local_gateway_route_table_vpc_association(self) -> str:
@@ -790,7 +810,6 @@ class GapStubs(EC2BaseResponse):
 
     def create_network_interface_permission(self) -> str:
         return EmptyResult()
-
 
     def create_restore_image_task(self) -> str:
         return EmptyResult()

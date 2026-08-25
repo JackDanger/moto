@@ -260,7 +260,9 @@ class IoTDataPlaneBackend(BaseBackend):
         thing.thing_shadows[shadow_name] = new_shadow
         return new_shadow
 
-    def publish(self, topic: str, payload: bytes, qos: int = 0, retain: bool = False) -> None:
+    def publish(
+        self, topic: str, payload: bytes, qos: int = 0, retain: bool = False
+    ) -> None:
         self.published_payloads.append((topic, payload))
         if retain:
             if payload:
@@ -311,7 +313,9 @@ class IoTDataPlaneBackend(BaseBackend):
                 start = 0
 
         page = all_msgs[start : start + max_results]
-        new_token = str(start + max_results) if start + max_results < len(all_msgs) else None
+        new_token = (
+            str(start + max_results) if start + max_results < len(all_msgs) else None
+        )
         return page, new_token
 
 

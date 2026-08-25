@@ -357,10 +357,12 @@ class DirectConnectResponse(BaseResponse):
 
     def describe_direct_connect_gateway_associations(self) -> str:
         params = json.loads(self.body)
-        assocs = self.directconnect_backend.describe_direct_connect_gateway_associations(
-            association_id=params.get("associationId"),
-            associated_gateway_id=params.get("associatedGatewayId"),
-            direct_connect_gateway_id=params.get("directConnectGatewayId"),
+        assocs = (
+            self.directconnect_backend.describe_direct_connect_gateway_associations(
+                association_id=params.get("associationId"),
+                associated_gateway_id=params.get("associatedGatewayId"),
+                direct_connect_gateway_id=params.get("directConnectGatewayId"),
+            )
         )
         return json.dumps(
             {"directConnectGatewayAssociations": [a.to_dict() for a in assocs]}
@@ -394,9 +396,7 @@ class DirectConnectResponse(BaseResponse):
                 "directConnectGatewayOwnerAccount"
             ),
             gateway_id=params.get("gatewayId"),
-            add_allowed_prefixes=params.get(
-                "addAllowedPrefixesToDirectConnectGateway"
-            ),
+            add_allowed_prefixes=params.get("addAllowedPrefixesToDirectConnectGateway"),
             remove_allowed_prefixes=params.get(
                 "removeAllowedPrefixesToDirectConnectGateway"
             ),
@@ -444,9 +444,11 @@ class DirectConnectResponse(BaseResponse):
 
     def describe_direct_connect_gateway_attachments(self) -> str:
         params = json.loads(self.body)
-        attachments = self.directconnect_backend.describe_direct_connect_gateway_attachments(
-            direct_connect_gateway_id=params.get("directConnectGatewayId"),
-            virtual_interface_id=params.get("virtualInterfaceId"),
+        attachments = (
+            self.directconnect_backend.describe_direct_connect_gateway_attachments(
+                direct_connect_gateway_id=params.get("directConnectGatewayId"),
+                virtual_interface_id=params.get("virtualInterfaceId"),
+            )
         )
         return json.dumps({"directConnectGatewayAttachments": attachments})
 

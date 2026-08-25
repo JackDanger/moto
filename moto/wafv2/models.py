@@ -1039,7 +1039,9 @@ class WAFV2Backend(BaseBackend):
                 },
             ],
             "AvailableLabels": [
-                {"Name": f"awswaf:managed:{vendor_name.lower()}:{name.lower()}:NoUserAgent_HEADER"},
+                {
+                    "Name": f"awswaf:managed:{vendor_name.lower()}:{name.lower()}:NoUserAgent_HEADER"
+                },
             ],
             "ConsumedLabels": [],
             "LabelNamespace": f"awswaf:managed:{vendor_name.lower()}:{name.lower()}:",
@@ -1047,9 +1049,7 @@ class WAFV2Backend(BaseBackend):
             "SnsTopicArn": f"arn:aws:sns:us-east-1:123456789012:managed-rule-group-{name}",
         }
 
-    def list_available_managed_rule_groups(
-        self, scope: str
-    ) -> list[dict[str, Any]]:
+    def list_available_managed_rule_groups(self, scope: str) -> list[dict[str, Any]]:
         """Return a static list of well-known AWS managed rule groups."""
         return [
             {
@@ -1130,9 +1130,7 @@ class WAFV2Backend(BaseBackend):
         ]
 
     # region: API Key operations
-    def create_api_key(
-        self, scope: str, token_domains: list[str]
-    ) -> tuple[str, str]:
+    def create_api_key(self, scope: str, token_domains: list[str]) -> tuple[str, str]:
         """Create an API key. Returns (api_key, api_key_id)."""
         api_key = str(mock_random.uuid4()).replace("-", "")
         created = iso_8601_datetime_with_milliseconds()
@@ -1156,9 +1154,7 @@ class WAFV2Backend(BaseBackend):
             self._api_keys = {}
         return list(self._api_keys.values())
 
-    def get_decrypted_api_key(
-        self, scope: str, api_key: str
-    ) -> list[str]:
+    def get_decrypted_api_key(self, scope: str, api_key: str) -> list[str]:
         """Return the token domains for a decrypted API key."""
         if not hasattr(self, "_api_keys"):
             self._api_keys = {}
@@ -1182,9 +1178,7 @@ class WAFV2Backend(BaseBackend):
             }
         }
 
-    def list_mobile_sdk_releases(
-        self, platform: str
-    ) -> list[dict[str, Any]]:
+    def list_mobile_sdk_releases(self, platform: str) -> list[dict[str, Any]]:
         return []
 
     def generate_mobile_sdk_release_url(
@@ -1195,9 +1189,7 @@ class WAFV2Backend(BaseBackend):
     # endregion
 
     # region: Managed rule set stubs
-    def get_managed_rule_set(
-        self, name: str, scope: str, _id: str
-    ) -> dict[str, Any]:
+    def get_managed_rule_set(self, name: str, scope: str, _id: str) -> dict[str, Any]:
         return {
             "ManagedRuleSet": {
                 "Name": name,
@@ -1211,29 +1203,34 @@ class WAFV2Backend(BaseBackend):
             "LockToken": str(mock_random.uuid4()),
         }
 
-    def list_managed_rule_sets(
-        self, scope: str
-    ) -> list[dict[str, Any]]:
+    def list_managed_rule_sets(self, scope: str) -> list[dict[str, Any]]:
         return []
 
     def put_managed_rule_set_versions(
-        self, name: str, scope: str, _id: str, lock_token: str,
+        self,
+        name: str,
+        scope: str,
+        _id: str,
+        lock_token: str,
         versions_to_publish: Optional[dict[str, Any]] = None,
     ) -> str:
         return str(mock_random.uuid4())
 
     def update_managed_rule_set_version_expiry_date(
-        self, name: str, scope: str, _id: str, lock_token: str,
-        version_to_expire: str, expiry_timestamp: str,
+        self,
+        name: str,
+        scope: str,
+        _id: str,
+        lock_token: str,
+        version_to_expire: str,
+        expiry_timestamp: str,
     ) -> tuple[str, str, str]:
         return version_to_expire, expiry_timestamp, str(mock_random.uuid4())
 
     # endregion
 
     # region: Describe managed products
-    def describe_all_managed_products(
-        self, scope: str
-    ) -> list[dict[str, Any]]:
+    def describe_all_managed_products(self, scope: str) -> list[dict[str, Any]]:
         """Return a static list of managed product descriptions."""
         return [
             {
@@ -1264,8 +1261,12 @@ class WAFV2Backend(BaseBackend):
         return str(mock_random.uuid4())
 
     def get_rate_based_statement_managed_keys(
-        self, scope: str, web_acl_name: str, web_acl_id: str,
-        rule_name: str, rule_group_rule_name: Optional[str] = None,
+        self,
+        scope: str,
+        web_acl_name: str,
+        web_acl_id: str,
+        rule_name: str,
+        rule_group_rule_name: Optional[str] = None,
     ) -> dict[str, Any]:
         return {
             "ManagedKeysIPV4": {
@@ -1279,8 +1280,12 @@ class WAFV2Backend(BaseBackend):
         }
 
     def get_sampled_requests(
-        self, web_acl_arn: str, rule_metric_name: str, scope: str,
-        time_window: dict[str, str], max_items: int,
+        self,
+        web_acl_arn: str,
+        rule_metric_name: str,
+        scope: str,
+        time_window: dict[str, str],
+        max_items: int,
     ) -> dict[str, Any]:
         return {
             "SampledRequests": [],
@@ -1296,7 +1301,8 @@ class WAFV2Backend(BaseBackend):
             raise WAFNonexistentItemException
         if resource_type:
             return [
-                r for r in wacl.associated_resources
+                r
+                for r in wacl.associated_resources
                 if resource_type.lower() in r.lower()
             ]
         return list(wacl.associated_resources)

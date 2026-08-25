@@ -1,6 +1,6 @@
 """AccountBackend class with methods for supported APIs."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -185,7 +185,9 @@ class AccountBackend(BaseBackend):
         self._pending_primary_email = primary_email
         return {}
 
-    def accept_primary_email_update(self, otp: str, primary_email: str) -> dict[str, Any]:
+    def accept_primary_email_update(
+        self, otp: str, primary_email: str
+    ) -> dict[str, Any]:
         return {}
 
 

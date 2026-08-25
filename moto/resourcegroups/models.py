@@ -167,6 +167,7 @@ class FakeResourceGroup(BaseModel):
     @property
     def description(self) -> str:
         return self._description
+
     @description.setter
     def description(self, value: str) -> None:
         if not self._validate_description(value=value):
@@ -176,6 +177,7 @@ class FakeResourceGroup(BaseModel):
     @property
     def name(self) -> str:
         return self._name
+
     @name.setter
     def name(self, value: str) -> None:
         if not self._validate_name(value=value):
@@ -185,6 +187,7 @@ class FakeResourceGroup(BaseModel):
     @property
     def resource_query(self) -> dict[str, str]:
         return self._resource_query
+
     @resource_query.setter
     def resource_query(self, value: dict[str, str]) -> None:
         if not self._validate_resource_query(value=value):
@@ -194,6 +197,7 @@ class FakeResourceGroup(BaseModel):
     @property
     def tags(self) -> dict[str, str]:
         return self._tags
+
     @tags.setter
     def tags(self, value: dict[str, str]) -> None:
         if not self._validate_tags(value=value):

@@ -2590,7 +2590,6 @@ class EKSBackend(BaseBackend):
             "errors": [],
         }
 
-
     def update_nodegroup_version(
         self,
         cluster_name: str,
@@ -2602,6 +2601,7 @@ class EKSBackend(BaseBackend):
         client_request_token: Optional[str] = None,
     ) -> dict[str, Any]:
         import uuid as _uuid
+
         try:
             cluster = self.clusters[cluster_name]
         except KeyError:
@@ -2671,10 +2671,7 @@ class EKSBackend(BaseBackend):
         client_request_token: Optional[str] = None,
         tags: Optional[dict[str, str]] = None,
     ) -> dict[str, Any]:
-        import uuid as _uuid
-        cluster_arn = (
-            f"arn:aws:eks:{self.region_name}:{self.account_id}:cluster/{name}"
-        )
+        cluster_arn = f"arn:aws:eks:{self.region_name}:{self.account_id}:cluster/{name}"
         cluster_data = {
             "name": name,
             "arn": cluster_arn,
@@ -2701,7 +2698,6 @@ class EKSBackend(BaseBackend):
         nodegroup_name: Optional[str] = None,
         addon_name: Optional[str] = None,
     ) -> dict[str, Any]:
-        import uuid as _uuid
         return {
             "update": {
                 "id": update_id,

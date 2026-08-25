@@ -1,4 +1,5 @@
 """Handles incoming emrserverless requests, invokes methods, returns responses."""
+
 import json
 from moto.core.common_types import TYPE_RESPONSE
 
@@ -210,7 +211,11 @@ class EMRServerlessResponse(BaseResponse):
             max_results=max_results,
             next_token=next_token,
         )
-        return 200, {}, json.dumps({"jobRunAttempts": attempts, "nextToken": next_token})
+        return (
+            200,
+            {},
+            json.dumps({"jobRunAttempts": attempts, "nextToken": next_token}),
+        )
 
     def list_tags_for_resource(self) -> TYPE_RESPONSE:
         resource_arn = self._get_param("resourceArn")

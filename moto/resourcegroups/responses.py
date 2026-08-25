@@ -179,7 +179,9 @@ class ResourceGroupsResponse(BaseResponse):
         configuration = self.resourcegroups_backend.get_group_configuration(
             group_name=group_name
         )
-        return json.dumps({"GroupConfiguration": {"Configuration": configuration or []}})
+        return json.dumps(
+            {"GroupConfiguration": {"Configuration": configuration or []}}
+        )
 
     def put_group_configuration(self) -> str:
         group_identifier = self._get_param("Group")

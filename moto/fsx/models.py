@@ -1,4 +1,5 @@
 """FSxBackend class with methods for supported APIs."""
+
 from __future__ import annotations
 
 import time
@@ -15,7 +16,13 @@ from moto.utilities.utils import filter_resources
 
 from .exceptions import ResourceNotFoundException
 from .utils import FileSystemType
-from .exceptions import (BackupNotFoundException, FileSystemNotFoundException, SnapshotNotFoundException, StorageVirtualMachineNotFoundException, VolumeNotFoundException)
+from .exceptions import (
+    BackupNotFoundException,
+    FileSystemNotFoundException,
+    SnapshotNotFoundException,
+    StorageVirtualMachineNotFoundException,
+    VolumeNotFoundException,
+)
 
 PAGINATION_MODEL = {
     "describe_file_systems": {
@@ -548,9 +555,7 @@ class FSxBackend(BaseBackend, TaggableResourcesMixin):
             "VolumeId": volume_id,
             "Lifecycle": "DELETING",
             "OntapResponse": (
-                {"FinalBackupId": None}
-                if vol.volume_type == "ONTAP"
-                else None
+                {"FinalBackupId": None} if vol.volume_type == "ONTAP" else None
             ),
         }
 
@@ -588,9 +593,7 @@ class FSxBackend(BaseBackend, TaggableResourcesMixin):
                 else:
                     raise SnapshotNotFoundException(sid)
         if filters:
-            attr_pairs = (
-                ("volume-id", "volume_id"),
-            )
+            attr_pairs = (("volume-id", "volume_id"),)
             filter_dict = {f["Name"]: f["Values"] for f in filters}
             snaps = filter_resources(snaps, filter_dict, attr_pairs)
         return snaps
@@ -764,8 +767,6 @@ class FSxBackend(BaseBackend, TaggableResourcesMixin):
         return []
 
 
-
-
 class StorageVirtualMachine(BaseModel):
     def __init__(
         self,
@@ -933,4 +934,6 @@ class DataRepositoryAssociation(BaseModel):
             "Tags": self.backend.list_tags_for_resource(self.resource_arn),
         }
         return {k: v for k, v in dct.items() if v is not None}
+
+
 fsx_backends = BackendDict(FSxBackend, "fsx")

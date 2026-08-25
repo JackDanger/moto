@@ -911,7 +911,6 @@ class ComprehendBackend(BaseBackend, TaggableResourcesMixin):
     def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(arn, tag_keys)
 
-
     def list_document_classifier_summaries(
         self,
     ) -> tuple[list[dict[str, Any]], None]:
@@ -988,9 +987,7 @@ class ComprehendBackend(BaseBackend, TaggableResourcesMixin):
             raise TextSizeLimitExceededException(text_size)
         return {"Entities": []}
 
-    def batch_detect_dominant_language(
-        self, text_list: list[str]
-    ) -> dict[str, Any]:
+    def batch_detect_dominant_language(self, text_list: list[str]) -> dict[str, Any]:
         result_list = []
         error_list: list[dict[str, Any]] = []
         for index, text in enumerate(text_list):
@@ -1089,9 +1086,7 @@ class ComprehendBackend(BaseBackend, TaggableResourcesMixin):
             raise TextSizeLimitExceededException(text_size)
         return []
 
-    def classify_document(
-        self, text: str, endpoint_arn: str
-    ) -> dict[str, Any]:
+    def classify_document(self, text: str, endpoint_arn: str) -> dict[str, Any]:
         return {
             "Classes": [{"Name": "POSITIVE", "Score": 0.5}],
             "Labels": [],

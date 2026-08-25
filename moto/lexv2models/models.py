@@ -419,8 +419,13 @@ class LexModelsV2Backend(BaseBackend, TaggableResourcesMixin):
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
     def create_bot_locale(
-        self, bot_id: str, bot_version: str, locale_id: str, description: str,
-        nlu_intent_confidence_threshold: float, voice_settings: Optional[dict[str, Any]],
+        self,
+        bot_id: str,
+        bot_version: str,
+        locale_id: str,
+        description: str,
+        nlu_intent_confidence_threshold: float,
+        voice_settings: Optional[dict[str, Any]],
     ) -> dict[str, Any]:
         key = (bot_id, bot_version, locale_id)
         if key in self.bot_locales:
@@ -428,21 +433,29 @@ class LexModelsV2Backend(BaseBackend, TaggableResourcesMixin):
                 f"Bot locale already exists for bot {bot_id} version {bot_version} locale {locale_id}"
             )
         locale = FakeBotLocale(
-            bot_id=bot_id, bot_version=bot_version, locale_id=locale_id,
+            bot_id=bot_id,
+            bot_version=bot_version,
+            locale_id=locale_id,
             description=description,
             nlu_intent_confidence_threshold=nlu_intent_confidence_threshold,
             voice_settings=voice_settings,
         )
         self.bot_locales[key] = locale
         return {
-            "botId": bot_id, "botVersion": bot_version, "localeId": locale_id,
-            "localeName": locale_id, "description": description,
+            "botId": bot_id,
+            "botVersion": bot_version,
+            "localeId": locale_id,
+            "localeName": locale_id,
+            "description": description,
             "nluIntentConfidenceThreshold": nlu_intent_confidence_threshold,
-            "voiceSettings": voice_settings, "botLocaleStatus": locale.status,
+            "voiceSettings": voice_settings,
+            "botLocaleStatus": locale.status,
             "creationDateTime": locale.creation_date_time,
         }
 
-    def describe_bot_locale(self, bot_id: str, bot_version: str, locale_id: str) -> dict[str, Any]:
+    def describe_bot_locale(
+        self, bot_id: str, bot_version: str, locale_id: str
+    ) -> dict[str, Any]:
         key = (bot_id, bot_version, locale_id)
         if key not in self.bot_locales:
             raise ResourceNotFoundException(
@@ -450,14 +463,17 @@ class LexModelsV2Backend(BaseBackend, TaggableResourcesMixin):
             )
         locale = self.bot_locales[key]
         return {
-            "botId": bot_id, "botVersion": bot_version,
-            "localeId": locale.locale_id, "localeName": locale.locale_id,
+            "botId": bot_id,
+            "botVersion": bot_version,
+            "localeId": locale.locale_id,
+            "localeName": locale.locale_id,
             "description": locale.description,
             "nluIntentConfidenceThreshold": locale.nlu_intent_confidence_threshold,
             "voiceSettings": locale.voice_settings,
             "intentsCount": locale.intents_count,
             "slotTypesCount": locale.slot_types_count,
-            "botLocaleStatus": locale.status, "failureReasons": locale.failure_reasons,
+            "botLocaleStatus": locale.status,
+            "failureReasons": locale.failure_reasons,
             "creationDateTime": locale.creation_date_time,
             "lastUpdatedDateTime": locale.last_updated_date_time,
             "lastBuildSubmittedDateTime": locale.last_build_submitted_date_time,
@@ -466,8 +482,13 @@ class LexModelsV2Backend(BaseBackend, TaggableResourcesMixin):
         }
 
     def update_bot_locale(
-        self, bot_id: str, bot_version: str, locale_id: str, description: str,
-        nlu_intent_confidence_threshold: float, voice_settings: Optional[dict[str, Any]],
+        self,
+        bot_id: str,
+        bot_version: str,
+        locale_id: str,
+        description: str,
+        nlu_intent_confidence_threshold: float,
+        voice_settings: Optional[dict[str, Any]],
     ) -> dict[str, Any]:
         key = (bot_id, bot_version, locale_id)
         if key not in self.bot_locales:
@@ -480,31 +501,43 @@ class LexModelsV2Backend(BaseBackend, TaggableResourcesMixin):
         locale.voice_settings = voice_settings
         locale.last_updated_date_time = datetime.now().isoformat()
         return {
-            "botId": bot_id, "botVersion": bot_version,
-            "localeId": locale.locale_id, "localeName": locale.locale_id,
+            "botId": bot_id,
+            "botVersion": bot_version,
+            "localeId": locale.locale_id,
+            "localeName": locale.locale_id,
             "description": locale.description,
             "nluIntentConfidenceThreshold": locale.nlu_intent_confidence_threshold,
-            "voiceSettings": locale.voice_settings, "botLocaleStatus": locale.status,
+            "voiceSettings": locale.voice_settings,
+            "botLocaleStatus": locale.status,
             "failureReasons": locale.failure_reasons,
             "creationDateTime": locale.creation_date_time,
             "lastUpdatedDateTime": locale.last_updated_date_time,
             "recommendedActions": locale.recommended_actions,
         }
 
-    def delete_bot_locale(self, bot_id: str, bot_version: str, locale_id: str) -> dict[str, Any]:
+    def delete_bot_locale(
+        self, bot_id: str, bot_version: str, locale_id: str
+    ) -> dict[str, Any]:
         key = (bot_id, bot_version, locale_id)
         if key not in self.bot_locales:
             raise ResourceNotFoundException(
                 f"Could not find locale {locale_id} for bot {bot_id} version {bot_version}"
             )
         self.bot_locales.pop(key)
-        return {"botId": bot_id, "botVersion": bot_version, "localeId": locale_id, "botLocaleStatus": "Deleting"}
+        return {
+            "botId": bot_id,
+            "botVersion": bot_version,
+            "localeId": locale_id,
+            "botLocaleStatus": "Deleting",
+        }
 
     def list_bot_locales(self, bot_id: str, bot_version: str) -> list[dict[str, Any]]:
         return [
             {
-                "localeId": locale.locale_id, "localeName": locale.locale_id,
-                "description": locale.description, "botLocaleStatus": locale.status,
+                "localeId": locale.locale_id,
+                "localeName": locale.locale_id,
+                "description": locale.description,
+                "botLocaleStatus": locale.status,
                 "lastUpdatedDateTime": locale.last_updated_date_time,
                 "lastBuildSubmittedDateTime": locale.last_build_submitted_date_time,
             }
@@ -512,7 +545,9 @@ class LexModelsV2Backend(BaseBackend, TaggableResourcesMixin):
             if bid == bot_id and bv == bot_version
         ]
 
-    def build_bot_locale(self, bot_id: str, bot_version: str, locale_id: str) -> dict[str, Any]:
+    def build_bot_locale(
+        self, bot_id: str, bot_version: str, locale_id: str
+    ) -> dict[str, Any]:
         key = (bot_id, bot_version, locale_id)
         if key not in self.bot_locales:
             raise ResourceNotFoundException(
@@ -522,27 +557,37 @@ class LexModelsV2Backend(BaseBackend, TaggableResourcesMixin):
         locale.status = "Built"
         locale.last_build_submitted_date_time = datetime.now().isoformat()
         return {
-            "botId": bot_id, "botVersion": bot_version, "localeId": locale_id,
+            "botId": bot_id,
+            "botVersion": bot_version,
+            "localeId": locale_id,
             "botLocaleStatus": locale.status,
             "lastBuildSubmittedDateTime": locale.last_build_submitted_date_time,
         }
 
     def create_bot_version(
-        self, bot_id: str, description: str, bot_version_locale_specification: dict[str, Any],
+        self,
+        bot_id: str,
+        description: str,
+        bot_version_locale_specification: dict[str, Any],
     ) -> dict[str, Any]:
         if bot_id not in self.bots:
             raise ResourceNotFoundException(f"Could not find bot: {bot_id}")
         bot = self.bots[bot_id]
         version = FakeBotVersion(
-            account_id=self.account_id, region_name=self.region_name,
-            bot_id=bot_id, description=description,
+            account_id=self.account_id,
+            region_name=self.region_name,
+            bot_id=bot_id,
+            description=description,
             bot_version_locale_specification=bot_version_locale_specification,
         )
         self.bot_versions[(bot_id, version.bot_version)] = version
         return {
-            "botId": bot_id, "description": description, "botVersion": version.bot_version,
+            "botId": bot_id,
+            "description": description,
+            "botVersion": version.bot_version,
             "botVersionLocaleSpecification": bot_version_locale_specification,
-            "botStatus": bot.status, "creationDateTime": version.creation_date_time,
+            "botStatus": bot.status,
+            "creationDateTime": version.creation_date_time,
             "failureReasons": version.failure_reasons,
         }
 
@@ -557,13 +602,18 @@ class LexModelsV2Backend(BaseBackend, TaggableResourcesMixin):
         bot = self.bots[bot_id]
         version = self.bot_versions[key]
         return {
-            "botId": bot_id, "botName": bot.bot_name, "botVersion": bot_version,
-            "description": version.description, "roleArn": bot.role_arn,
+            "botId": bot_id,
+            "botName": bot.bot_name,
+            "botVersion": bot_version,
+            "description": version.description,
+            "roleArn": bot.role_arn,
             "dataPrivacy": bot.data_privacy,
             "idleSessionTTLInSeconds": bot.idle_session_ttl_in_seconds,
-            "botStatus": version.status, "failureReasons": version.failure_reasons,
+            "botStatus": version.status,
+            "failureReasons": version.failure_reasons,
             "creationDateTime": version.creation_date_time,
-            "botType": bot.bot_type, "botMembers": bot.bot_members,
+            "botType": bot.bot_type,
+            "botMembers": bot.bot_members,
         }
 
     def list_bot_versions(self, bot_id: str) -> list[dict[str, Any]]:
@@ -571,14 +621,18 @@ class LexModelsV2Backend(BaseBackend, TaggableResourcesMixin):
             raise ResourceNotFoundException(f"Could not find bot: {bot_id}")
         return [
             {
-                "botVersion": v.bot_version, "description": v.description,
-                "botStatus": v.status, "creationDateTime": v.creation_date_time,
+                "botVersion": v.bot_version,
+                "description": v.description,
+                "botStatus": v.status,
+                "creationDateTime": v.creation_date_time,
             }
             for (bid, _), v in self.bot_versions.items()
             if bid == bot_id
         ]
 
-    def delete_bot_version(self, bot_id: str, bot_version: str, skip_resource_in_use_check: bool) -> tuple[str, str, str]:
+    def delete_bot_version(
+        self, bot_id: str, bot_version: str, skip_resource_in_use_check: bool
+    ) -> tuple[str, str, str]:
         key = (bot_id, bot_version)
         if key not in self.bot_versions:
             raise ResourceNotFoundException(
@@ -588,8 +642,13 @@ class LexModelsV2Backend(BaseBackend, TaggableResourcesMixin):
         return bot_id, bot_version, version.status
 
     def create_intent(
-        self, bot_id: str, bot_version: str, locale_id: str,
-        intent_name: str, description: str, parent_intent_signature: Optional[str],
+        self,
+        bot_id: str,
+        bot_version: str,
+        locale_id: str,
+        intent_name: str,
+        description: str,
+        parent_intent_signature: Optional[str],
         sample_utterances: Optional[list[dict[str, Any]]],
         dialog_code_hook: Optional[dict[str, Any]],
         fulfillment_code_hook: Optional[dict[str, Any]],
@@ -602,14 +661,19 @@ class LexModelsV2Backend(BaseBackend, TaggableResourcesMixin):
         qn_a_intent_configuration: Optional[dict[str, Any]],
     ) -> dict[str, Any]:
         intent = FakeIntent(
-            bot_id=bot_id, bot_version=bot_version, locale_id=locale_id,
-            intent_name=intent_name, description=description,
+            bot_id=bot_id,
+            bot_version=bot_version,
+            locale_id=locale_id,
+            intent_name=intent_name,
+            description=description,
             parent_intent_signature=parent_intent_signature,
-            sample_utterances=sample_utterances, dialog_code_hook=dialog_code_hook,
+            sample_utterances=sample_utterances,
+            dialog_code_hook=dialog_code_hook,
             fulfillment_code_hook=fulfillment_code_hook,
             intent_confirmation_setting=intent_confirmation_setting,
             intent_closing_setting=intent_closing_setting,
-            input_contexts=input_contexts, output_contexts=output_contexts,
+            input_contexts=input_contexts,
+            output_contexts=output_contexts,
             kendra_configuration=kendra_configuration,
             initial_response_setting=initial_response_setting,
             qn_a_intent_configuration=qn_a_intent_configuration,
@@ -619,7 +683,8 @@ class LexModelsV2Backend(BaseBackend, TaggableResourcesMixin):
         if key in self.bot_locales:
             self.bot_locales[key].intents_count += 1
         return {
-            "intentId": intent.intent_id, "intentName": intent.intent_name,
+            "intentId": intent.intent_id,
+            "intentName": intent.intent_name,
             "description": intent.description,
             "parentIntentSignature": intent.parent_intent_signature,
             "sampleUtterances": intent.sample_utterances,
@@ -630,18 +695,23 @@ class LexModelsV2Backend(BaseBackend, TaggableResourcesMixin):
             "inputContexts": intent.input_contexts,
             "outputContexts": intent.output_contexts,
             "kendraConfiguration": intent.kendra_configuration,
-            "botId": bot_id, "botVersion": bot_version, "localeId": locale_id,
+            "botId": bot_id,
+            "botVersion": bot_version,
+            "localeId": locale_id,
             "creationDateTime": intent.creation_date_time,
             "initialResponseSetting": intent.initial_response_setting,
             "qnAIntentConfiguration": intent.qn_a_intent_configuration,
         }
 
-    def describe_intent(self, intent_id: str, bot_id: str, bot_version: str, locale_id: str) -> dict[str, Any]:
+    def describe_intent(
+        self, intent_id: str, bot_id: str, bot_version: str, locale_id: str
+    ) -> dict[str, Any]:
         if intent_id not in self.intents:
             raise ResourceNotFoundException(f"Could not find intent: {intent_id}")
         intent = self.intents[intent_id]
         return {
-            "intentId": intent.intent_id, "intentName": intent.intent_name,
+            "intentId": intent.intent_id,
+            "intentName": intent.intent_name,
             "description": intent.description,
             "parentIntentSignature": intent.parent_intent_signature,
             "sampleUtterances": intent.sample_utterances,
@@ -652,16 +722,24 @@ class LexModelsV2Backend(BaseBackend, TaggableResourcesMixin):
             "inputContexts": intent.input_contexts,
             "outputContexts": intent.output_contexts,
             "kendraConfiguration": intent.kendra_configuration,
-            "botId": intent.bot_id, "botVersion": intent.bot_version,
-            "localeId": intent.locale_id, "creationDateTime": intent.creation_date_time,
+            "botId": intent.bot_id,
+            "botVersion": intent.bot_version,
+            "localeId": intent.locale_id,
+            "creationDateTime": intent.creation_date_time,
             "lastUpdatedDateTime": intent.last_updated_date_time,
             "initialResponseSetting": intent.initial_response_setting,
             "qnAIntentConfiguration": intent.qn_a_intent_configuration,
         }
 
     def update_intent(
-        self, intent_id: str, bot_id: str, bot_version: str, locale_id: str,
-        intent_name: str, description: str, parent_intent_signature: Optional[str],
+        self,
+        intent_id: str,
+        bot_id: str,
+        bot_version: str,
+        locale_id: str,
+        intent_name: str,
+        description: str,
+        parent_intent_signature: Optional[str],
         sample_utterances: Optional[list[dict[str, Any]]],
         dialog_code_hook: Optional[dict[str, Any]],
         fulfillment_code_hook: Optional[dict[str, Any]],
@@ -691,7 +769,8 @@ class LexModelsV2Backend(BaseBackend, TaggableResourcesMixin):
         intent.qn_a_intent_configuration = qn_a_intent_configuration
         intent.last_updated_date_time = datetime.now().isoformat()
         return {
-            "intentId": intent.intent_id, "intentName": intent.intent_name,
+            "intentId": intent.intent_id,
+            "intentName": intent.intent_name,
             "description": intent.description,
             "parentIntentSignature": intent.parent_intent_signature,
             "sampleUtterances": intent.sample_utterances,
@@ -702,44 +781,66 @@ class LexModelsV2Backend(BaseBackend, TaggableResourcesMixin):
             "inputContexts": intent.input_contexts,
             "outputContexts": intent.output_contexts,
             "kendraConfiguration": intent.kendra_configuration,
-            "botId": intent.bot_id, "botVersion": intent.bot_version,
-            "localeId": intent.locale_id, "creationDateTime": intent.creation_date_time,
+            "botId": intent.bot_id,
+            "botVersion": intent.bot_version,
+            "localeId": intent.locale_id,
+            "creationDateTime": intent.creation_date_time,
             "lastUpdatedDateTime": intent.last_updated_date_time,
             "initialResponseSetting": intent.initial_response_setting,
             "qnAIntentConfiguration": intent.qn_a_intent_configuration,
         }
 
-    def delete_intent(self, intent_id: str, bot_id: str, bot_version: str, locale_id: str) -> None:
+    def delete_intent(
+        self, intent_id: str, bot_id: str, bot_version: str, locale_id: str
+    ) -> None:
         if intent_id not in self.intents:
             raise ResourceNotFoundException(f"Could not find intent: {intent_id}")
         intent = self.intents.pop(intent_id)
         key = (intent.bot_id, intent.bot_version, intent.locale_id)
         if key in self.bot_locales:
-            self.bot_locales[key].intents_count = max(0, self.bot_locales[key].intents_count - 1)
+            self.bot_locales[key].intents_count = max(
+                0, self.bot_locales[key].intents_count - 1
+            )
 
-    def list_intents(self, bot_id: str, bot_version: str, locale_id: str) -> list[dict[str, Any]]:
+    def list_intents(
+        self, bot_id: str, bot_version: str, locale_id: str
+    ) -> list[dict[str, Any]]:
         return [
             {
-                "intentId": intent.intent_id, "intentName": intent.intent_name,
+                "intentId": intent.intent_id,
+                "intentName": intent.intent_name,
                 "description": intent.description,
                 "parentIntentSignature": intent.parent_intent_signature,
                 "lastUpdatedDateTime": intent.last_updated_date_time,
             }
             for intent in self.intents.values()
-            if intent.bot_id == bot_id and intent.bot_version == bot_version and intent.locale_id == locale_id
+            if intent.bot_id == bot_id
+            and intent.bot_version == bot_version
+            and intent.locale_id == locale_id
         ]
 
     def create_slot(
-        self, bot_id: str, bot_version: str, locale_id: str, intent_id: str,
-        slot_name: str, description: str, slot_type_id: Optional[str],
+        self,
+        bot_id: str,
+        bot_version: str,
+        locale_id: str,
+        intent_id: str,
+        slot_name: str,
+        description: str,
+        slot_type_id: Optional[str],
         value_elicitation_setting: Optional[dict[str, Any]],
         obfuscation_setting: Optional[dict[str, Any]],
         multiple_values_setting: Optional[dict[str, Any]],
         sub_slot_setting: Optional[dict[str, Any]],
     ) -> dict[str, Any]:
         slot = FakeSlot(
-            bot_id=bot_id, bot_version=bot_version, locale_id=locale_id, intent_id=intent_id,
-            slot_name=slot_name, description=description, slot_type_id=slot_type_id,
+            bot_id=bot_id,
+            bot_version=bot_version,
+            locale_id=locale_id,
+            intent_id=intent_id,
+            slot_name=slot_name,
+            description=description,
+            slot_type_id=slot_type_id,
             value_elicitation_setting=value_elicitation_setting,
             obfuscation_setting=obfuscation_setting,
             multiple_values_setting=multiple_values_setting,
@@ -747,27 +848,43 @@ class LexModelsV2Backend(BaseBackend, TaggableResourcesMixin):
         )
         self.slots[slot.slot_id] = slot
         return {
-            "slotId": slot.slot_id, "slotName": slot.slot_name, "description": slot.description,
+            "slotId": slot.slot_id,
+            "slotName": slot.slot_name,
+            "description": slot.description,
             "slotTypeId": slot.slot_type_id,
             "valueElicitationSetting": slot.value_elicitation_setting,
             "obfuscationSetting": slot.obfuscation_setting,
-            "botId": bot_id, "botVersion": bot_version, "localeId": locale_id, "intentId": intent_id,
+            "botId": bot_id,
+            "botVersion": bot_version,
+            "localeId": locale_id,
+            "intentId": intent_id,
             "creationDateTime": slot.creation_date_time,
             "multipleValuesSetting": slot.multiple_values_setting,
             "subSlotSetting": slot.sub_slot_setting,
         }
 
-    def describe_slot(self, slot_id: str, bot_id: str, bot_version: str, locale_id: str, intent_id: str) -> dict[str, Any]:
+    def describe_slot(
+        self,
+        slot_id: str,
+        bot_id: str,
+        bot_version: str,
+        locale_id: str,
+        intent_id: str,
+    ) -> dict[str, Any]:
         if slot_id not in self.slots:
             raise ResourceNotFoundException(f"Could not find slot: {slot_id}")
         slot = self.slots[slot_id]
         return {
-            "slotId": slot.slot_id, "slotName": slot.slot_name, "description": slot.description,
+            "slotId": slot.slot_id,
+            "slotName": slot.slot_name,
+            "description": slot.description,
             "slotTypeId": slot.slot_type_id,
             "valueElicitationSetting": slot.value_elicitation_setting,
             "obfuscationSetting": slot.obfuscation_setting,
-            "botId": slot.bot_id, "botVersion": slot.bot_version,
-            "localeId": slot.locale_id, "intentId": slot.intent_id,
+            "botId": slot.bot_id,
+            "botVersion": slot.bot_version,
+            "localeId": slot.locale_id,
+            "intentId": slot.intent_id,
             "creationDateTime": slot.creation_date_time,
             "lastUpdatedDateTime": slot.last_updated_date_time,
             "multipleValuesSetting": slot.multiple_values_setting,
@@ -775,8 +892,15 @@ class LexModelsV2Backend(BaseBackend, TaggableResourcesMixin):
         }
 
     def update_slot(
-        self, slot_id: str, bot_id: str, bot_version: str, locale_id: str, intent_id: str,
-        slot_name: str, description: str, slot_type_id: Optional[str],
+        self,
+        slot_id: str,
+        bot_id: str,
+        bot_version: str,
+        locale_id: str,
+        intent_id: str,
+        slot_name: str,
+        description: str,
+        slot_type_id: Optional[str],
         value_elicitation_setting: Optional[dict[str, Any]],
         obfuscation_setting: Optional[dict[str, Any]],
         multiple_values_setting: Optional[dict[str, Any]],
@@ -794,39 +918,60 @@ class LexModelsV2Backend(BaseBackend, TaggableResourcesMixin):
         slot.sub_slot_setting = sub_slot_setting
         slot.last_updated_date_time = datetime.now().isoformat()
         return {
-            "slotId": slot.slot_id, "slotName": slot.slot_name, "description": slot.description,
+            "slotId": slot.slot_id,
+            "slotName": slot.slot_name,
+            "description": slot.description,
             "slotTypeId": slot.slot_type_id,
             "valueElicitationSetting": slot.value_elicitation_setting,
             "obfuscationSetting": slot.obfuscation_setting,
-            "botId": slot.bot_id, "botVersion": slot.bot_version,
-            "localeId": slot.locale_id, "intentId": slot.intent_id,
+            "botId": slot.bot_id,
+            "botVersion": slot.bot_version,
+            "localeId": slot.locale_id,
+            "intentId": slot.intent_id,
             "creationDateTime": slot.creation_date_time,
             "lastUpdatedDateTime": slot.last_updated_date_time,
             "multipleValuesSetting": slot.multiple_values_setting,
             "subSlotSetting": slot.sub_slot_setting,
         }
 
-    def delete_slot(self, slot_id: str, bot_id: str, bot_version: str, locale_id: str, intent_id: str) -> None:
+    def delete_slot(
+        self,
+        slot_id: str,
+        bot_id: str,
+        bot_version: str,
+        locale_id: str,
+        intent_id: str,
+    ) -> None:
         if slot_id not in self.slots:
             raise ResourceNotFoundException(f"Could not find slot: {slot_id}")
         self.slots.pop(slot_id)
 
-    def list_slots(self, bot_id: str, bot_version: str, locale_id: str, intent_id: str) -> list[dict[str, Any]]:
+    def list_slots(
+        self, bot_id: str, bot_version: str, locale_id: str, intent_id: str
+    ) -> list[dict[str, Any]]:
         return [
             {
-                "slotId": slot.slot_id, "slotName": slot.slot_name, "description": slot.description,
+                "slotId": slot.slot_id,
+                "slotName": slot.slot_name,
+                "description": slot.description,
                 "slotTypeId": slot.slot_type_id,
                 "valueElicitationSetting": slot.value_elicitation_setting,
                 "lastUpdatedDateTime": slot.last_updated_date_time,
             }
             for slot in self.slots.values()
-            if slot.bot_id == bot_id and slot.bot_version == bot_version
-            and slot.locale_id == locale_id and slot.intent_id == intent_id
+            if slot.bot_id == bot_id
+            and slot.bot_version == bot_version
+            and slot.locale_id == locale_id
+            and slot.intent_id == intent_id
         ]
 
     def create_slot_type(
-        self, bot_id: str, bot_version: str, locale_id: str,
-        slot_type_name: str, description: str,
+        self,
+        bot_id: str,
+        bot_version: str,
+        locale_id: str,
+        slot_type_name: str,
+        description: str,
         slot_type_values: Optional[list[dict[str, Any]]],
         value_selection_setting: Optional[dict[str, Any]],
         parent_slot_type_signature: Optional[str],
@@ -834,8 +979,11 @@ class LexModelsV2Backend(BaseBackend, TaggableResourcesMixin):
         composite_slot_type_setting: Optional[dict[str, Any]],
     ) -> dict[str, Any]:
         slot_type = FakeSlotType(
-            bot_id=bot_id, bot_version=bot_version, locale_id=locale_id,
-            slot_type_name=slot_type_name, description=description,
+            bot_id=bot_id,
+            bot_version=bot_version,
+            locale_id=locale_id,
+            slot_type_name=slot_type_name,
+            description=description,
             slot_type_values=slot_type_values,
             value_selection_setting=value_selection_setting,
             parent_slot_type_signature=parent_slot_type_signature,
@@ -847,26 +995,36 @@ class LexModelsV2Backend(BaseBackend, TaggableResourcesMixin):
         if key in self.bot_locales:
             self.bot_locales[key].slot_types_count += 1
         return {
-            "slotTypeId": slot_type.slot_type_id, "slotTypeName": slot_type.slot_type_name,
-            "description": slot_type.description, "slotTypeValues": slot_type.slot_type_values,
+            "slotTypeId": slot_type.slot_type_id,
+            "slotTypeName": slot_type.slot_type_name,
+            "description": slot_type.description,
+            "slotTypeValues": slot_type.slot_type_values,
             "valueSelectionSetting": slot_type.value_selection_setting,
             "parentSlotTypeSignature": slot_type.parent_slot_type_signature,
-            "botId": bot_id, "botVersion": bot_version, "localeId": locale_id,
+            "botId": bot_id,
+            "botVersion": bot_version,
+            "localeId": locale_id,
             "creationDateTime": slot_type.creation_date_time,
             "externalSourceSetting": slot_type.external_source_setting,
             "compositeSlotTypeSetting": slot_type.composite_slot_type_setting,
         }
 
-    def describe_slot_type(self, slot_type_id: str, bot_id: str, bot_version: str, locale_id: str) -> dict[str, Any]:
+    def describe_slot_type(
+        self, slot_type_id: str, bot_id: str, bot_version: str, locale_id: str
+    ) -> dict[str, Any]:
         if slot_type_id not in self.slot_types:
             raise ResourceNotFoundException(f"Could not find slot type: {slot_type_id}")
         st = self.slot_types[slot_type_id]
         return {
-            "slotTypeId": st.slot_type_id, "slotTypeName": st.slot_type_name,
-            "description": st.description, "slotTypeValues": st.slot_type_values,
+            "slotTypeId": st.slot_type_id,
+            "slotTypeName": st.slot_type_name,
+            "description": st.description,
+            "slotTypeValues": st.slot_type_values,
             "valueSelectionSetting": st.value_selection_setting,
             "parentSlotTypeSignature": st.parent_slot_type_signature,
-            "botId": st.bot_id, "botVersion": st.bot_version, "localeId": st.locale_id,
+            "botId": st.bot_id,
+            "botVersion": st.bot_version,
+            "localeId": st.locale_id,
             "creationDateTime": st.creation_date_time,
             "lastUpdatedDateTime": st.last_updated_date_time,
             "externalSourceSetting": st.external_source_setting,
@@ -874,8 +1032,13 @@ class LexModelsV2Backend(BaseBackend, TaggableResourcesMixin):
         }
 
     def update_slot_type(
-        self, slot_type_id: str, bot_id: str, bot_version: str, locale_id: str,
-        slot_type_name: str, description: str,
+        self,
+        slot_type_id: str,
+        bot_id: str,
+        bot_version: str,
+        locale_id: str,
+        slot_type_name: str,
+        description: str,
         slot_type_values: Optional[list[dict[str, Any]]],
         value_selection_setting: Optional[dict[str, Any]],
         parent_slot_type_signature: Optional[str],
@@ -894,39 +1057,55 @@ class LexModelsV2Backend(BaseBackend, TaggableResourcesMixin):
         st.composite_slot_type_setting = composite_slot_type_setting
         st.last_updated_date_time = datetime.now().isoformat()
         return {
-            "slotTypeId": st.slot_type_id, "slotTypeName": st.slot_type_name,
-            "description": st.description, "slotTypeValues": st.slot_type_values,
+            "slotTypeId": st.slot_type_id,
+            "slotTypeName": st.slot_type_name,
+            "description": st.description,
+            "slotTypeValues": st.slot_type_values,
             "valueSelectionSetting": st.value_selection_setting,
             "parentSlotTypeSignature": st.parent_slot_type_signature,
-            "botId": st.bot_id, "botVersion": st.bot_version, "localeId": st.locale_id,
+            "botId": st.bot_id,
+            "botVersion": st.bot_version,
+            "localeId": st.locale_id,
             "creationDateTime": st.creation_date_time,
             "lastUpdatedDateTime": st.last_updated_date_time,
             "externalSourceSetting": st.external_source_setting,
             "compositeSlotTypeSetting": st.composite_slot_type_setting,
         }
 
-    def delete_slot_type(self, slot_type_id: str, bot_id: str, bot_version: str, locale_id: str, skip_resource_in_use_check: bool) -> None:
+    def delete_slot_type(
+        self,
+        slot_type_id: str,
+        bot_id: str,
+        bot_version: str,
+        locale_id: str,
+        skip_resource_in_use_check: bool,
+    ) -> None:
         if slot_type_id not in self.slot_types:
             raise ResourceNotFoundException(f"Could not find slot type: {slot_type_id}")
         st = self.slot_types.pop(slot_type_id)
         key = (st.bot_id, st.bot_version, st.locale_id)
         if key in self.bot_locales:
-            self.bot_locales[key].slot_types_count = max(0, self.bot_locales[key].slot_types_count - 1)
+            self.bot_locales[key].slot_types_count = max(
+                0, self.bot_locales[key].slot_types_count - 1
+            )
 
-    def list_slot_types(self, bot_id: str, bot_version: str, locale_id: str) -> list[dict[str, Any]]:
+    def list_slot_types(
+        self, bot_id: str, bot_version: str, locale_id: str
+    ) -> list[dict[str, Any]]:
         return [
             {
-                "slotTypeId": st.slot_type_id, "slotTypeName": st.slot_type_name,
+                "slotTypeId": st.slot_type_id,
+                "slotTypeName": st.slot_type_name,
                 "description": st.description,
                 "parentSlotTypeSignature": st.parent_slot_type_signature,
                 "lastUpdatedDateTime": st.last_updated_date_time,
                 "slotTypeCategory": "Custom",
             }
             for st in self.slot_types.values()
-            if st.bot_id == bot_id and st.bot_version == bot_version and st.locale_id == locale_id
+            if st.bot_id == bot_id
+            and st.bot_version == bot_version
+            and st.locale_id == locale_id
         ]
-
-
 
 
 class FakeBotLocale:
@@ -1075,4 +1254,6 @@ class FakeSlotType:
         self.composite_slot_type_setting = composite_slot_type_setting
         self.creation_date_time = datetime.now().isoformat()
         self.last_updated_date_time = datetime.now().isoformat()
+
+
 lexv2models_backends = BackendDict(LexModelsV2Backend, "lexv2-models")

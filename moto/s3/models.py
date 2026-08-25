@@ -2054,9 +2054,7 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider, TaggableResourcesMixin):
             }
         }
 
-    def rename_object(
-        self, bucket_name: str, new_key: str, rename_source: str
-    ) -> None:
+    def rename_object(self, bucket_name: str, new_key: str, rename_source: str) -> None:
         """Atomic rename/move within a directory bucket."""
         bucket = self.get_bucket(bucket_name)
         if not bucket.is_directory_bucket:
@@ -2067,7 +2065,9 @@ class S3Backend(BaseBackend, CloudWatchMetricProvider, TaggableResourcesMixin):
                 "RenameObject is only supported for directory buckets.",
             )
 
-        source_key = rename_source.split("/", 1)[1] if "/" in rename_source else rename_source
+        source_key = (
+            rename_source.split("/", 1)[1] if "/" in rename_source else rename_source
+        )
 
         if source_key not in bucket.keys:
             raise MissingKey(key=source_key)

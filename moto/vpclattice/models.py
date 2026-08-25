@@ -1070,9 +1070,7 @@ class VPCLatticeBackend(BaseBackend, TaggableResourcesMixin):
             service.certificate_arn = certificate_arn
         return service
 
-    def delete_service_network(
-        self, service_network_identifier: str
-    ) -> None:
+    def delete_service_network(self, service_network_identifier: str) -> None:
         sn = self.get_service_network(service_network_identifier)
         del self.service_networks[sn.id]
 
@@ -1157,7 +1155,8 @@ class VPCLatticeBackend(BaseBackend, TaggableResourcesMixin):
         self, service_identifier: str, listener_identifier: str
     ) -> list[VPCLatticeRule]:
         return [
-            r for r in self.rules.values()
+            r
+            for r in self.rules.values()
             if r.listener_identifier == listener_identifier
             and r.service_identifier == service_identifier
         ]
@@ -1221,7 +1220,9 @@ class VPCLatticeBackend(BaseBackend, TaggableResourcesMixin):
         tg.config["healthCheck"] = health_check
         return tg
 
-    def delete_target_group(self, target_group_identifier: str) -> VPCLatticeTargetGroup:
+    def delete_target_group(
+        self, target_group_identifier: str
+    ) -> VPCLatticeTargetGroup:
         tg = self.get_target_group(target_group_identifier)
         tg.status = "DELETE_IN_PROGRESS"
         del self.target_groups[tg.id]

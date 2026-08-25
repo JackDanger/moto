@@ -167,9 +167,15 @@ class Route53DomainsResponse(BaseResponse):
         auto_renew = self._get_bool_param("AutoRenew", if_none=True)
         auth_code = self._get_param("AuthCode")
         nameservers = self._get_param("Nameservers")
-        privacy_protect_admin = self._get_bool_param("PrivacyProtectAdminContact", if_none=True)
-        privacy_protect_registrant = self._get_bool_param("PrivacyProtectRegistrantContact", if_none=True)
-        privacy_protect_tech = self._get_bool_param("PrivacyProtectTechContact", if_none=True)
+        privacy_protect_admin = self._get_bool_param(
+            "PrivacyProtectAdminContact", if_none=True
+        )
+        privacy_protect_registrant = self._get_bool_param(
+            "PrivacyProtectRegistrantContact", if_none=True
+        )
+        privacy_protect_tech = self._get_bool_param(
+            "PrivacyProtectTechContact", if_none=True
+        )
         extra_params = self._get_param("ExtraParams")
         operation = self.route53domains_backend.transfer_domain(
             domain_name=domain_name,
@@ -199,23 +205,29 @@ class Route53DomainsResponse(BaseResponse):
     def accept_domain_transfer_from_another_aws_account(self) -> str:
         domain_name = self._get_param("DomainName")
         password = self._get_param("Password")
-        operation_id = self.route53domains_backend.accept_domain_transfer_from_another_aws_account(
-            domain_name=domain_name,
-            password=password,
+        operation_id = (
+            self.route53domains_backend.accept_domain_transfer_from_another_aws_account(
+                domain_name=domain_name,
+                password=password,
+            )
         )
         return json.dumps({"OperationId": operation_id})
 
     def reject_domain_transfer_from_another_aws_account(self) -> str:
         domain_name = self._get_param("DomainName")
-        operation_id = self.route53domains_backend.reject_domain_transfer_from_another_aws_account(
-            domain_name=domain_name,
+        operation_id = (
+            self.route53domains_backend.reject_domain_transfer_from_another_aws_account(
+                domain_name=domain_name,
+            )
         )
         return json.dumps({"OperationId": operation_id})
 
     def cancel_domain_transfer_to_another_aws_account(self) -> str:
         domain_name = self._get_param("DomainName")
-        operation_id = self.route53domains_backend.cancel_domain_transfer_to_another_aws_account(
-            domain_name=domain_name,
+        operation_id = (
+            self.route53domains_backend.cancel_domain_transfer_to_another_aws_account(
+                domain_name=domain_name,
+            )
         )
         return json.dumps({"OperationId": operation_id})
 
@@ -345,18 +357,22 @@ class Route53DomainsResponse(BaseResponse):
     def associate_delegation_signer_to_domain(self) -> str:
         domain_name = self._get_param("DomainName")
         signing_attributes = self._get_param("SigningAttributes")
-        operation_id = self.route53domains_backend.associate_delegation_signer_to_domain(
-            domain_name=domain_name,
-            signing_attributes=signing_attributes,
+        operation_id = (
+            self.route53domains_backend.associate_delegation_signer_to_domain(
+                domain_name=domain_name,
+                signing_attributes=signing_attributes,
+            )
         )
         return json.dumps({"OperationId": operation_id})
 
     def disassociate_delegation_signer_from_domain(self) -> str:
         domain_name = self._get_param("DomainName")
         signer_id = self._get_param("Id")
-        operation_id = self.route53domains_backend.disassociate_delegation_signer_from_domain(
-            domain_name=domain_name,
-            signer_id=signer_id,
+        operation_id = (
+            self.route53domains_backend.disassociate_delegation_signer_from_domain(
+                domain_name=domain_name,
+                signer_id=signer_id,
+            )
         )
         return json.dumps({"OperationId": operation_id})
 

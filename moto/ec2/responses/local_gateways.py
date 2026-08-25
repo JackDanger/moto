@@ -8,9 +8,7 @@ class LocalGatewayResponse(EC2BaseResponse):
     def create_local_gateway_route_table(self) -> ActionResult:
         lgw_id = self._get_param("LocalGatewayId")
         mode = self._get_param("Mode", "direct-vpc-routing")
-        tags = add_tag_specification(
-            self._get_param("TagSpecifications", [])
-        )
+        tags = add_tag_specification(self._get_param("TagSpecifications", []))
         table = self.ec2_backend.create_local_gateway_route_table(
             local_gateway_id=lgw_id,
             mode=mode,
@@ -20,9 +18,7 @@ class LocalGatewayResponse(EC2BaseResponse):
         return ActionResult(result)
 
     def describe_local_gateway_route_tables(self) -> ActionResult:
-        table_ids = self._get_param(
-            "LocalGatewayRouteTableId", []
-        )
+        table_ids = self._get_param("LocalGatewayRouteTableId", [])
         tables = self.ec2_backend.describe_local_gateway_route_tables(
             local_gateway_route_table_ids=table_ids or None,
         )
@@ -40,9 +36,7 @@ class LocalGatewayResponse(EC2BaseResponse):
     def create_local_gateway_route(self) -> ActionResult:
         dst_cidr = self._get_param("DestinationCidrBlock")
         table_id = self._get_param("LocalGatewayRouteTableId")
-        vif_group_id = self._get_param(
-            "LocalGatewayVirtualInterfaceGroupId"
-        )
+        vif_group_id = self._get_param("LocalGatewayVirtualInterfaceGroupId")
         eni_id = self._get_param("NetworkInterfaceId")
         route = self.ec2_backend.create_local_gateway_route(
             destination_cidr_block=dst_cidr,

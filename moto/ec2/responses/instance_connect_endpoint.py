@@ -9,9 +9,7 @@ class InstanceConnectEndpointResponse(EC2BaseResponse):
     def create_instance_connect_endpoint(self) -> ActionResult:
         subnet_id = self._get_param("SubnetId")
         security_group_ids = self._get_param("SecurityGroupIds", [])
-        preserve_client_ip = str2bool(
-            self._get_param("PreserveClientIp", "true")
-        )
+        preserve_client_ip = str2bool(self._get_param("PreserveClientIp", "true"))
         client_token = self._get_param("ClientToken", "")
         tags = add_tag_specification(self._get_param("TagSpecifications", []))
 
@@ -38,7 +36,9 @@ class InstanceConnectEndpointResponse(EC2BaseResponse):
                 "NetworkInterfaceIds": endpoint.network_interface_ids,
                 "OwnerId": endpoint.owner_id,
                 "CreatedAt": endpoint.created_at,
-                "Tags": [{"Key": tag.key, "Value": tag.value} for tag in endpoint.get_tags()],
+                "Tags": [
+                    {"Key": tag.key, "Value": tag.value} for tag in endpoint.get_tags()
+                ],
             }
         }
         return ActionResult(result)
@@ -78,7 +78,10 @@ class InstanceConnectEndpointResponse(EC2BaseResponse):
                     "NetworkInterfaceIds": endpoint.network_interface_ids,
                     "OwnerId": endpoint.owner_id,
                     "CreatedAt": endpoint.created_at,
-                    "Tags": [{"Key": tag.key, "Value": tag.value} for tag in endpoint.get_tags()],
+                    "Tags": [
+                        {"Key": tag.key, "Value": tag.value}
+                        for tag in endpoint.get_tags()
+                    ],
                 }
                 for endpoint in endpoints
             ]

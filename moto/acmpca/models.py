@@ -576,9 +576,7 @@ class ACMPCABackend(BaseBackend):
 
         return cas
 
-    def restore_certificate_authority(
-        self, certificate_authority_arn: str
-    ) -> None:
+    def restore_certificate_authority(self, certificate_authority_arn: str) -> None:
         """
         Restores a deleted certificate authority. The CA must be in DELETED status.
         """

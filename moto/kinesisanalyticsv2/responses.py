@@ -89,14 +89,10 @@ class KinesisAnalyticsV2Response(BaseResponse):
 
     def update_application_maintenance_configuration(self) -> str:
         application_name = self._get_param("ApplicationName")
-        config_update = self._get_param(
-            "ApplicationMaintenanceConfigurationUpdate"
-        )
-        result = (
-            self.kinesisanalyticsv2_backend.update_application_maintenance_configuration(
-                application_name=application_name,
-                application_maintenance_configuration_update=config_update,
-            )
+        config_update = self._get_param("ApplicationMaintenanceConfigurationUpdate")
+        result = self.kinesisanalyticsv2_backend.update_application_maintenance_configuration(
+            application_name=application_name,
+            application_maintenance_configuration_update=config_update,
         )
         return json.dumps(result)
 
@@ -209,9 +205,7 @@ class KinesisAnalyticsV2Response(BaseResponse):
     def create_application_presigned_url(self) -> str:
         application_name = self._get_param("ApplicationName")
         url_type = self._get_param("UrlType")
-        session_duration = self._get_int_param(
-            "SessionExpirationDurationInSeconds"
-        )
+        session_duration = self._get_int_param("SessionExpirationDurationInSeconds")
         result = self.kinesisanalyticsv2_backend.create_application_presigned_url(
             application_name=application_name,
             url_type=url_type,
@@ -262,9 +256,7 @@ class KinesisAnalyticsV2Response(BaseResponse):
         application_name = self._get_param("ApplicationName")
         current_version_id = self._get_int_param("CurrentApplicationVersionId")
         input_id = self._get_param("InputId")
-        input_processing_configuration = self._get_param(
-            "InputProcessingConfiguration"
-        )
+        input_processing_configuration = self._get_param("InputProcessingConfiguration")
         result = self.kinesisanalyticsv2_backend.add_application_input_processing_configuration(
             application_name=application_name,
             current_application_version_id=current_version_id,
@@ -359,13 +351,9 @@ class KinesisAnalyticsV2Response(BaseResponse):
     def discover_input_schema(self) -> str:
         resource_arn = self._get_param("ResourceARN")
         service_execution_role = self._get_param("ServiceExecutionRole")
-        input_starting_position = self._get_param(
-            "InputStartingPositionConfiguration"
-        )
+        input_starting_position = self._get_param("InputStartingPositionConfiguration")
         s3_configuration = self._get_param("S3Configuration")
-        input_processing_configuration = self._get_param(
-            "InputProcessingConfiguration"
-        )
+        input_processing_configuration = self._get_param("InputProcessingConfiguration")
         result = self.kinesisanalyticsv2_backend.discover_input_schema(
             resource_arn=resource_arn,
             service_execution_role=service_execution_role,

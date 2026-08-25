@@ -1385,9 +1385,7 @@ class CloudFormationBackend(BaseBackend, TaggableResourcesMixin):
             "Timestamp": iso_8601_datetime_with_milliseconds(utcnow()),
         }
 
-    def describe_stack_resource_drifts(
-        self, stack_name: str
-    ) -> list[dict[str, Any]]:
+    def describe_stack_resource_drifts(self, stack_name: str) -> list[dict[str, Any]]:
         self.get_stack(stack_name)
         return []
 

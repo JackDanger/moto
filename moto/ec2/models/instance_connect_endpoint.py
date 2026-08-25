@@ -27,13 +27,13 @@ class InstanceConnectEndpoint(TaggedEC2Resource):
         self.add_tags(tags or {})
 
         # Derive VPC from subnet
-        subnet = backend.get_subnet(subnet_id) if hasattr(backend, "get_subnet") else None
+        subnet = (
+            backend.get_subnet(subnet_id) if hasattr(backend, "get_subnet") else None
+        )
         self.vpc_id = subnet.vpc_id if subnet else "vpc-unknown"
         self.availability_zone = subnet.availability_zone if subnet else "us-east-1a"
         self.dns_name = f"{self.id}.{backend.region_name}.ec2-instance-connect-endpoint.amazonaws.com"
-        self.fips_dns_name = (
-            f"{self.id}.fips.{backend.region_name}.ec2-instance-connect-endpoint.amazonaws.com"
-        )
+        self.fips_dns_name = f"{self.id}.fips.{backend.region_name}.ec2-instance-connect-endpoint.amazonaws.com"
         self.network_interface_ids: list[str] = []
 
     @property
@@ -96,7 +96,5 @@ class InstanceConnectEndpointBackend:
     ) -> list[InstanceConnectEndpoint]:
         endpoints = list(self.instance_connect_endpoints.values())
         if instance_connect_endpoint_ids:
-            endpoints = [
-                e for e in endpoints if e.id in instance_connect_endpoint_ids
-            ]
+            endpoints = [e for e in endpoints if e.id in instance_connect_endpoint_ids]
         return endpoints

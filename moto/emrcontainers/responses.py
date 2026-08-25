@@ -1,4 +1,5 @@
 """Handles incoming emrcontainers requests, invokes methods, returns responses."""
+
 import json
 from moto.core.common_types import TYPE_RESPONSE
 
@@ -138,7 +139,6 @@ class EMRContainersResponse(BaseResponse):
         )
         result = {"jobRun": job_run}
         return ActionResult(result)
-
 
     # --- JobTemplate ---
 

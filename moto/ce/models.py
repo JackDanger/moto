@@ -420,9 +420,7 @@ class CostExplorerBackend(BaseBackend):
             subs = []
             for arn in subscription_arn_list:
                 if arn not in self.anomaly_subscriptions:
-                    raise ResourceNotFoundException(
-                        f"Subscription {arn} is not found"
-                    )
+                    raise ResourceNotFoundException(f"Subscription {arn} is not found")
                 subs.append(self.anomaly_subscriptions[arn])
         else:
             subs = list(self.anomaly_subscriptions.values())
@@ -477,9 +475,7 @@ class CostExplorerBackend(BaseBackend):
         # No real anomaly detection — return empty list
         return [], None
 
-    def provide_anomaly_feedback(
-        self, anomaly_id: str, feedback: str
-    ) -> str:
+    def provide_anomaly_feedback(self, anomaly_id: str, feedback: str) -> str:
         return anomaly_id
 
     # --- Cost query operations (return empty/stub data) ---
@@ -512,9 +508,7 @@ class CostExplorerBackend(BaseBackend):
     def get_reservation_coverage(self, body: str) -> dict[str, Any]:
         return {"CoveragesByTime": [], "Total": {}}
 
-    def get_reservation_purchase_recommendation(
-        self, body: str
-    ) -> dict[str, Any]:
+    def get_reservation_purchase_recommendation(self, body: str) -> dict[str, Any]:
         return {"Recommendations": []}
 
     def get_reservation_utilization(self, body: str) -> dict[str, Any]:
@@ -531,17 +525,13 @@ class CostExplorerBackend(BaseBackend):
     def get_savings_plans_coverage(self, body: str) -> dict[str, Any]:
         return {"SavingsPlansCoverages": []}
 
-    def get_savings_plans_purchase_recommendation(
-        self, body: str
-    ) -> dict[str, Any]:
+    def get_savings_plans_purchase_recommendation(self, body: str) -> dict[str, Any]:
         return {}
 
     def get_savings_plans_utilization(self, body: str) -> dict[str, Any]:
         return {"Total": {}}
 
-    def get_savings_plans_utilization_details(
-        self, body: str
-    ) -> dict[str, Any]:
+    def get_savings_plans_utilization_details(self, body: str) -> dict[str, Any]:
         return {"SavingsPlansUtilizationDetails": []}
 
     def get_tags(self, body: str) -> dict[str, Any]:
@@ -556,14 +546,10 @@ class CostExplorerBackend(BaseBackend):
     def get_approximate_usage_records(self, body: str) -> dict[str, Any]:
         return {"Services": {}, "TotalRecords": 0, "LookbackPeriod": {}}
 
-    def get_commitment_purchase_analysis(
-        self, body: str
-    ) -> dict[str, Any]:
+    def get_commitment_purchase_analysis(self, body: str) -> dict[str, Any]:
         return {}
 
-    def get_cost_and_usage_comparisons(
-        self, body: str
-    ) -> dict[str, Any]:
+    def get_cost_and_usage_comparisons(self, body: str) -> dict[str, Any]:
         return {"CostAndUsageComparisons": []}
 
     def get_cost_comparison_drivers(self, body: str) -> dict[str, Any]:

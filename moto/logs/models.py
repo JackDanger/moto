@@ -1958,7 +1958,9 @@ class LogsBackend(BaseBackend, TaggableResourcesMixin):
             import re as _re
 
             result = [
-                g for g in result if _re.search(log_group_name_pattern, g["logGroupName"])
+                g
+                for g in result
+                if _re.search(log_group_name_pattern, g["logGroupName"])
             ]
         return result, new_next_token
 
@@ -2135,9 +2137,7 @@ class LogsBackend(BaseBackend, TaggableResourcesMixin):
         detectors = list(self.anomaly_detectors.values())
         if filter_log_group_arn:
             detectors = [
-                d
-                for d in detectors
-                if filter_log_group_arn in d.log_group_arn_list
+                d for d in detectors if filter_log_group_arn in d.log_group_arn_list
             ]
         return [d.to_dict() for d in detectors]
 
@@ -2171,10 +2171,7 @@ class LogsBackend(BaseBackend, TaggableResourcesMixin):
         for identifier in log_group_identifiers:
             # Identifier can be name or ARN
             for name, policy in self.index_policies.items():
-                if (
-                    name == identifier
-                    or policy.log_group_identifier == identifier
-                ):
+                if name == identifier or policy.log_group_identifier == identifier:
                     results.append(policy)
         return results
 
@@ -2422,9 +2419,7 @@ class LogsBackend(BaseBackend, TaggableResourcesMixin):
                             "@logGroup": group.name,
                             "@ingestionTime": str(event.ingestion_time),
                         }
-        raise ResourceNotFoundException(
-            msg="The specified log record does not exist."
-        )
+        raise ResourceNotFoundException(msg="The specified log record does not exist.")
 
     def put_transformer(
         self,
@@ -2475,7 +2470,9 @@ class LogsBackend(BaseBackend, TaggableResourcesMixin):
     ) -> list[dict[str, Any]]:
         results = []
         for group in self.groups.values():
-            if log_group_name_prefix and not group.name.startswith(log_group_name_prefix):
+            if log_group_name_prefix and not group.name.startswith(
+                log_group_name_prefix
+            ):
                 continue
             if group.transformer is not None:
                 results.append(group.transformer)
@@ -2537,7 +2534,6 @@ class LogsBackend(BaseBackend, TaggableResourcesMixin):
         JSON-structured patterns ({$.key = "value"}) are not yet implemented
         and return no matches.
         """
-        import re
 
         matches = []
         # Skip JSON/structured patterns (start with '{')
@@ -2591,8 +2587,6 @@ class LogsBackend(BaseBackend, TaggableResourcesMixin):
                 msg=f"Query with id [{query_id}] does not exist."
             )
         return []
-
-
 
 
 class AccountPolicy(BaseModel):
@@ -2741,4 +2735,6 @@ class ScheduledQuery(BaseModel):
         if self.run_status:
             result["runStatus"] = self.run_status
         return result
+
+
 logs_backends = BackendDict(LogsBackend, "logs")

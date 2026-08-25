@@ -546,55 +546,39 @@ class AutoScalingResponse(BaseResponse):
 
     def rollback_instance_refresh(self) -> ActionResult:
         group_name = self._get_param("AutoScalingGroupName")
-        refresh_id = self.autoscaling_backend.rollback_instance_refresh(
-            group_name
-        )
+        refresh_id = self.autoscaling_backend.rollback_instance_refresh(group_name)
         result = {"InstanceRefreshId": refresh_id}
         return ActionResult(result)
 
     def disable_metrics_collection(self) -> ActionResult:
         group_name = self._get_param("AutoScalingGroupName")
         metrics = self._get_param("Metrics")
-        self.autoscaling_backend.disable_metrics_collection(
-            group_name, metrics
-        )
+        self.autoscaling_backend.disable_metrics_collection(group_name, metrics)
         return EmptyResult()
 
     def complete_lifecycle_action(self) -> ActionResult:
         self.autoscaling_backend.complete_lifecycle_action(
             lifecycle_hook_name=self._get_param("LifecycleHookName"),
-            auto_scaling_group_name=self._get_param(
-                "AutoScalingGroupName"
-            ),
-            lifecycle_action_result=self._get_param(
-                "LifecycleActionResult"
-            ),
+            auto_scaling_group_name=self._get_param("AutoScalingGroupName"),
+            lifecycle_action_result=self._get_param("LifecycleActionResult"),
             instance_id=self._get_param("InstanceId"),
-            lifecycle_action_token=self._get_param(
-                "LifecycleActionToken"
-            ),
+            lifecycle_action_token=self._get_param("LifecycleActionToken"),
         )
         return EmptyResult()
 
     def record_lifecycle_action_heartbeat(self) -> ActionResult:
         self.autoscaling_backend.record_lifecycle_action_heartbeat(
             lifecycle_hook_name=self._get_param("LifecycleHookName"),
-            auto_scaling_group_name=self._get_param(
-                "AutoScalingGroupName"
-            ),
+            auto_scaling_group_name=self._get_param("AutoScalingGroupName"),
             instance_id=self._get_param("InstanceId"),
-            lifecycle_action_token=self._get_param(
-                "LifecycleActionToken"
-            ),
+            lifecycle_action_token=self._get_param("LifecycleActionToken"),
         )
         return EmptyResult()
 
     def attach_traffic_sources(self) -> ActionResult:
         group_name = self._get_param("AutoScalingGroupName")
         traffic_sources = self._get_param("TrafficSources", [])
-        self.autoscaling_backend.attach_traffic_sources(
-            group_name, traffic_sources
-        )
+        self.autoscaling_backend.attach_traffic_sources(group_name, traffic_sources)
         return EmptyResult()
 
     def describe_traffic_sources(self) -> ActionResult:
@@ -619,9 +603,7 @@ class AutoScalingResponse(BaseResponse):
     def detach_traffic_sources(self) -> ActionResult:
         group_name = self._get_param("AutoScalingGroupName")
         traffic_sources = self._get_param("TrafficSources", [])
-        self.autoscaling_backend.detach_traffic_sources(
-            group_name, traffic_sources
-        )
+        self.autoscaling_backend.detach_traffic_sources(group_name, traffic_sources)
         return EmptyResult()
 
     def get_predictive_scaling_forecast(self) -> ActionResult:

@@ -109,7 +109,9 @@ class TextractResponse(BaseResponse):
     def get_lending_analysis_summary(self) -> str:
         params = json.loads(self.body)
         job_id = params.get("JobId")
-        job = self.textract_backend.get_lending_analysis_summary(job_id=job_id).to_dict()
+        job = self.textract_backend.get_lending_analysis_summary(
+            job_id=job_id
+        ).to_dict()
         return json.dumps(job)
 
     def create_adapter(self) -> str:
@@ -130,7 +132,9 @@ class TextractResponse(BaseResponse):
 
     def get_adapter(self) -> str:
         params = json.loads(self.body)
-        adapter = self.textract_backend.get_adapter(adapter_id=params.get("AdapterId", ""))
+        adapter = self.textract_backend.get_adapter(
+            adapter_id=params.get("AdapterId", "")
+        )
         result = adapter.to_dict()
         result["Tags"] = adapter.tags
         return json.dumps(result)
@@ -164,7 +168,9 @@ class TextractResponse(BaseResponse):
             output_config=params.get("OutputConfig"),
             tags=params.get("Tags"),
         )
-        return json.dumps({"AdapterId": params.get("AdapterId"), "AdapterVersion": version})
+        return json.dumps(
+            {"AdapterId": params.get("AdapterId"), "AdapterVersion": version}
+        )
 
     def delete_adapter_version(self) -> str:
         params = json.loads(self.body)

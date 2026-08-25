@@ -115,8 +115,14 @@ class KinesisVideoBackend(BaseBackend):
         if len(streams) > 0:
             raise ResourceInUseException(f"The stream {stream_name} already exists.")
         stream = Stream(
-            self.account_id, self.region_name, device_name, stream_name,
-            media_type, kms_key_id, data_retention_in_hours, tags,
+            self.account_id,
+            self.region_name,
+            device_name,
+            stream_name,
+            media_type,
+            kms_key_id,
+            data_retention_in_hours,
+            tags,
         )
         self.streams[stream.arn] = stream
         if tags:
@@ -138,12 +144,18 @@ class KinesisVideoBackend(BaseBackend):
         return stream.to_dict()
 
     def update_stream(
-        self, stream_name: Optional[str], stream_arn: Optional[str],
-        current_version: str, device_name: Optional[str], media_type: Optional[str],
+        self,
+        stream_name: Optional[str],
+        stream_arn: Optional[str],
+        current_version: str,
+        device_name: Optional[str],
+        media_type: Optional[str],
     ) -> None:
         stream = self._get_stream(stream_name or "", stream_arn or "")
         if current_version != stream.version:
-            raise AccessDeniedException("The stream version does not match the current version.")
+            raise AccessDeniedException(
+                "The stream version does not match the current version."
+            )
         if device_name is not None:
             stream.device_name = device_name
         if media_type is not None:
@@ -160,21 +172,31 @@ class KinesisVideoBackend(BaseBackend):
         del self.streams[stream_arn]
         self.tags_store.pop(stream_arn, None)
 
-    def get_data_endpoint(self, stream_name: str, stream_arn: str, api_name: str) -> str:
+    def get_data_endpoint(
+        self, stream_name: str, stream_arn: str, api_name: str
+    ) -> str:
         stream = self._get_stream(stream_name, stream_arn)
         return stream.get_data_endpoint(api_name)
 
     def create_signaling_channel(
-        self, channel_name: str, channel_type: Optional[str],
+        self,
+        channel_name: str,
+        channel_type: Optional[str],
         single_master_configuration: Optional[dict[str, Any]],
         tags: Optional[list[dict[str, str]]],
     ) -> str:
         for ch in self.signaling_channels.values():
             if ch.channel_name == channel_name:
-                raise ResourceInUseException(f"The signaling channel {channel_name} already exists.")
+                raise ResourceInUseException(
+                    f"The signaling channel {channel_name} already exists."
+                )
         channel = SignalingChannel(
-            self.account_id, self.region_name, channel_name,
-            channel_type or "SINGLE_MASTER", single_master_configuration, tags,
+            self.account_id,
+            self.region_name,
+            channel_name,
+            channel_type or "SINGLE_MASTER",
+            single_master_configuration,
+            tags,
         )
         self.signaling_channels[channel.arn] = channel
         if channel.tags:
@@ -182,7 +204,9 @@ class KinesisVideoBackend(BaseBackend):
         return channel.arn
 
     def _get_signaling_channel(
-        self, channel_name: Optional[str] = None, channel_arn: Optional[str] = None,
+        self,
+        channel_name: Optional[str] = None,
+        channel_arn: Optional[str] = None,
     ) -> SignalingChannel:
         if channel_arn:
             ch = self.signaling_channels.get(channel_arn)
@@ -195,21 +219,29 @@ class KinesisVideoBackend(BaseBackend):
         raise ResourceNotFoundException(message="The signaling channel was not found.")
 
     def describe_signaling_channel(
-        self, channel_name: Optional[str], channel_arn: Optional[str],
+        self,
+        channel_name: Optional[str],
+        channel_arn: Optional[str],
     ) -> dict[str, Any]:
         channel = self._get_signaling_channel(channel_name, channel_arn)
         return channel.to_dict()
 
     def update_signaling_channel(
-        self, channel_arn: str, current_version: str,
+        self,
+        channel_arn: str,
+        current_version: str,
         single_master_configuration: Optional[dict[str, Any]],
     ) -> None:
         channel = self._get_signaling_channel(channel_arn=channel_arn)
         if current_version != channel.version:
-            raise AccessDeniedException("The channel version does not match the current version.")
+            raise AccessDeniedException(
+                "The channel version does not match the current version."
+            )
         if single_master_configuration is not None:
             channel.single_master_configuration = single_master_configuration
-        channel.version = random.get_random_string(include_digits=False, lower_case=True)
+        channel.version = random.get_random_string(
+            include_digits=False, lower_case=True
+        )
 
     def delete_signaling_channel(self, channel_arn: str) -> None:
         channel = self._get_signaling_channel(channel_arn=channel_arn)
@@ -217,7 +249,8 @@ class KinesisVideoBackend(BaseBackend):
         self.tags_store.pop(channel.arn, None)
 
     def list_signaling_channels(
-        self, channel_name_condition: Optional[dict[str, str]] = None,
+        self,
+        channel_name_condition: Optional[dict[str, str]] = None,
     ) -> list[dict[str, Any]]:
         channels = list(self.signaling_channels.values())
         if channel_name_condition:
@@ -228,14 +261,20 @@ class KinesisVideoBackend(BaseBackend):
         return [c.to_dict() for c in channels]
 
     def tag_stream(
-        self, stream_arn: Optional[str], stream_name: Optional[str], tags: dict[str, str],
+        self,
+        stream_arn: Optional[str],
+        stream_name: Optional[str],
+        tags: dict[str, str],
     ) -> None:
         stream = self._get_stream(stream_name or "", stream_arn or "")
         stream.tags.update(tags)
         self.tags_store.setdefault(stream.arn, {}).update(tags)
 
     def untag_stream(
-        self, stream_arn: Optional[str], stream_name: Optional[str], tag_key_list: list[str],
+        self,
+        stream_arn: Optional[str],
+        stream_name: Optional[str],
+        tag_key_list: list[str],
     ) -> None:
         stream = self._get_stream(stream_name or "", stream_arn or "")
         for key in tag_key_list:
@@ -244,7 +283,9 @@ class KinesisVideoBackend(BaseBackend):
                 self.tags_store[stream.arn].pop(key, None)
 
     def list_tags_for_stream(
-        self, stream_arn: Optional[str], stream_name: Optional[str],
+        self,
+        stream_arn: Optional[str],
+        stream_name: Optional[str],
     ) -> dict[str, str]:
         stream = self._get_stream(stream_name or "", stream_arn or "")
         return stream.tags
@@ -257,7 +298,9 @@ class KinesisVideoBackend(BaseBackend):
             self.signaling_channels[resource_arn].tags.update(tags_dict)
             self.signaling_channels[resource_arn].tags_list.extend(tags)
         else:
-            raise ResourceNotFoundException(message=f"Resource {resource_arn} not found")
+            raise ResourceNotFoundException(
+                message=f"Resource {resource_arn} not found"
+            )
         self.tags_store.setdefault(resource_arn, {}).update(tags_dict)
 
     def untag_resource(self, resource_arn: str, tag_key_list: list[str]) -> None:
@@ -268,11 +311,14 @@ class KinesisVideoBackend(BaseBackend):
             for key in tag_key_list:
                 self.signaling_channels[resource_arn].tags.pop(key, None)
             self.signaling_channels[resource_arn].tags_list = [
-                t for t in self.signaling_channels[resource_arn].tags_list
+                t
+                for t in self.signaling_channels[resource_arn].tags_list
                 if t["Key"] not in tag_key_list
             ]
         else:
-            raise ResourceNotFoundException(message=f"Resource {resource_arn} not found")
+            raise ResourceNotFoundException(
+                message=f"Resource {resource_arn} not found"
+            )
         if resource_arn in self.tags_store:
             for key in tag_key_list:
                 self.tags_store[resource_arn].pop(key, None)
@@ -285,15 +331,22 @@ class KinesisVideoBackend(BaseBackend):
         raise ResourceNotFoundException(message=f"Resource {resource_arn} not found")
 
     def get_signaling_channel_endpoint(
-        self, channel_arn: str, single_master_channel_endpoint_configuration: Optional[dict[str, Any]]
+        self,
+        channel_arn: str,
+        single_master_channel_endpoint_configuration: Optional[dict[str, Any]],
     ) -> list[dict[str, str]]:
         for ch in self.signaling_channels.values():
             if ch.arn == channel_arn:
                 protocols = ["WSS", "HTTPS"]
                 if single_master_channel_endpoint_configuration:
-                    protocols = single_master_channel_endpoint_configuration.get("Protocols", protocols)
+                    protocols = single_master_channel_endpoint_configuration.get(
+                        "Protocols", protocols
+                    )
                 return [
-                    {"Protocol": p, "ResourceEndpoint": f"https://{ch.arn}.kinesisvideo.{self.region_name}.amazonaws.com"}
+                    {
+                        "Protocol": p,
+                        "ResourceEndpoint": f"https://{ch.arn}.kinesisvideo.{self.region_name}.amazonaws.com",
+                    }
                     for p in protocols
                 ]
         raise ResourceNotFoundException(message=f"Channel {channel_arn} not found")
@@ -308,11 +361,18 @@ class KinesisVideoBackend(BaseBackend):
     ) -> None:
         stream = self._get_stream(stream_name or "", stream_arn or "")
         if current_version != stream.version:
-            raise AccessDeniedException("The stream version does not match the current version.")
+            raise AccessDeniedException(
+                "The stream version does not match the current version."
+            )
         if operation == "INCREASE_DATA_RETENTION":
-            stream.data_retention_in_hours = (stream.data_retention_in_hours or 0) + data_retention_change_in_hours
+            stream.data_retention_in_hours = (
+                stream.data_retention_in_hours or 0
+            ) + data_retention_change_in_hours
         elif operation == "DECREASE_DATA_RETENTION":
-            stream.data_retention_in_hours = max(0, (stream.data_retention_in_hours or 0) - data_retention_change_in_hours)
+            stream.data_retention_in_hours = max(
+                0,
+                (stream.data_retention_in_hours or 0) - data_retention_change_in_hours,
+            )
 
     def describe_image_generation_configuration(
         self, stream_name: Optional[str], stream_arn: Optional[str]

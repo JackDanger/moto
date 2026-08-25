@@ -728,7 +728,6 @@ class KmsBackend(BaseBackend, TaggableResourcesMixin):
             "The request was rejected because the specified entity or resource could not be found.",
         )
 
-
     def untag_resource(self, key_id_or_arn: str, tag_names: list[str]) -> None:
         key_id = self.get_key_id(key_id_or_arn)
         if key_id in self.keys:
@@ -857,8 +856,8 @@ class KmsBackend(BaseBackend, TaggableResourcesMixin):
             if xks_proxy_connectivity:
                 xks_config["Connectivity"] = xks_proxy_connectivity
             if xks_proxy_authentication_credential:
-                xks_config["AccessKeyId"] = (
-                    xks_proxy_authentication_credential.get("AccessKeyId")
+                xks_config["AccessKeyId"] = xks_proxy_authentication_credential.get(
+                    "AccessKeyId"
                 )
             store["XksProxyConfiguration"] = xks_config
 
@@ -1190,7 +1189,6 @@ class KmsBackend(BaseBackend, TaggableResourcesMixin):
         self.tagger.tag_resource(
             key_id, [{"TagKey": k, "TagValue": v} for k, v in tags.items()]
         )
-
 
 
 kms_backends = BackendDict(KmsBackend, "kms")

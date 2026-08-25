@@ -13,9 +13,7 @@ from moto.organizations.exceptions import (
 )
 from moto.organizations.models import organizations_backends
 from moto.securityhub.exceptions import (
-    InvalidAccessException,
     InvalidInputException,
-    ResourceNotFoundException,
 )
 from moto.securityhub.exceptions import SecurityHubClientError as RESTError
 from moto.utilities.paginator import paginate
@@ -241,9 +239,9 @@ class ConfigurationPolicy(BaseModel):
             "Name": self.name,
             "Description": self.description,
             "UpdatedAt": self.updated_at,
-            "ServiceEnabled": self.configuration_policy.get(
-                "SecurityHub", {}
-            ).get("ServiceEnabled", False),
+            "ServiceEnabled": self.configuration_policy.get("SecurityHub", {}).get(
+                "ServiceEnabled", False
+            ),
         }
 
 
@@ -473,8 +471,16 @@ _BUILTIN_PRODUCTS = [
     ("arn:aws:securityhub:{region}::product/aws/inspector", "Inspector", "Amazon"),
     ("arn:aws:securityhub:{region}::product/aws/macie", "Macie", "Amazon"),
     ("arn:aws:securityhub:{region}::product/aws/config", "Config", "Amazon"),
-    ("arn:aws:securityhub:{region}::product/aws/firewall-manager", "Firewall Manager", "Amazon"),
-    ("arn:aws:securityhub:{region}::product/aws/access-analyzer", "IAM Access Analyzer", "Amazon"),
+    (
+        "arn:aws:securityhub:{region}::product/aws/firewall-manager",
+        "Firewall Manager",
+        "Amazon",
+    ),
+    (
+        "arn:aws:securityhub:{region}::product/aws/access-analyzer",
+        "IAM Access Analyzer",
+        "Amazon",
+    ),
     (
         "arn:aws:securityhub:{region}::product/aws/systems-manager-patch-manager",
         "Systems Manager Patch Manager",
@@ -573,9 +579,9 @@ class SecurityHubBackend(BaseBackend):
         self.tags = tags or {}
 
         if tags:
-            self.tagger.tag_resource(self._hub_arn(), [
-                {"Key": k, "Value": v} for k, v in tags.items()
-            ])
+            self.tagger.tag_resource(
+                self._hub_arn(), [{"Key": k, "Value": v} for k, v in tags.items()]
+            )
 
         if enable_default_standards:
             pass
@@ -723,11 +729,13 @@ class SecurityHubBackend(BaseBackend):
             product_arn = identifier.get("ProductArn", "")
             existing = next((f for f in self.findings if f.id == finding_id), None)
             if not existing:
-                unprocessed.append({
-                    "FindingIdentifier": identifier,
-                    "ErrorCode": "FindingNotFound",
-                    "ErrorMessage": f"Finding with Id {finding_id} not found",
-                })
+                unprocessed.append(
+                    {
+                        "FindingIdentifier": identifier,
+                        "ErrorCode": "FindingNotFound",
+                        "ErrorMessage": f"Finding with Id {finding_id} not found",
+                    }
+                )
                 continue
 
             if note:
@@ -784,9 +792,7 @@ class SecurityHubBackend(BaseBackend):
 
     # --- Action Targets ---
 
-    def create_action_target(
-        self, name: str, description: str, target_id: str
-    ) -> str:
+    def create_action_target(self, name: str, description: str, target_id: str) -> str:
         arn = (
             f"arn:aws:securityhub:{self.region_name}:{self.account_id}:"
             f"action/custom/{target_id}"
@@ -1031,20 +1037,22 @@ class SecurityHubBackend(BaseBackend):
         for assoc_id in standards_control_association_ids:
             security_control_id = assoc_id.get("SecurityControlId", "")
             standards_arn = assoc_id.get("StandardsArn", "")
-            details.append({
-                "StandardsArn": standards_arn,
-                "SecurityControlId": security_control_id,
-                "SecurityControlArn": (
-                    f"arn:aws:securityhub:{self.region_name}:{self.account_id}:"
-                    f"security-control/{security_control_id}"
-                ),
-                "AssociationStatus": "ENABLED",
-                "RelatedRequirements": [],
-                "UpdatedAt": _utc_now(),
-                "UpdatedReason": "",
-                "StandardsControlTitle": security_control_id,
-                "StandardsControlDescription": f"Control {security_control_id}",
-            })
+            details.append(
+                {
+                    "StandardsArn": standards_arn,
+                    "SecurityControlId": security_control_id,
+                    "SecurityControlArn": (
+                        f"arn:aws:securityhub:{self.region_name}:{self.account_id}:"
+                        f"security-control/{security_control_id}"
+                    ),
+                    "AssociationStatus": "ENABLED",
+                    "RelatedRequirements": [],
+                    "UpdatedAt": _utc_now(),
+                    "UpdatedReason": "",
+                    "StandardsControlTitle": security_control_id,
+                    "StandardsControlDescription": f"Control {security_control_id}",
+                }
+            )
         return details, unprocessed
 
     def batch_update_standards_control_associations(
@@ -1076,20 +1084,22 @@ class SecurityHubBackend(BaseBackend):
     ) -> tuple[list[dict[str, Any]], Optional[str]]:
         results = []
         for sub in self.standards_subscriptions.values():
-            results.append({
-                "StandardsArn": sub.standards_arn,
-                "SecurityControlId": security_control_id,
-                "SecurityControlArn": (
-                    f"arn:aws:securityhub:{self.region_name}:{self.account_id}:"
-                    f"security-control/{security_control_id}"
-                ),
-                "AssociationStatus": "ENABLED",
-                "RelatedRequirements": [],
-                "UpdatedAt": _utc_now(),
-                "UpdatedReason": "",
-                "StandardsControlTitle": security_control_id,
-                "StandardsControlDescription": f"Control {security_control_id}",
-            })
+            results.append(
+                {
+                    "StandardsArn": sub.standards_arn,
+                    "SecurityControlId": security_control_id,
+                    "SecurityControlArn": (
+                        f"arn:aws:securityhub:{self.region_name}:{self.account_id}:"
+                        f"security-control/{security_control_id}"
+                    ),
+                    "AssociationStatus": "ENABLED",
+                    "RelatedRequirements": [],
+                    "UpdatedAt": _utc_now(),
+                    "UpdatedReason": "",
+                    "StandardsControlTitle": security_control_id,
+                    "StandardsControlDescription": f"Control {security_control_id}",
+                }
+            )
         return results, None
 
     # --- Automation Rules ---
@@ -1124,9 +1134,9 @@ class SecurityHubBackend(BaseBackend):
         )
         self.automation_rules[arn] = rule
         if tags:
-            self.tagger.tag_resource(arn, [
-                {"Key": k, "Value": v} for k, v in tags.items()
-            ])
+            self.tagger.tag_resource(
+                arn, [{"Key": k, "Value": v} for k, v in tags.items()]
+            )
         return arn
 
     def batch_get_automation_rules(
@@ -1139,11 +1149,13 @@ class SecurityHubBackend(BaseBackend):
             if arn in self.automation_rules:
                 rules.append(self.automation_rules[arn].as_dict())
             else:
-                unprocessed.append({
-                    "RuleArn": arn,
-                    "ErrorCode": 404,
-                    "ErrorMessage": f"Rule {arn} not found",
-                })
+                unprocessed.append(
+                    {
+                        "RuleArn": arn,
+                        "ErrorCode": 404,
+                        "ErrorMessage": f"Rule {arn} not found",
+                    }
+                )
         return rules, unprocessed
 
     def batch_update_automation_rules(
@@ -1155,11 +1167,13 @@ class SecurityHubBackend(BaseBackend):
         for item in update_items:
             arn = item.get("RuleArn", "")
             if arn not in self.automation_rules:
-                unprocessed.append({
-                    "RuleArn": arn,
-                    "ErrorCode": 404,
-                    "ErrorMessage": f"Rule {arn} not found",
-                })
+                unprocessed.append(
+                    {
+                        "RuleArn": arn,
+                        "ErrorCode": 404,
+                        "ErrorMessage": f"Rule {arn} not found",
+                    }
+                )
                 continue
             rule = self.automation_rules[arn]
             if "RuleStatus" in item:
@@ -1191,11 +1205,13 @@ class SecurityHubBackend(BaseBackend):
                 del self.automation_rules[arn]
                 processed.append(arn)
             else:
-                unprocessed.append({
-                    "RuleArn": arn,
-                    "ErrorCode": 404,
-                    "ErrorMessage": f"Rule {arn} not found",
-                })
+                unprocessed.append(
+                    {
+                        "RuleArn": arn,
+                        "ErrorCode": 404,
+                        "ErrorMessage": f"Rule {arn} not found",
+                    }
+                )
         return processed, unprocessed
 
     def list_automation_rules(
@@ -1262,7 +1278,10 @@ class SecurityHubBackend(BaseBackend):
         next_token: Optional[str] = None,
     ) -> tuple[list[dict[str, Any]], Optional[str]]:
         aggs = [
-            {"FindingAggregatorArn": a.arn, "FindingAggregationRegion": a.finding_aggregation_region}
+            {
+                "FindingAggregatorArn": a.arn,
+                "FindingAggregationRegion": a.finding_aggregation_region,
+            }
             for a in self.finding_aggregators.values()
         ]
         return aggs, None
@@ -1287,9 +1306,9 @@ class SecurityHubBackend(BaseBackend):
         )
         self.configuration_policies[policy_id] = policy
         if tags:
-            self.tagger.tag_resource(arn, [
-                {"Key": k, "Value": v} for k, v in tags.items()
-            ])
+            self.tagger.tag_resource(
+                arn, [{"Key": k, "Value": v} for k, v in tags.items()]
+            )
         return policy.as_dict()
 
     def get_configuration_policy(self, identifier: str) -> dict[str, Any]:
@@ -1427,11 +1446,13 @@ class SecurityHubBackend(BaseBackend):
                     self.configuration_policy_associations[target_id].as_dict()
                 )
             else:
-                unprocessed.append({
-                    "ConfigurationPolicyAssociationIdentifiers": identifier,
-                    "ErrorCode": "404",
-                    "ErrorReason": "Not found",
-                })
+                unprocessed.append(
+                    {
+                        "ConfigurationPolicyAssociationIdentifiers": identifier,
+                        "ErrorCode": "404",
+                        "ErrorReason": "Not found",
+                    }
+                )
         return results, unprocessed
 
     def list_configuration_policy_associations(
@@ -1456,20 +1477,22 @@ class SecurityHubBackend(BaseBackend):
                 controls.append(self.security_controls[control_id].as_dict())
             else:
                 # Return a default control
-                controls.append({
-                    "SecurityControlId": control_id,
-                    "SecurityControlArn": (
-                        f"arn:aws:securityhub:{self.region_name}:{self.account_id}:"
-                        f"security-control/{control_id}"
-                    ),
-                    "Title": control_id,
-                    "Description": f"Control {control_id}",
-                    "RemediationUrl": "",
-                    "SeverityRating": "MEDIUM",
-                    "SecurityControlStatus": "ENABLED",
-                    "Parameters": {},
-                    "LastUpdateReason": "",
-                })
+                controls.append(
+                    {
+                        "SecurityControlId": control_id,
+                        "SecurityControlArn": (
+                            f"arn:aws:securityhub:{self.region_name}:{self.account_id}:"
+                            f"security-control/{control_id}"
+                        ),
+                        "Title": control_id,
+                        "Description": f"Control {control_id}",
+                        "RemediationUrl": "",
+                        "SeverityRating": "MEDIUM",
+                        "SecurityControlStatus": "ENABLED",
+                        "Parameters": {},
+                        "LastUpdateReason": "",
+                    }
+                )
         return controls, unprocessed
 
     def update_security_control(
@@ -1526,14 +1549,10 @@ class SecurityHubBackend(BaseBackend):
             arn = arn_template.replace("{region}", self.region_name)
             if product_arn and arn != product_arn:
                 continue
-            products.append(
-                Product(arn, name, company).as_dict()
-            )
+            products.append(Product(arn, name, company).as_dict())
         return products, None
 
-    def enable_import_findings_for_product(
-        self, product_arn: str
-    ) -> str:
+    def enable_import_findings_for_product(self, product_arn: str) -> str:
         sub_arn = (
             f"arn:aws:securityhub:{self.region_name}:{self.account_id}:"
             f"product-subscription/{product_arn.split('::product/')[-1]}"
@@ -1567,18 +1586,18 @@ class SecurityHubBackend(BaseBackend):
 
     # --- Members (additional operations) ---
 
-    def delete_members(
-        self, account_ids: list[str]
-    ) -> list[dict[str, str]]:
+    def delete_members(self, account_ids: list[str]) -> list[dict[str, str]]:
         unprocessed = []
         for account_id in account_ids:
             if account_id in self.members:
                 del self.members[account_id]
             else:
-                unprocessed.append({
-                    "AccountId": account_id,
-                    "ProcessingResult": f"Account {account_id} is not a member",
-                })
+                unprocessed.append(
+                    {
+                        "AccountId": account_id,
+                        "ProcessingResult": f"Account {account_id} is not a member",
+                    }
+                )
         return unprocessed
 
     def disassociate_members(self, account_ids: list[str]) -> dict[str, Any]:
@@ -1587,18 +1606,18 @@ class SecurityHubBackend(BaseBackend):
                 self.members[account_id]["MemberStatus"] = "DISASSOCIATED"
         return {}
 
-    def invite_members(
-        self, account_ids: list[str]
-    ) -> list[dict[str, str]]:
+    def invite_members(self, account_ids: list[str]) -> list[dict[str, str]]:
         unprocessed = []
         for account_id in account_ids:
             if account_id in self.members:
                 self.members[account_id]["MemberStatus"] = "INVITED"
             else:
-                unprocessed.append({
-                    "AccountId": account_id,
-                    "ProcessingResult": f"Account {account_id} is not a member",
-                })
+                unprocessed.append(
+                    {
+                        "AccountId": account_id,
+                        "ProcessingResult": f"Account {account_id} is not a member",
+                    }
+                )
         return unprocessed
 
     # --- Invitations ---
@@ -1608,19 +1627,13 @@ class SecurityHubBackend(BaseBackend):
     ) -> dict[str, Any]:
         return {}
 
-    def accept_invitation(
-        self, master_id: str, invitation_id: str
-    ) -> dict[str, Any]:
+    def accept_invitation(self, master_id: str, invitation_id: str) -> dict[str, Any]:
         return {}
 
-    def decline_invitations(
-        self, account_ids: list[str]
-    ) -> list[dict[str, str]]:
+    def decline_invitations(self, account_ids: list[str]) -> list[dict[str, str]]:
         return []
 
-    def delete_invitations(
-        self, account_ids: list[str]
-    ) -> list[dict[str, str]]:
+    def delete_invitations(self, account_ids: list[str]) -> list[dict[str, str]]:
         return []
 
     def list_invitations(
@@ -1929,18 +1942,14 @@ class SecurityHubBackend(BaseBackend):
 
     # --- Tags ---
 
-    def tag_resource(
-        self, resource_arn: str, tags: dict[str, str]
-    ) -> dict[str, Any]:
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> dict[str, Any]:
         self.tagger.tag_resource(
             resource_arn,
             [{"Key": k, "Value": v} for k, v in tags.items()],
         )
         return {}
 
-    def untag_resource(
-        self, resource_arn: str, tag_keys: list[str]
-    ) -> dict[str, Any]:
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> dict[str, Any]:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
         return {}
 
@@ -1962,18 +1971,18 @@ class SecurityHubBackend(BaseBackend):
         unprocessed = []
         identifiers = finding_identifiers or []
         if metadata_uids:
-            identifiers.extend(
-                [{"Id": uid, "ProductArn": ""} for uid in metadata_uids]
-            )
+            identifiers.extend([{"Id": uid, "ProductArn": ""} for uid in metadata_uids])
         for identifier in identifiers:
             finding_id = identifier.get("Id", "")
             existing = next((f for f in self.findings if f.id == finding_id), None)
             if not existing:
-                unprocessed.append({
-                    "FindingIdentifier": identifier,
-                    "ErrorCode": "FindingNotFound",
-                    "ErrorMessage": f"Finding {finding_id} not found",
-                })
+                unprocessed.append(
+                    {
+                        "FindingIdentifier": identifier,
+                        "ErrorCode": "FindingNotFound",
+                        "ErrorMessage": f"Finding {finding_id} not found",
+                    }
+                )
                 continue
             if comment:
                 existing.data.setdefault("Note", {})["Text"] = comment
@@ -1982,7 +1991,9 @@ class SecurityHubBackend(BaseBackend):
             if status_id is not None:
                 existing.data["StatusId"] = status_id
             existing.data["UpdatedAt"] = _utc_now()
-            processed.append({"Id": finding_id, "ProductArn": identifier.get("ProductArn", "")})
+            processed.append(
+                {"Id": finding_id, "ProductArn": identifier.get("ProductArn", "")}
+            )
         return processed, unprocessed
 
     def get_findings_v2(
@@ -2047,11 +2058,13 @@ class SecurityHubBackend(BaseBackend):
         products = []
         for arn_template, name, company in _BUILTIN_PRODUCTS:
             arn = arn_template.replace("{region}", self.region_name)
-            products.append({
-                "ProductArn": arn,
-                "ProductName": name,
-                "CompanyName": company,
-            })
+            products.append(
+                {
+                    "ProductArn": arn,
+                    "ProductName": name,
+                    "CompanyName": company,
+                }
+            )
         return products, None
 
     def enable_security_hub_v2(
@@ -2062,9 +2075,9 @@ class SecurityHubBackend(BaseBackend):
         )
         self.hub_v2_subscribed_at = _utc_now()
         if tags:
-            self.tagger.tag_resource(self.hub_v2_arn, [
-                {"Key": k, "Value": v} for k, v in tags.items()
-            ])
+            self.tagger.tag_resource(
+                self.hub_v2_arn, [{"Key": k, "Value": v} for k, v in tags.items()]
+            )
         return {"HubV2Arn": self.hub_v2_arn}
 
     def disable_security_hub_v2(self) -> dict[str, Any]:
@@ -2114,9 +2127,9 @@ class SecurityHubBackend(BaseBackend):
         )
         self.automation_rules_v2[rule_id] = rule
         if tags:
-            self.tagger.tag_resource(arn, [
-                {"Key": k, "Value": v} for k, v in tags.items()
-            ])
+            self.tagger.tag_resource(
+                arn, [{"Key": k, "Value": v} for k, v in tags.items()]
+            )
         return {"RuleArn": arn, "RuleId": rule_id}
 
     def get_automation_rule_v2(self, identifier: str) -> dict[str, Any]:
@@ -2177,9 +2190,7 @@ class SecurityHubBackend(BaseBackend):
         rules = [r.as_summary() for r in self.automation_rules_v2.values()]
         return rules, None
 
-    def _find_automation_rule_v2(
-        self, identifier: str
-    ) -> Optional[AutomationRuleV2]:
+    def _find_automation_rule_v2(self, identifier: str) -> Optional[AutomationRuleV2]:
         if identifier in self.automation_rules_v2:
             return self.automation_rules_v2[identifier]
         for rule in self.automation_rules_v2.values():
@@ -2203,9 +2214,9 @@ class SecurityHubBackend(BaseBackend):
         agg = AggregatorV2(arn, self.region_name, region_linking_mode, linked_regions)
         self.aggregators_v2[arn] = agg
         if tags:
-            self.tagger.tag_resource(arn, [
-                {"Key": k, "Value": v} for k, v in tags.items()
-            ])
+            self.tagger.tag_resource(
+                arn, [{"Key": k, "Value": v} for k, v in tags.items()]
+            )
         return agg.as_dict()
 
     def get_aggregator_v2(self, aggregator_v2_arn: str) -> dict[str, Any]:
@@ -2278,9 +2289,9 @@ class SecurityHubBackend(BaseBackend):
         )
         self.connectors_v2[connector_id] = connector
         if tags:
-            self.tagger.tag_resource(arn, [
-                {"Key": k, "Value": v} for k, v in tags.items()
-            ])
+            self.tagger.tag_resource(
+                arn, [{"Key": k, "Value": v} for k, v in tags.items()]
+            )
         return {
             "ConnectorArn": arn,
             "ConnectorId": connector_id,
@@ -2336,16 +2347,13 @@ class SecurityHubBackend(BaseBackend):
         connectors = list(self.connectors_v2.values())
         if provider_name:
             connectors = [
-                c for c in connectors
-                if c.provider.get("ProviderName") == provider_name
+                c for c in connectors if c.provider.get("ProviderName") == provider_name
             ]
         if connector_status:
             connectors = [c for c in connectors if c.status == connector_status]
         return [c.as_summary() for c in connectors], None
 
-    def register_connector_v2(
-        self, auth_code: str, auth_state: str
-    ) -> dict[str, Any]:
+    def register_connector_v2(self, auth_code: str, auth_state: str) -> dict[str, Any]:
         # Find a connector that might match — simplified stub
         connector_id = str(uuid.uuid4())
         arn = (

@@ -261,13 +261,15 @@ class ACMPCAResponse(BaseResponse):
             certificate_authority_arn=certificate_authority_arn,
             audit_report_id=audit_report_id,
         )
-        return json.dumps({
-            "AuditReportId": report["AuditReportId"],
-            "S3BucketName": report["S3BucketName"],
-            "S3Key": report["S3Key"],
-            "CreatedAt": report["CreatedAt"],
-            "AuditReportStatus": report["Status"],
-        })
+        return json.dumps(
+            {
+                "AuditReportId": report["AuditReportId"],
+                "S3BucketName": report["S3BucketName"],
+                "S3Key": report["S3Key"],
+                "CreatedAt": report["CreatedAt"],
+                "AuditReportStatus": report["Status"],
+            }
+        )
 
     def list_certificate_authorities(self) -> str:
         """

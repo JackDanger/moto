@@ -437,7 +437,9 @@ class FleetsBackend:
             )
             fleet.target_capacity = new_total
         if excess_capacity_termination_policy:
-            fleet.excess_capacity_termination_policy = excess_capacity_termination_policy
+            fleet.excess_capacity_termination_policy = (
+                excess_capacity_termination_policy
+            )
         return fleet
 
     def describe_fleet_history(
@@ -461,4 +463,3 @@ class FleetsBackend:
                 "Timestamp": utcnow().isoformat(),
             }
         ]
-

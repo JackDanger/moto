@@ -7,9 +7,7 @@ class FastLaunchResponse(EC2BaseResponse):
     def enable_fast_launch(self) -> ActionResult:
         image_id = self._get_param("ImageId")
         resource_type = self._get_param("ResourceType", "snapshot")
-        max_parallel = int(
-            self._get_param("MaxParallelLaunches", "6")
-        )
+        max_parallel = int(self._get_param("MaxParallelLaunches", "6"))
         snapshot_config = self._get_param("SnapshotConfiguration")
         launch_template = self._get_param("LaunchTemplate")
         fli = self.ec2_backend.enable_fast_launch(
@@ -23,7 +21,9 @@ class FastLaunchResponse(EC2BaseResponse):
             "ImageId": fli.image_id,
             "ResourceType": fli.resource_type,
             "SnapshotConfiguration": {
-                "TargetResourceCount": fli.snapshot_configuration.get("TargetResourceCount", 5),
+                "TargetResourceCount": fli.snapshot_configuration.get(
+                    "TargetResourceCount", 5
+                ),
             },
             "MaxParallelLaunches": fli.max_parallel_launches,
             "OwnerId": fli.owner_id,
@@ -44,7 +44,9 @@ class FastLaunchResponse(EC2BaseResponse):
                     "ImageId": fli.image_id,
                     "ResourceType": fli.resource_type,
                     "SnapshotConfiguration": {
-                        "TargetResourceCount": fli.snapshot_configuration.get("TargetResourceCount", 5),
+                        "TargetResourceCount": fli.snapshot_configuration.get(
+                            "TargetResourceCount", 5
+                        ),
                     },
                     "MaxParallelLaunches": fli.max_parallel_launches,
                     "OwnerId": fli.owner_id,

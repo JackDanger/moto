@@ -132,7 +132,9 @@ class PollyResponse(BaseResponse):
         if "OutputFormat" not in self.json:
             return self._error("MissingParameter", "Missing parameter OutputFormat")
         if "OutputS3BucketName" not in self.json:
-            return self._error("MissingParameter", "Missing parameter OutputS3BucketName")
+            return self._error(
+                "MissingParameter", "Missing parameter OutputS3BucketName"
+            )
         if "Text" not in self.json:
             return self._error("MissingParameter", "Missing parameter Text")
         if "VoiceId" not in self.json:
@@ -159,7 +161,9 @@ class PollyResponse(BaseResponse):
         try:
             task = self.polly_backend.get_speech_synthesis_task(task_id)
         except KeyError:
-            return self._error("SynthesisTaskNotFoundException", "Synthesis task not found")
+            return self._error(
+                "SynthesisTaskNotFoundException", "Synthesis task not found"
+            )
         return json.dumps({"SynthesisTask": task})
 
     def _list_speech_synthesis_tasks(self) -> str:
@@ -264,6 +268,7 @@ class PollyResponse(BaseResponse):
         text = args["text"]  # type: ignore[arg-type]
         if args.get("text_type") == "ssml":
             import re as _re
+
             text = _re.sub(r"<[^>]+>", "", text)
         request_characters = len(text)
         headers = {

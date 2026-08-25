@@ -407,9 +407,7 @@ class ServiceDiscoveryBackend(BaseBackend):
         service = self.get_service(service_id)
         service.service_attributes.update(attributes)
 
-    def delete_service_attributes(
-        self, service_id: str, attributes: list[str]
-    ) -> None:
+    def delete_service_attributes(self, service_id: str, attributes: list[str]) -> None:
         service = self.get_service(service_id)
         for key in attributes:
             service.service_attributes.pop(key, None)

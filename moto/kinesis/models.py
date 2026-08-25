@@ -1064,9 +1064,7 @@ class KinesisBackend(BaseBackend):
         """ARN-based tag listing (newer API variant of ListTagsForStream)."""
         stream = self._find_stream_by_arn(resource_arn)
         if not stream:
-            raise ResourceNotFoundError(
-                message=f"Resource {resource_arn} not found."
-            )
+            raise ResourceNotFoundError(message=f"Resource {resource_arn} not found.")
         tags: list[dict[str, str]] = []
         for key, val in sorted(stream.tags.items(), key=lambda x: x[0]):
             tags.append({"Key": key, "Value": val})
@@ -1076,18 +1074,14 @@ class KinesisBackend(BaseBackend):
         """ARN-based tagging (newer API variant of AddTagsToStream)."""
         stream = self._find_stream_by_arn(resource_arn)
         if not stream:
-            raise ResourceNotFoundError(
-                message=f"Resource {resource_arn} not found."
-            )
+            raise ResourceNotFoundError(message=f"Resource {resource_arn} not found.")
         stream.tags.update(tags)
 
     def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         """ARN-based untagging (newer API variant of RemoveTagsFromStream)."""
         stream = self._find_stream_by_arn(resource_arn)
         if not stream:
-            raise ResourceNotFoundError(
-                message=f"Resource {resource_arn} not found."
-            )
+            raise ResourceNotFoundError(message=f"Resource {resource_arn} not found.")
         for key in tag_keys:
             if key in stream.tags:
                 del stream.tags[key]

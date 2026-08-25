@@ -212,15 +212,16 @@ class Offering(BaseModel):
         self.currency_code = "USD"
         self.duration = kwargs.get("duration", 12)
         self.duration_units = kwargs.get("duration_units", "MONTHS")
-        self.offering_description = kwargs.get(
-            "offering_description", "Test offering"
-        )
+        self.offering_description = kwargs.get("offering_description", "Test offering")
         self.price_per_unit = kwargs.get("price_per_unit", "0.10")
         self.price_units = kwargs.get("price_units", "HOURLY")
-        self.resource_specification = kwargs.get("resource_specification", {
-            "resourceType": "Mbps_Outbound_Bandwidth",
-            "reservedBitrate": 100,
-        })
+        self.resource_specification = kwargs.get(
+            "resource_specification",
+            {
+                "resourceType": "Mbps_Outbound_Bandwidth",
+                "reservedBitrate": 100,
+            },
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -236,7 +237,9 @@ class Offering(BaseModel):
 
 
 class Reservation(BaseModel):
-    def __init__(self, account_id: str, region_name: str, offering: Offering, **kwargs: Any):
+    def __init__(
+        self, account_id: str, region_name: str, offering: Offering, **kwargs: Any
+    ):
         self.id = random.uuid4().hex
         self.reservation_arn = (
             f"arn:{get_partition(region_name)}:mediaconnect:{region_name}"
@@ -376,7 +379,9 @@ class MediaConnectBackend(BaseBackend):
         self._offerings: dict[str, Offering] = OrderedDict()
         self._reservations: dict[str, Reservation] = OrderedDict()
         self._router_inputs: dict[str, RouterInput] = OrderedDict()
-        self._router_network_interfaces: dict[str, RouterNetworkInterface] = OrderedDict()
+        self._router_network_interfaces: dict[str, RouterNetworkInterface] = (
+            OrderedDict()
+        )
         self._router_outputs: dict[str, RouterOutput] = OrderedDict()
         self.tagger = TaggingService()
         # Seed a few offerings
@@ -767,11 +772,15 @@ class MediaConnectBackend(BaseBackend):
         entitlements: list[dict[str, Any]] = []
         for flow in self._flows.values():
             for ent in flow.entitlements:
-                entitlements.append({
-                    "dataTransferSubscriberFeePercent": ent.get("dataTransferSubscriberFeePercent", 0),
-                    "entitlementArn": ent["entitlementArn"],
-                    "entitlementName": ent.get("name", ""),
-                })
+                entitlements.append(
+                    {
+                        "dataTransferSubscriberFeePercent": ent.get(
+                            "dataTransferSubscriberFeePercent", 0
+                        ),
+                        "entitlementArn": ent["entitlementArn"],
+                        "entitlementName": ent.get("name", ""),
+                    }
+                )
         if max_results is not None:
             entitlements = entitlements[:max_results]
         return entitlements
@@ -797,7 +806,9 @@ class MediaConnectBackend(BaseBackend):
         flow = self._flows[flow_arn]
         original_len = len(flow.media_streams)
         flow.media_streams = [
-            ms for ms in flow.media_streams if ms.get("mediaStreamName") != media_stream_name
+            ms
+            for ms in flow.media_streams
+            if ms.get("mediaStreamName") != media_stream_name
         ]
         if len(flow.media_streams) == original_len:
             raise NotFoundException(
@@ -830,9 +841,7 @@ class MediaConnectBackend(BaseBackend):
                 if video_format is not None:
                     ms["videoFormat"] = video_format
                 return ms
-        raise NotFoundException(
-            message=f"media stream {media_stream_name} not found"
-        )
+        raise NotFoundException(message=f"media stream {media_stream_name} not found")
 
     def describe_flow_source_metadata(self, flow_arn: str) -> dict[str, Any]:
         if flow_arn not in self._flows:
@@ -946,14 +955,18 @@ class MediaConnectBackend(BaseBackend):
         bridge = self._bridges[bridge_arn]
         original_len = len(bridge.outputs)
         bridge.outputs = [
-            o for o in bridge.outputs
+            o
+            for o in bridge.outputs
             if o.get("networkOutput", {}).get("name") != output_name
         ]
         if len(bridge.outputs) == original_len:
             raise NotFoundException(message=f"output {output_name} not found")
 
     def update_bridge_output(
-        self, bridge_arn: str, output_name: str, network_output: Optional[dict[str, Any]]
+        self,
+        bridge_arn: str,
+        output_name: str,
+        network_output: Optional[dict[str, Any]],
     ) -> dict[str, Any]:
         if bridge_arn not in self._bridges:
             raise NotFoundException(message="Bridge not found.")
@@ -993,9 +1006,12 @@ class MediaConnectBackend(BaseBackend):
         bridge = self._bridges[bridge_arn]
         original_len = len(bridge.sources)
         bridge.sources = [
-            s for s in bridge.sources
-            if (s.get("flowSource", {}).get("name") != source_name
-                and s.get("networkSource", {}).get("name") != source_name)
+            s
+            for s in bridge.sources
+            if (
+                s.get("flowSource", {}).get("name") != source_name
+                and s.get("networkSource", {}).get("name") != source_name
+            )
         ]
         if len(bridge.sources) == original_len:
             raise NotFoundException(message=f"source {source_name} not found")
@@ -1173,7 +1189,11 @@ class MediaConnectBackend(BaseBackend):
     ) -> list[dict[str, Any]]:
         inputs = list(self._router_inputs.values())
         if filter_arn:
-            inputs = [i for i in inputs if i.router_arn == filter_arn or i.gateway_arn == filter_arn]
+            inputs = [
+                i
+                for i in inputs
+                if i.router_arn == filter_arn or i.gateway_arn == filter_arn
+            ]
         if max_results is not None:
             inputs = inputs[:max_results]
         return [i.to_dict() for i in inputs]
@@ -1249,7 +1269,9 @@ class MediaConnectBackend(BaseBackend):
             return arn
         raise NotFoundException(message="Router network interface not found.")
 
-    def update_router_network_interface(self, arn: str, **kwargs: Any) -> RouterNetworkInterface:
+    def update_router_network_interface(
+        self, arn: str, **kwargs: Any
+    ) -> RouterNetworkInterface:
         if arn not in self._router_network_interfaces:
             raise NotFoundException(message="Router network interface not found.")
         rni = self._router_network_interfaces[arn]
@@ -1265,12 +1287,18 @@ class MediaConnectBackend(BaseBackend):
     ) -> list[dict[str, Any]]:
         interfaces = list(self._router_network_interfaces.values())
         if filter_arn:
-            interfaces = [i for i in interfaces if i.router_arn == filter_arn or i.gateway_arn == filter_arn]
+            interfaces = [
+                i
+                for i in interfaces
+                if i.router_arn == filter_arn or i.gateway_arn == filter_arn
+            ]
         if max_results is not None:
             interfaces = interfaces[:max_results]
         return [i.to_dict() for i in interfaces]
 
-    def batch_get_router_network_interface(self, arns: list[str]) -> list[dict[str, Any]]:
+    def batch_get_router_network_interface(
+        self, arns: list[str]
+    ) -> list[dict[str, Any]]:
         results = []
         for arn in arns:
             if arn in self._router_network_interfaces:
@@ -1315,7 +1343,11 @@ class MediaConnectBackend(BaseBackend):
     ) -> list[dict[str, Any]]:
         outputs = list(self._router_outputs.values())
         if filter_arn:
-            outputs = [o for o in outputs if o.router_arn == filter_arn or o.gateway_arn == filter_arn]
+            outputs = [
+                o
+                for o in outputs
+                if o.router_arn == filter_arn or o.gateway_arn == filter_arn
+            ]
         if max_results is not None:
             outputs = outputs[:max_results]
         return [o.to_dict() for o in outputs]

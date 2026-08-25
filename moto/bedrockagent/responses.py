@@ -85,15 +85,17 @@ class AgentsforBedrockResponse(BaseResponse):
 
     def prepare_agent(self) -> str:
         agent_id = self.path.split("/")[-2]
-        agent_id, agent_arn, agent_version, prepared_at = self.bedrockagent_backend.prepare_agent(
-            agent_id=agent_id
+        agent_id, agent_arn, agent_version, prepared_at = (
+            self.bedrockagent_backend.prepare_agent(agent_id=agent_id)
         )
-        return json.dumps({
-            "agentId": agent_id,
-            "agentArn": agent_arn,
-            "agentVersion": agent_version,
-            "agentStatus": "PREPARED",
-        })
+        return json.dumps(
+            {
+                "agentId": agent_id,
+                "agentArn": agent_arn,
+                "agentVersion": agent_version,
+                "agentStatus": "PREPARED",
+            }
+        )
 
     def get_agent_version(self) -> str:
         parts = self.path.split("/")
@@ -121,12 +123,16 @@ class AgentsforBedrockResponse(BaseResponse):
         agent_id = parts[parts.index("agents") + 1]
         agent_version = parts[parts.index("agentversions") + 1].rstrip("/")
         params = self._get_params()
-        agent_id, agent_version, status = self.bedrockagent_backend.delete_agent_version(
-            agent_id=agent_id,
-            agent_version=agent_version,
-            skip_resource_in_use_check=params.get("skipResourceInUseCheck"),
+        agent_id, agent_version, status = (
+            self.bedrockagent_backend.delete_agent_version(
+                agent_id=agent_id,
+                agent_version=agent_version,
+                skip_resource_in_use_check=params.get("skipResourceInUseCheck"),
+            )
         )
-        return json.dumps({"agentId": agent_id, "agentVersion": agent_version, "agentStatus": status})
+        return json.dumps(
+            {"agentId": agent_id, "agentVersion": agent_version, "agentStatus": status}
+        )
 
     # ========== Agent Alias handlers ==========
 
@@ -162,7 +168,12 @@ class AgentsforBedrockResponse(BaseResponse):
             max_results=int(max_results) if max_results else None,
             next_token=next_token,
         )
-        return json.dumps({"agentAliasSummaries": [a.dict_summary() for a in aliases], "nextToken": next_token})
+        return json.dumps(
+            {
+                "agentAliasSummaries": [a.dict_summary() for a in aliases],
+                "nextToken": next_token,
+            }
+        )
 
     def delete_agent_alias(self) -> str:
         parts = self.path.split("/")
@@ -171,7 +182,9 @@ class AgentsforBedrockResponse(BaseResponse):
         agent_id, alias_id, status = self.bedrockagent_backend.delete_agent_alias(
             agent_id=agent_id, agent_alias_id=agent_alias_id
         )
-        return json.dumps({"agentId": agent_id, "agentAliasId": alias_id, "agentAliasStatus": status})
+        return json.dumps(
+            {"agentId": agent_id, "agentAliasId": alias_id, "agentAliasStatus": status}
+        )
 
     def update_agent_alias(self) -> str:
         parts = self.path.split("/")
@@ -231,7 +244,12 @@ class AgentsforBedrockResponse(BaseResponse):
             max_results=params.get("maxResults"),
             next_token=params.get("nextToken"),
         )
-        return json.dumps({"actionGroupSummaries": [g.dict_summary() for g in groups], "nextToken": next_token})
+        return json.dumps(
+            {
+                "actionGroupSummaries": [g.dict_summary() for g in groups],
+                "nextToken": next_token,
+            }
+        )
 
     def delete_agent_action_group(self) -> str:
         parts = self.path.split("/")
@@ -306,7 +324,12 @@ class AgentsforBedrockResponse(BaseResponse):
             max_results=params.get("maxResults"),
             next_token=params.get("nextToken"),
         )
-        return json.dumps({"agentKnowledgeBaseSummaries": [b.dict_summary() for b in bases], "nextToken": next_token})
+        return json.dumps(
+            {
+                "agentKnowledgeBaseSummaries": [b.dict_summary() for b in bases],
+                "nextToken": next_token,
+            }
+        )
 
     def disassociate_agent_knowledge_base(self) -> str:
         parts = self.path.split("/")
@@ -410,7 +433,9 @@ class AgentsforBedrockResponse(BaseResponse):
             data_source_configuration=params.get("dataSourceConfiguration"),
             client_token=params.get("clientToken"),
             description=params.get("description"),
-            server_side_encryption_configuration=params.get("serverSideEncryptionConfiguration"),
+            server_side_encryption_configuration=params.get(
+                "serverSideEncryptionConfiguration"
+            ),
             vector_ingestion_configuration=params.get("vectorIngestionConfiguration"),
         )
         return json.dumps({"dataSource": ds.to_dict()})
@@ -434,7 +459,12 @@ class AgentsforBedrockResponse(BaseResponse):
             max_results=params.get("maxResults"),
             next_token=params.get("nextToken"),
         )
-        return json.dumps({"dataSourceSummaries": [ds.dict_summary() for ds in data_sources], "nextToken": next_token})
+        return json.dumps(
+            {
+                "dataSourceSummaries": [ds.dict_summary() for ds in data_sources],
+                "nextToken": next_token,
+            }
+        )
 
     def delete_data_source(self) -> str:
         parts = self.path.split("/")
@@ -444,7 +474,9 @@ class AgentsforBedrockResponse(BaseResponse):
             knowledge_base_id=knowledge_base_id,
             data_source_id=data_source_id,
         )
-        return json.dumps({"knowledgeBaseId": kb_id, "dataSourceId": ds_id, "status": status})
+        return json.dumps(
+            {"knowledgeBaseId": kb_id, "dataSourceId": ds_id, "status": status}
+        )
 
     def update_data_source(self) -> str:
         parts = self.path.split("/")
@@ -457,7 +489,9 @@ class AgentsforBedrockResponse(BaseResponse):
             name=params.get("name"),
             data_source_configuration=params.get("dataSourceConfiguration"),
             description=params.get("description"),
-            server_side_encryption_configuration=params.get("serverSideEncryptionConfiguration"),
+            server_side_encryption_configuration=params.get(
+                "serverSideEncryptionConfiguration"
+            ),
             vector_ingestion_configuration=params.get("vectorIngestionConfiguration"),
         )
         return json.dumps({"dataSource": ds.to_dict()})
@@ -500,7 +534,12 @@ class AgentsforBedrockResponse(BaseResponse):
             max_results=params.get("maxResults"),
             next_token=params.get("nextToken"),
         )
-        return json.dumps({"ingestionJobSummaries": [j.dict_summary() for j in jobs], "nextToken": next_token})
+        return json.dumps(
+            {
+                "ingestionJobSummaries": [j.dict_summary() for j in jobs],
+                "nextToken": next_token,
+            }
+        )
 
     def stop_ingestion_job(self) -> str:
         parts = self.path.split("/")
@@ -543,7 +582,12 @@ class AgentsforBedrockResponse(BaseResponse):
             max_results=int(max_results) if max_results else None,
             next_token=next_token,
         )
-        return json.dumps({"flowSummaries": [f.dict_summary() for f in flows], "nextToken": next_token})
+        return json.dumps(
+            {
+                "flowSummaries": [f.dict_summary() for f in flows],
+                "nextToken": next_token,
+            }
+        )
 
     def delete_flow(self) -> str:
         parts = [p for p in self.path.split("/") if p]
@@ -608,7 +652,12 @@ class AgentsforBedrockResponse(BaseResponse):
             max_results=None,
             next_token=None,
         )
-        return json.dumps({"flowAliasSummaries": [a.dict_summary() for a in aliases], "nextToken": next_token})
+        return json.dumps(
+            {
+                "flowAliasSummaries": [a.dict_summary() for a in aliases],
+                "nextToken": next_token,
+            }
+        )
 
     def delete_flow_alias(self) -> str:
         parts = [p for p in self.path.split("/") if p]
@@ -665,7 +714,12 @@ class AgentsforBedrockResponse(BaseResponse):
             max_results=None,
             next_token=None,
         )
-        return json.dumps({"flowVersionSummaries": [v.dict_summary() for v in versions], "nextToken": next_token})
+        return json.dumps(
+            {
+                "flowVersionSummaries": [v.dict_summary() for v in versions],
+                "nextToken": next_token,
+            }
+        )
 
     def delete_flow_version(self) -> str:
         parts = [p for p in self.path.split("/") if p]
@@ -712,7 +766,12 @@ class AgentsforBedrockResponse(BaseResponse):
             max_results=int(max_results) if max_results else None,
             next_token=next_token,
         )
-        return json.dumps({"promptSummaries": [p.dict_summary() for p in prompts], "nextToken": next_token})
+        return json.dumps(
+            {
+                "promptSummaries": [p.dict_summary() for p in prompts],
+                "nextToken": next_token,
+            }
+        )
 
     def delete_prompt(self) -> str:
         parts = [p for p in self.path.split("/") if p]

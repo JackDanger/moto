@@ -62,7 +62,6 @@ class StepFunctionResponse(BaseResponse):
             response["stateMachineVersionArn"] = state_machine.latest_version.arn
         return ActionResult(response)
 
-
     def list_state_machines(self) -> ActionResult:
         max_results = self._get_int_param("maxResults")
         next_token = self._get_param("nextToken")
@@ -80,11 +79,9 @@ class StepFunctionResponse(BaseResponse):
         response = {"stateMachines": state_machines, "nextToken": next_token}
         return ActionResult(response)
 
-
     def describe_state_machine(self) -> ActionResult:
         arn = self._get_param("stateMachineArn")
         return self._describe_state_machine(arn)
-
 
     def _describe_state_machine(self, state_machine_arn: str) -> ActionResult:
         state_machine = self.stepfunction_backend.describe_state_machine(
@@ -110,7 +107,6 @@ class StepFunctionResponse(BaseResponse):
         arn = self._get_param("stateMachineArn")
         self.stepfunction_backend.delete_state_machine(arn)
         return EmptyResult()
-
 
     def update_state_machine(self) -> ActionResult:
         arn = self._get_param("stateMachineArn")
@@ -141,7 +137,6 @@ class StepFunctionResponse(BaseResponse):
         if publish:
             response["stateMachineVersionArn"] = state_machine.latest_version.arn  # type: ignore
         return ActionResult(response)
-
 
     def list_tags_for_resource(self) -> ActionResult:
         arn = self._get_param("resourceArn")
@@ -461,11 +456,15 @@ class StepFunctionResponse(BaseResponse):
     def get_activity_task(self) -> ActionResult:
         activity_arn = self._get_param("activityArn")
         worker_name = self._get_param("workerName")
-        result = self.stepfunction_backend.get_activity_task(activity_arn, worker_name=worker_name)
+        result = self.stepfunction_backend.get_activity_task(
+            activity_arn, worker_name=worker_name
+        )
         return ActionResult(result)
 
     def redrive_execution(self) -> ActionResult:
         execution_arn = self._get_param("executionArn")
         client_token = self._get_param("clientToken")
-        result = self.stepfunction_backend.redrive_execution(execution_arn, client_token=client_token)
+        result = self.stepfunction_backend.redrive_execution(
+            execution_arn, client_token=client_token
+        )
         return ActionResult(result)

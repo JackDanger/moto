@@ -219,9 +219,6 @@ class SWFResponse(BaseResponse):
         )
         return ""
 
-
-
-
     def deprecate_domain(self) -> str:
         name = self._params["name"]
         self._check_string(name)

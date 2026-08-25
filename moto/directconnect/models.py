@@ -1,4 +1,5 @@
 """DirectConnectBackend class with methods for supported APIs."""
+
 from __future__ import annotations
 
 from collections.abc import Iterator
@@ -25,7 +26,11 @@ from .exceptions import (
     MacSecKeyNotFound,
 )
 import uuid
-from .exceptions import (DirectConnectClientError, InterconnectNotFound, VirtualGatewayNotFound, VirtualInterfaceNotFound)
+from .exceptions import (
+    DirectConnectClientError,
+    InterconnectNotFound,
+    VirtualInterfaceNotFound,
+)
 
 
 @dataclass
@@ -170,7 +175,9 @@ class DirectConnectBackend(BaseBackend, TaggableResourcesMixin):
         self.virtual_interfaces: dict[str, VirtualInterface] = {}
         self.direct_connect_gateways: dict[str, DirectConnectGateway] = {}
         self.gateway_associations: dict[str, DirectConnectGatewayAssociation] = {}
-        self.gateway_association_proposals: dict[str, DirectConnectGatewayAssociationProposal] = {}
+        self.gateway_association_proposals: dict[
+            str, DirectConnectGatewayAssociationProposal
+        ] = {}
         self.interconnects: dict[str, Interconnect] = {}
         self.virtual_gateways: dict[str, VirtualGateway] = {}
 
@@ -498,7 +505,9 @@ class DirectConnectBackend(BaseBackend, TaggableResourcesMixin):
             lag.encryption_mode = EncryptionModeType(encryption_mode)
         return lag
 
-    def associate_connection_with_lag(self, connection_id: str, lag_id: str) -> Connection:
+    def associate_connection_with_lag(
+        self, connection_id: str, lag_id: str
+    ) -> Connection:
         connection = self.connections.get(connection_id)
         if not connection:
             raise ConnectionNotFound(connection_id, self.region_name)
@@ -511,7 +520,9 @@ class DirectConnectBackend(BaseBackend, TaggableResourcesMixin):
             lag.number_of_connections = len(lag.connections)
         return connection
 
-    def disassociate_connection_from_lag(self, connection_id: str, lag_id: str) -> Connection:
+    def disassociate_connection_from_lag(
+        self, connection_id: str, lag_id: str
+    ) -> Connection:
         connection = self.connections.get(connection_id)
         if not connection:
             raise ConnectionNotFound(connection_id, self.region_name)
@@ -519,7 +530,9 @@ class DirectConnectBackend(BaseBackend, TaggableResourcesMixin):
         if not lag:
             raise LAGNotFound(lag_id, self.region_name)
         connection.lag_id = None
-        lag.connections = [c for c in lag.connections if c.connection_id != connection_id]
+        lag.connections = [
+            c for c in lag.connections if c.connection_id != connection_id
+        ]
         lag.number_of_connections = len(lag.connections)
         return connection
 
@@ -603,7 +616,10 @@ class DirectConnectBackend(BaseBackend, TaggableResourcesMixin):
         tags: Optional[list[dict[str, str]]],
     ) -> VirtualInterface:
         return self._create_virtual_interface(
-            connection_id, "private", new_private_virtual_interface_allocation, tags,
+            connection_id,
+            "private",
+            new_private_virtual_interface_allocation,
+            tags,
             owner_account=owner_account,
         )
 
@@ -615,7 +631,10 @@ class DirectConnectBackend(BaseBackend, TaggableResourcesMixin):
         tags: Optional[list[dict[str, str]]],
     ) -> VirtualInterface:
         return self._create_virtual_interface(
-            connection_id, "public", new_public_virtual_interface_allocation, tags,
+            connection_id,
+            "public",
+            new_public_virtual_interface_allocation,
+            tags,
             owner_account=owner_account,
         )
 
@@ -627,7 +646,10 @@ class DirectConnectBackend(BaseBackend, TaggableResourcesMixin):
         tags: Optional[list[dict[str, str]]],
     ) -> VirtualInterface:
         return self._create_virtual_interface(
-            connection_id, "transit", new_transit_virtual_interface_allocation, tags,
+            connection_id,
+            "transit",
+            new_transit_virtual_interface_allocation,
+            tags,
             owner_account=owner_account,
         )
 
@@ -678,7 +700,11 @@ class DirectConnectBackend(BaseBackend, TaggableResourcesMixin):
                 raise VirtualInterfaceNotFound(virtual_interface_id, self.region_name)
             return [vif]
         if connection_id:
-            return [v for v in self.virtual_interfaces.values() if v.connection_id == connection_id]
+            return [
+                v
+                for v in self.virtual_interfaces.values()
+                if v.connection_id == connection_id
+            ]
         return list(self.virtual_interfaces.values())
 
     def delete_virtual_interface(self, virtual_interface_id: str) -> VirtualInterface:
@@ -796,7 +822,9 @@ class DirectConnectBackend(BaseBackend, TaggableResourcesMixin):
             return [gw] if gw else []
         return list(self.direct_connect_gateways.values())
 
-    def delete_direct_connect_gateway(self, direct_connect_gateway_id: str) -> DirectConnectGateway:
+    def delete_direct_connect_gateway(
+        self, direct_connect_gateway_id: str
+    ) -> DirectConnectGateway:
         gateway = self.direct_connect_gateways.get(direct_connect_gateway_id)
         if not gateway:
             raise DirectConnectClientError(
@@ -850,9 +878,15 @@ class DirectConnectBackend(BaseBackend, TaggableResourcesMixin):
             return [assoc] if assoc else []
         result = list(self.gateway_associations.values())
         if associated_gateway_id:
-            result = [a for a in result if a.associated_gateway_id == associated_gateway_id]
+            result = [
+                a for a in result if a.associated_gateway_id == associated_gateway_id
+            ]
         if direct_connect_gateway_id:
-            result = [a for a in result if a.direct_connect_gateway_id == direct_connect_gateway_id]
+            result = [
+                a
+                for a in result
+                if a.direct_connect_gateway_id == direct_connect_gateway_id
+            ]
         return result
 
     def delete_direct_connect_gateway_association(
@@ -866,7 +900,8 @@ class DirectConnectBackend(BaseBackend, TaggableResourcesMixin):
         elif direct_connect_gateway_id and virtual_gateway_id:
             assoc = next(
                 (
-                    a for a in self.gateway_associations.values()
+                    a
+                    for a in self.gateway_associations.values()
                     if a.direct_connect_gateway_id == direct_connect_gateway_id
                     and a.associated_gateway_id == virtual_gateway_id
                 ),
@@ -895,14 +930,17 @@ class DirectConnectBackend(BaseBackend, TaggableResourcesMixin):
                 f"Association {association_id} not found",
             )
         if add_allowed_prefixes:
-            existing = {p["cidr"] for p in assoc.allowed_prefixes_to_direct_connect_gateway}
+            existing = {
+                p["cidr"] for p in assoc.allowed_prefixes_to_direct_connect_gateway
+            }
             for p in add_allowed_prefixes:
                 if p["cidr"] not in existing:
                     assoc.allowed_prefixes_to_direct_connect_gateway.append(p)
         if remove_allowed_prefixes:
             remove_cidrs = {p["cidr"] for p in remove_allowed_prefixes}
             assoc.allowed_prefixes_to_direct_connect_gateway = [
-                p for p in assoc.allowed_prefixes_to_direct_connect_gateway
+                p
+                for p in assoc.allowed_prefixes_to_direct_connect_gateway
                 if p["cidr"] not in remove_cidrs
             ]
         return assoc
@@ -936,7 +974,11 @@ class DirectConnectBackend(BaseBackend, TaggableResourcesMixin):
             return [p] if p else []
         result = list(self.gateway_association_proposals.values())
         if direct_connect_gateway_id:
-            result = [p for p in result if p.direct_connect_gateway_id == direct_connect_gateway_id]
+            result = [
+                p
+                for p in result
+                if p.direct_connect_gateway_id == direct_connect_gateway_id
+            ]
         if associated_gateway_id:
             result = [p for p in result if p.gateway_id == associated_gateway_id]
         return result
@@ -987,19 +1029,27 @@ class DirectConnectBackend(BaseBackend, TaggableResourcesMixin):
         attachments = []
         for vif in self.virtual_interfaces.values():
             if vif.direct_connect_gateway_id:
-                if direct_connect_gateway_id and vif.direct_connect_gateway_id != direct_connect_gateway_id:
+                if (
+                    direct_connect_gateway_id
+                    and vif.direct_connect_gateway_id != direct_connect_gateway_id
+                ):
                     continue
-                if virtual_interface_id and vif.virtual_interface_id != virtual_interface_id:
+                if (
+                    virtual_interface_id
+                    and vif.virtual_interface_id != virtual_interface_id
+                ):
                     continue
-                attachments.append({
-                    "directConnectGatewayId": vif.direct_connect_gateway_id,
-                    "virtualInterfaceId": vif.virtual_interface_id,
-                    "virtualInterfaceRegion": self.region_name,
-                    "virtualInterfaceOwnerAccount": vif.owner_account,
-                    "attachmentState": "attached",
-                    "attachmentType": "TransitVirtualInterface",
-                    "stateChangeError": "",
-                })
+                attachments.append(
+                    {
+                        "directConnectGatewayId": vif.direct_connect_gateway_id,
+                        "virtualInterfaceId": vif.virtual_interface_id,
+                        "virtualInterfaceRegion": self.region_name,
+                        "virtualInterfaceOwnerAccount": vif.owner_account,
+                        "attachmentState": "attached",
+                        "attachmentType": "TransitVirtualInterface",
+                        "stateChangeError": "",
+                    }
+                )
         return attachments
 
     def create_interconnect(
@@ -1027,7 +1077,9 @@ class DirectConnectBackend(BaseBackend, TaggableResourcesMixin):
         self.interconnects[interconnect.interconnect_id] = interconnect
         return interconnect
 
-    def describe_interconnects(self, interconnect_id: Optional[str]) -> list[Interconnect]:
+    def describe_interconnects(
+        self, interconnect_id: Optional[str]
+    ) -> list[Interconnect]:
         if interconnect_id:
             ic = self.interconnects.get(interconnect_id)
             if not ic:
@@ -1042,7 +1094,9 @@ class DirectConnectBackend(BaseBackend, TaggableResourcesMixin):
         ic.interconnect_state = "deleted"
         return ic.interconnect_state
 
-    def describe_connections_on_interconnect(self, interconnect_id: str) -> list[Connection]:
+    def describe_connections_on_interconnect(
+        self, interconnect_id: str
+    ) -> list[Connection]:
         if interconnect_id not in self.interconnects:
             raise InterconnectNotFound(interconnect_id, self.region_name)
         return [c for c in self.connections.values() if c.lag_id == interconnect_id]
@@ -1076,14 +1130,18 @@ class DirectConnectBackend(BaseBackend, TaggableResourcesMixin):
     def describe_virtual_gateways(self) -> list[VirtualGateway]:
         return list(self.virtual_gateways.values())
 
-    def associate_hosted_connection(self, connection_id: str, parent_connection_id: str) -> Connection:
+    def associate_hosted_connection(
+        self, connection_id: str, parent_connection_id: str
+    ) -> Connection:
         connection = self.connections.get(connection_id)
         if not connection:
             raise ConnectionNotFound(connection_id, self.region_name)
         connection.lag_id = parent_connection_id
         return connection
 
-    def associate_virtual_interface(self, virtual_interface_id: str, connection_id: str) -> VirtualInterface:
+    def associate_virtual_interface(
+        self, virtual_interface_id: str, connection_id: str
+    ) -> VirtualInterface:
         vif = self.virtual_interfaces.get(virtual_interface_id)
         if not vif:
             raise VirtualInterfaceNotFound(virtual_interface_id, self.region_name)
@@ -1139,7 +1197,8 @@ class DirectConnectBackend(BaseBackend, TaggableResourcesMixin):
                 "softwareVersion": "mock_version",
                 "xsltTemplateName": "mock_template",
                 "xsltTemplateNameForMacSec": "",
-                "routerTypeIdentifier": router_type_identifier or "CiscoSystemsInc-2900SeriesRouters-IOS124",
+                "routerTypeIdentifier": router_type_identifier
+                or "CiscoSystemsInc-2900SeriesRouters-IOS124",
             },
             "virtualInterfaceId": virtual_interface_id,
             "virtualInterfaceName": vif.virtual_interface_name,
@@ -1221,8 +1280,6 @@ class DirectConnectBackend(BaseBackend, TaggableResourcesMixin):
         )
         self.connections[connection.connection_id] = connection
         return connection
-
-
 
 
 @dataclass
@@ -1446,4 +1503,6 @@ class VirtualGateway(BaseModel):
             "virtualGatewayId": self.virtual_gateway_id,
             "virtualGatewayState": self.virtual_gateway_state,
         }
+
+
 directconnect_backends = BackendDict(DirectConnectBackend, "directconnect")

@@ -248,8 +248,10 @@ class GuardDutyResponse(BaseResponse):
         detector_id = self.path.split("/")[-2]
         max_results = self._get_param("maxResults")
         next_token = self._get_param("nextToken")
-        threat_intel_set_ids, new_next_token = self.guardduty_backend.list_threat_intel_sets(
-            detector_id, max_results=max_results, next_token=next_token
+        threat_intel_set_ids, new_next_token = (
+            self.guardduty_backend.list_threat_intel_sets(
+                detector_id, max_results=max_results, next_token=next_token
+            )
         )
         result: dict[str, Any] = {"threatIntelSetIds": threat_intel_set_ids}
         if new_next_token:

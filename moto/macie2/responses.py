@@ -201,9 +201,7 @@ class MacieResponse(BaseResponse):
 
     def list_allow_lists(self) -> str:
         allow_lists = self.macie_backend.list_allow_lists()
-        return json.dumps(
-            {"allowLists": [al.to_summary() for al in allow_lists]}
-        )
+        return json.dumps({"allowLists": [al.to_summary() for al in allow_lists]})
 
     # --- Classification Jobs ---
 
@@ -220,7 +218,9 @@ class MacieResponse(BaseResponse):
         allow_list_ids = self._get_param("allowListIds", [])
         custom_data_identifier_ids = self._get_param("customDataIdentifierIds", [])
         managed_data_identifier_ids = self._get_param("managedDataIdentifierIds", [])
-        managed_data_identifier_selector = self._get_param("managedDataIdentifierSelector")
+        managed_data_identifier_selector = self._get_param(
+            "managedDataIdentifierSelector"
+        )
         job = self.macie_backend.create_classification_job(
             name=name,
             job_type=job_type,
@@ -293,10 +293,12 @@ class MacieResponse(BaseResponse):
     def batch_get_custom_data_identifiers(self) -> str:
         ids = self._get_param("ids", [])
         found, not_found = self.macie_backend.batch_get_custom_data_identifiers(ids)
-        return json.dumps({
-            "customDataIdentifiers": [c.to_json() for c in found],
-            "notFoundIdentifierIds": not_found,
-        })
+        return json.dumps(
+            {
+                "customDataIdentifiers": [c.to_json() for c in found],
+                "notFoundIdentifierIds": not_found,
+            }
+        )
 
     def test_custom_data_identifier(self) -> str:
         regex = self._get_param("regex", "")
@@ -369,7 +371,9 @@ class MacieResponse(BaseResponse):
 
     def put_classification_export_configuration(self) -> str:
         configuration = self._get_param("configuration", {})
-        result = self.macie_backend.put_classification_export_configuration(configuration)
+        result = self.macie_backend.put_classification_export_configuration(
+            configuration
+        )
         return json.dumps({"configuration": result})
 
     def get_classification_export_configuration(self) -> str:
@@ -382,10 +386,12 @@ class MacieResponse(BaseResponse):
 
     def get_reveal_configuration(self) -> str:
         config, retrieval = self.macie_backend.get_reveal_configuration()
-        return json.dumps({
-            "configuration": config,
-            "retrievalConfiguration": retrieval,
-        })
+        return json.dumps(
+            {
+                "configuration": config,
+                "retrievalConfiguration": retrieval,
+            }
+        )
 
     def update_reveal_configuration(self) -> str:
         configuration = self._get_param("configuration")
@@ -394,10 +400,12 @@ class MacieResponse(BaseResponse):
             configuration=configuration,
             retrieval_configuration=retrieval_configuration,
         )
-        return json.dumps({
-            "configuration": config,
-            "retrievalConfiguration": retrieval,
-        })
+        return json.dumps(
+            {
+                "configuration": config,
+                "retrievalConfiguration": retrieval,
+            }
+        )
 
     # --- Automated Discovery ---
 
@@ -551,7 +559,9 @@ class MacieResponse(BaseResponse):
         # Path: /findings/{findingId}/reveal/availability
         parts = self.path.split("/")
         finding_id = parts[-3]  # /findings/{id}/reveal/availability
-        result = self.macie_backend.get_sensitive_data_occurrences_availability(finding_id)
+        result = self.macie_backend.get_sensitive_data_occurrences_availability(
+            finding_id
+        )
         return json.dumps(result)
 
     # --- Managed Data Identifiers ---

@@ -129,7 +129,6 @@ class VPCLatticeResponse(BaseResponse):
         )
         return json.dumps(assoc.to_dict())
 
-
     def update_service_network_vpc_association(self) -> str:
         path = unquote(self.path)
         assoc = self.backend.update_service_network_vpc_association(
@@ -147,9 +146,6 @@ class VPCLatticeResponse(BaseResponse):
 
     # ---- Service Network Service Associations ----
 
-
-
-
     def delete_service_network_service_association(self) -> str:
         path = unquote(self.path)
         assoc = self.backend.delete_service_network_service_association(
@@ -160,9 +156,6 @@ class VPCLatticeResponse(BaseResponse):
         return json.dumps(result)
 
     # ---- Listeners ----
-
-
-
 
     def update_listener(self) -> str:
         path = unquote(self.path)
@@ -235,7 +228,9 @@ class VPCLatticeResponse(BaseResponse):
             max_results=max_results,
             next_token=next_token,
         )
-        return json.dumps({"items": [r.to_dict() for r in rules], "nextToken": next_token})
+        return json.dumps(
+            {"items": [r.to_dict() for r in rules], "nextToken": next_token}
+        )
 
     def update_rule(self) -> str:
         path = unquote(self.path)
@@ -281,9 +276,6 @@ class VPCLatticeResponse(BaseResponse):
         return json.dumps(result)
 
     # ---- Target Groups ----
-
-
-
 
     def update_target_group(self) -> str:
         path = unquote(self.path)

@@ -720,9 +720,7 @@ class CloudDirectoryResponse(BaseResponse):
             directory_arn=directory_arn,
             dry_run=dry_run,
         )
-        return json.dumps(
-            {"UpgradedSchemaArn": upgraded_arn, "DirectoryArn": dir_arn}
-        )
+        return json.dumps({"UpgradedSchemaArn": upgraded_arn, "DirectoryArn": dir_arn})
 
     def upgrade_published_schema(self) -> str:
         development_schema_arn = self._get_param("DevelopmentSchemaArn")

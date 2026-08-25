@@ -412,9 +412,7 @@ class ShieldBackend(BaseBackend):
         if tags:
             self.tag_resource(pg.protection_group_arn, tags)
 
-    def describe_protection_group(
-        self, protection_group_id: str
-    ) -> ProtectionGroup:
+    def describe_protection_group(self, protection_group_id: str) -> ProtectionGroup:
         if protection_group_id not in self.protection_groups:
             raise ResourceNotFoundException(
                 "The referenced protection group does not exist."
@@ -461,17 +459,13 @@ class ShieldBackend(BaseBackend):
                 groups = [g for g in groups if g.pattern in patterns]
             resource_types = inclusion_filters.get("ResourceTypes")
             if resource_types:
-                groups = [
-                    g for g in groups if g.resource_type in resource_types
-                ]
+                groups = [g for g in groups if g.resource_type in resource_types]
             aggregations = inclusion_filters.get("Aggregations")
             if aggregations:
                 groups = [g for g in groups if g.aggregation in aggregations]
         return groups
 
-    def list_resources_in_protection_group(
-        self, protection_group_id: str
-    ) -> list[str]:
+    def list_resources_in_protection_group(self, protection_group_id: str) -> list[str]:
         if protection_group_id not in self.protection_groups:
             raise ResourceNotFoundException(
                 "The referenced protection group does not exist."
@@ -480,16 +474,16 @@ class ShieldBackend(BaseBackend):
 
     # Health check association
 
-    def associate_health_check(
-        self, protection_id: str, health_check_arn: str
-    ) -> None:
+    def associate_health_check(self, protection_id: str, health_check_arn: str) -> None:
         if protection_id not in self.protections:
-            raise ResourceNotFoundException(
-                "The referenced protection does not exist."
-            )
+            raise ResourceNotFoundException("The referenced protection does not exist.")
         protection = self.protections[protection_id]
         # Extract health check ID from ARN
-        hc_id = health_check_arn.split("/")[-1] if "/" in health_check_arn else health_check_arn
+        hc_id = (
+            health_check_arn.split("/")[-1]
+            if "/" in health_check_arn
+            else health_check_arn
+        )
         if hc_id not in protection.health_check_ids:
             protection.health_check_ids.append(hc_id)
 
@@ -497,11 +491,13 @@ class ShieldBackend(BaseBackend):
         self, protection_id: str, health_check_arn: str
     ) -> None:
         if protection_id not in self.protections:
-            raise ResourceNotFoundException(
-                "The referenced protection does not exist."
-            )
+            raise ResourceNotFoundException("The referenced protection does not exist.")
         protection = self.protections[protection_id]
-        hc_id = health_check_arn.split("/")[-1] if "/" in health_check_arn else health_check_arn
+        hc_id = (
+            health_check_arn.split("/")[-1]
+            if "/" in health_check_arn
+            else health_check_arn
+        )
         if hc_id in protection.health_check_ids:
             protection.health_check_ids.remove(hc_id)
 
@@ -517,26 +513,20 @@ class ShieldBackend(BaseBackend):
                 protection = p
                 break
         if protection is None:
-            raise ResourceNotFoundException(
-                "The referenced protection does not exist."
-            )
+            raise ResourceNotFoundException("The referenced protection does not exist.")
         protection.application_layer_automatic_response_configuration = {
             "Status": "ENABLED",
             "Action": action,
         }
 
-    def disable_application_layer_automatic_response(
-        self, resource_arn: str
-    ) -> None:
+    def disable_application_layer_automatic_response(self, resource_arn: str) -> None:
         protection = None
         for p in self.protections.values():
             if p.resource_arn == resource_arn:
                 protection = p
                 break
         if protection is None:
-            raise ResourceNotFoundException(
-                "The referenced protection does not exist."
-            )
+            raise ResourceNotFoundException("The referenced protection does not exist.")
         protection.application_layer_automatic_response_configuration = {}
 
     def update_application_layer_automatic_response(
@@ -548,9 +538,7 @@ class ShieldBackend(BaseBackend):
                 protection = p
                 break
         if protection is None:
-            raise ResourceNotFoundException(
-                "The referenced protection does not exist."
-            )
+            raise ResourceNotFoundException("The referenced protection does not exist.")
         protection.application_layer_automatic_response_configuration = {
             "Status": "ENABLED",
             "Action": action,

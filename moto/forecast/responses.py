@@ -371,9 +371,7 @@ class ForecastResponse(BaseResponse):
     def create_explainability(self) -> TYPE_RESPONSE:
         name = self._get_param("ExplainabilityName")
         data = {
-            k: v
-            for k, v in json.loads(self.body).items()
-            if k != "ExplainabilityName"
+            k: v for k, v in json.loads(self.body).items() if k != "ExplainabilityName"
         }
         arn = self.forecast_backend.create_explainability(name=name, data=data)
         return 200, {}, json.dumps({"ExplainabilityArn": arn})
@@ -502,9 +500,7 @@ class ForecastResponse(BaseResponse):
     def create_what_if_analysis(self) -> TYPE_RESPONSE:
         name = self._get_param("WhatIfAnalysisName")
         data = {
-            k: v
-            for k, v in json.loads(self.body).items()
-            if k != "WhatIfAnalysisName"
+            k: v for k, v in json.loads(self.body).items() if k != "WhatIfAnalysisName"
         }
         arn = self.forecast_backend.create_what_if_analysis(name=name, data=data)
         return 200, {}, json.dumps({"WhatIfAnalysisArn": arn})
@@ -546,9 +542,7 @@ class ForecastResponse(BaseResponse):
     def create_what_if_forecast(self) -> TYPE_RESPONSE:
         name = self._get_param("WhatIfForecastName")
         data = {
-            k: v
-            for k, v in json.loads(self.body).items()
-            if k != "WhatIfForecastName"
+            k: v for k, v in json.loads(self.body).items() if k != "WhatIfForecastName"
         }
         arn = self.forecast_backend.create_what_if_forecast(name=name, data=data)
         return 200, {}, json.dumps({"WhatIfForecastArn": arn})

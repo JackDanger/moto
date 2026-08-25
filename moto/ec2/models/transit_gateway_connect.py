@@ -80,7 +80,9 @@ class TransitGatewayConnectBackend:
         attachment = self.transit_gateway_attachments.get(  # type: ignore[attr-defined]
             transport_transit_gateway_attachment_id
         )
-        transit_gateway_id = attachment.transit_gateway_id if attachment else "tgw-unknown"
+        transit_gateway_id = (
+            attachment.transit_gateway_id if attachment else "tgw-unknown"
+        )
 
         connect = TransitGatewayConnect(
             self,

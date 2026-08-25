@@ -2,7 +2,7 @@
 
 from typing import Any
 import uuid
-from typing import Any, Optional
+from typing import Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -99,7 +99,11 @@ class RuleGroupModel(BaseModel):
         self.rules = rules
         self.encryption_configuration = encryption_configuration
         self.source_metadata = source_metadata
-        rg_prefix = "stateful-rulegroup" if rule_group_type == "STATEFUL" else "stateless-rulegroup"
+        rg_prefix = (
+            "stateful-rulegroup"
+            if rule_group_type == "STATEFUL"
+            else "stateless-rulegroup"
+        )
         self.arn = f"arn:aws:network-firewall:{region_name}:{account_id}:{rg_prefix}/{rule_group_name}"
         self.update_token = _new_update_token()
         self.rule_group_status = "ACTIVE"
@@ -223,7 +227,9 @@ class NetworkFirewallBackend(BaseBackend):
         self.firewalls: dict[str, NetworkFirewallModel] = {}
         self.firewall_policies: dict[str, FirewallPolicyModel] = {}
         self.rule_groups: dict[str, RuleGroupModel] = {}
-        self.tls_inspection_configurations: dict[str, TLSInspectionConfigurationModel] = {}
+        self.tls_inspection_configurations: dict[
+            str, TLSInspectionConfigurationModel
+        ] = {}
         self.resource_policies: dict[str, str] = {}
         self.tagger = TaggingService()
 
@@ -673,7 +679,10 @@ class NetworkFirewallBackend(BaseBackend):
         ):
             return self.tls_inspection_configurations[tls_inspection_configuration_arn]
         for tls in self.tls_inspection_configurations.values():
-            if tls.tls_inspection_configuration_name == tls_inspection_configuration_name:
+            if (
+                tls.tls_inspection_configuration_name
+                == tls_inspection_configuration_name
+            ):
                 return tls
         raise ResourceNotFound(
             str(tls_inspection_configuration_arn or tls_inspection_configuration_name)
@@ -720,7 +729,9 @@ class NetworkFirewallBackend(BaseBackend):
         return tls
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_tls_inspection_configurations(self) -> list[TLSInspectionConfigurationModel]:
+    def list_tls_inspection_configurations(
+        self,
+    ) -> list[TLSInspectionConfigurationModel]:
         return list(self.tls_inspection_configurations.values())
 
     def list_tags_for_resource(self, resource_arn: str) -> list[dict[str, str]]:

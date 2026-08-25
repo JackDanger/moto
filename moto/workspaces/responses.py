@@ -649,9 +649,7 @@ class WorkSpacesResponse(BaseResponse):
         rebuild, restore = self.workspaces_backend.describe_workspace_snapshots(
             workspace_id=params["WorkspaceId"],
         )
-        return json.dumps(
-            {"RebuildSnapshots": rebuild, "RestoreSnapshots": restore}
-        )
+        return json.dumps({"RebuildSnapshots": rebuild, "RestoreSnapshots": restore})
 
     def create_standby_workspaces(self) -> str:
         params = json.loads(self.body)

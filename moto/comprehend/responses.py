@@ -676,7 +676,9 @@ class ComprehendResponse(BaseResponse):
         params = json.loads(self.body)
         text_list = params.get("TextList")
         language_code = params.get("LanguageCode")
-        resp = self.comprehend_backend.batch_detect_key_phrases(text_list, language_code)
+        resp = self.comprehend_backend.batch_detect_key_phrases(
+            text_list, language_code
+        )
         return json.dumps(resp)
 
     def batch_detect_sentiment(self) -> str:
@@ -768,7 +770,9 @@ class ComprehendResponse(BaseResponse):
         region = self.region
         account = self.current_account
         name = model_name or source_model_arn.split("/")[-1]
-        model_arn = f"arn:{partition}:comprehend:{region}:{account}:document-classifier/{name}"
+        model_arn = (
+            f"arn:{partition}:comprehend:{region}:{account}:document-classifier/{name}"
+        )
         return json.dumps({"ModelArn": model_arn})
 
     def list_document_classifier_summaries(self) -> str:
@@ -836,11 +840,13 @@ class ComprehendResponse(BaseResponse):
         filter = params.get("Filter")
         next_token = params.get("NextToken")
         max_results = params.get("MaxResults")
-        iteration_list, next_token = self.comprehend_backend.list_flywheel_iteration_history(
-            flywheel_arn=flywheel_arn,
-            filter=filter,
-            next_token=next_token,
-            max_results=max_results,
+        iteration_list, next_token = (
+            self.comprehend_backend.list_flywheel_iteration_history(
+                flywheel_arn=flywheel_arn,
+                filter=filter,
+                next_token=next_token,
+                max_results=max_results,
+            )
         )
         return json.dumps(
             {

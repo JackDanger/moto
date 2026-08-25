@@ -593,7 +593,6 @@ class OpenSearchServiceServerlessBackend(BaseBackend):
     def list_lifecycle_policies(self, type: str) -> list[LifecyclePolicy]:
         return [lp for lp in self.lifecycle_policies.values() if lp.type == type]
 
-
     def delete_lifecycle_policy(self, name: str, type: str) -> None:
         key = f"{name}:{type}"
         if key not in self.lifecycle_policies:
@@ -610,7 +609,6 @@ class OpenSearchServiceServerlessBackend(BaseBackend):
         policy: str | None,
         policy_version: str | None,
     ) -> "LifecyclePolicy":
-        from moto.utilities.utils import unix_time
 
         key = f"{name}:{type}"
         if key not in self.lifecycle_policies:

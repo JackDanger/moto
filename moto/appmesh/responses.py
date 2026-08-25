@@ -560,7 +560,9 @@ class AppMeshResponse(BaseResponse):
         return json.dumps(
             {
                 "nextToken": next_token,
-                "virtualServices": [vs.formatted_for_list_api() for vs in virtual_services],
+                "virtualServices": [
+                    vs.formatted_for_list_api() for vs in virtual_services
+                ],
             }
         )
 

@@ -483,7 +483,10 @@ class SSOAdminResponse(BaseResponse):
             instance_arn=instance_arn
         )
         return json.dumps(
-            {"InstanceAccessControlAttributeConfiguration": config, "Status": config["Status"]}
+            {
+                "InstanceAccessControlAttributeConfiguration": config,
+                "Status": config["Status"],
+            }
         )
 
     def update_instance_access_control_attribute_configuration(self) -> str:
@@ -509,11 +512,13 @@ class SSOAdminResponse(BaseResponse):
         filter_ = self._get_param("Filter")
         max_results = self._get_int_param("MaxResults")
         next_token = self._get_param("NextToken")
-        statuses, next_token = self.ssoadmin_backend.list_account_assignment_creation_status(
-            instance_arn=instance_arn,
-            filter_=filter_,
-            max_results=max_results,
-            next_token=next_token,
+        statuses, next_token = (
+            self.ssoadmin_backend.list_account_assignment_creation_status(
+                instance_arn=instance_arn,
+                filter_=filter_,
+                max_results=max_results,
+                next_token=next_token,
+            )
         )
         return json.dumps(
             {"AccountAssignmentsCreationStatus": statuses, "NextToken": next_token}
@@ -524,11 +529,13 @@ class SSOAdminResponse(BaseResponse):
         filter_ = self._get_param("Filter")
         max_results = self._get_int_param("MaxResults")
         next_token = self._get_param("NextToken")
-        statuses, next_token = self.ssoadmin_backend.list_account_assignment_deletion_status(
-            instance_arn=instance_arn,
-            filter_=filter_,
-            max_results=max_results,
-            next_token=next_token,
+        statuses, next_token = (
+            self.ssoadmin_backend.list_account_assignment_deletion_status(
+                instance_arn=instance_arn,
+                filter_=filter_,
+                max_results=max_results,
+                next_token=next_token,
+            )
         )
         return json.dumps(
             {"AccountAssignmentsDeletionStatus": statuses, "NextToken": next_token}
@@ -539,11 +546,13 @@ class SSOAdminResponse(BaseResponse):
         filter_ = self._get_param("Filter")
         max_results = self._get_int_param("MaxResults")
         next_token = self._get_param("NextToken")
-        statuses, next_token = self.ssoadmin_backend.list_permission_set_provisioning_status(
-            instance_arn=instance_arn,
-            filter_=filter_,
-            max_results=max_results,
-            next_token=next_token,
+        statuses, next_token = (
+            self.ssoadmin_backend.list_permission_set_provisioning_status(
+                instance_arn=instance_arn,
+                filter_=filter_,
+                max_results=max_results,
+                next_token=next_token,
+            )
         )
         return json.dumps(
             {"PermissionSetsProvisioningStatus": statuses, "NextToken": next_token}
@@ -715,13 +724,15 @@ class SSOAdminResponse(BaseResponse):
         filter_ = self._get_param("Filter")
         max_results = self._get_int_param("MaxResults")
         next_token = self._get_param("NextToken")
-        assignments, next_token = self.ssoadmin_backend.list_application_assignments_for_principal(
-            instance_arn=instance_arn,
-            principal_type=principal_type,
-            principal_id=principal_id,
-            filter_=filter_,
-            max_results=max_results,
-            next_token=next_token,
+        assignments, next_token = (
+            self.ssoadmin_backend.list_application_assignments_for_principal(
+                instance_arn=instance_arn,
+                principal_type=principal_type,
+                principal_id=principal_id,
+                filter_=filter_,
+                max_results=max_results,
+                next_token=next_token,
+            )
         )
         return json.dumps(
             {"ApplicationAssignments": assignments, "NextToken": next_token}
@@ -780,10 +791,12 @@ class SSOAdminResponse(BaseResponse):
         application_arn = self._get_param("ApplicationArn")
         max_results = self._get_int_param("MaxResults")
         next_token = self._get_param("NextToken")
-        methods, next_token = self.ssoadmin_backend.list_application_authentication_methods(
-            application_arn=application_arn,
-            max_results=max_results,
-            next_token=next_token,
+        methods, next_token = (
+            self.ssoadmin_backend.list_application_authentication_methods(
+                application_arn=application_arn,
+                max_results=max_results,
+                next_token=next_token,
+            )
         )
         return json.dumps({"AuthenticationMethods": methods, "NextToken": next_token})
 
@@ -834,8 +847,12 @@ class SSOAdminResponse(BaseResponse):
     def put_application_session_configuration(self) -> str:
         application_arn = self._get_param("ApplicationArn")
         # AWS API uses UserBackgroundSessionApplicationStatus
-        user_background_status = self._get_param("UserBackgroundSessionApplicationStatus")
-        session_configuration = {"UserBackgroundSessionApplicationStatus": user_background_status}
+        user_background_status = self._get_param(
+            "UserBackgroundSessionApplicationStatus"
+        )
+        session_configuration = {
+            "UserBackgroundSessionApplicationStatus": user_background_status
+        }
         self.ssoadmin_backend.put_application_session_configuration(
             application_arn=application_arn,
             session_configuration=session_configuration,

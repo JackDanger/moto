@@ -37,7 +37,6 @@ class IpamScope(TaggedEC2Resource):
     def owner_id(self) -> str:
         return self.ec2_backend.account_id
 
-
     @property
     def arn(self) -> str:
         return (
@@ -51,10 +50,6 @@ class IpamScope(TaggedEC2Resource):
             f"arn:{self.ec2_backend.partition}:ec2:{self.ec2_backend.region_name}"
             f":{self.ec2_backend.account_id}:ipam/{self.ipam_id}"
         )
-
-
-
-
 
 
 class IpamPoolCidr:
@@ -256,9 +251,7 @@ class IpamBackend:
                     ipam._operating_regions.append(region)
         if remove_operating_regions:
             ipam._operating_regions = [
-                r
-                for r in ipam._operating_regions
-                if r not in remove_operating_regions
+                r for r in ipam._operating_regions if r not in remove_operating_regions
             ]
         return ipam
 
@@ -485,7 +478,9 @@ class IpamBackend:
         allocs = list(pool.allocations.values())
         if ipam_pool_allocation_id:
             allocs = [
-                a for a in allocs if a.ipam_pool_allocation_id == ipam_pool_allocation_id
+                a
+                for a in allocs
+                if a.ipam_pool_allocation_id == ipam_pool_allocation_id
             ]
         return allocs
 

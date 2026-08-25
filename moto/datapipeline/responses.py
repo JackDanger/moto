@@ -132,9 +132,7 @@ class DataPipelineResponse(BaseResponse):
         pipeline_id = self._get_param("pipelineId")
         sphere = self._get_param("sphere")
         ids = self.datapipeline_backend.query_objects(pipeline_id, sphere)
-        return json.dumps(
-            {"hasMoreResults": False, "ids": ids, "marker": None}
-        )
+        return json.dumps({"hasMoreResults": False, "ids": ids, "marker": None})
 
     def evaluate_expression(self) -> str:
         pipeline_id = self._get_param("pipelineId")

@@ -192,9 +192,7 @@ class DataPipelineBackend(BaseBackend):
         self.get_pipeline(pipeline_id)
         return {"errored": False, "validationErrors": [], "validationWarnings": []}
 
-    def query_objects(
-        self, pipeline_id: str, sphere: str
-    ) -> list[str]:
+    def query_objects(self, pipeline_id: str, sphere: str) -> list[str]:
         pipeline = self.get_pipeline(pipeline_id)
         if sphere == "INSTANCE":
             return []
@@ -211,9 +209,7 @@ class DataPipelineBackend(BaseBackend):
         # Return the expression as-is (basic stub)
         return expression
 
-    def set_status(
-        self, pipeline_id: str, object_ids: list[str], status: str
-    ) -> None:
+    def set_status(self, pipeline_id: str, object_ids: list[str], status: str) -> None:
         pipeline = self.get_pipeline(pipeline_id)
         for obj in pipeline.objects:
             if obj.object_id in object_ids:

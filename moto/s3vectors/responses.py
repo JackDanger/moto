@@ -289,7 +289,9 @@ class S3VectorsResponse(BaseResponse):
     def untag_resource(self) -> ActionResult:
         resource_arn = self.path.split("/tags/", 1)[-1]
         tag_keys = self.querystring.get("tagKeys", [])
-        self.s3vectors_backend.untag_resource(resource_arn=resource_arn, tag_keys=tag_keys)
+        self.s3vectors_backend.untag_resource(
+            resource_arn=resource_arn, tag_keys=tag_keys
+        )
         return EmptyResult()
 
     def list_tags_for_resource(self) -> ActionResult:

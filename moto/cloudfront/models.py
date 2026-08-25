@@ -20,11 +20,24 @@ from .exceptions import (
     NoSuchOriginAccessControl,
     OriginDoesNotExist,
 )
-import datetime
-from collections.abc import Iterable
-from typing import Optional
 from moto.core.utils import iso_8601_datetime_with_milliseconds
-from .exceptions import (FunctionAlreadyExists, NoSuchCachePolicy, NoSuchCloudFrontOriginAccessIdentity, NoSuchContinuousDeploymentPolicy, NoSuchFieldLevelEncryptionConfig, NoSuchFieldLevelEncryptionProfile, NoSuchFunctionExists, NoSuchKeyGroup, NoSuchMonitoringSubscription, NoSuchOriginRequestPolicy, NoSuchPublicKey, NoSuchRealtimeLogConfig, NoSuchResource, NoSuchResponseHeadersPolicy, NoSuchStreamingDistribution)
+from .exceptions import (
+    FunctionAlreadyExists,
+    NoSuchCachePolicy,
+    NoSuchCloudFrontOriginAccessIdentity,
+    NoSuchContinuousDeploymentPolicy,
+    NoSuchFieldLevelEncryptionConfig,
+    NoSuchFieldLevelEncryptionProfile,
+    NoSuchFunctionExists,
+    NoSuchKeyGroup,
+    NoSuchMonitoringSubscription,
+    NoSuchOriginRequestPolicy,
+    NoSuchPublicKey,
+    NoSuchRealtimeLogConfig,
+    NoSuchResource,
+    NoSuchResponseHeadersPolicy,
+    NoSuchStreamingDistribution,
+)
 
 
 def random_id(uppercase: bool = True, length: int = 13) -> str:
@@ -378,8 +391,6 @@ class KeyGroup(BaseModel):
             "Items": self.items,
             "Name": self.name,
         }
-
-
 
 
 class AnycastIpList:
@@ -749,6 +760,7 @@ class RealtimeLogConfig(BaseModel):
             self.end_points = end_points
         if fields is not None:
             self.fields = fields
+
 
 class CloudFrontBackend(BaseBackend, TaggableResourcesMixin):
     SERVICE_NAMESPACE = "cloudfront"
@@ -1648,9 +1660,7 @@ class CloudFrontBackend(BaseBackend, TaggableResourcesMixin):
 
     def get_connection_group(self, group_id: str) -> ConnectionGroup:
         if group_id not in self.connection_groups:
-            raise NoSuchResource(
-                f"The connection group {group_id} does not exist."
-            )
+            raise NoSuchResource(f"The connection group {group_id} does not exist.")
         return self.connection_groups[group_id]
 
     def delete_connection_group(self, group_id: str) -> None:
@@ -1666,9 +1676,7 @@ class CloudFrontBackend(BaseBackend, TaggableResourcesMixin):
 
     def get_connection_function(self, name: str) -> ConnectionFunction:
         if name not in self.connection_functions:
-            raise NoSuchResource(
-                f"The connection function {name} does not exist."
-            )
+            raise NoSuchResource(f"The connection function {name} does not exist.")
         return self.connection_functions[name]
 
     def delete_connection_function(self, name: str) -> None:
@@ -1688,9 +1696,7 @@ class CloudFrontBackend(BaseBackend, TaggableResourcesMixin):
 
     def get_distribution_tenant(self, tenant_id: str) -> DistributionTenant:
         if tenant_id not in self.distribution_tenants:
-            raise NoSuchResource(
-                f"The distribution tenant {tenant_id} does not exist."
-            )
+            raise NoSuchResource(f"The distribution tenant {tenant_id} does not exist.")
         return self.distribution_tenants[tenant_id]
 
     def delete_distribution_tenant(self, tenant_id: str) -> None:

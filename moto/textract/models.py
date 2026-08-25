@@ -246,9 +246,7 @@ class TextractBackend(BaseBackend):
 
     # --- Expense analysis async ---
 
-    def start_expense_analysis(
-        self, document_location: dict[str, Any]
-    ) -> str:
+    def start_expense_analysis(self, document_location: dict[str, Any]) -> str:
         if not document_location:
             raise InvalidParameterException()
         job = TextractJob(
@@ -270,9 +268,7 @@ class TextractBackend(BaseBackend):
 
     # --- Lending analysis async ---
 
-    def start_lending_analysis(
-        self, document_location: dict[str, Any]
-    ) -> str:
+    def start_lending_analysis(self, document_location: dict[str, Any]) -> str:
         if not document_location:
             raise InvalidParameterException()
         job = TextractJob(

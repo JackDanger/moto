@@ -918,7 +918,6 @@ class LakeFormationBackend(BaseBackend):
                 return False
         return True
 
-
     def create_lf_tag_expression(
         self,
         catalog_id: str,

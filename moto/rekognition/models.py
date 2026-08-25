@@ -316,7 +316,10 @@ class RekognitionBackend(BaseBackend):
                 continue  # exclude the searched user itself
             matches.append(
                 {
-                    "User": {"UserId": user["UserId"], "UserStatus": user["UserStatus"]},
+                    "User": {
+                        "UserId": user["UserId"],
+                        "UserStatus": user["UserStatus"],
+                    },
                     "Similarity": 99.99,
                     "MatchConfidence": 99.99,
                 }
@@ -349,7 +352,10 @@ class RekognitionBackend(BaseBackend):
         for user in users[:max_users]:
             matches.append(
                 {
-                    "User": {"UserId": user["UserId"], "UserStatus": user["UserStatus"]},
+                    "User": {
+                        "UserId": user["UserId"],
+                        "UserStatus": user["UserStatus"],
+                    },
                     "Similarity": 99.99,
                     "MatchConfidence": 99.99,
                 }
@@ -400,7 +406,11 @@ class RekognitionBackend(BaseBackend):
                 associated.append({"FaceId": face_id})
             else:
                 unsuccessful.append(
-                    {"FaceId": face_id, "Reasons": ["FACE_NOT_FOUND"], "Confidence": 0.0}
+                    {
+                        "FaceId": face_id,
+                        "Reasons": ["FACE_NOT_FOUND"],
+                        "Confidence": 0.0,
+                    }
                 )
         return {
             "AssociatedFaces": associated,

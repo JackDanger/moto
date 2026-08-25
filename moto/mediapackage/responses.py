@@ -159,12 +159,16 @@ class MediaPackageResponse(BaseResponse):
     def untag_resource(self) -> str:
         resource_arn = self.path.split("/tags/")[-1]
         tag_keys = self.querystring.get("tagKeys", [])
-        self.mediapackage_backend.untag_resource(resource_arn=resource_arn, tag_keys=tag_keys)
+        self.mediapackage_backend.untag_resource(
+            resource_arn=resource_arn, tag_keys=tag_keys
+        )
         return json.dumps({})
 
     def list_tags_for_resource(self) -> str:
         resource_arn = self.path.split("/tags/")[-1]
-        tags = self.mediapackage_backend.list_tags_for_resource(resource_arn=resource_arn)
+        tags = self.mediapackage_backend.list_tags_for_resource(
+            resource_arn=resource_arn
+        )
         return json.dumps({"tags": tags})
 
     def configure_logs(self) -> str:

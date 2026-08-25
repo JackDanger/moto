@@ -255,9 +255,7 @@ class Group(BaseModel):
         tags: Optional[list[dict[str, str]]] = None,
     ):
         self.group_name = group_name
-        self.group_arn = (
-            f"arn:aws:xray:{region_name}:{account_id}:group/{group_name}"
-        )
+        self.group_arn = f"arn:aws:xray:{region_name}:{account_id}:group/{group_name}"
         self.filter_expression = filter_expression or ""
         self.insights_configuration = insights_configuration or {
             "InsightsEnabled": False,
@@ -295,8 +293,7 @@ class SamplingRuleModel(BaseModel):
         self.attributes = rule.get("Attributes", {})
         self.rule_arn = (
             rule.get("RuleARN")
-            or f"arn:aws:xray:{region_name}:{account_id}:sampling-rule/"
-            f"{self.rule_name}"
+            or f"arn:aws:xray:{region_name}:{account_id}:sampling-rule/{self.rule_name}"
         )
         self.created_at = time.time()
         self.modified_at = self.created_at
@@ -485,10 +482,7 @@ class XRayBackend(BaseBackend):
         existing = self._resource_policies.get(policy_name)
         if existing is None:
             return  # AWS is idempotent on delete
-        if (
-            policy_revision_id
-            and existing.policy_revision_id != policy_revision_id
-        ):
+        if policy_revision_id and existing.policy_revision_id != policy_revision_id:
             raise AWSError(
                 "The provided policy revision id does not match.",
                 exception_type="InvalidPolicyRevisionIdException",
@@ -808,9 +802,7 @@ class XRayBackend(BaseBackend):
 
     # Indexing rules
 
-    def update_indexing_rule(
-        self, name: str, rule: dict[str, Any]
-    ) -> dict[str, Any]:
+    def update_indexing_rule(self, name: str, rule: dict[str, Any]) -> dict[str, Any]:
         for idx_rule in self._indexing_rules:
             if idx_rule["Name"] == name:
                 if "Probabilistic" in rule:

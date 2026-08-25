@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 from typing import Any
 from datetime import datetime, timezone
-from typing import Any, Optional
+from typing import Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -690,9 +690,7 @@ class AppConfigBackend(BaseBackend):
         deployment.state = "ROLLED_BACK"
         return deployment
 
-    def list_deployments(
-        self, app_id: str, env_id: str
-    ) -> list[Deployment]:
+    def list_deployments(self, app_id: str, env_id: str) -> list[Deployment]:
         env = self.get_environment(app_id, env_id)
         return list(env.deployments.values())
 

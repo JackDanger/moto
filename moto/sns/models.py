@@ -1305,12 +1305,6 @@ class SNSBackend(BaseBackend, TaggableResourcesMixin):
 
         return config_item
 
-
-
-
-
-
-
     def create_sms_sandbox_phone_number(
         self, phone_number: str, language_code: str = "en-US"
     ) -> None:

@@ -942,8 +942,6 @@ class DirectoryServiceBackend(BaseBackend):
         directory = self.directories[directory_id]
         directory.enable_ldaps(False)
 
-
-
     @paginate(pagination_model=PAGINATION_MODEL)
     def describe_settings(
         self, directory_id: str, status: str | None
@@ -980,9 +978,7 @@ class DirectoryServiceBackend(BaseBackend):
 
         return directory_id
 
-    def describe_ad_assessment(
-        self, assessment_id: str
-    ) -> dict[str, Any]:
+    def describe_ad_assessment(self, assessment_id: str) -> dict[str, Any]:
         """Describe an AD assessment."""
         if assessment_id not in self.ad_assessments:
             raise EntityDoesNotExistException(
@@ -990,9 +986,7 @@ class DirectoryServiceBackend(BaseBackend):
             )
         return self.ad_assessments[assessment_id]
 
-    def describe_ca_enrollment_policy(
-        self, directory_id: str
-    ) -> dict[str, Any]:
+    def describe_ca_enrollment_policy(self, directory_id: str) -> dict[str, Any]:
         """Describe CA enrollment policy — returns disabled state."""
         self._validate_directory_id(directory_id)
         return {
@@ -1082,7 +1076,8 @@ class DirectoryServiceBackend(BaseBackend):
             vpc_id = directory.vpc_settings["VpcId"] if directory.vpc_settings else ""
             subnet_id = (
                 directory.vpc_settings["SubnetIds"][i]
-                if directory.vpc_settings and i < len(directory.vpc_settings["SubnetIds"])
+                if directory.vpc_settings
+                and i < len(directory.vpc_settings["SubnetIds"])
                 else ""
             )
             az = (
@@ -1108,7 +1103,9 @@ class DirectoryServiceBackend(BaseBackend):
             )
         if domain_controller_ids:
             controllers = [
-                c for c in controllers if c["DomainControllerId"] in domain_controller_ids
+                c
+                for c in controllers
+                if c["DomainControllerId"] in domain_controller_ids
             ]
         return controllers
 
@@ -1169,9 +1166,7 @@ class DirectoryServiceBackend(BaseBackend):
     def delete_snapshot(self, snapshot_id: str) -> str:
         """Delete a directory snapshot."""
         if snapshot_id not in self.snapshots:
-            raise EntityDoesNotExistException(
-                f"Snapshot {snapshot_id} does not exist"
-            )
+            raise EntityDoesNotExistException(f"Snapshot {snapshot_id} does not exist")
         self.snapshots[snapshot_id].status = "Deleted"
         self.snapshots.pop(snapshot_id)
         return snapshot_id
@@ -1179,9 +1174,7 @@ class DirectoryServiceBackend(BaseBackend):
     def restore_from_snapshot(self, snapshot_id: str) -> None:
         """Restore a directory from a snapshot (no-op in mock)."""
         if snapshot_id not in self.snapshots:
-            raise EntityDoesNotExistException(
-                f"Snapshot {snapshot_id} does not exist"
-            )
+            raise EntityDoesNotExistException(f"Snapshot {snapshot_id} does not exist")
 
     def describe_snapshots(
         self, directory_id: Optional[str], snapshot_ids: Optional[list[str]]
@@ -1442,9 +1435,7 @@ class DirectoryServiceBackend(BaseBackend):
         """List IP routes for a directory."""
         self._validate_directory_id(directory_id)
         routes = [
-            r.to_dict()
-            for key, r in self.ip_routes.items()
-            if key[0] == directory_id
+            r.to_dict() for key, r in self.ip_routes.items() if key[0] == directory_id
         ]
         return routes
 
@@ -1567,7 +1558,6 @@ class DirectoryServiceBackend(BaseBackend):
             )
         return
 
-
     def start_ad_assessment(self, directory_id: str) -> str:
         """Start an AD assessment and return a new assessment ID."""
         self._validate_directory_id(directory_id)
@@ -1584,17 +1574,23 @@ class DirectoryServiceBackend(BaseBackend):
         }
         return assessment_id
 
-    def list_ad_assessments(self, directory_id: Optional[str] = None) -> list[dict[str, Any]]:
+    def list_ad_assessments(
+        self, directory_id: Optional[str] = None
+    ) -> list[dict[str, Any]]:
         """List AD assessments, optionally filtered by directory ID."""
         assessments = list(self.ad_assessments.values())
         if directory_id:
-            assessments = [a for a in assessments if a.get("DirectoryId") == directory_id]
+            assessments = [
+                a for a in assessments if a.get("DirectoryId") == directory_id
+            ]
         return assessments
 
     def delete_ad_assessment(self, assessment_id: str) -> None:
         """Delete an AD assessment."""
         if assessment_id not in self.ad_assessments:
-            raise EntityDoesNotExistException(f"Assessment {assessment_id} does not exist")
+            raise EntityDoesNotExistException(
+                f"Assessment {assessment_id} does not exist"
+            )
         del self.ad_assessments[assessment_id]
 
     def enable_directory_data_access(self, directory_id: str) -> None:

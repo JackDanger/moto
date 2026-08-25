@@ -12,20 +12,12 @@ class CapacityReservations(EC2BaseResponse):
         availability_zone = self._get_param("AvailabilityZone")
         instance_count = int(self._get_param("InstanceCount", "1"))
         tenancy = self._get_param("Tenancy", "default")
-        ebs_optimized = str2bool(
-            self._get_param("EbsOptimized", "false")
-        )
-        ephemeral_storage = str2bool(
-            self._get_param("EphemeralStorage", "false")
-        )
+        ebs_optimized = str2bool(self._get_param("EbsOptimized", "false"))
+        ephemeral_storage = str2bool(self._get_param("EphemeralStorage", "false"))
         end_date = self._get_param("EndDate")
         end_date_type = self._get_param("EndDateType", "unlimited")
-        instance_match_criteria = self._get_param(
-            "InstanceMatchCriteria", "open"
-        )
-        tags = add_tag_specification(
-            self._get_param("TagSpecifications", [])
-        )
+        instance_match_criteria = self._get_param("InstanceMatchCriteria", "open")
+        tags = add_tag_specification(self._get_param("TagSpecifications", []))
 
         cr = self.ec2_backend.create_capacity_reservation(
             instance_type=instance_type,
@@ -40,35 +32,9 @@ class CapacityReservations(EC2BaseResponse):
             instance_match_criteria=instance_match_criteria,
             tags=tags,
         )
-        return ActionResult({
-            "CapacityReservation": {
-                "CapacityReservationId": cr.id,
-                "OwnerId": cr.owner_id,
-                "CapacityReservationArn": cr.arn,
-                "InstanceType": cr.instance_type,
-                "InstancePlatform": cr.instance_platform,
-                "AvailabilityZone": cr.availability_zone,
-                "Tenancy": cr.tenancy,
-                "TotalInstanceCount": cr.total_instance_count,
-                "AvailableInstanceCount": cr.available_instance_count,
-                "EbsOptimized": cr.ebs_optimized,
-                "EphemeralStorage": cr.ephemeral_storage,
-                "State": cr.state,
-                "EndDateType": cr.end_date_type,
-                "InstanceMatchCriteria": cr.instance_match_criteria,
-                "CreateDate": cr.creation_date,
-                "Tags": [{"Key": tag.key, "Value": tag.value} for tag in cr.get_tags()],
-            }
-        })
-
-    def describe_capacity_reservations(self) -> ActionResult:
-        cr_ids = self._get_param("CapacityReservationId", [])
-        crs = self.ec2_backend.describe_capacity_reservations(
-            capacity_reservation_ids=cr_ids or None,
-        )
-        return ActionResult({
-            "CapacityReservationSet": [
-                {
+        return ActionResult(
+            {
+                "CapacityReservation": {
                     "CapacityReservationId": cr.id,
                     "OwnerId": cr.owner_id,
                     "CapacityReservationArn": cr.arn,
@@ -84,11 +50,46 @@ class CapacityReservations(EC2BaseResponse):
                     "EndDateType": cr.end_date_type,
                     "InstanceMatchCriteria": cr.instance_match_criteria,
                     "CreateDate": cr.creation_date,
-                    "Tags": [{"Key": tag.key, "Value": tag.value} for tag in cr.get_tags()],
+                    "Tags": [
+                        {"Key": tag.key, "Value": tag.value} for tag in cr.get_tags()
+                    ],
                 }
-                for cr in crs
-            ]
-        })
+            }
+        )
+
+    def describe_capacity_reservations(self) -> ActionResult:
+        cr_ids = self._get_param("CapacityReservationId", [])
+        crs = self.ec2_backend.describe_capacity_reservations(
+            capacity_reservation_ids=cr_ids or None,
+        )
+        return ActionResult(
+            {
+                "CapacityReservationSet": [
+                    {
+                        "CapacityReservationId": cr.id,
+                        "OwnerId": cr.owner_id,
+                        "CapacityReservationArn": cr.arn,
+                        "InstanceType": cr.instance_type,
+                        "InstancePlatform": cr.instance_platform,
+                        "AvailabilityZone": cr.availability_zone,
+                        "Tenancy": cr.tenancy,
+                        "TotalInstanceCount": cr.total_instance_count,
+                        "AvailableInstanceCount": cr.available_instance_count,
+                        "EbsOptimized": cr.ebs_optimized,
+                        "EphemeralStorage": cr.ephemeral_storage,
+                        "State": cr.state,
+                        "EndDateType": cr.end_date_type,
+                        "InstanceMatchCriteria": cr.instance_match_criteria,
+                        "CreateDate": cr.creation_date,
+                        "Tags": [
+                            {"Key": tag.key, "Value": tag.value}
+                            for tag in cr.get_tags()
+                        ],
+                    }
+                    for cr in crs
+                ]
+            }
+        )
 
     def modify_capacity_reservation(self) -> EmptyResult:
         cr_id = self._get_param("CapacityReservationId")
@@ -97,9 +98,7 @@ class CapacityReservations(EC2BaseResponse):
         end_date_type = self._get_param("EndDateType")
         self.ec2_backend.modify_capacity_reservation(
             capacity_reservation_id=cr_id,
-            instance_count=(
-                int(instance_count) if instance_count else None
-            ),
+            instance_count=(int(instance_count) if instance_count else None),
             end_date=end_date,
             end_date_type=end_date_type,
         )
@@ -119,9 +118,7 @@ class CapacityReservations(EC2BaseResponse):
         tenancy = self._get_param("Tenancy", "default")
         end_date = self._get_param("EndDate")
         match = self._get_param("InstanceMatchCriteria", "open")
-        tags = add_tag_specification(
-            self._get_param("TagSpecifications", [])
-        )
+        tags = add_tag_specification(self._get_param("TagSpecifications", []))
 
         fleet = self.ec2_backend.create_capacity_reservation_fleet(
             instance_type_specifications=specs,
@@ -132,36 +129,38 @@ class CapacityReservations(EC2BaseResponse):
             instance_match_criteria=match,
             tags=tags,
         )
-        return ActionResult({
-            "CapacityReservationFleetId": fleet.id,
-            "State": fleet.state,
-            "TotalTargetCapacity": fleet.total_target_capacity,
-            "TotalFulfilledCapacity": fleet.total_fulfilled_capacity,
-            "AllocationStrategy": fleet.allocation_strategy,
-            "CreateTime": fleet.creation_time,
-        })
+        return ActionResult(
+            {
+                "CapacityReservationFleetId": fleet.id,
+                "State": fleet.state,
+                "TotalTargetCapacity": fleet.total_target_capacity,
+                "TotalFulfilledCapacity": fleet.total_fulfilled_capacity,
+                "AllocationStrategy": fleet.allocation_strategy,
+                "CreateTime": fleet.creation_time,
+            }
+        )
 
     def describe_capacity_reservation_fleets(self) -> ActionResult:
-        fleet_ids = self._get_param(
-            "CapacityReservationFleetId", []
-        )
+        fleet_ids = self._get_param("CapacityReservationFleetId", [])
         fleets = self.ec2_backend.describe_capacity_reservation_fleets(
             capacity_reservation_fleet_ids=fleet_ids or None,
         )
-        return ActionResult({
-            "CapacityReservationFleetSet": [
-                {
-                    "CapacityReservationFleetId": fleet.id,
-                    "State": fleet.state,
-                    "TotalTargetCapacity": fleet.total_target_capacity,
-                    "TotalFulfilledCapacity": fleet.total_fulfilled_capacity,
-                    "AllocationStrategy": fleet.allocation_strategy,
-                    "Tenancy": fleet.tenancy,
-                    "CreateTime": fleet.creation_time,
-                }
-                for fleet in fleets
-            ]
-        })
+        return ActionResult(
+            {
+                "CapacityReservationFleetSet": [
+                    {
+                        "CapacityReservationFleetId": fleet.id,
+                        "State": fleet.state,
+                        "TotalTargetCapacity": fleet.total_target_capacity,
+                        "TotalFulfilledCapacity": fleet.total_fulfilled_capacity,
+                        "AllocationStrategy": fleet.allocation_strategy,
+                        "Tenancy": fleet.tenancy,
+                        "CreateTime": fleet.creation_time,
+                    }
+                    for fleet in fleets
+                ]
+            }
+        )
 
     def modify_capacity_reservation_fleet(self) -> EmptyResult:
         fleet_id = self._get_param("CapacityReservationFleetId")
@@ -169,32 +168,30 @@ class CapacityReservations(EC2BaseResponse):
         end_date = self._get_param("EndDate")
         self.ec2_backend.modify_capacity_reservation_fleet(
             capacity_reservation_fleet_id=fleet_id,
-            total_target_capacity=(
-                int(total) if total else None
-            ),
+            total_target_capacity=(int(total) if total else None),
             end_date=end_date,
         )
         return EmptyResult()
 
     def cancel_capacity_reservation_fleets(self) -> ActionResult:
-        fleet_ids = self._get_param(
-            "CapacityReservationFleetId", []
-        )
+        fleet_ids = self._get_param("CapacityReservationFleetId", [])
         results = self.ec2_backend.cancel_capacity_reservation_fleets(
             capacity_reservation_fleet_ids=fleet_ids,
         )
-        return ActionResult({
-            "SuccessfulFleetCancellationSet": [
-                {
-                    "CapacityReservationFleetId": r.capacity_reservation_fleet_id,
-                    "CurrentFleetState": r.current_state,
-                    "PreviousFleetState": r.previous_state,
-                }
-                for r in results
-                if "error" not in r
-            ],
-            "FailedFleetCancellationSet": []
-        })
+        return ActionResult(
+            {
+                "SuccessfulFleetCancellationSet": [
+                    {
+                        "CapacityReservationFleetId": r.capacity_reservation_fleet_id,
+                        "CurrentFleetState": r.current_state,
+                        "PreviousFleetState": r.previous_state,
+                    }
+                    for r in results
+                    if "error" not in r
+                ],
+                "FailedFleetCancellationSet": [],
+            }
+        )
 
 
 CREATE_CAPACITY_RESERVATION = """<CreateCapacityReservationResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">

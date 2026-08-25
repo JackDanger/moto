@@ -489,7 +489,9 @@ class OpenSearchServiceServerlessResponse(BaseResponse):
         return json.dumps(result)
 
     def batch_get_collection_group(self) -> str:
-        return json.dumps({"collectionGroupDetails": [], "collectionGroupErrorDetails": []})
+        return json.dumps(
+            {"collectionGroupDetails": [], "collectionGroupErrorDetails": []}
+        )
 
     def create_collection_group(self) -> str:
         return json.dumps({"createCollectionGroupDetail": {}})

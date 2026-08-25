@@ -236,9 +236,7 @@ class ApprovalRuleTemplate(BaseModel):
         self.creation_date = iso_8601_datetime_with_milliseconds()
         self.last_modified_date = self.creation_date
         self.last_modified_user = ""
-        self.rule_content_sha256 = hashlib.sha256(
-            template_content.encode()
-        ).hexdigest()
+        self.rule_content_sha256 = hashlib.sha256(template_content.encode()).hexdigest()
         self.associated_repositories: list[str] = []
 
     def to_dict(self) -> dict[str, Any]:
@@ -355,7 +353,6 @@ class CodeCommitBackend(BaseBackend):
         repo = self._get_repo(repository_name)
         return repo.repository_metadata
 
-
     def delete_repository(self, repository_name: str) -> str | None:
         repository = self.repositories.get(repository_name)
 
@@ -412,9 +409,7 @@ class CodeCommitBackend(BaseBackend):
             iso_8601_datetime_with_milliseconds()
         )
 
-    def update_repository_name(
-        self, old_name: str, new_name: str
-    ) -> None:
+    def update_repository_name(self, old_name: str, new_name: str) -> None:
         repo = self._get_repo(old_name)
         if new_name in self.repositories:
             raise RepositoryNameExistsException(new_name)
@@ -450,18 +445,14 @@ class CodeCommitBackend(BaseBackend):
             raise BranchNameExistsException(branch_name)
         repo.branches[branch_name] = Branch(branch_name, commit_id)
 
-    def get_branch(
-        self, repository_name: str, branch_name: str
-    ) -> dict[str, str]:
+    def get_branch(self, repository_name: str, branch_name: str) -> dict[str, str]:
         repo = self._get_repo(repository_name)
         branch = repo.branches.get(branch_name)
         if not branch:
             raise BranchDoesNotExistException(branch_name)
         return branch.to_dict()
 
-    def delete_branch(
-        self, repository_name: str, branch_name: str
-    ) -> dict[str, str]:
+    def delete_branch(self, repository_name: str, branch_name: str) -> dict[str, str]:
         repo = self._get_repo(repository_name)
         branch = repo.branches.get(branch_name)
         if not branch:
@@ -543,7 +534,9 @@ class CodeCommitBackend(BaseBackend):
             for df in delete_files:
                 file_path = df.get("filePath", "")
                 if file_path in repo.files:
-                    files_deleted.append({"absolutePath": file_path, "blobId": "", "fileMode": "NORMAL"})
+                    files_deleted.append(
+                        {"absolutePath": file_path, "blobId": "", "fileMode": "NORMAL"}
+                    )
                     del repo.files[file_path]
 
         # Update branch to point to new commit
@@ -560,9 +553,7 @@ class CodeCommitBackend(BaseBackend):
             "filesDeleted": files_deleted,
         }
 
-    def get_commit(
-        self, repository_name: str, commit_id: str
-    ) -> dict[str, Any]:
+    def get_commit(self, repository_name: str, commit_id: str) -> dict[str, Any]:
         repo = self._get_repo(repository_name)
         commit = repo.commits.get(commit_id)
         if commit:
@@ -653,10 +644,14 @@ class CodeCommitBackend(BaseBackend):
         sub_folders: set[str] = set()
         for fp, entry in repo.files.items():
             if folder_path == "/" or fp.startswith(prefix):
-                relative = fp[len(prefix):] if folder_path != "/" else fp
+                relative = fp[len(prefix) :] if folder_path != "/" else fp
                 if "/" in relative:
                     sub_folder_name = relative.split("/")[0]
-                    sub_folders.add(prefix + sub_folder_name if folder_path != "/" else sub_folder_name)
+                    sub_folders.add(
+                        prefix + sub_folder_name
+                        if folder_path != "/"
+                        else sub_folder_name
+                    )
                 else:
                     files.append(entry.to_dict())
 
@@ -665,7 +660,11 @@ class CodeCommitBackend(BaseBackend):
             "folderPath": folder_path,
             "files": files,
             "subFolders": [
-                {"absolutePath": sf, "relativePath": sf.split("/")[-1], "treeId": str(mock_random.uuid4()).replace("-", "")[:40]}
+                {
+                    "absolutePath": sf,
+                    "relativePath": sf.split("/")[-1],
+                    "treeId": str(mock_random.uuid4()).replace("-", "")[:40],
+                }
                 for sf in sorted(sub_folders)
             ],
             "symbolicLinks": [],
@@ -673,9 +672,7 @@ class CodeCommitBackend(BaseBackend):
             "treeId": str(mock_random.uuid4()).replace("-", "")[:40],
         }
 
-    def get_blob(
-        self, repository_name: str, blob_id: str
-    ) -> dict[str, str]:
+    def get_blob(self, repository_name: str, blob_id: str) -> dict[str, str]:
         self._get_repo(repository_name)
         # Return stub content for any blob ID
         return {
@@ -897,7 +894,11 @@ class CodeCommitBackend(BaseBackend):
             raise PullRequestDoesNotExistException(pull_request_id)
         events = pr.events
         if pull_request_event_type:
-            events = [e for e in events if e.get("pullRequestEventType") == pull_request_event_type]
+            events = [
+                e
+                for e in events
+                if e.get("pullRequestEventType") == pull_request_event_type
+            ]
         if actor_arn:
             events = [e for e in events if e.get("actorArn") == actor_arn]
         return events, None
@@ -923,7 +924,9 @@ class CodeCommitBackend(BaseBackend):
             repo.branches[dest_branch_name].commit_id = source_commit_id
         # Return the resulting commit ID and its tree ID
         commit = repo.commits.get(source_commit_id)
-        tree_id = commit.tree_id if commit else str(mock_random.uuid4()).replace("-", "")[:40]
+        tree_id = (
+            commit.tree_id if commit else str(mock_random.uuid4()).replace("-", "")[:40]
+        )
         return {"commitId": source_commit_id, "treeId": tree_id}
 
     def merge_branches_by_squash(
@@ -976,7 +979,10 @@ class CodeCommitBackend(BaseBackend):
         pr.pull_request_status = "CLOSED"
         pr.last_activity_date = iso_8601_datetime_with_milliseconds()
         for target in pr.pull_request_targets:
-            target["mergeMetadata"] = {"isMerged": True, "mergeCommitId": str(mock_random.uuid4()).replace("-", "")[:40]}
+            target["mergeMetadata"] = {
+                "isMerged": True,
+                "mergeCommitId": str(mock_random.uuid4()).replace("-", "")[:40],
+            }
         return pr.to_dict()
 
     def merge_pull_request_by_squash(
@@ -999,7 +1005,10 @@ class CodeCommitBackend(BaseBackend):
         pr.pull_request_status = "CLOSED"
         pr.last_activity_date = iso_8601_datetime_with_milliseconds()
         for target in pr.pull_request_targets:
-            target["mergeMetadata"] = {"isMerged": True, "mergeCommitId": str(mock_random.uuid4()).replace("-", "")[:40]}
+            target["mergeMetadata"] = {
+                "isMerged": True,
+                "mergeCommitId": str(mock_random.uuid4()).replace("-", "")[:40],
+            }
         return pr.to_dict()
 
     def merge_pull_request_by_three_way(
@@ -1022,7 +1031,10 @@ class CodeCommitBackend(BaseBackend):
         pr.pull_request_status = "CLOSED"
         pr.last_activity_date = iso_8601_datetime_with_milliseconds()
         for target in pr.pull_request_targets:
-            target["mergeMetadata"] = {"isMerged": True, "mergeCommitId": str(mock_random.uuid4()).replace("-", "")[:40]}
+            target["mergeMetadata"] = {
+                "isMerged": True,
+                "mergeCommitId": str(mock_random.uuid4()).replace("-", "")[:40],
+            }
         return pr.to_dict()
 
     def get_merge_options(
@@ -1116,8 +1128,16 @@ class CodeCommitBackend(BaseBackend):
             "conflictMetadata": {
                 "filePath": file_path,
                 "fileSizes": {"source": 0, "destination": 0, "base": 0},
-                "fileModes": {"source": "NORMAL", "destination": "NORMAL", "base": "NORMAL"},
-                "objectTypes": {"source": "FILE", "destination": "FILE", "base": "FILE"},
+                "fileModes": {
+                    "source": "NORMAL",
+                    "destination": "NORMAL",
+                    "base": "NORMAL",
+                },
+                "objectTypes": {
+                    "source": "FILE",
+                    "destination": "FILE",
+                    "base": "FILE",
+                },
                 "numberOfConflicts": 0,
                 "isBinaryFile": {"source": False, "destination": False, "base": False},
                 "contentConflict": False,
@@ -1235,9 +1255,7 @@ class CodeCommitBackend(BaseBackend):
             raise CommentDoesNotExistException(comment_id)
         return comment.to_dict()
 
-    def update_comment(
-        self, comment_id: str, content: str
-    ) -> dict[str, Any]:
+    def update_comment(self, comment_id: str, content: str) -> dict[str, Any]:
         comment = self.comments.get(comment_id)
         if not comment:
             raise CommentDoesNotExistException(comment_id)
@@ -1294,9 +1312,7 @@ class CodeCommitBackend(BaseBackend):
             )
         return comments_for_pr, None
 
-    def put_comment_reaction(
-        self, comment_id: str, reaction_value: str
-    ) -> None:
+    def put_comment_reaction(self, comment_id: str, reaction_value: str) -> None:
         comment = self.comments.get(comment_id)
         if not comment:
             raise CommentDoesNotExistException(comment_id)
@@ -1486,19 +1502,13 @@ class CodeCommitBackend(BaseBackend):
     ) -> dict[str, Any]:
         template = self.approval_rule_templates.get(approval_rule_template_name)
         if not template:
-            raise ApprovalRuleTemplateDoesNotExistException(
-                approval_rule_template_name
-            )
+            raise ApprovalRuleTemplateDoesNotExistException(approval_rule_template_name)
         return template.to_dict()
 
-    def delete_approval_rule_template(
-        self, approval_rule_template_name: str
-    ) -> str:
+    def delete_approval_rule_template(self, approval_rule_template_name: str) -> str:
         template = self.approval_rule_templates.get(approval_rule_template_name)
         if not template:
-            raise ApprovalRuleTemplateDoesNotExistException(
-                approval_rule_template_name
-            )
+            raise ApprovalRuleTemplateDoesNotExistException(approval_rule_template_name)
         del self.approval_rule_templates[approval_rule_template_name]
         return template.approval_rule_template_id
 
@@ -1531,9 +1541,7 @@ class CodeCommitBackend(BaseBackend):
     ) -> dict[str, Any]:
         template = self.approval_rule_templates.get(approval_rule_template_name)
         if not template:
-            raise ApprovalRuleTemplateDoesNotExistException(
-                approval_rule_template_name
-            )
+            raise ApprovalRuleTemplateDoesNotExistException(approval_rule_template_name)
         template.approval_rule_template_content = new_rule_content
         template.rule_content_sha256 = hashlib.sha256(
             new_rule_content.encode()
@@ -1548,12 +1556,8 @@ class CodeCommitBackend(BaseBackend):
     ) -> dict[str, Any]:
         template = self.approval_rule_templates.get(approval_rule_template_name)
         if not template:
-            raise ApprovalRuleTemplateDoesNotExistException(
-                approval_rule_template_name
-            )
-        template.approval_rule_template_description = (
-            approval_rule_template_description
-        )
+            raise ApprovalRuleTemplateDoesNotExistException(approval_rule_template_name)
+        template.approval_rule_template_description = approval_rule_template_description
         template.last_modified_date = iso_8601_datetime_with_milliseconds()
         return template.to_dict()
 
@@ -1562,9 +1566,7 @@ class CodeCommitBackend(BaseBackend):
     ) -> None:
         template = self.approval_rule_templates.get(approval_rule_template_name)
         if not template:
-            raise ApprovalRuleTemplateDoesNotExistException(
-                approval_rule_template_name
-            )
+            raise ApprovalRuleTemplateDoesNotExistException(approval_rule_template_name)
         self._get_repo(repository_name)
         if repository_name not in template.associated_repositories:
             template.associated_repositories.append(repository_name)
@@ -1574,9 +1576,7 @@ class CodeCommitBackend(BaseBackend):
     ) -> None:
         template = self.approval_rule_templates.get(approval_rule_template_name)
         if not template:
-            raise ApprovalRuleTemplateDoesNotExistException(
-                approval_rule_template_name
-            )
+            raise ApprovalRuleTemplateDoesNotExistException(approval_rule_template_name)
         if repository_name in template.associated_repositories:
             template.associated_repositories.remove(repository_name)
 
@@ -1587,9 +1587,7 @@ class CodeCommitBackend(BaseBackend):
     ) -> tuple[list[str], list[dict[str, str]]]:
         template = self.approval_rule_templates.get(approval_rule_template_name)
         if not template:
-            raise ApprovalRuleTemplateDoesNotExistException(
-                approval_rule_template_name
-            )
+            raise ApprovalRuleTemplateDoesNotExistException(approval_rule_template_name)
         associated = []
         errors = []
         for name in repository_names:
@@ -1614,9 +1612,7 @@ class CodeCommitBackend(BaseBackend):
     ) -> tuple[list[str], list[dict[str, str]]]:
         template = self.approval_rule_templates.get(approval_rule_template_name)
         if not template:
-            raise ApprovalRuleTemplateDoesNotExistException(
-                approval_rule_template_name
-            )
+            raise ApprovalRuleTemplateDoesNotExistException(approval_rule_template_name)
         disassociated = []
         errors = []
         for name in repository_names:
@@ -1648,16 +1644,12 @@ class CodeCommitBackend(BaseBackend):
     ) -> tuple[list[str], Optional[str]]:
         template = self.approval_rule_templates.get(approval_rule_template_name)
         if not template:
-            raise ApprovalRuleTemplateDoesNotExistException(
-                approval_rule_template_name
-            )
+            raise ApprovalRuleTemplateDoesNotExistException(approval_rule_template_name)
         return template.associated_repositories[:], None
 
     # ── Trigger operations ──
 
-    def get_repository_triggers(
-        self, repository_name: str
-    ) -> dict[str, Any]:
+    def get_repository_triggers(self, repository_name: str) -> dict[str, Any]:
         repo = self._get_repo(repository_name)
         return {
             "repositoryName": repository_name,
@@ -1681,18 +1673,14 @@ class CodeCommitBackend(BaseBackend):
 
     # ── Tag operations ──
 
-    def tag_resource(
-        self, resource_arn: str, tags: dict[str, str]
-    ) -> None:
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
         # Find the resource by ARN
         for repo in self.repositories.values():
             if repo.repository_metadata.get("Arn") == resource_arn:
                 repo.tags.update(tags)
                 return
 
-    def untag_resource(
-        self, resource_arn: str, tag_keys: list[str]
-    ) -> None:
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         for repo in self.repositories.values():
             if repo.repository_metadata.get("Arn") == resource_arn:
                 for key in tag_keys:

@@ -423,7 +423,9 @@ class CloudHSMV2Backend(BaseBackend):
 
         cluster = self.clusters[cluster_id]
         cluster.state = "INITIALIZE_IN_PROGRESS"
-        cluster.state_message = "Cluster is initializing. State will change to INITIALIZED upon completion."
+        cluster.state_message = (
+            "Cluster is initializing. State will change to INITIALIZED upon completion."
+        )
         cluster.certificates["ClusterCertificate"] = signed_cert
         return {
             "State": cluster.state,

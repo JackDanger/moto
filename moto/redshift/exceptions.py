@@ -269,4 +269,3 @@ class PartnerNotFoundError(RedshiftClientError):
             "PartnerNotFound",
             f"Partner {partner_name} not found.",
         )
-

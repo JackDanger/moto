@@ -1465,14 +1465,16 @@ class IamResponse(BaseResponse):
 
     def get_organizations_access_report(self) -> ActionResult:
         """Stub: GetOrganizationsAccessReport."""
-        return ActionResult({
-            "JobStatus": "COMPLETED",
-            "JobCreationDate": None,
-            "JobCompletionDate": None,
-            "NumberOfServicesAccessible": 0,
-            "NumberOfServicesNotAccessed": 0,
-            "IsTruncated": False,
-        })
+        return ActionResult(
+            {
+                "JobStatus": "COMPLETED",
+                "JobCreationDate": None,
+                "JobCompletionDate": None,
+                "NumberOfServicesAccessible": 0,
+                "NumberOfServicesNotAccessed": 0,
+                "IsTruncated": False,
+            }
+        )
 
     def list_policies_granting_service_access(self) -> ActionResult:
         """Stub: ListPoliciesGrantingServiceAccess."""
@@ -1484,11 +1486,15 @@ class IamResponse(BaseResponse):
 
     def create_delegation_request(self) -> ActionResult:
         """Stub: CreateDelegationRequest."""
-        return ActionResult({"ConsoleDeepLink": "", "DelegationRequestId": "stub-req-123"})
+        return ActionResult(
+            {"ConsoleDeepLink": "", "DelegationRequestId": "stub-req-123"}
+        )
 
     def get_delegation_request(self) -> ActionResult:
         """Stub: GetDelegationRequest."""
-        return ActionResult({"DelegationRequest": {}, "PermissionCheckStatus": "SUCCEEDED"})
+        return ActionResult(
+            {"DelegationRequest": {}, "PermissionCheckStatus": "SUCCEEDED"}
+        )
 
     def accept_delegation_request(self) -> ActionResult:
         """Stub: AcceptDelegationRequest."""

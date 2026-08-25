@@ -344,10 +344,19 @@ class OrganizationsResponse(BaseResponse):
 
     def describe_responsibility_transfer(self) -> str:
         transfer_id = self._get_param("TransferId")
-        return json.dumps({"ResponsibilityTransfer": {"TransferId": transfer_id, "State": "REQUESTED"}})
+        return json.dumps(
+            {
+                "ResponsibilityTransfer": {
+                    "TransferId": transfer_id,
+                    "State": "REQUESTED",
+                }
+            }
+        )
 
     def invite_organization_to_transfer_responsibility(self) -> str:
-        return json.dumps({"HandshakeId": f"h-{self._get_param('TargetId', 'unknown')}"})
+        return json.dumps(
+            {"HandshakeId": f"h-{self._get_param('TargetId', 'unknown')}"}
+        )
 
     def list_effective_policy_validation_errors(self) -> str:
         return json.dumps({"EffectivePolicyValidationErrors": []})
@@ -360,8 +369,22 @@ class OrganizationsResponse(BaseResponse):
 
     def terminate_responsibility_transfer(self) -> str:
         transfer_id = self._get_param("TransferId")
-        return json.dumps({"ResponsibilityTransfer": {"TransferId": transfer_id, "State": "CANCELLED"}})
+        return json.dumps(
+            {
+                "ResponsibilityTransfer": {
+                    "TransferId": transfer_id,
+                    "State": "CANCELLED",
+                }
+            }
+        )
 
     def update_responsibility_transfer(self) -> str:
         transfer_id = self._get_param("TransferId")
-        return json.dumps({"ResponsibilityTransfer": {"TransferId": transfer_id, "State": "REQUESTED"}})
+        return json.dumps(
+            {
+                "ResponsibilityTransfer": {
+                    "TransferId": transfer_id,
+                    "State": "REQUESTED",
+                }
+            }
+        )

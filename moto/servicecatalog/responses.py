@@ -383,17 +383,15 @@ class ServiceCatalogResponse(BaseResponse):
 
     def search_products_as_admin(self) -> ActionResult:
         params = json.loads(self.body)
-        details, next_page_token = (
-            self.servicecatalog_backend.search_products_as_admin(
-                accept_language=params.get("AcceptLanguage"),
-                portfolio_id=params.get("PortfolioId"),
-                filters=params.get("Filters"),
-                sort_by=params.get("SortBy"),
-                sort_order=params.get("SortOrder"),
-                page_token=params.get("PageToken"),
-                page_size=params.get("PageSize"),
-                product_source=params.get("ProductSource"),
-            )
+        details, next_page_token = self.servicecatalog_backend.search_products_as_admin(
+            accept_language=params.get("AcceptLanguage"),
+            portfolio_id=params.get("PortfolioId"),
+            filters=params.get("Filters"),
+            sort_by=params.get("SortBy"),
+            sort_order=params.get("SortOrder"),
+            page_token=params.get("PageToken"),
+            page_size=params.get("PageSize"),
+            product_source=params.get("ProductSource"),
         )
         return ActionResult(
             {"ProductViewDetails": details, "NextPageToken": next_page_token}
@@ -480,21 +478,17 @@ class ServiceCatalogResponse(BaseResponse):
                 page_token=params.get("PageToken"),
             )
         )
-        return ActionResult(
-            {"Budgets": budgets, "NextPageToken": next_page_token}
-        )
+        return ActionResult({"Budgets": budgets, "NextPageToken": next_page_token})
 
     # ---- Provisioning Artifact operations ----
 
     def create_provisioning_artifact(self) -> ActionResult:
         params = json.loads(self.body)
-        detail, info, status = (
-            self.servicecatalog_backend.create_provisioning_artifact(
-                accept_language=params.get("AcceptLanguage"),
-                product_id=params.get("ProductId"),
-                parameters=params.get("Parameters", {}),
-                idempotency_token=params.get("IdempotencyToken"),
-            )
+        detail, info, status = self.servicecatalog_backend.create_provisioning_artifact(
+            accept_language=params.get("AcceptLanguage"),
+            product_id=params.get("ProductId"),
+            parameters=params.get("Parameters", {}),
+            idempotency_token=params.get("IdempotencyToken"),
         )
         return ActionResult(
             {
@@ -526,16 +520,14 @@ class ServiceCatalogResponse(BaseResponse):
 
     def update_provisioning_artifact(self) -> ActionResult:
         params = json.loads(self.body)
-        detail, info, status = (
-            self.servicecatalog_backend.update_provisioning_artifact(
-                accept_language=params.get("AcceptLanguage"),
-                product_id=params.get("ProductId"),
-                provisioning_artifact_id=params.get("ProvisioningArtifactId"),
-                name=params.get("Name"),
-                description=params.get("Description"),
-                active=params.get("Active"),
-                guidance=params.get("Guidance"),
-            )
+        detail, info, status = self.servicecatalog_backend.update_provisioning_artifact(
+            accept_language=params.get("AcceptLanguage"),
+            product_id=params.get("ProductId"),
+            provisioning_artifact_id=params.get("ProvisioningArtifactId"),
+            name=params.get("Name"),
+            description=params.get("Description"),
+            active=params.get("Active"),
+            guidance=params.get("Guidance"),
         )
         return ActionResult(
             {
@@ -717,9 +709,7 @@ class ServiceCatalogResponse(BaseResponse):
                 accept_language=params.get("AcceptLanguage"),
             )
         )
-        return ActionResult(
-            {"ServiceActionParameters": execution_params}
-        )
+        return ActionResult({"ServiceActionParameters": execution_params})
 
     def update_service_action(self) -> ActionResult:
         params = json.loads(self.body)
@@ -742,12 +732,10 @@ class ServiceCatalogResponse(BaseResponse):
 
     def list_service_actions(self) -> ActionResult:
         params = json.loads(self.body)
-        details, next_page_token = (
-            self.servicecatalog_backend.list_service_actions(
-                accept_language=params.get("AcceptLanguage"),
-                page_size=params.get("PageSize"),
-                page_token=params.get("PageToken"),
-            )
+        details, next_page_token = self.servicecatalog_backend.list_service_actions(
+            accept_language=params.get("AcceptLanguage"),
+            page_size=params.get("PageSize"),
+            page_token=params.get("PageToken"),
         )
         return ActionResult(
             {"ServiceActionSummaries": details, "NextPageToken": next_page_token}
@@ -799,7 +787,9 @@ class ServiceCatalogResponse(BaseResponse):
         )
         return ActionResult({"FailedServiceActionAssociations": failed})
 
-    def batch_disassociate_service_action_from_provisioning_artifact(self) -> ActionResult:
+    def batch_disassociate_service_action_from_provisioning_artifact(
+        self,
+    ) -> ActionResult:
         params = json.loads(self.body)
         failed = self.servicecatalog_backend.batch_disassociate_service_action_from_provisioning_artifact(
             service_action_associations=params.get("ServiceActionAssociations", []),
@@ -847,9 +837,7 @@ class ServiceCatalogResponse(BaseResponse):
             page_size=params.get("PageSize"),
             page_token=params.get("PageToken"),
         )
-        return ActionResult(
-            {"TagOptionDetails": details, "PageToken": next_page_token}
-        )
+        return ActionResult({"TagOptionDetails": details, "PageToken": next_page_token})
 
     def associate_tag_option_with_resource(self) -> ActionResult:
         params = json.loads(self.body)
@@ -877,9 +865,7 @@ class ServiceCatalogResponse(BaseResponse):
                 page_token=params.get("PageToken"),
             )
         )
-        return ActionResult(
-            {"ResourceDetails": details, "PageToken": next_page_token}
-        )
+        return ActionResult({"ResourceDetails": details, "PageToken": next_page_token})
 
     # ---- Provisioned Product operations ----
 
@@ -1017,9 +1003,7 @@ class ServiceCatalogResponse(BaseResponse):
                 page_token=params.get("PageToken"),
             )
         )
-        return ActionResult(
-            {"Outputs": outputs, "NextPageToken": next_page_token}
-        )
+        return ActionResult({"Outputs": outputs, "NextPageToken": next_page_token})
 
     def import_as_provisioned_product(self) -> ActionResult:
         params = json.loads(self.body)
@@ -1103,12 +1087,10 @@ class ServiceCatalogResponse(BaseResponse):
 
     def execute_provisioned_product_plan(self) -> ActionResult:
         params = json.loads(self.body)
-        record_detail = (
-            self.servicecatalog_backend.execute_provisioned_product_plan(
-                accept_language=params.get("AcceptLanguage"),
-                plan_id=params.get("PlanId"),
-                idempotency_token=params.get("IdempotencyToken"),
-            )
+        record_detail = self.servicecatalog_backend.execute_provisioned_product_plan(
+            accept_language=params.get("AcceptLanguage"),
+            plan_id=params.get("PlanId"),
+            idempotency_token=params.get("IdempotencyToken"),
         )
         return ActionResult({"RecordDetail": record_detail})
 
@@ -1134,13 +1116,11 @@ class ServiceCatalogResponse(BaseResponse):
 
     def describe_record(self) -> ActionResult:
         params = json.loads(self.body)
-        detail, next_page_token, outputs = (
-            self.servicecatalog_backend.describe_record(
-                accept_language=params.get("AcceptLanguage"),
-                record_id=params.get("Id"),
-                page_token=params.get("PageToken"),
-                page_size=params.get("PageSize"),
-            )
+        detail, next_page_token, outputs = self.servicecatalog_backend.describe_record(
+            accept_language=params.get("AcceptLanguage"),
+            record_id=params.get("Id"),
+            page_token=params.get("PageToken"),
+            page_size=params.get("PageSize"),
         )
         return ActionResult(
             {
@@ -1152,16 +1132,14 @@ class ServiceCatalogResponse(BaseResponse):
 
     def list_record_history(self) -> ActionResult:
         params = json.loads(self.body)
-        details, next_page_token = (
-            self.servicecatalog_backend.list_record_history(
-                accept_language=params.get("AcceptLanguage"),
-                access_level_filter=params.get("AccessLevelFilter"),
-                search_filter=params.get("SearchFilter"),
-                sort_by=params.get("SortBy"),
-                sort_order=params.get("SortOrder"),
-                page_size=params.get("PageSize"),
-                page_token=params.get("PageToken"),
-            )
+        details, next_page_token = self.servicecatalog_backend.list_record_history(
+            accept_language=params.get("AcceptLanguage"),
+            access_level_filter=params.get("AccessLevelFilter"),
+            search_filter=params.get("SearchFilter"),
+            sort_by=params.get("SortBy"),
+            sort_order=params.get("SortOrder"),
+            page_size=params.get("PageSize"),
+            page_token=params.get("PageToken"),
         )
         return ActionResult(
             {"RecordDetails": details, "NextPageToken": next_page_token}
@@ -1171,13 +1149,11 @@ class ServiceCatalogResponse(BaseResponse):
 
     def list_launch_paths(self) -> ActionResult:
         params = json.loads(self.body)
-        summaries, next_page_token = (
-            self.servicecatalog_backend.list_launch_paths(
-                accept_language=params.get("AcceptLanguage"),
-                product_id=params.get("ProductId"),
-                page_size=params.get("PageSize"),
-                page_token=params.get("PageToken"),
-            )
+        summaries, next_page_token = self.servicecatalog_backend.list_launch_paths(
+            accept_language=params.get("AcceptLanguage"),
+            product_id=params.get("ProductId"),
+            page_size=params.get("PageSize"),
+            page_token=params.get("PageToken"),
         )
         return ActionResult(
             {
@@ -1244,7 +1220,9 @@ class ServiceCatalogResponse(BaseResponse):
         )
         return EmptyResult()
 
-    def notify_terminate_provisioned_product_engine_workflow_result(self) -> ActionResult:
+    def notify_terminate_provisioned_product_engine_workflow_result(
+        self,
+    ) -> ActionResult:
         params = json.loads(self.body)
         self.servicecatalog_backend.notify_terminate_provisioned_product_engine_workflow_result(
             workflow_token=params.get("WorkflowToken"),

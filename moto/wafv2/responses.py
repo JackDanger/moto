@@ -600,7 +600,9 @@ class WAFV2Response(BaseResponse):
         vendor_name = body["VendorName"]
         name = body["Name"]
         scope = body.get("Scope", "REGIONAL")
-        result = self.wafv2_backend.describe_managed_rule_group(vendor_name, name, scope)
+        result = self.wafv2_backend.describe_managed_rule_group(
+            vendor_name, name, scope
+        )
         return 200, {}, json.dumps(result)
 
     def list_available_managed_rule_groups(self) -> TYPE_RESPONSE:
@@ -620,11 +622,13 @@ class WAFV2Response(BaseResponse):
         return (
             200,
             {},
-            json.dumps({
-                "Versions": versions,
-                "CurrentDefaultVersion": "Version_2.0",
-                "NextMarker": None,
-            }),
+            json.dumps(
+                {
+                    "Versions": versions,
+                    "CurrentDefaultVersion": "Version_2.0",
+                    "NextMarker": None,
+                }
+            ),
         )
 
     def create_api_key(self) -> TYPE_RESPONSE:
@@ -679,7 +683,9 @@ class WAFV2Response(BaseResponse):
         body = json.loads(self.body)
         platform = body["Platform"]
         release_version = body["ReleaseVersion"]
-        url = self.wafv2_backend.generate_mobile_sdk_release_url(platform, release_version)
+        url = self.wafv2_backend.generate_mobile_sdk_release_url(
+            platform, release_version
+        )
         return 200, {}, json.dumps({"Url": url})
 
     def get_managed_rule_set(self) -> TYPE_RESPONSE:
@@ -709,7 +715,10 @@ class WAFV2Response(BaseResponse):
         if scope == "CLOUDFRONT":
             self.region = GLOBAL_REGION
         next_lock_token = self.wafv2_backend.put_managed_rule_set_versions(
-            name, scope, _id, lock_token,
+            name,
+            scope,
+            _id,
+            lock_token,
             versions_to_publish=body.get("VersionsToPublish"),
         )
         return 200, {}, json.dumps({"NextLockToken": next_lock_token})
@@ -724,14 +733,27 @@ class WAFV2Response(BaseResponse):
         expiry_timestamp = body["ExpiryTimestamp"]
         if scope == "CLOUDFRONT":
             self.region = GLOBAL_REGION
-        version, expiry, next_lock = self.wafv2_backend.update_managed_rule_set_version_expiry_date(
-            name, scope, _id, lock_token, version_to_expire, expiry_timestamp,
+        version, expiry, next_lock = (
+            self.wafv2_backend.update_managed_rule_set_version_expiry_date(
+                name,
+                scope,
+                _id,
+                lock_token,
+                version_to_expire,
+                expiry_timestamp,
+            )
         )
-        return 200, {}, json.dumps({
-            "ExpiringVersion": version,
-            "ExpiryTimestamp": expiry,
-            "NextLockToken": next_lock,
-        })
+        return (
+            200,
+            {},
+            json.dumps(
+                {
+                    "ExpiringVersion": version,
+                    "ExpiryTimestamp": expiry,
+                    "NextLockToken": next_lock,
+                }
+            ),
+        )
 
     def describe_all_managed_products(self) -> TYPE_RESPONSE:
         body = json.loads(self.body)
@@ -743,7 +765,9 @@ class WAFV2Response(BaseResponse):
         body = json.loads(self.body)
         vendor_name = body["VendorName"]
         scope = body.get("Scope", "REGIONAL")
-        products = self.wafv2_backend.describe_managed_products_by_vendor(vendor_name, scope)
+        products = self.wafv2_backend.describe_managed_products_by_vendor(
+            vendor_name, scope
+        )
         return 200, {}, json.dumps({"ManagedProducts": products})
 
     def delete_firewall_manager_rule_groups(self) -> TYPE_RESPONSE:
@@ -751,7 +775,8 @@ class WAFV2Response(BaseResponse):
         web_acl_arn = body["WebACLArn"]
         web_acl_lock_token = body["WebACLLockToken"]
         next_lock = self.wafv2_backend.delete_firewall_manager_rule_groups(
-            web_acl_arn, web_acl_lock_token,
+            web_acl_arn,
+            web_acl_lock_token,
         )
         return 200, {}, json.dumps({"NextWebACLLockToken": next_lock})
 
@@ -788,7 +813,8 @@ class WAFV2Response(BaseResponse):
         web_acl_arn = body["WebACLArn"]
         resource_type = body.get("ResourceType")
         resources = self.wafv2_backend.list_resources_for_web_acl(
-            web_acl_arn, resource_type,
+            web_acl_arn,
+            resource_type,
         )
         return 200, {}, json.dumps({"ResourceArns": resources})
 

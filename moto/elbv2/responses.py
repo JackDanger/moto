@@ -479,12 +479,14 @@ class ELBV2Response(BaseResponse):
     def create_trust_store(self) -> ActionResult:
         name = self._get_param("Name")
         result = {
-            "TrustStores": [{
-                "TrustStoreArn": f"arn:aws:elasticloadbalancing:us-east-1:123456789012:truststore/{name}/1234567890",
-                "Name": name,
-                "Status": "ACTIVE",
-                "NumberOfCaCertificates": 0,
-            }]
+            "TrustStores": [
+                {
+                    "TrustStoreArn": f"arn:aws:elasticloadbalancing:us-east-1:123456789012:truststore/{name}/1234567890",
+                    "Name": name,
+                    "Status": "ACTIVE",
+                    "NumberOfCaCertificates": 0,
+                }
+            ]
         }
         return ActionResult(result)
 

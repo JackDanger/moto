@@ -266,9 +266,7 @@ class DAXBackend(BaseBackend):
         }
         return self._clusters
 
-    def _add_event(
-        self, source_name: str, source_type: str, message: str
-    ) -> None:
+    def _add_event(self, source_name: str, source_type: str, message: str) -> None:
         self._events.append(
             {
                 "SourceName": source_name,
@@ -363,9 +361,7 @@ class DAXBackend(BaseBackend):
                 {"SecurityGroupIdentifier": sg_id, "Status": "active"}
                 for sg_id in security_group_ids
             ]
-        self._add_event(
-            cluster_name, "CLUSTER", f"Cluster {cluster_name} updated."
-        )
+        self._add_event(cluster_name, "CLUSTER", f"Cluster {cluster_name} updated.")
         return cluster
 
     def reboot_node(self, cluster_name: str, node_id: str) -> DaxCluster:
@@ -379,9 +375,7 @@ class DAXBackend(BaseBackend):
                 break
         if not node_found:
             raise NodeNotFoundFault(node_id)
-        self._add_event(
-            node_id, "NODE", f"Node {node_id} rebooted."
-        )
+        self._add_event(node_id, "NODE", f"Node {node_id} rebooted.")
         return cluster
 
     def list_tags(self, resource_name: str) -> dict[str, list[dict[str, str]]]:
@@ -575,7 +569,6 @@ class DAXBackend(BaseBackend):
         if source_type:
             events = [e for e in events if e["SourceType"] == source_type]
         return events
-
 
 
 dax_backends = BackendDict(DAXBackend, "dax")

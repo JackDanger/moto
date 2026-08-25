@@ -28,8 +28,7 @@ class VerifiedAccessResponse(EC2BaseResponse):
                 "LastUpdatedTime": instance.last_updated_time,
                 "FipsEnabled": instance.fips_enabled,
                 "Tags": [
-                    {"Key": tag.key, "Value": tag.value}
-                    for tag in instance.get_tags()
+                    {"Key": tag.key, "Value": tag.value} for tag in instance.get_tags()
                 ],
             }
         }
@@ -102,14 +101,15 @@ class VerifiedAccessResponse(EC2BaseResponse):
             "CreationTime": provider.creation_time,
             "LastUpdatedTime": provider.last_updated_time,
             "Tags": [
-                {"Key": tag.key, "Value": tag.value}
-                for tag in provider.get_tags()
+                {"Key": tag.key, "Value": tag.value} for tag in provider.get_tags()
             ],
         }
         if provider.user_trust_provider_type:
             provider_dict["UserTrustProviderType"] = provider.user_trust_provider_type
         if provider.device_trust_provider_type:
-            provider_dict["DeviceTrustProviderType"] = provider.device_trust_provider_type
+            provider_dict["DeviceTrustProviderType"] = (
+                provider.device_trust_provider_type
+            )
 
         result = {"VerifiedAccessTrustProvider": provider_dict}
         return ActionResult(result)
@@ -172,8 +172,7 @@ class VerifiedAccessResponse(EC2BaseResponse):
                 "CreationTime": group.creation_time,
                 "LastUpdatedTime": group.last_updated_time,
                 "Tags": [
-                    {"Key": tag.key, "Value": tag.value}
-                    for tag in group.get_tags()
+                    {"Key": tag.key, "Value": tag.value} for tag in group.get_tags()
                 ],
             }
         }
@@ -209,8 +208,7 @@ class VerifiedAccessResponse(EC2BaseResponse):
                     "CreationTime": group.creation_time,
                     "LastUpdatedTime": group.last_updated_time,
                     "Tags": [
-                        {"Key": tag.key, "Value": tag.value}
-                        for tag in group.get_tags()
+                        {"Key": tag.key, "Value": tag.value} for tag in group.get_tags()
                     ],
                 }
                 for group in groups
@@ -261,8 +259,7 @@ class VerifiedAccessResponse(EC2BaseResponse):
                 "CreationTime": endpoint.creation_time,
                 "LastUpdatedTime": endpoint.last_updated_time,
                 "Tags": [
-                    {"Key": tag.key, "Value": tag.value}
-                    for tag in endpoint.get_tags()
+                    {"Key": tag.key, "Value": tag.value} for tag in endpoint.get_tags()
                 ],
             }
         }

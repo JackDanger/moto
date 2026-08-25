@@ -93,7 +93,10 @@ class PipelineExecution(BaseModel):
         self.pipeline_execution_id = pipeline_execution_id
         self.status = "InProgress"
         self.status_summary: str | None = None
-        self.trigger = trigger or {"triggerType": "StartPipelineExecution", "triggerDetail": ""}
+        self.trigger = trigger or {
+            "triggerType": "StartPipelineExecution",
+            "triggerDetail": "",
+        }
         self.source_revisions = source_revisions or []
         self.last_update_time = utcnow()
         self.start_time = utcnow()
@@ -119,7 +122,9 @@ class PipelineExecution(BaseModel):
             "pipelineExecutionId": self.pipeline_execution_id,
             "status": self.status,
             "startTime": iso_8601_datetime_with_milliseconds(self.start_time),
-            "lastUpdateTime": iso_8601_datetime_with_milliseconds(self.last_update_time),
+            "lastUpdateTime": iso_8601_datetime_with_milliseconds(
+                self.last_update_time
+            ),
             "sourceRevisions": self.source_revisions,
             "trigger": self.trigger,
         }
@@ -216,7 +221,9 @@ class Webhook(BaseModel):
             "arn": self.arn,
         }
         if self.last_triggered:
-            result["lastTriggered"] = iso_8601_datetime_with_milliseconds(self.last_triggered)
+            result["lastTriggered"] = iso_8601_datetime_with_milliseconds(
+                self.last_triggered
+            )
         if self.tags:
             result["tags"] = [{"key": k, "value": v} for k, v in self.tags.items()]
         return result
@@ -499,7 +506,10 @@ class CodePipelineBackend(BaseBackend):
         )
 
     def list_pipeline_executions(
-        self, pipeline_name: str, max_results: int | None = None, next_token: str | None = None
+        self,
+        pipeline_name: str,
+        max_results: int | None = None,
+        next_token: str | None = None,
     ) -> tuple[list[dict[str, Any]], str | None]:
         self._get_pipeline_or_raise(pipeline_name)
 
@@ -727,62 +737,122 @@ class CodePipelineBackend(BaseBackend):
         # Built-in AWS action types
         builtin_types = [
             {
-                "id": {"category": "Source", "owner": "AWS", "provider": "S3", "version": "1"},
+                "id": {
+                    "category": "Source",
+                    "owner": "AWS",
+                    "provider": "S3",
+                    "version": "1",
+                },
                 "inputArtifactDetails": {"minimumCount": 0, "maximumCount": 0},
                 "outputArtifactDetails": {"minimumCount": 1, "maximumCount": 1},
             },
             {
-                "id": {"category": "Source", "owner": "AWS", "provider": "CodeCommit", "version": "1"},
+                "id": {
+                    "category": "Source",
+                    "owner": "AWS",
+                    "provider": "CodeCommit",
+                    "version": "1",
+                },
                 "inputArtifactDetails": {"minimumCount": 0, "maximumCount": 0},
                 "outputArtifactDetails": {"minimumCount": 1, "maximumCount": 1},
             },
             {
-                "id": {"category": "Source", "owner": "AWS", "provider": "CodeStarSourceConnection", "version": "1"},
+                "id": {
+                    "category": "Source",
+                    "owner": "AWS",
+                    "provider": "CodeStarSourceConnection",
+                    "version": "1",
+                },
                 "inputArtifactDetails": {"minimumCount": 0, "maximumCount": 0},
                 "outputArtifactDetails": {"minimumCount": 1, "maximumCount": 1},
             },
             {
-                "id": {"category": "Source", "owner": "AWS", "provider": "ECR", "version": "1"},
+                "id": {
+                    "category": "Source",
+                    "owner": "AWS",
+                    "provider": "ECR",
+                    "version": "1",
+                },
                 "inputArtifactDetails": {"minimumCount": 0, "maximumCount": 0},
                 "outputArtifactDetails": {"minimumCount": 1, "maximumCount": 1},
             },
             {
-                "id": {"category": "Build", "owner": "AWS", "provider": "CodeBuild", "version": "1"},
+                "id": {
+                    "category": "Build",
+                    "owner": "AWS",
+                    "provider": "CodeBuild",
+                    "version": "1",
+                },
                 "inputArtifactDetails": {"minimumCount": 1, "maximumCount": 5},
                 "outputArtifactDetails": {"minimumCount": 0, "maximumCount": 5},
             },
             {
-                "id": {"category": "Deploy", "owner": "AWS", "provider": "S3", "version": "1"},
+                "id": {
+                    "category": "Deploy",
+                    "owner": "AWS",
+                    "provider": "S3",
+                    "version": "1",
+                },
                 "inputArtifactDetails": {"minimumCount": 1, "maximumCount": 1},
                 "outputArtifactDetails": {"minimumCount": 0, "maximumCount": 0},
             },
             {
-                "id": {"category": "Deploy", "owner": "AWS", "provider": "CloudFormation", "version": "1"},
+                "id": {
+                    "category": "Deploy",
+                    "owner": "AWS",
+                    "provider": "CloudFormation",
+                    "version": "1",
+                },
                 "inputArtifactDetails": {"minimumCount": 0, "maximumCount": 10},
                 "outputArtifactDetails": {"minimumCount": 0, "maximumCount": 1},
             },
             {
-                "id": {"category": "Deploy", "owner": "AWS", "provider": "CodeDeploy", "version": "1"},
+                "id": {
+                    "category": "Deploy",
+                    "owner": "AWS",
+                    "provider": "CodeDeploy",
+                    "version": "1",
+                },
                 "inputArtifactDetails": {"minimumCount": 1, "maximumCount": 1},
                 "outputArtifactDetails": {"minimumCount": 0, "maximumCount": 0},
             },
             {
-                "id": {"category": "Deploy", "owner": "AWS", "provider": "ECS", "version": "1"},
+                "id": {
+                    "category": "Deploy",
+                    "owner": "AWS",
+                    "provider": "ECS",
+                    "version": "1",
+                },
                 "inputArtifactDetails": {"minimumCount": 1, "maximumCount": 5},
                 "outputArtifactDetails": {"minimumCount": 0, "maximumCount": 0},
             },
             {
-                "id": {"category": "Invoke", "owner": "AWS", "provider": "Lambda", "version": "1"},
+                "id": {
+                    "category": "Invoke",
+                    "owner": "AWS",
+                    "provider": "Lambda",
+                    "version": "1",
+                },
                 "inputArtifactDetails": {"minimumCount": 0, "maximumCount": 5},
                 "outputArtifactDetails": {"minimumCount": 0, "maximumCount": 5},
             },
             {
-                "id": {"category": "Approval", "owner": "AWS", "provider": "Manual", "version": "1"},
+                "id": {
+                    "category": "Approval",
+                    "owner": "AWS",
+                    "provider": "Manual",
+                    "version": "1",
+                },
                 "inputArtifactDetails": {"minimumCount": 0, "maximumCount": 0},
                 "outputArtifactDetails": {"minimumCount": 0, "maximumCount": 0},
             },
             {
-                "id": {"category": "Test", "owner": "AWS", "provider": "CodeBuild", "version": "1"},
+                "id": {
+                    "category": "Test",
+                    "owner": "AWS",
+                    "provider": "CodeBuild",
+                    "version": "1",
+                },
                 "inputArtifactDetails": {"minimumCount": 1, "maximumCount": 5},
                 "outputArtifactDetails": {"minimumCount": 0, "maximumCount": 5},
             },
@@ -794,7 +864,12 @@ class CodePipelineBackend(BaseBackend):
         # Third-party types
         third_party_types = [
             {
-                "id": {"category": "Source", "owner": "ThirdParty", "provider": "GitHub", "version": "1"},
+                "id": {
+                    "category": "Source",
+                    "owner": "ThirdParty",
+                    "provider": "GitHub",
+                    "version": "1",
+                },
                 "inputArtifactDetails": {"minimumCount": 0, "maximumCount": 0},
                 "outputArtifactDetails": {"minimumCount": 1, "maximumCount": 1},
             },
@@ -864,9 +939,7 @@ class CodePipelineBackend(BaseBackend):
 
     def delete_webhook(self, name: str) -> None:
         if name not in self.webhooks:
-            raise WebhookNotFoundException(
-                f"Webhook with name '{name}' does not exist"
-            )
+            raise WebhookNotFoundException(f"Webhook with name '{name}' does not exist")
         del self.webhooks[name]
 
     def list_webhooks(self) -> list[dict[str, Any]]:
@@ -1047,7 +1120,10 @@ class CodePipelineBackend(BaseBackend):
 
         for execution in executions:
             if filter_param and filter_param.get("pipelineExecutionId"):
-                if execution.pipeline_execution_id != filter_param["pipelineExecutionId"]:
+                if (
+                    execution.pipeline_execution_id
+                    != filter_param["pipelineExecutionId"]
+                ):
                     continue
 
             # Generate action execution details from the pipeline stages
@@ -1109,8 +1185,6 @@ class CodePipelineBackend(BaseBackend):
         # Return empty list — rule types are a newer feature
         return []
 
-
-
     # --- Deploy Action Execution Targets ---
 
     def list_deploy_action_execution_targets(
@@ -1168,9 +1242,7 @@ class CodePipelineBackend(BaseBackend):
                 {
                     "actionName": action_name,
                     "revisionId": action_revision.get("revisionId", ""),
-                    "revisionSummary": action_revision.get(
-                        "revisionChangeId", ""
-                    ),
+                    "revisionSummary": action_revision.get("revisionChangeId", ""),
                 }
             ],
         )
@@ -1191,9 +1263,7 @@ class CodePipelineBackend(BaseBackend):
         version = action_id.get("version", "")
 
         if owner != "Custom":
-            raise ValidationException(
-                "Only custom action types can be updated"
-            )
+            raise ValidationException("Only custom action types can be updated")
 
         key = f"{category}:{provider}:{version}"
         existing = self.custom_action_types.get(key)
@@ -1206,14 +1276,11 @@ class CodePipelineBackend(BaseBackend):
 
         # Update mutable fields
         if "inputArtifactDetails" in action_type:
-            existing.input_artifact_details = action_type[
-                "inputArtifactDetails"
-            ]
+            existing.input_artifact_details = action_type["inputArtifactDetails"]
         if "outputArtifactDetails" in action_type:
-            existing.output_artifact_details = action_type[
-                "outputArtifactDetails"
-            ]
+            existing.output_artifact_details = action_type["outputArtifactDetails"]
         if "description" in action_type:
             existing.description = action_type["description"]
+
 
 codepipeline_backends = BackendDict(CodePipelineBackend, "codepipeline")

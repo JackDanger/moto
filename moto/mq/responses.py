@@ -213,9 +213,7 @@ class MQResponse(BaseResponse):
 
     def list_configuration_revisions(self) -> ActionResult:
         config_id = self.path.split("/")[-2]
-        config_id, revisions = self.mq_backend.list_configuration_revisions(
-            config_id
-        )
+        config_id, revisions = self.mq_backend.list_configuration_revisions(config_id)
         return ActionResult(
             {
                 "configurationId": config_id,

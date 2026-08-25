@@ -1244,9 +1244,7 @@ class AppSyncBackend(BaseBackend, TaggableResourcesMixin):
         self.graphql_apis[api_id].resolvers[(type_name, field_name)] = resolver
         return resolver
 
-    def get_resolver(
-        self, api_id: str, type_name: str, field_name: str
-    ) -> Resolver:
+    def get_resolver(self, api_id: str, type_name: str, field_name: str) -> Resolver:
         if api_id not in self.graphql_apis:
             raise GraphqlAPINotFound(api_id)
         key = (type_name, field_name)
@@ -1287,9 +1285,7 @@ class AppSyncBackend(BaseBackend, TaggableResourcesMixin):
         )
         return resolver
 
-    def delete_resolver(
-        self, api_id: str, type_name: str, field_name: str
-    ) -> None:
+    def delete_resolver(self, api_id: str, type_name: str, field_name: str) -> None:
         if api_id not in self.graphql_apis:
             raise GraphqlAPINotFound(api_id)
         key = (type_name, field_name)
@@ -1297,9 +1293,7 @@ class AppSyncBackend(BaseBackend, TaggableResourcesMixin):
             raise ResolverNotFound(type_name, field_name)
         del self.graphql_apis[api_id].resolvers[key]
 
-    def list_resolvers(
-        self, api_id: str, type_name: str
-    ) -> Iterable[Resolver]:
+    def list_resolvers(self, api_id: str, type_name: str) -> Iterable[Resolver]:
         if api_id not in self.graphql_apis:
             raise GraphqlAPINotFound(api_id)
         return [
@@ -1572,6 +1566,7 @@ class AppSyncBackend(BaseBackend, TaggableResourcesMixin):
 
     def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
+
     def update_api(
         self,
         api_id: str,
@@ -1596,7 +1591,9 @@ class AppSyncBackend(BaseBackend, TaggableResourcesMixin):
         for ns in self.events_apis[api_id].channel_namespaces:
             if ns.name == name:
                 return ns
-        raise BadRequestException(f"Channel namespace {name} not found for API {api_id}")
+        raise BadRequestException(
+            f"Channel namespace {name} not found for API {api_id}"
+        )
 
     def update_channel_namespace(
         self,
@@ -1686,9 +1683,7 @@ class AppSyncBackend(BaseBackend, TaggableResourcesMixin):
             }
         }
 
-    def list_source_api_associations(
-        self, api_id: str
-    ) -> list[dict[str, Any]]:
+    def list_source_api_associations(self, api_id: str) -> list[dict[str, Any]]:
         return []
 
     def start_schema_merge(
@@ -1716,9 +1711,7 @@ class AppSyncBackend(BaseBackend, TaggableResourcesMixin):
     # endregion
 
     # region: Environment variables
-    def get_graphql_api_environment_variables(
-        self, api_id: str
-    ) -> dict[str, str]:
+    def get_graphql_api_environment_variables(self, api_id: str) -> dict[str, str]:
         if api_id not in self.graphql_apis:
             raise GraphqlAPINotFound(api_id)
         api = self.graphql_apis[api_id]
@@ -1747,9 +1740,7 @@ class AppSyncBackend(BaseBackend, TaggableResourcesMixin):
             "logs": [],
         }
 
-    def evaluate_mapping_template(
-        self, template: str, context: str
-    ) -> dict[str, Any]:
+    def evaluate_mapping_template(self, template: str, context: str) -> dict[str, Any]:
         return {
             "evaluationResult": "{}",
             "error": None,
@@ -1765,9 +1756,7 @@ class AppSyncBackend(BaseBackend, TaggableResourcesMixin):
         introspection_id = str(mock_random.uuid4())
         return introspection_id
 
-    def get_data_source_introspection(
-        self, introspection_id: str
-    ) -> dict[str, Any]:
+    def get_data_source_introspection(self, introspection_id: str) -> dict[str, Any]:
         return {
             "introspectionId": introspection_id,
             "introspectionStatus": "SUCCESS",
@@ -1787,17 +1776,7 @@ class AppSyncBackend(BaseBackend, TaggableResourcesMixin):
 
     # endregion
 
-
-
-
     # region: Merged/Source GraphQL API stubs
-
-
-
-
-
-
-
 
     # endregion
 
@@ -1807,16 +1786,13 @@ class AppSyncBackend(BaseBackend, TaggableResourcesMixin):
 
     # region: Environment variables
 
-
     # endregion
 
     # region: Evaluate code / mapping template stubs
 
-
     # endregion
 
     # region: DataSource introspection stubs
-
 
     # endregion
 

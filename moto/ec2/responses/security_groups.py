@@ -191,7 +191,9 @@ class SecurityGroups(EC2BaseResponse):
     def get_security_groups_for_vpc(self) -> ActionResult:
         vpc_id = self._get_param("VpcId")
         filters = self._filters_from_querystring()
-        groups = self.ec2_backend.get_security_groups_for_vpc(vpc_id=vpc_id, filters=filters)
+        groups = self.ec2_backend.get_security_groups_for_vpc(
+            vpc_id=vpc_id, filters=filters
+        )
         result = {"SecurityGroupForVpcs": groups}
         return ActionResult(result)
 

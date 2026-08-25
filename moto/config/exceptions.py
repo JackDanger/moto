@@ -435,9 +435,7 @@ class NoSuchRemediationConfigurationException(JsonRESTError):
     code = 400
 
     def __init__(self, config_rule_name: str):
-        message = (
-            f"No remediation configuration found for the config rule: '{config_rule_name}'."
-        )
+        message = f"No remediation configuration found for the config rule: '{config_rule_name}'."
         super().__init__("NoSuchRemediationConfigurationException", message)
 
 

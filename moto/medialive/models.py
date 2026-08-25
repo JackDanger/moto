@@ -85,8 +85,6 @@ PAGINATION_MODEL = {
 }
 
 
-
-
 class MediaLiveError(JsonRESTError):
     code = 400
 
@@ -136,7 +134,6 @@ class Input(BaseModel):
             "tags": self.tags,
             "type": self.input_type,
         }
-
 
     def _resolve_transient_states(self) -> None:
         if self.state in ["CREATING"]:

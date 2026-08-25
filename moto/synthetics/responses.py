@@ -3,7 +3,7 @@ Response handlers for AWS CloudWatch Synthetics API emulation in Moto.
 """
 
 import json
-from typing import Any, Union
+from typing import Any
 from urllib.parse import unquote
 
 from moto.core.responses import TYPE_RESPONSE, BaseResponse
@@ -26,9 +26,7 @@ class SyntheticsResponse(BaseResponse):
     def synthetics_backend(self) -> SyntheticsBackend:
         return synthetics_backends[self.current_account][self.region]
 
-    def tags(
-        self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:
+    def tags(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         if request.method == "POST":
             return _make_response(self._tag_resource())
@@ -38,9 +36,7 @@ class SyntheticsResponse(BaseResponse):
             return _make_response(self._list_tags_for_resource())
         return _make_response("{}", 400)
 
-    def canary(
-        self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:
+    def canary(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         if request.method == "POST":
             return _make_response(self._create_canary())
@@ -52,9 +48,7 @@ class SyntheticsResponse(BaseResponse):
             return _make_response(self._update_canary())
         return _make_response("{}", 400)
 
-    def canaries(
-        self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:
+    def canaries(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         return _make_response(self._describe_canaries())
 
@@ -64,21 +58,15 @@ class SyntheticsResponse(BaseResponse):
         self.setup_class(request, full_url, headers)
         return _make_response(self._describe_canaries_last_run())
 
-    def canary_start(
-        self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:
+    def canary_start(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         return _make_response(self._start_canary())
 
-    def canary_stop(
-        self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:
+    def canary_stop(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         return _make_response(self._stop_canary())
 
-    def canary_runs(
-        self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:
+    def canary_runs(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         return _make_response(self._get_canary_runs())
 
@@ -106,9 +94,7 @@ class SyntheticsResponse(BaseResponse):
             return _make_response(self._delete_group())
         return _make_response("{}", 400)
 
-    def groups_list(
-        self, request: Any, full_url: str, headers: Any
-    ) -> TYPE_RESPONSE:
+    def groups_list(self, request: Any, full_url: str, headers: Any) -> TYPE_RESPONSE:
         self.setup_class(request, full_url, headers)
         return _make_response(self._list_groups())
 
@@ -198,12 +184,8 @@ class SyntheticsResponse(BaseResponse):
             runtime_version=params.get("RuntimeVersion"),
             schedule=params.get("Schedule"),
             run_config=params.get("RunConfig"),
-            success_retention_period_in_days=params.get(
-                "SuccessRetentionPeriodInDays"
-            ),
-            failure_retention_period_in_days=params.get(
-                "FailureRetentionPeriodInDays"
-            ),
+            success_retention_period_in_days=params.get("SuccessRetentionPeriodInDays"),
+            failure_retention_period_in_days=params.get("FailureRetentionPeriodInDays"),
             vpc_config=params.get("VpcConfig"),
             artifact_s3_location=params.get("ArtifactS3Location"),
             artifact_config=params.get("ArtifactConfig"),

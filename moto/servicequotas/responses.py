@@ -181,7 +181,11 @@ class ServiceQuotasResponse(BaseResponse):
         resource_arn = str(params.get("ResourceARN"))
         # Tags come as list of {Key, Value} dicts; convert to plain dict
         tags_input = params.get("Tags") or []
-        tags = {t["Key"]: t["Value"] for t in tags_input} if isinstance(tags_input, list) else tags_input
+        tags = (
+            {t["Key"]: t["Value"] for t in tags_input}
+            if isinstance(tags_input, list)
+            else tags_input
+        )
         self.backend.tag_resource(resource_arn=resource_arn, tags=tags)
         return json.dumps({})
 

@@ -1210,9 +1210,7 @@ class GreengrassBackend(BaseBackend):
         self, connector_definition_id: str
     ) -> FakeConnectorDefinition:
         if connector_definition_id not in self.connector_definitions:
-            raise IdNotFoundException(
-                "That Connector List Definition does not exist."
-            )
+            raise IdNotFoundException("That Connector List Definition does not exist.")
         return self.connector_definitions[connector_definition_id]
 
     def delete_connector_definition(self, connector_definition_id: str) -> None:
@@ -1298,13 +1296,9 @@ class GreengrassBackend(BaseBackend):
     def list_logger_definitions(self) -> Iterable[FakeLoggerDefinition]:
         return self.logger_definitions.values()
 
-    def get_logger_definition(
-        self, logger_definition_id: str
-    ) -> FakeLoggerDefinition:
+    def get_logger_definition(self, logger_definition_id: str) -> FakeLoggerDefinition:
         if logger_definition_id not in self.logger_definitions:
-            raise IdNotFoundException(
-                "That Logger List Definition does not exist."
-            )
+            raise IdNotFoundException("That Logger List Definition does not exist.")
         return self.logger_definitions[logger_definition_id]
 
     def delete_logger_definition(self, logger_definition_id: str) -> None:
@@ -1313,9 +1307,7 @@ class GreengrassBackend(BaseBackend):
         del self.logger_definitions[logger_definition_id]
         del self.logger_definition_versions[logger_definition_id]
 
-    def update_logger_definition(
-        self, logger_definition_id: str, name: str
-    ) -> None:
+    def update_logger_definition(self, logger_definition_id: str, name: str) -> None:
         if name == "":
             raise InvalidContainerDefinitionException(
                 "Input does not contain any attributes to be updated"

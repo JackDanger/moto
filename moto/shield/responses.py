@@ -153,9 +153,7 @@ class ShieldResponse(BaseResponse):
         groups = self.shield_backend.list_protection_groups(
             inclusion_filters=inclusion_filters,
         )
-        return json.dumps(
-            {"ProtectionGroups": [g.to_dict() for g in groups]}
-        )
+        return json.dumps({"ProtectionGroups": [g.to_dict() for g in groups]})
 
     def list_resources_in_protection_group(self) -> str:
         params = json.loads(self.body)

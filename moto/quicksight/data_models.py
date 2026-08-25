@@ -709,5 +709,7 @@ class QuicksightAccountCustomization(BaseModel):
         if self.default_theme:
             result["DefaultTheme"] = self.default_theme
         if self.default_email_customization_template:
-            result["DefaultEmailCustomizationTemplate"] = self.default_email_customization_template
+            result["DefaultEmailCustomizationTemplate"] = (
+                self.default_email_customization_template
+            )
         return result

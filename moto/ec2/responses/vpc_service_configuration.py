@@ -1,5 +1,4 @@
 from moto.core.responses import ActionResult
-from moto.core.responses import ActionResult, EmptyResult
 
 from ..exceptions import NoLoadBalancersProvided
 from ._base_response import EC2BaseResponse
@@ -94,11 +93,12 @@ class VPCEndpointServiceConfiguration(EC2BaseResponse):
         )
         return ActionResult({"ReturnValue": True})
 
-
     def accept_vpc_endpoint_connections(self) -> ActionResult:
         service_id = self._get_param("ServiceId")
         vpc_endpoint_ids = self._get_param("VpcEndpointIds", [])
-        failed = self.ec2_backend.accept_vpc_endpoint_connections(service_id, vpc_endpoint_ids)
+        failed = self.ec2_backend.accept_vpc_endpoint_connections(
+            service_id, vpc_endpoint_ids
+        )
 
         unsuccessful = [
             {
@@ -115,7 +115,9 @@ class VPCEndpointServiceConfiguration(EC2BaseResponse):
     def reject_vpc_endpoint_connections(self) -> ActionResult:
         service_id = self._get_param("ServiceId")
         vpc_endpoint_ids = self._get_param("VpcEndpointIds", [])
-        failed = self.ec2_backend.reject_vpc_endpoint_connections(service_id, vpc_endpoint_ids)
+        failed = self.ec2_backend.reject_vpc_endpoint_connections(
+            service_id, vpc_endpoint_ids
+        )
 
         unsuccessful = [
             {

@@ -757,7 +757,9 @@ class WorkSpacesBackend(BaseBackend, TaggableResourcesMixin):
         if group_id not in self.ip_groups:
             raise ResourceNotFoundException(f"The IP group {group_id} does not exist.")
         grp = self.ip_groups[group_id]
-        grp.user_rules = [r for r in grp.user_rules if r.get("ipRule") not in user_rules]
+        grp.user_rules = [
+            r for r in grp.user_rules if r.get("ipRule") not in user_rules
+        ]
 
     def update_rules_of_ip_group(
         self, group_id: str, user_rules: list[dict[str, str]]
@@ -767,9 +769,7 @@ class WorkSpacesBackend(BaseBackend, TaggableResourcesMixin):
         grp = self.ip_groups[group_id]
         grp.user_rules = user_rules
 
-    def associate_ip_groups(
-        self, directory_id: str, group_ids: list[str]
-    ) -> None:
+    def associate_ip_groups(self, directory_id: str, group_ids: list[str]) -> None:
         if directory_id not in self.workspace_directories:
             raise ResourceNotFoundException(
                 f"The directory {directory_id} does not exist."
@@ -781,9 +781,7 @@ class WorkSpacesBackend(BaseBackend, TaggableResourcesMixin):
             if gid not in directory.ip_group_ids:
                 directory.ip_group_ids.append(gid)
 
-    def disassociate_ip_groups(
-        self, directory_id: str, group_ids: list[str]
-    ) -> None:
+    def disassociate_ip_groups(self, directory_id: str, group_ids: list[str]) -> None:
         if directory_id not in self.workspace_directories:
             raise ResourceNotFoundException(
                 f"The directory {directory_id} does not exist."
@@ -832,9 +830,7 @@ class WorkSpacesBackend(BaseBackend, TaggableResourcesMixin):
             )
         self.connection_aliases.pop(alias_id)
 
-    def associate_connection_alias(
-        self, alias_id: str, resource_id: str
-    ) -> str:
+    def associate_connection_alias(self, alias_id: str, resource_id: str) -> str:
         if alias_id not in self.connection_aliases:
             raise ResourceNotFoundException(
                 f"The connection alias {alias_id} does not exist."
@@ -880,7 +876,9 @@ class WorkSpacesBackend(BaseBackend, TaggableResourcesMixin):
         shared_account_id = connection_alias_permission.get("SharedAccountId", "")
         allow_association = connection_alias_permission.get("AllowAssociation", False)
         existing = [
-            p for p in alias.permissions if p.get("SharedAccountId") == shared_account_id
+            p
+            for p in alias.permissions
+            if p.get("SharedAccountId") == shared_account_id
         ]
         if allow_association:
             if not existing:
@@ -931,9 +929,7 @@ class WorkSpacesBackend(BaseBackend, TaggableResourcesMixin):
         if bundle_id and bundle_id in self.workspace_bundles:
             self.workspace_bundles.pop(bundle_id)
 
-    def update_workspace_bundle(
-        self, bundle_id: str, image_id: str
-    ) -> None:
+    def update_workspace_bundle(self, bundle_id: str, image_id: str) -> None:
         if bundle_id not in self.workspace_bundles:
             raise ResourceNotFoundException(
                 f"The workspace bundle {bundle_id} does not exist."
@@ -1020,9 +1016,7 @@ class WorkSpacesBackend(BaseBackend, TaggableResourcesMixin):
         self.workspace_images[workspace_image.image_id] = workspace_image
         return workspace_image.image_id, workspace_image.state
 
-    def describe_custom_workspace_image_import(
-        self, image_id: str
-    ) -> dict[str, Any]:
+    def describe_custom_workspace_image_import(self, image_id: str) -> dict[str, Any]:
         if image_id in self.workspace_images:
             img = self.workspace_images[image_id]
             return {
@@ -1045,9 +1039,7 @@ class WorkSpacesBackend(BaseBackend, TaggableResourcesMixin):
         self.connect_client_add_ins[add_in.add_in_id] = add_in
         return add_in.add_in_id
 
-    def describe_connect_client_add_ins(
-        self, resource_id: str
-    ) -> list[dict[str, Any]]:
+    def describe_connect_client_add_ins(self, resource_id: str) -> list[dict[str, Any]]:
         add_ins = [
             a
             for a in self.connect_client_add_ins.values()
@@ -1055,9 +1047,7 @@ class WorkSpacesBackend(BaseBackend, TaggableResourcesMixin):
         ]
         return [a.to_dict() for a in add_ins]
 
-    def delete_connect_client_add_in(
-        self, add_in_id: str, resource_id: str
-    ) -> None:
+    def delete_connect_client_add_in(self, add_in_id: str, resource_id: str) -> None:
         if add_in_id in self.connect_client_add_ins:
             self.connect_client_add_ins.pop(add_in_id)
 
@@ -1069,9 +1059,7 @@ class WorkSpacesBackend(BaseBackend, TaggableResourcesMixin):
         url: Optional[str],
     ) -> None:
         if add_in_id not in self.connect_client_add_ins:
-            raise ResourceNotFoundException(
-                f"The add-in {add_in_id} does not exist."
-            )
+            raise ResourceNotFoundException(f"The add-in {add_in_id} does not exist.")
         add_in = self.connect_client_add_ins[add_in_id]
         if name:
             add_in.name = name
@@ -1261,7 +1249,9 @@ class WorkSpacesBackend(BaseBackend, TaggableResourcesMixin):
 
     def terminate_workspaces_pool_session(self, session_id: str) -> None:
         for pool in self.workspaces_pools.values():
-            pool.sessions = [s for s in pool.sessions if s.get("SessionId") != session_id]
+            pool.sessions = [
+                s for s in pool.sessions if s.get("SessionId") != session_id
+            ]
 
     def start_workspaces(
         self, start_workspace_requests: list[dict[str, str]]
@@ -1353,9 +1343,7 @@ class WorkSpacesBackend(BaseBackend, TaggableResourcesMixin):
         if data_replication:
             ws.data_replication_settings["DataReplication"] = data_replication
 
-    def modify_workspace_state(
-        self, workspace_id: str, workspace_state: str
-    ) -> None:
+    def modify_workspace_state(self, workspace_id: str, workspace_state: str) -> None:
         if workspace_id not in self.workspaces:
             raise ResourceNotFoundException(
                 f"The workspace {workspace_id} does not exist."
@@ -1478,7 +1466,10 @@ class WorkSpacesBackend(BaseBackend, TaggableResourcesMixin):
             )
         if properties_to_delete:
             for prop in properties_to_delete:
-                if prop == "CERTIFICATE_BASED_AUTH_PROPERTIES_CERTIFICATE_AUTHORITY_ARN":
+                if (
+                    prop
+                    == "CERTIFICATE_BASED_AUTH_PROPERTIES_CERTIFICATE_AUTHORITY_ARN"
+                ):
                     directory.certificate_based_auth_properties.pop(
                         "CertificateAuthorityArn", None
                     )
@@ -1561,9 +1552,7 @@ class WorkSpacesBackend(BaseBackend, TaggableResourcesMixin):
             return directory.client_branding  # type: ignore[attr-defined]
         return {}
 
-    def delete_client_branding(
-        self, resource_id: str, platforms: list[str]
-    ) -> None:
+    def delete_client_branding(self, resource_id: str, platforms: list[str]) -> None:
         if resource_id not in self.workspace_directories:
             raise ResourceNotFoundException(
                 f"The directory {resource_id} does not exist."
@@ -1646,8 +1635,6 @@ class WorkSpacesBackend(BaseBackend, TaggableResourcesMixin):
     ) -> list[str]:
         # Return some plausible CIDR ranges based on the constraint
         return [management_cidr_range_constraint]
-
-
 
 
 class IpGroup(BaseModel):
@@ -1813,9 +1800,7 @@ class WorkspacesPool(BaseModel):
         self.created_at = unix_time()
         self.account_id = account_id
         self.region = region
-        self.pool_arn = (
-            f"arn:{get_partition(region)}:workspaces:{region}:{account_id}:workspacespool/{self.pool_id}"
-        )
+        self.pool_arn = f"arn:{get_partition(region)}:workspaces:{region}:{account_id}:workspacespool/{self.pool_id}"
         self.errors: list[dict[str, str]] = []
         # Track sessions
         self.sessions: list[dict[str, Any]] = []
@@ -1843,4 +1828,6 @@ class WorkspacesPool(BaseModel):
         if self.timeout_settings:
             dct["TimeoutSettings"] = self.timeout_settings
         return dct
+
+
 workspaces_backends = BackendDict(WorkSpacesBackend, "workspaces")

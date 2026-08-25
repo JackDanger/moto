@@ -197,9 +197,7 @@ class CapacityReservationBackend:
     ) -> list[CapacityReservationFleet]:
         fleets = list(self.capacity_reservation_fleets.values())
         if capacity_reservation_fleet_ids:
-            fleets = [
-                f for f in fleets if f.id in capacity_reservation_fleet_ids
-            ]
+            fleets = [f for f in fleets if f.id in capacity_reservation_fleet_ids]
         return fleets
 
     def modify_capacity_reservation_fleet(
@@ -208,15 +206,11 @@ class CapacityReservationBackend:
         total_target_capacity: Optional[int] = None,
         end_date: Optional[str] = None,
     ) -> CapacityReservationFleet:
-        fleet = self.capacity_reservation_fleets.get(
-            capacity_reservation_fleet_id
-        )
+        fleet = self.capacity_reservation_fleets.get(capacity_reservation_fleet_id)
         if not fleet:
             from ..exceptions import InvalidCapacityReservationFleetIdError
 
-            raise InvalidCapacityReservationFleetIdError(
-                capacity_reservation_fleet_id
-            )
+            raise InvalidCapacityReservationFleetIdError(capacity_reservation_fleet_id)
         if total_target_capacity is not None:
             fleet.total_target_capacity = total_target_capacity
             fleet.total_fulfilled_capacity = float(total_target_capacity)

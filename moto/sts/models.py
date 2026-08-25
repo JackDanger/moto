@@ -283,12 +283,8 @@ class STSBackend(BaseBackend):
         decoded_message = {
             "allowed": False,
             "explicitDeny": False,
-            "matchedStatements": {
-                "items": []
-            },
-            "failures": {
-                "items": []
-            },
+            "matchedStatements": {"items": []},
+            "failures": {"items": []},
             "context": {
                 "principal": {
                     "id": "AIDACKCEVSQ6C2EXAMPLE",
@@ -297,9 +293,7 @@ class STSBackend(BaseBackend):
                 },
                 "action": "ec2:RunInstances",
                 "resource": f"arn:aws:ec2:{self.region_name}:{self.account_id}:instance/*",
-                "conditions": {
-                    "items": []
-                },
+                "conditions": {"items": []},
             },
         }
         return json.dumps(decoded_message)

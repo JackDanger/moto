@@ -45,13 +45,20 @@ from moto.appmesh.exceptions import (
 )
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.utilities.paginator import paginate
-from moto.appmesh.dataclasses.virtual_gateway import GatewayRoute, GatewayRouteMetadata, GatewayRouteSpec
+from moto.appmesh.dataclasses.virtual_gateway import (
+    GatewayRoute,
+    GatewayRouteMetadata,
+    GatewayRouteSpec,
+)
 from moto.appmesh.dataclasses.virtual_service import (
     VirtualServiceMetadata,
     VirtualServiceResource,
     VirtualServiceSpec,
 )
-from moto.appmesh.exceptions import (VirtualServiceNameAlreadyTakenError, VirtualServiceNotFoundError)
+from moto.appmesh.exceptions import (
+    VirtualServiceNameAlreadyTakenError,
+    VirtualServiceNotFoundError,
+)
 
 PAGINATION_MODEL = {
     "list_meshes": {

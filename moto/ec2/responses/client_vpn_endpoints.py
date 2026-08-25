@@ -1,4 +1,4 @@
-from moto.core.responses import ActionResult, EmptyResult
+from moto.core.responses import ActionResult
 from moto.ec2.utils import add_tag_specification
 from moto.utilities.utils import str2bool
 

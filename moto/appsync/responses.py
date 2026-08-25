@@ -1,4 +1,5 @@
 """Handles incoming appsync requests, invokes methods, returns responses."""
+
 from urllib.parse import unquote
 
 import json
@@ -775,9 +776,7 @@ class AppSyncResponse(BaseResponse):
         parts = self.path.split("/")
         api_id = parts[-3]
         function_id = parts[-1]
-        fn = self.appsync_backend.get_function(
-            api_id=api_id, function_id=function_id
-        )
+        fn = self.appsync_backend.get_function(api_id=api_id, function_id=function_id)
         return json.dumps({"functionConfiguration": fn.to_json()})
 
     def update_function(self) -> str:
@@ -807,18 +806,14 @@ class AppSyncResponse(BaseResponse):
         parts = self.path.split("/")
         api_id = parts[-3]
         function_id = parts[-1]
-        self.appsync_backend.delete_function(
-            api_id=api_id, function_id=function_id
-        )
+        self.appsync_backend.delete_function(api_id=api_id, function_id=function_id)
         return "{}"
 
     def list_functions(self) -> str:
         # /v1/apis/{apiId}/functions
         api_id = self.path.split("/")[-2]
         functions = self.appsync_backend.list_functions(api_id=api_id)
-        return json.dumps(
-            {"functions": [fn.to_json() for fn in functions]}
-        )
+        return json.dumps({"functions": [fn.to_json() for fn in functions]})
 
     def create_domain_name(self) -> str:
         params = json.loads(self.body)
@@ -854,9 +849,7 @@ class AppSyncResponse(BaseResponse):
 
     def list_domain_names(self) -> str:
         domain_names = self.appsync_backend.list_domain_names()
-        return json.dumps(
-            {"domainNameConfigs": [dn.to_json() for dn in domain_names]}
-        )
+        return json.dumps({"domainNameConfigs": [dn.to_json() for dn in domain_names]})
 
     def associate_api(self) -> str:
         # /v1/domainnames/{domainName}/apiassociation
@@ -1010,7 +1003,9 @@ class AppSyncResponse(BaseResponse):
     def get_graphql_api_environment_variables(self) -> str:
         # GET /v1/apis/{apiId}/environmentVariables
         api_id = self.path.split("/")[-2]
-        env_vars = self.appsync_backend.get_graphql_api_environment_variables(api_id=api_id)
+        env_vars = self.appsync_backend.get_graphql_api_environment_variables(
+            api_id=api_id
+        )
         return json.dumps({"environmentVariables": env_vars})
 
     def put_graphql_api_environment_variables(self) -> str:
@@ -1046,7 +1041,9 @@ class AppSyncResponse(BaseResponse):
         introspection_id = self.appsync_backend.start_data_source_introspection(
             rds_data_api_config=params.get("rdsDataApiConfig"),
         )
-        return json.dumps({"introspectionId": introspection_id, "introspectionStatus": "PROCESSING"})
+        return json.dumps(
+            {"introspectionId": introspection_id, "introspectionStatus": "PROCESSING"}
+        )
 
     def get_data_source_introspection(self) -> str:
         # GET /v1/datasources/introspections/{introspectionId}

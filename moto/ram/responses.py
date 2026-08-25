@@ -125,16 +125,12 @@ class ResourceAccessManagerResponse(BaseResponse):
         permission_arn = self._get_param("permissionArn")
         policy_template = self._get_param("policyTemplate")
         return json.dumps(
-            self.ram_backend.create_permission_version(
-                permission_arn, policy_template
-            )
+            self.ram_backend.create_permission_version(permission_arn, policy_template)
         )
 
     def delete_permission(self) -> str:
         permission_arn = self._get_param("permissionArn")
-        return json.dumps(
-            self.ram_backend.delete_permission(permission_arn)
-        )
+        return json.dumps(self.ram_backend.delete_permission(permission_arn))
 
     def delete_permission_version(self) -> str:
         permission_arn = self._get_param("permissionArn")
@@ -165,9 +161,7 @@ class ResourceAccessManagerResponse(BaseResponse):
 
     def list_permission_versions(self) -> str:
         permission_arn = self._get_param("permissionArn")
-        return json.dumps(
-            self.ram_backend.list_permission_versions(permission_arn)
-        )
+        return json.dumps(self.ram_backend.list_permission_versions(permission_arn))
 
     def list_resource_share_permissions(self) -> str:
         resource_share_arn = self._get_param("resourceShareArn")
@@ -187,9 +181,7 @@ class ResourceAccessManagerResponse(BaseResponse):
         )
 
     def accept_resource_share_invitation(self) -> str:
-        resource_share_invitation_arn = self._get_param(
-            "resourceShareInvitationArn"
-        )
+        resource_share_invitation_arn = self._get_param("resourceShareInvitationArn")
         return json.dumps(
             self.ram_backend.accept_resource_share_invitation(
                 resource_share_invitation_arn
@@ -197,9 +189,7 @@ class ResourceAccessManagerResponse(BaseResponse):
         )
 
     def reject_resource_share_invitation(self) -> str:
-        resource_share_invitation_arn = self._get_param(
-            "resourceShareInvitationArn"
-        )
+        resource_share_invitation_arn = self._get_param("resourceShareInvitationArn")
         return json.dumps(
             self.ram_backend.reject_resource_share_invitation(
                 resource_share_invitation_arn
@@ -208,9 +198,7 @@ class ResourceAccessManagerResponse(BaseResponse):
 
     def get_resource_policies(self) -> str:
         resource_arns = self._get_param("resourceArns", [])
-        return json.dumps(
-            self.ram_backend.get_resource_policies(resource_arns)
-        )
+        return json.dumps(self.ram_backend.get_resource_policies(resource_arns))
 
     def list_principals(self) -> str:
         resource_owner = self._get_param("resourceOwner")
@@ -245,9 +233,7 @@ class ResourceAccessManagerResponse(BaseResponse):
         )
 
     def list_pending_invitation_resources(self) -> str:
-        resource_share_invitation_arn = self._get_param(
-            "resourceShareInvitationArn"
-        )
+        resource_share_invitation_arn = self._get_param("resourceShareInvitationArn")
         return json.dumps(
             self.ram_backend.list_pending_invitation_resources(
                 resource_share_invitation_arn
@@ -256,17 +242,13 @@ class ResourceAccessManagerResponse(BaseResponse):
 
     def list_permission_associations(self) -> str:
         permission_arn = self._get_param("permissionArn")
-        return json.dumps(
-            self.ram_backend.list_permission_associations(permission_arn)
-        )
+        return json.dumps(self.ram_backend.list_permission_associations(permission_arn))
 
     def list_replace_permission_associations_work(self) -> str:
         work_ids = self._get_param("workIds", [])
         status = self._get_param("status")
         return json.dumps(
-            self.ram_backend.list_replace_permission_associations_work(
-                work_ids, status
-            )
+            self.ram_backend.list_replace_permission_associations_work(work_ids, status)
         )
 
     def list_source_associations(self) -> str:
@@ -306,9 +288,7 @@ class ResourceAccessManagerResponse(BaseResponse):
         resource_arn = self._get_param("resourceArn")
         tags = self._get_param("tags", [])
         return json.dumps(
-            self.ram_backend.tag_resource(
-                resource_share_arn, resource_arn, tags
-            )
+            self.ram_backend.tag_resource(resource_share_arn, resource_arn, tags)
         )
 
     def untag_resource(self) -> str:
@@ -316,7 +296,5 @@ class ResourceAccessManagerResponse(BaseResponse):
         resource_arn = self._get_param("resourceArn")
         tag_keys = self._get_param("tagKeys", [])
         return json.dumps(
-            self.ram_backend.untag_resource(
-                resource_share_arn, resource_arn, tag_keys
-            )
+            self.ram_backend.untag_resource(resource_share_arn, resource_arn, tag_keys)
         )

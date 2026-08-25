@@ -1,4 +1,3 @@
-import json
 import uuid
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -32,6 +31,7 @@ from .exceptions import (
     StorageLensConfigurationNotFound,
     StorageLensGroupNotFound,
 )
+
 
 class AccessGrantsInstance(BaseModel):
     def __init__(
@@ -141,7 +141,11 @@ class S3Job(BaseModel):
         self.description = ""
         self.operation = {}
         self.priority = 0
-        self.progress = {"NumberOfTasksSucceeded": 0, "NumberOfTasksFailed": 0, "TotalNumberOfTasks": 0}
+        self.progress = {
+            "NumberOfTasksSucceeded": 0,
+            "NumberOfTasksFailed": 0,
+            "TotalNumberOfTasks": 0,
+        }
         self.termination_date = None
         self.role_arn = ""
         self.manifest = {}
@@ -368,9 +372,15 @@ class S3ControlBackend(BaseBackend):
         self.jobs: dict[str, S3Job] = {}
         self.resource_policy: Optional[str] = None
         self.storage_lens_groups: dict[str, StorageLensGroup] = {}
-        self.object_lambda_access_points: dict[str, dict[str, AccessPoint]] = defaultdict(dict)
-        self.object_lambda_access_point_policies: dict[str, dict[str, str]] = defaultdict(dict)
-        self.access_point_scopes: dict[str, dict[str, dict[str, Any]]] = defaultdict(dict)
+        self.object_lambda_access_points: dict[str, dict[str, AccessPoint]] = (
+            defaultdict(dict)
+        )
+        self.object_lambda_access_point_policies: dict[str, dict[str, str]] = (
+            defaultdict(dict)
+        )
+        self.access_point_scopes: dict[str, dict[str, dict[str, Any]]] = defaultdict(
+            dict
+        )
         self.job_tags: dict[str, list[dict[str, str]]] = {}
         self.outposts_buckets: dict[str, OutpostsBucket] = {}
 
@@ -874,9 +884,7 @@ class S3ControlBackend(BaseBackend):
         self.jobs[job.job_id] = job
         return job
 
-    def update_job_priority(
-        self, account_id: str, job_id: str, priority: int
-    ) -> S3Job:
+    def update_job_priority(self, account_id: str, job_id: str, priority: int) -> S3Job:
         if job_id not in self.jobs:
             raise JobNotFound(job_id)
         self.jobs[job_id].priority = priority
@@ -936,9 +944,7 @@ class S3ControlBackend(BaseBackend):
         self.access_grants_locations.clear()
         self.resource_policy = None
 
-    def delete_access_grants_instance_resource_policy(
-        self, account_id: str
-    ) -> None:
+    def delete_access_grants_instance_resource_policy(self, account_id: str) -> None:
         if account_id not in self.access_grants_instances:
             raise AccessGrantsInstanceNotFound()
         self.resource_policy = None
@@ -1302,7 +1308,9 @@ class S3ControlBackend(BaseBackend):
         from .exceptions import InvalidRequestException
 
         if bucket not in self.outposts_buckets:
-            raise InvalidRequestException(f"The specified bucket does not exist: {bucket}")
+            raise InvalidRequestException(
+                f"The specified bucket does not exist: {bucket}"
+            )
         return self.outposts_buckets[bucket]
 
     def delete_bucket(

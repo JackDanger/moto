@@ -387,7 +387,6 @@ class LakeFormationResponse(BaseResponse):
         )
         return json.dumps({"TableList": results})
 
-
     def create_lf_tag_expression(self) -> str:
         catalog_id = self._get_param("CatalogId") or self.current_account
         name = self._get_param("Name")

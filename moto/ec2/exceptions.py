@@ -959,8 +959,6 @@ class InvalidIpamIdError(EC2ClientError):
         )
 
 
-
-
 class InvalidIpamPoolIdError(EC2ClientError):
     def __init__(self, ipam_pool_id: str):
         super().__init__(
@@ -1039,6 +1037,7 @@ class InvalidFleetIdError(EC2ClientError):
             "InvalidFleetId.NotFound",
             f"The fleet ID '{fleet_id}' does not exist",
         )
+
 
 class InvalidClientVpnEndpointIdError(EC2ClientError):
     def __init__(self, client_vpn_endpoint_id: str):

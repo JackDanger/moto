@@ -64,11 +64,17 @@ class AccountResponse(BaseResponse):
     def put_contact_information(self) -> ActionResult:
         account_id = self._get_account_id()
         full_name = self._get_param("ContactInformation", {}).get("FullName", "")
-        address_line_1 = self._get_param("ContactInformation", {}).get("AddressLine1", "")
+        address_line_1 = self._get_param("ContactInformation", {}).get(
+            "AddressLine1", ""
+        )
         city = self._get_param("ContactInformation", {}).get("City", "")
-        state_or_region = self._get_param("ContactInformation", {}).get("StateOrRegion", "")
+        state_or_region = self._get_param("ContactInformation", {}).get(
+            "StateOrRegion", ""
+        )
         postal_code = self._get_param("ContactInformation", {}).get("PostalCode", "")
-        country_code = self._get_param("ContactInformation", {}).get("CountryCode", "US")
+        country_code = self._get_param("ContactInformation", {}).get(
+            "CountryCode", "US"
+        )
         phone_number = self._get_param("ContactInformation", {}).get("PhoneNumber", "")
         backend = account_backends[account_id][self.partition]
         backend.put_contact_information(
@@ -120,7 +126,9 @@ class AccountResponse(BaseResponse):
         region_opt_status_contains = self._get_param("RegionOptStatusContains", [])
         account_id = self._get_account_id()
         backend = account_backends[account_id][self.partition]
-        result = backend.list_regions(region_opt_status_contains=region_opt_status_contains)
+        result = backend.list_regions(
+            region_opt_status_contains=region_opt_status_contains
+        )
         return ActionResult(result)
 
     def put_account_name(self) -> ActionResult:
@@ -142,7 +150,9 @@ class AccountResponse(BaseResponse):
         primary_email = self._get_param("PrimaryEmail")
         account_id = self._get_account_id()
         backend = account_backends[account_id][self.partition]
-        result = backend.accept_primary_email_update(otp=otp, primary_email=primary_email)
+        result = backend.accept_primary_email_update(
+            otp=otp, primary_email=primary_email
+        )
         return ActionResult(result)
 
     def _get_account_id(self) -> str:

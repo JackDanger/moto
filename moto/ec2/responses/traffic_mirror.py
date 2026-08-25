@@ -5,31 +5,19 @@ from ._base_response import EC2BaseResponse
 
 
 class TrafficMirrorResponse(EC2BaseResponse):
-
     def delete_traffic_mirror_filter(self) -> ActionResult:
-        traffic_mirror_filter_id = self._get_param(
-            "TrafficMirrorFilterId"
-        )
-        self.ec2_backend.delete_traffic_mirror_filter(
-            traffic_mirror_filter_id
-        )
-        result = {
-            "TrafficMirrorFilterId": traffic_mirror_filter_id
-        }
+        traffic_mirror_filter_id = self._get_param("TrafficMirrorFilterId")
+        self.ec2_backend.delete_traffic_mirror_filter(traffic_mirror_filter_id)
+        result = {"TrafficMirrorFilterId": traffic_mirror_filter_id}
         return ActionResult(result)
 
-
     def create_traffic_mirror_filter_rule(self) -> ActionResult:
-        traffic_mirror_filter_id = self._get_param(
-            "TrafficMirrorFilterId"
-        )
+        traffic_mirror_filter_id = self._get_param("TrafficMirrorFilterId")
         traffic_direction = self._get_param("TrafficDirection")
         rule_number = int(self._get_param("RuleNumber"))
         rule_action = self._get_param("RuleAction")
         protocol = self._get_param("Protocol")
-        dst_cidr = self._get_param(
-            "DestinationCidrBlock", "0.0.0.0/0"
-        )
+        dst_cidr = self._get_param("DestinationCidrBlock", "0.0.0.0/0")
         src_cidr = self._get_param("SourceCidrBlock", "0.0.0.0/0")
         dst_port_range = self._get_param("DestinationPortRange")
         src_port_range = self._get_param("SourcePortRange")
@@ -64,9 +52,7 @@ class TrafficMirrorResponse(EC2BaseResponse):
     def delete_traffic_mirror_filter_rule(self) -> ActionResult:
         rule_id = self._get_param("TrafficMirrorFilterRuleId")
         self.ec2_backend.delete_traffic_mirror_filter_rule(rule_id)
-        result = {
-            "TrafficMirrorFilterRuleId": rule_id
-        }
+        result = {"TrafficMirrorFilterRuleId": rule_id}
         return ActionResult(result)
 
     def describe_traffic_mirror_filter_rules(self) -> ActionResult:
@@ -94,15 +80,11 @@ class TrafficMirrorResponse(EC2BaseResponse):
         }
         return ActionResult(result)
 
-
     def delete_traffic_mirror_target(self) -> ActionResult:
         target_id = self._get_param("TrafficMirrorTargetId")
         self.ec2_backend.delete_traffic_mirror_target(target_id)
-        result = {
-            "TrafficMirrorTargetId": target_id
-        }
+        result = {"TrafficMirrorTargetId": target_id}
         return ActionResult(result)
-
 
     def create_traffic_mirror_session(self) -> ActionResult:
         network_interface_id = self._get_param("NetworkInterfaceId")
@@ -112,17 +94,13 @@ class TrafficMirrorResponse(EC2BaseResponse):
         packet_length = self._get_param("PacketLength")
         virtual_network_id = self._get_param("VirtualNetworkId")
         description = self._get_param("Description", "")
-        tags = add_tag_specification(
-            self._get_param("TagSpecifications", [])
-        )
+        tags = add_tag_specification(self._get_param("TagSpecifications", []))
         tms = self.ec2_backend.create_traffic_mirror_session(
             network_interface_id=network_interface_id,
             traffic_mirror_target_id=target_id,
             traffic_mirror_filter_id=filter_id,
             session_number=session_number,
-            packet_length=(
-                int(packet_length) if packet_length else None
-            ),
+            packet_length=(int(packet_length) if packet_length else None),
             virtual_network_id=(
                 int(virtual_network_id) if virtual_network_id else None
             ),
@@ -137,10 +115,7 @@ class TrafficMirrorResponse(EC2BaseResponse):
             "OwnerId": tms.owner_id,
             "SessionNumber": tms.session_number,
             "Description": tms.description,
-            "Tags": [
-                {"Key": tag.key, "Value": tag.value}
-                for tag in tms.get_tags()
-            ],
+            "Tags": [{"Key": tag.key, "Value": tag.value} for tag in tms.get_tags()],
         }
         if tms.packet_length:
             tms_dict["PacketLength"] = tms.packet_length
@@ -152,9 +127,7 @@ class TrafficMirrorResponse(EC2BaseResponse):
     def delete_traffic_mirror_session(self) -> ActionResult:
         session_id = self._get_param("TrafficMirrorSessionId")
         self.ec2_backend.delete_traffic_mirror_session(session_id)
-        result = {
-            "TrafficMirrorSessionId": session_id
-        }
+        result = {"TrafficMirrorSessionId": session_id}
         return ActionResult(result)
 
     def modify_traffic_mirror_filter_network_services(self) -> ActionResult:
@@ -258,11 +231,16 @@ class TrafficMirrorResponse(EC2BaseResponse):
                     "SessionNumber": tms.session_number,
                     "Description": tms.description,
                     "Tags": [
-                        {"Key": tag.key, "Value": tag.value}
-                        for tag in tms.get_tags()
+                        {"Key": tag.key, "Value": tag.value} for tag in tms.get_tags()
                     ],
-                    **({"PacketLength": tms.packet_length} if tms.packet_length else {}),
-                    **({"VirtualNetworkId": tms.virtual_network_id} if tms.virtual_network_id else {}),
+                    **(
+                        {"PacketLength": tms.packet_length} if tms.packet_length else {}
+                    ),
+                    **(
+                        {"VirtualNetworkId": tms.virtual_network_id}
+                        if tms.virtual_network_id
+                        else {}
+                    ),
                 }
                 for tms in sessions
             ]

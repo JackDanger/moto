@@ -125,7 +125,10 @@ class ApplicationVersion(BaseModel):
         self.date_updated = utcnow()
         self.status = "UNPROCESSED"
         self.arn = make_arn(
-            region, account_id, "applicationversion", f"{application_name}/{version_label}"
+            region,
+            account_id,
+            "applicationversion",
+            f"{application_name}/{version_label}",
         )
 
 
@@ -301,6 +304,7 @@ class EBBackend(BaseBackend, TaggableResourcesMixin):
                     resource_type="elasticbeanstalk:environment",
                     extra={"include_untagged": True},
                 )
+
     # Configuration Template operations
 
     def create_configuration_template(
@@ -395,9 +399,8 @@ class EBBackend(BaseBackend, TaggableResourcesMixin):
     ) -> Environment | None:
         for app in self.applications.values():
             for env in app.environments.values():
-                if (
-                    (environment_name and env.environment_name == environment_name)
-                    or (environment_id and env.environment_id == environment_id)
+                if (environment_name and env.environment_name == environment_name) or (
+                    environment_id and env.environment_id == environment_id
                 ):
                     env.date_updated = utcnow()
                     if version_label is not None:
@@ -414,9 +417,8 @@ class EBBackend(BaseBackend, TaggableResourcesMixin):
     ) -> Environment | None:
         for app in self.applications.values():
             for env_name, env in list(app.environments.items()):
-                if (
-                    (environment_name and env.environment_name == environment_name)
-                    or (environment_id and env.environment_id == environment_id)
+                if (environment_name and env.environment_name == environment_name) or (
+                    environment_id and env.environment_id == environment_id
                 ):
                     env.status = "Terminated"
                     env.date_updated = utcnow()
@@ -433,9 +435,8 @@ class EBBackend(BaseBackend, TaggableResourcesMixin):
     ) -> None:
         for app in self.applications.values():
             for env in app.environments.values():
-                if (
-                    (environment_name and env.environment_name == environment_name)
-                    or (environment_id and env.environment_id == environment_id)
+                if (environment_name and env.environment_name == environment_name) or (
+                    environment_id and env.environment_id == environment_id
                 ):
                     env.status = "Launching"
                     env.date_updated = utcnow()
@@ -460,9 +461,8 @@ class EBBackend(BaseBackend, TaggableResourcesMixin):
     ) -> Environment | None:
         for app in self.applications.values():
             for env_name, env in list(app.environments.items()):
-                if (
-                    (environment_name and env.environment_name == environment_name)
-                    or (environment_id and env.environment_id == environment_id)
+                if (environment_name and env.environment_name == environment_name) or (
+                    environment_id and env.environment_id == environment_id
                 ):
                     env.status = "Terminated"
                     env.date_updated = utcnow()
@@ -471,8 +471,6 @@ class EBBackend(BaseBackend, TaggableResourcesMixin):
         raise InvalidParameterValueError(
             f"No Environment named '{environment_name or environment_id}' found."
         )
-
-
 
     def swap_environment_cnames(
         self,
@@ -490,14 +488,10 @@ class EBBackend(BaseBackend, TaggableResourcesMixin):
 
         if not source_env:
             name = source_environment_name or source_environment_id or ""
-            raise InvalidParameterValueError(
-                f"No Environment named '{name}' found."
-            )
+            raise InvalidParameterValueError(f"No Environment named '{name}' found.")
         if not dest_env:
             name = destination_environment_name or destination_environment_id or ""
-            raise InvalidParameterValueError(
-                f"No Environment named '{name}' found."
-            )
+            raise InvalidParameterValueError(f"No Environment named '{name}' found.")
 
         source_env.cname, dest_env.cname = dest_env.cname, source_env.cname
 

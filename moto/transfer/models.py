@@ -8,10 +8,8 @@ from moto.moto_api._internal import mock_random
 from moto.transfer.exceptions import (
     AccessNotFound,
     ConnectorNotFound,
-    InvalidRequestError,
     PublicKeyNotFound,
     ResourceNotFound,
-
     ServerNotFound,
     UserNotFound,
 )
@@ -24,7 +22,6 @@ from .types import (
     HostKey,
     Profile,
     SECURITY_POLICIES,
-
     Server,
     ServerDomain,
     ServerEndpointType,
@@ -178,6 +175,7 @@ class TransferBackend(BaseBackend):
             raise ServerNotFound(server_id=server_id)
         server = self.servers[server_id]
         return server
+
     def delete_server(self, server_id: str) -> None:
         server = self._get_server(server_id)
         self.tagger.pop(server.arn, None)
@@ -432,9 +430,7 @@ class TransferBackend(BaseBackend):
         server = self._get_server(server_id)
         for i, user in enumerate(server._users):
             if user.user_name == user_name:
-                for j, key in enumerate(
-                    server._users[i].ssh_public_keys
-                ):
+                for j, key in enumerate(server._users[i].ssh_public_keys):
                     if key["ssh_public_key_id"] == ssh_public_key_id:
                         del user.ssh_public_keys[j]
                         return
@@ -575,9 +571,7 @@ class TransferBackend(BaseBackend):
             self._add_tags(agreement.arn, tags)
         return agreement.agreement_id
 
-    def describe_agreement(
-        self, agreement_id: str, server_id: str
-    ) -> Agreement:
+    def describe_agreement(self, agreement_id: str, server_id: str) -> Agreement:
         server = self._get_server(server_id)
         for agreement in server._agreements:
             if agreement.agreement_id == agreement_id:
@@ -699,7 +693,6 @@ class TransferBackend(BaseBackend):
 
     # ======== Connector operations ========
 
-
     def describe_connector(self, connector_id: str) -> Connector:
         if connector_id not in self.connectors:
             raise ResourceNotFound("Connector", connector_id)
@@ -710,7 +703,6 @@ class TransferBackend(BaseBackend):
             raise ResourceNotFound("Connector", connector_id)
         conn = self.connectors.pop(connector_id)
         self.tagger.pop(conn.arn, None)
-
 
     def list_connectors(self) -> list[Connector]:
         return list(self.connectors.values())
@@ -1096,9 +1088,7 @@ class TransferBackend(BaseBackend):
         output_file_name = f"{output_directory_path}/{listing_id}.json"
         return listing_id, output_file_name
 
-    def start_remote_delete(
-        self, connector_id: str, delete_path: str
-    ) -> str:
+    def start_remote_delete(self, connector_id: str, delete_path: str) -> str:
         if connector_id not in self.connectors:
             raise ResourceNotFound("Connector", connector_id)
         return f"delete-{mock_random.get_random_hex(17)}"
@@ -1148,7 +1138,6 @@ class TransferBackend(BaseBackend):
         self.connectors[connector_id] = connector
         return connector_id
 
-
     # TODO: EgressConfig (VpcLattice) not implemented
     def update_connector(
         self,
@@ -1181,7 +1170,6 @@ class TransferBackend(BaseBackend):
                 camelcase_to_underscores(k): v for k, v in sftp_config.items()
             }
         return connector_id
-
 
     # TODO: implement pagination
 

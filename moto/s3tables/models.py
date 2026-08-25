@@ -4,7 +4,7 @@ import datetime
 import re
 from hashlib import md5
 from typing import Literal
-from typing import Any, Literal, Optional, Union
+from typing import Any, Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.moto_api._internal import mock_random as random
@@ -467,13 +467,14 @@ class S3TablesBackend(BaseBackend):
         value: dict[str, Any],
     ) -> None:
         bucket = self.get_table_bucket(table_bucket_arn)
-        bucket.maintenance_configuration[config_type] = {"status": "enabled", "settings": value}
+        bucket.maintenance_configuration[config_type] = {
+            "status": "enabled",
+            "settings": value,
+        }
 
     # --- Table Bucket Encryption ---
 
-    def get_table_bucket_encryption(
-        self, table_bucket_arn: str
-    ) -> dict[str, Any]:
+    def get_table_bucket_encryption(self, table_bucket_arn: str) -> dict[str, Any]:
         bucket = self.get_table_bucket(table_bucket_arn)
         if bucket.encryption_configuration:
             return bucket.encryption_configuration
@@ -497,23 +498,17 @@ class S3TablesBackend(BaseBackend):
         bucket = self.get_table_bucket(table_bucket_arn)
         return bucket.metrics_configuration
 
-    def put_table_bucket_metrics_configuration(
-        self, table_bucket_arn: str
-    ) -> None:
+    def put_table_bucket_metrics_configuration(self, table_bucket_arn: str) -> None:
         bucket = self.get_table_bucket(table_bucket_arn)
         bucket.metrics_configuration = str(random.uuid4())
 
-    def delete_table_bucket_metrics_configuration(
-        self, table_bucket_arn: str
-    ) -> None:
+    def delete_table_bucket_metrics_configuration(self, table_bucket_arn: str) -> None:
         bucket = self.get_table_bucket(table_bucket_arn)
         bucket.metrics_configuration = None
 
     # --- Table Bucket Storage Class ---
 
-    def get_table_bucket_storage_class(
-        self, table_bucket_arn: str
-    ) -> dict[str, Any]:
+    def get_table_bucket_storage_class(self, table_bucket_arn: str) -> dict[str, Any]:
         bucket = self.get_table_bucket(table_bucket_arn)
         return bucket.storage_class_configuration
 
@@ -532,7 +527,9 @@ class S3TablesBackend(BaseBackend):
     ) -> tuple[Optional[str], Optional[dict[str, Any]]]:
         bucket = self.get_table_bucket(table_bucket_arn)
         if not bucket.replication_configuration:
-            raise NotFoundException("The specified replication configuration does not exist.")
+            raise NotFoundException(
+                "The specified replication configuration does not exist."
+            )
         return bucket.replication_version_token, bucket.replication_configuration
 
     def put_table_bucket_replication(
@@ -556,9 +553,7 @@ class S3TablesBackend(BaseBackend):
 
     # --- Table Policy ---
 
-    def get_table_policy(
-        self, table_bucket_arn: str, namespace: str, name: str
-    ) -> str:
+    def get_table_policy(self, table_bucket_arn: str, namespace: str, name: str) -> str:
         table = self.get_table(table_bucket_arn, namespace, name)
         if not table.policy:
             raise NotFoundException("The specified policy does not exist.")
@@ -679,9 +674,7 @@ class S3TablesBackend(BaseBackend):
         table = self._find_table_by_arn(table_arn)
         table.record_expiration_configuration = value
 
-    def get_table_record_expiration_job_status(
-        self, table_arn: str
-    ) -> dict[str, Any]:
+    def get_table_record_expiration_job_status(self, table_arn: str) -> dict[str, Any]:
         self._find_table_by_arn(table_arn)
         return {"status": "Not Yet Run"}
 
@@ -690,15 +683,11 @@ class S3TablesBackend(BaseBackend):
     def list_tags_for_resource(self, resource_arn: str) -> dict[str, str]:
         return self.tagger.get_tag_dict_for_resource(resource_arn)
 
-    def tag_resource(
-        self, resource_arn: str, tags: dict[str, str]
-    ) -> None:
+    def tag_resource(self, resource_arn: str, tags: dict[str, str]) -> None:
         tag_list = [{"Key": k, "Value": v} for k, v in tags.items()]
         self.tagger.tag_resource(resource_arn, tag_list)
 
-    def untag_resource(
-        self, resource_arn: str, tag_keys: list[str]
-    ) -> None:
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
     # --- Helper to find a table by ARN ---

@@ -1461,8 +1461,6 @@ class ConnectBackend(BaseBackend):
 
     # ---- Instance Attribute ----
 
-
-
     # ---- Analytics Data Association ----
 
     # ---- Instance Attribute ----
@@ -2643,155 +2641,53 @@ class ConnectBackend(BaseBackend):
 
     # ---- Update/Delete: Agent Status ----
 
-
     # ---- Update/Delete: Contact Flow ----
-
-
-
-
 
     # ---- Update/Delete: Hours of Operation ----
 
-
-
     # ---- Update/Delete: Prompt ----
-
-
 
     # ---- Update/Delete: Queue ----
 
-
-
-
-
-
-
     # ---- Update/Delete: Quick Connect ----
-
-
-
 
     # ---- Update/Delete: Routing Profile ----
 
-
-
-
-
     # ---- Update/Delete: Security Profile ----
-
-
 
     # ---- Update/Delete: User ----
 
-
-
-
-
-
-
-
     # ---- Delete/Search: Vocabulary ----
-
-
 
     # ---- Update/Delete: Rule ----
 
-
-
     # ---- Phone Number: Claim, Release, Update, Search ----
-
-
-
-
-
 
     # ---- Update/Delete: Contact Flow Metadata & Module Content/Metadata ----
 
-
-
-
     # ---- Update/Delete: View ----
-
-
-
 
     # ---- Evaluation Form: Activate/Deactivate/Delete/Update ----
 
-
-
-
-
     # ---- PredefinedAttribute CRUD ----
-
-
-
-
 
     # ---- TaskTemplate CRUD ----
 
-
-
-
-
     # ---- IntegrationAssociation CRUD ----
-
-
 
     # ---- UseCase CRUD ----
 
-
-
     # ---- Contact CRUD ----
-
-
-
-
 
     # ---- HoursOfOperationOverride CRUD ----
 
-
-
-
-
-
     # ---- Association operations ----
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     # ---- User Hierarchy Group: Delete/Update/Search ----
 
-
-
-
     # ---- TrafficDistributionGroup: Delete/List ----
 
-
-
     # ---- Search operations ----
-
-
-
-
-
-
-
-
-
-
-
 
     # ---- EmailAddress CRUD ----
 
@@ -3132,7 +3028,11 @@ class ConnectBackend(BaseBackend):
         self.data_table_attributes.setdefault(instance_id, {})
         self.data_table_attributes[instance_id].setdefault(data_table_id, {})
         self.data_table_attributes[instance_id][data_table_id][attribute_name] = attr
-        return {"Name": attribute_name, "AttributeId": attr.attribute_id, "LockVersion": {}}
+        return {
+            "Name": attribute_name,
+            "AttributeId": attr.attribute_id,
+            "LockVersion": {},
+        }
 
     def describe_data_table_attribute(
         self,
@@ -3837,9 +3737,7 @@ class ConnectBackend(BaseBackend):
         client_token: Optional[str] = None,
     ) -> None:
         if phone_number_id not in self.phone_numbers:
-            raise ResourceNotFoundException(
-                f"Phone number {phone_number_id} not found"
-            )
+            raise ResourceNotFoundException(f"Phone number {phone_number_id} not found")
         pn = self.phone_numbers[phone_number_id]
         if phone_number_description is not None:
             pn.description = phone_number_description
@@ -3971,9 +3869,7 @@ class ConnectBackend(BaseBackend):
     ) -> None:
         self._get_instance_or_raise(instance_id)
 
-    def associate_lex_bot(
-        self, instance_id: str, lex_bot: dict[str, Any]
-    ) -> None:
+    def associate_lex_bot(self, instance_id: str, lex_bot: dict[str, Any]) -> None:
         self._get_instance_or_raise(instance_id)
         if instance_id not in self.bots:
             self.bots[instance_id] = []
@@ -3986,9 +3882,7 @@ class ConnectBackend(BaseBackend):
         contact_flow_id: str,
     ) -> None:
         if phone_number_id not in self.phone_numbers:
-            raise ResourceNotFoundException(
-                f"Phone number {phone_number_id} not found"
-            )
+            raise ResourceNotFoundException(f"Phone number {phone_number_id} not found")
 
     def associate_traffic_distribution_group_user(
         self,
@@ -4082,9 +3976,7 @@ class ConnectBackend(BaseBackend):
         self._get_instance_or_raise(instance_id)
         flows = self.contact_flows.get(instance_id, {})
         if contact_flow_id not in flows:
-            raise ResourceNotFoundException(
-                f"Contact flow {contact_flow_id} not found"
-            )
+            raise ResourceNotFoundException(f"Contact flow {contact_flow_id} not found")
         return {"ContactFlowId": contact_flow_id, "ContactFlowVersion": "1"}
 
     def create_participant(
@@ -4237,9 +4129,7 @@ class ConnectBackend(BaseBackend):
         self, phone_number_id: str, instance_id: str
     ) -> None:
         if phone_number_id not in self.phone_numbers:
-            raise ResourceNotFoundException(
-                f"Phone number {phone_number_id} not found"
-            )
+            raise ResourceNotFoundException(f"Phone number {phone_number_id} not found")
 
     def disassociate_traffic_distribution_group_user(
         self,
@@ -4370,9 +4260,7 @@ class ConnectBackend(BaseBackend):
         prompts = self.prompts.get(instance_id, {})
         if prompt_id not in prompts:
             raise ResourceNotFoundException(f"Prompt {prompt_id} not found")
-        return {
-            "PromptPresignedUrl": f"https://s3.amazonaws.com/prompts/{prompt_id}"
-        }
+        return {"PromptPresignedUrl": f"https://s3.amazonaws.com/prompts/{prompt_id}"}
 
     def get_test_case_execution_summary(
         self,
@@ -4655,7 +4543,6 @@ class ConnectBackend(BaseBackend):
             raise ResourceNotFoundException(
                 f"Traffic distribution group {id} not found"
             )
-
 
     # ---- Update/Delete: Agent Status ----
 

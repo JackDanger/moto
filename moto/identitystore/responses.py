@@ -1,7 +1,7 @@
 """Handles incoming identitystore requests, invokes methods, returns responses."""
 
 import json
-from typing import Any, NamedTuple, Optional
+from typing import Any, NamedTuple
 
 from moto.core.responses import BaseResponse
 
@@ -287,10 +287,12 @@ class IdentityStoreResponse(BaseResponse):
         identity_store_id = self._get_param("IdentityStoreId")
         group_id = self._get_param("GroupId")
         member_id = self._get_param("MemberId")
-        membership_id, identity_store_id = self.identitystore_backend.get_group_membership_id(
-            identity_store_id=identity_store_id,
-            group_id=group_id,
-            member_id=member_id,
+        membership_id, identity_store_id = (
+            self.identitystore_backend.get_group_membership_id(
+                identity_store_id=identity_store_id,
+                group_id=group_id,
+                member_id=member_id,
+            )
         )
         return json.dumps(
             {"MembershipId": membership_id, "IdentityStoreId": identity_store_id}
@@ -307,9 +309,7 @@ class IdentityStoreResponse(BaseResponse):
         )
         return json.dumps({"Results": results})
 
-    def named_tuple_to_dict(
-        self, value: NamedTuple | None
-    ) -> dict[str, Any] | None:
+    def named_tuple_to_dict(self, value: NamedTuple | None) -> dict[str, Any] | None:
         if value:
             return value._asdict()
         return None

@@ -1,4 +1,3 @@
-import json
 from urllib.parse import unquote
 
 from moto.core.responses import ActionResult, BaseResponse, EmptyResult
@@ -37,7 +36,7 @@ class mediapackagev2Response(BaseResponse):
             path = self.parsed_url.path
             idx = path.find("/tags/")
             if idx >= 0:
-                return unquote(path[idx + 6:])
+                return unquote(path[idx + 6 :])
             return ""
         key_segment = segments.get(name)
         if key_segment:

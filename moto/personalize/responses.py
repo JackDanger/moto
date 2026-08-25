@@ -76,7 +76,9 @@ class PersonalizeResponse(BaseResponse):
         params = json.loads(self.body)
         max_results = params.get("maxResults")
         next_token = params.get("nextToken")
-        all_schemas = [s.to_dict(full=False) for s in self.personalize_backend.list_schemas()]
+        all_schemas = [
+            s.to_dict(full=False) for s in self.personalize_backend.list_schemas()
+        ]
         page, new_token = self._paginate(all_schemas, max_results, next_token)
         resp: dict[str, Any] = {"schemas": page}
         if new_token:

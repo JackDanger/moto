@@ -29,6 +29,7 @@ class NatGateways(EC2BaseResponse):
         nat_gateway_ids = self._get_param("NatGatewayIds", [])
         nat_gateways = self.ec2_backend.describe_nat_gateways(filters, nat_gateway_ids)
         return ActionResult({"NatGateways": nat_gateways})
+
     def disassociate_nat_gateway_address(self) -> ActionResult:
         nat_gateway_id = self._get_param("NatGatewayId")
         association_ids = self._get_param("AssociationIds", [])

@@ -227,9 +227,7 @@ class Inspector2Response(BaseResponse):
 
     def list_cis_scan_configurations(self) -> str:
         configs = self.inspector2_backend.list_cis_scan_configurations()
-        return json.dumps(
-            {"scanConfigurations": [c.to_json() for c in configs]}
-        )
+        return json.dumps({"scanConfigurations": [c.to_json() for c in configs]})
 
     def update_cis_scan_configuration(self) -> str:
         scan_configuration_arn = self._get_param("scanConfigurationArn")
@@ -266,17 +264,17 @@ class Inspector2Response(BaseResponse):
 
     def list_cis_scan_results_aggregated_by_checks(self) -> str:
         scan_arn = self._get_param("scanArn")
-        results = (
-            self.inspector2_backend.list_cis_scan_results_aggregated_by_checks(
-                scan_arn
-            )
+        results = self.inspector2_backend.list_cis_scan_results_aggregated_by_checks(
+            scan_arn
         )
         return json.dumps({"checkAggregations": results})
 
     def list_cis_scan_results_aggregated_by_target_resource(self) -> str:
         scan_arn = self._get_param("scanArn")
-        results = self.inspector2_backend.list_cis_scan_results_aggregated_by_target_resource(
-            scan_arn
+        results = (
+            self.inspector2_backend.list_cis_scan_results_aggregated_by_target_resource(
+                scan_arn
+            )
         )
         return json.dumps({"targetResourceAggregations": results})
 
@@ -394,12 +392,13 @@ class Inspector2Response(BaseResponse):
     # Encryption key
 
     def get_encryption_key(self) -> str:
-        scan_type = self._get_param("scanType") or self.querystring.get(
-            "scanType", [""]
-        )[0]
-        resource_type = self._get_param("resourceType") or self.querystring.get(
-            "resourceType", [""]
-        )[0]
+        scan_type = (
+            self._get_param("scanType") or self.querystring.get("scanType", [""])[0]
+        )
+        resource_type = (
+            self._get_param("resourceType")
+            or self.querystring.get("resourceType", [""])[0]
+        )
         kms_key_id = self.inspector2_backend.get_encryption_key(
             scan_type, resource_type
         )
@@ -437,9 +436,7 @@ class Inspector2Response(BaseResponse):
         agg_type, responses = self.inspector2_backend.list_finding_aggregations(
             aggregation_type
         )
-        return json.dumps(
-            {"aggregationType": agg_type, "responses": responses}
-        )
+        return json.dumps({"aggregationType": agg_type, "responses": responses})
 
     # Account permissions
 

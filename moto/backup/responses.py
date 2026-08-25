@@ -1105,7 +1105,9 @@ class BackupResponse(BaseResponse):
     # --- Restore Access Backup Vaults ---
 
     def list_restore_access_backup_vaults(self) -> str:
-        backup_vault_name = self.path.split("/logically-air-gapped-backup-vaults/")[1].split("/")[0]
+        backup_vault_name = self.path.split("/logically-air-gapped-backup-vaults/")[
+            1
+        ].split("/")[0]
         return json.dumps({"RestoreAccessBackupVaults": []})
 
     # --- Restore Testing Inferred Metadata ---
@@ -1121,19 +1123,23 @@ class BackupResponse(BaseResponse):
         backup_vault_name = parts[vault_idx + 1]
         rp_idx = parts.index("recovery-points")
         index_idx = parts.index("index")
-        recovery_point_arn = unquote("/".join(parts[rp_idx + 1 : index_idx]).rstrip("/"))
-        return json.dumps({
-            "BackupVaultArn": f"arn:aws:backup:{self.region}:{self.current_account}:backup-vault:{backup_vault_name}",
-            "RecoveryPointArn": recovery_point_arn,
-            "SourceResourceArn": "",
-            "IamRoleArn": "",
-            "IndexStatus": "ACTIVE",
-            "IndexStatusMessage": "",
-            "BackupCreationDate": 0,
-            "IndexCreationDate": 0,
-            "IndexDeletionDate": None,
-            "TotalItemsIndexed": 0,
-        })
+        recovery_point_arn = unquote(
+            "/".join(parts[rp_idx + 1 : index_idx]).rstrip("/")
+        )
+        return json.dumps(
+            {
+                "BackupVaultArn": f"arn:aws:backup:{self.region}:{self.current_account}:backup-vault:{backup_vault_name}",
+                "RecoveryPointArn": recovery_point_arn,
+                "SourceResourceArn": "",
+                "IamRoleArn": "",
+                "IndexStatus": "ACTIVE",
+                "IndexStatusMessage": "",
+                "BackupCreationDate": 0,
+                "IndexCreationDate": 0,
+                "IndexDeletionDate": None,
+                "TotalItemsIndexed": 0,
+            }
+        )
 
     def update_recovery_point_index_settings(self) -> str:
         params = json.loads(self.body) if self.body else {}
@@ -1142,12 +1148,16 @@ class BackupResponse(BaseResponse):
         backup_vault_name = parts[vault_idx + 1]
         rp_idx = parts.index("recovery-points")
         index_idx = parts.index("index")
-        recovery_point_arn = unquote("/".join(parts[rp_idx + 1 : index_idx]).rstrip("/"))
-        return json.dumps({
-            "BackupVaultArn": f"arn:aws:backup:{self.region}:{self.current_account}:backup-vault:{backup_vault_name}",
-            "RecoveryPointArn": recovery_point_arn,
-            "IndexStatus": params.get("Index", "ENABLED"),
-        })
+        recovery_point_arn = unquote(
+            "/".join(parts[rp_idx + 1 : index_idx]).rstrip("/")
+        )
+        return json.dumps(
+            {
+                "BackupVaultArn": f"arn:aws:backup:{self.region}:{self.current_account}:backup-vault:{backup_vault_name}",
+                "RecoveryPointArn": recovery_point_arn,
+                "IndexStatus": params.get("Index", "ENABLED"),
+            }
+        )
 
     def delete_tiering_configuration(self) -> EmptyResult:
         name = self.path.split("/tiering-configurations/")[-1].rstrip("/")

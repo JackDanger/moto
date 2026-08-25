@@ -16,7 +16,9 @@ class ClusterNotFoundFault(JsonRESTError):
 
 class ParameterGroupNotFoundFault(JsonRESTError):
     def __init__(self, name: Optional[str] = None):
-        msg = f"ParameterGroup {name} not found." if name else "ParameterGroup not found."
+        msg = (
+            f"ParameterGroup {name} not found." if name else "ParameterGroup not found."
+        )
         super().__init__("ParameterGroupNotFoundFault", msg)
 
 

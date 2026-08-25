@@ -322,9 +322,7 @@ class XRayResponse(BaseResponse):
         if end_time is None:
             return self._error("MissingParameter", "Parameter EndTime is missing")
 
-        token = self.xray_backend.start_trace_retrieval(
-            trace_ids, start_time, end_time
-        )
+        token = self.xray_backend.start_trace_retrieval(trace_ids, start_time, end_time)
         return json.dumps({"RetrievalToken": token})
 
     # CancelTraceRetrieval
@@ -361,9 +359,7 @@ class XRayResponse(BaseResponse):
                 "MissingParameter", "Parameter RetrievalToken is missing"
             )
 
-        result = self.xray_backend.list_retrieved_traces(
-            retrieval_token, trace_format
-        )
+        result = self.xray_backend.list_retrieved_traces(retrieval_token, trace_format)
         return json.dumps(result)
 
     # CreateGroup

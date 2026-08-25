@@ -580,7 +580,6 @@ class IoTResponse(BaseResponse):
         next_token = None
         return ActionResult({"things": things, "nextToken": next_token})
 
-
     def list_thing_principals(self) -> ActionResult:
         thing_name = self._get_param("thingName")
         principals = self.iot_backend.list_thing_principals(thing_name=thing_name)

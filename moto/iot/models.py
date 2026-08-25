@@ -3762,13 +3762,6 @@ class IoTBackend(BaseBackend):
 
     # --- Security Profiles ---
 
-
-
-
-
-
-
-
     def list_targets_for_security_profile(
         self, security_profile_name: str
     ) -> list[dict[str, str]]:
@@ -3795,11 +3788,6 @@ class IoTBackend(BaseBackend):
 
     # --- Authorizers ---
 
-
-
-
-
-
     def set_default_authorizer(self, authorizer_name: str) -> FakeAuthorizer:
         if authorizer_name not in self.authorizers:
             raise ResourceNotFoundException(
@@ -3817,31 +3805,11 @@ class IoTBackend(BaseBackend):
 
     # --- Provisioning Templates ---
 
-
-
-
-
-
     # --- Dimensions ---
-
-
-
-
-
 
     # --- Custom Metrics ---
 
-
-
-
-
-
     # --- Fleet Metrics ---
-
-
-
-
-
 
     def get_statistics(
         self,
@@ -4916,7 +4884,9 @@ class IoTBackend(BaseBackend):
 
     def cancel_detect_mitigation_actions_task(self, task_id: str) -> None:
         if task_id in self.detect_mitigation_tasks:
-            self.detect_mitigation_tasks[task_id]["taskSummary"]["taskStatus"] = "CANCELED"
+            self.detect_mitigation_tasks[task_id]["taskSummary"]["taskStatus"] = (
+                "CANCELED"
+            )
 
     # --- Misc ---
 
@@ -5201,7 +5171,6 @@ class IoTBackend(BaseBackend):
         if command_id not in self.commands:
             raise ResourceNotFoundException("The specified resource does not exist.")
         del self.commands[command_id]
-
 
     # --- Security Profiles ---
 

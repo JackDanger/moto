@@ -455,10 +455,8 @@ class ResilienceHubResponse(BaseResponse):
 
     def describe_draft_app_version_resources_import_status(self) -> str:
         params = json.loads(self.body)
-        result = (
-            self.resiliencehub_backend.describe_draft_app_version_resources_import_status(
-                app_arn=params.get("appArn"),
-            )
+        result = self.resiliencehub_backend.describe_draft_app_version_resources_import_status(
+            app_arn=params.get("appArn"),
         )
         return json.dumps(result)
 
@@ -505,9 +503,7 @@ class ResilienceHubResponse(BaseResponse):
         assessment_arn, status = self.resiliencehub_backend.delete_app_assessment(
             assessment_arn=params.get("assessmentArn"),
         )
-        return json.dumps(
-            {"assessmentArn": assessment_arn, "assessmentStatus": status}
-        )
+        return json.dumps({"assessmentArn": assessment_arn, "assessmentStatus": status})
 
     # --- Recommendation template operations ---
 
@@ -531,9 +527,7 @@ class ResilienceHubResponse(BaseResponse):
                 template_arn=params.get("recommendationTemplateArn"),
             )
         )
-        return json.dumps(
-            {"recommendationTemplateArn": template_arn, "status": status}
-        )
+        return json.dumps({"recommendationTemplateArn": template_arn, "status": status})
 
     def list_recommendation_templates(self) -> str:
         params = self._get_params()
@@ -602,23 +596,17 @@ class ResilienceHubResponse(BaseResponse):
                 next_token=next_token,
             )
         )
-        return json.dumps(
-            {"nextToken": next_token, "resourceMappings": mappings}
-        )
+        return json.dumps({"nextToken": next_token, "resourceMappings": mappings})
 
     # --- Input source operations ---
 
     def delete_app_input_source(self) -> str:
         params = json.loads(self.body)
-        app_arn, input_source = (
-            self.resiliencehub_backend.delete_app_input_source(
-                app_arn=params.get("appArn"),
-                eks_source_cluster_namespace=params.get(
-                    "eksSourceClusterNamespace"
-                ),
-                source_arn=params.get("sourceArn"),
-                terraform_source=params.get("terraformSource"),
-            )
+        app_arn, input_source = self.resiliencehub_backend.delete_app_input_source(
+            app_arn=params.get("appArn"),
+            eks_source_cluster_namespace=params.get("eksSourceClusterNamespace"),
+            source_arn=params.get("sourceArn"),
+            terraform_source=params.get("terraformSource"),
         )
         return json.dumps({"appArn": app_arn, "appInputSource": input_source})
 
@@ -807,10 +795,8 @@ class ResilienceHubResponse(BaseResponse):
 
     def start_resource_grouping_recommendation_task(self) -> str:
         params = json.loads(self.body)
-        result = (
-            self.resiliencehub_backend.start_resource_grouping_recommendation_task(
-                app_arn=params.get("appArn"),
-            )
+        result = self.resiliencehub_backend.start_resource_grouping_recommendation_task(
+            app_arn=params.get("appArn"),
         )
         return json.dumps(result)
 

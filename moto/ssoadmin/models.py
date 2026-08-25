@@ -13,7 +13,6 @@ from .exceptions import (
     ConflictException,
     ResourceNotFoundException,
     ServiceQuotaExceededException,
-    ValidationException,
 )
 from .utils import PAGINATION_MODEL
 
@@ -1056,9 +1055,7 @@ class SSOAdminBackend(BaseBackend):
             )
         return application.access_scopes[scope]
 
-    def delete_application_access_scope(
-        self, application_arn: str, scope: str
-    ) -> None:
+    def delete_application_access_scope(self, application_arn: str, scope: str) -> None:
         application = self._find_application(application_arn)
         if scope not in application.access_scopes:
             raise ResourceNotFoundException(
@@ -1333,9 +1330,7 @@ class SSOAdminBackend(BaseBackend):
             tti.trusted_token_issuer_configuration = trusted_token_issuer_configuration
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_trusted_token_issuers(
-        self, instance_arn: str
-    ) -> list[TrustedTokenIssuer]:
+    def list_trusted_token_issuers(self, instance_arn: str) -> list[TrustedTokenIssuer]:
         return [
             tti
             for tti in self.trusted_token_issuers
@@ -1373,7 +1368,9 @@ class SSOAdminBackend(BaseBackend):
         self, application_provider_arn: str
     ) -> dict[str, Any]:
         providers = self.list_application_providers()
-        for provider in providers[0]:  # list_application_providers returns (items, token)
+        for provider in providers[
+            0
+        ]:  # list_application_providers returns (items, token)
             if provider.get("ApplicationProviderArn") == application_provider_arn:
                 return provider
         raise ResourceNotFoundException(

@@ -96,7 +96,9 @@ class GuardDutyBackend(BaseBackend):
                 start = 0
         limit = int(max_results) if max_results else len(all_ids)
         page = all_ids[start : start + limit]
-        new_next_token = all_ids[start + limit] if start + limit < len(all_ids) else None
+        new_next_token = (
+            all_ids[start + limit] if start + limit < len(all_ids) else None
+        )
         return page, new_next_token
 
     def get_detector(self, detector_id: str) -> "Detector":
@@ -147,7 +149,9 @@ class GuardDutyBackend(BaseBackend):
                 start = 0
         limit = int(max_results) if max_results else len(all_names)
         page = all_names[start : start + limit]
-        new_next_token = all_names[start + limit] if start + limit < len(all_names) else None
+        new_next_token = (
+            all_names[start + limit] if start + limit < len(all_names) else None
+        )
         return page, new_next_token
 
     def update_detector(
@@ -247,7 +251,9 @@ class GuardDutyBackend(BaseBackend):
                 start = 0
         limit = int(max_results) if max_results else len(all_ids)
         page = all_ids[start : start + limit]
-        new_next_token = all_ids[start + limit] if start + limit < len(all_ids) else None
+        new_next_token = (
+            all_ids[start + limit] if start + limit < len(all_ids) else None
+        )
         return page, new_next_token
 
     # ThreatIntelSet operations
@@ -322,7 +328,9 @@ class GuardDutyBackend(BaseBackend):
                 start = 0
         limit = int(max_results) if max_results else len(all_ids)
         page = all_ids[start : start + limit]
-        new_next_token = all_ids[start + limit] if start + limit < len(all_ids) else None
+        new_next_token = (
+            all_ids[start + limit] if start + limit < len(all_ids) else None
+        )
         return page, new_next_token
 
     # Tagging operations
@@ -389,7 +397,9 @@ class GuardDutyBackend(BaseBackend):
                 start = 0
         limit = int(max_results) if max_results else len(all_ids)
         page = all_ids[start : start + limit]
-        new_next_token = all_ids[start + limit] if start + limit < len(all_ids) else None
+        new_next_token = (
+            all_ids[start + limit] if start + limit < len(all_ids) else None
+        )
         return page, new_next_token
 
     def get_findings_statistics(self, detector_id: str) -> dict[str, Any]:

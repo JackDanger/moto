@@ -1153,8 +1153,12 @@ class APIGatewayResponse(BaseResponse):
                     f"arn:aws:apigateway:{self.region}::/domainNameAccessAssociations/stub"
                 ),
                 "domainNameArn": self._get_param("domainNameArn") or "",
-                "accessAssociationSourceType": self._get_param("accessAssociationSourceType") or "",
-                "accessAssociationSource": self._get_param("accessAssociationSource") or "",
+                "accessAssociationSourceType": self._get_param(
+                    "accessAssociationSourceType"
+                )
+                or "",
+                "accessAssociationSource": self._get_param("accessAssociationSource")
+                or "",
             }
         )
 

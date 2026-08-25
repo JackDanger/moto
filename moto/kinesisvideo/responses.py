@@ -19,8 +19,12 @@ class KinesisVideoResponse(BaseResponse):
         data_retention_in_hours = self._get_int_param("DataRetentionInHours")
         tags = self._get_param("Tags")
         stream_arn = self.kinesisvideo_backend.create_stream(
-            device_name=device_name, stream_name=stream_name, media_type=media_type,
-            kms_key_id=kms_key_id, data_retention_in_hours=data_retention_in_hours, tags=tags,
+            device_name=device_name,
+            stream_name=stream_name,
+            media_type=media_type,
+            kms_key_id=kms_key_id,
+            data_retention_in_hours=data_retention_in_hours,
+            tags=tags,
         )
         return ActionResult({"StreamARN": stream_arn})
 
@@ -39,8 +43,11 @@ class KinesisVideoResponse(BaseResponse):
         device_name = self._get_param("DeviceName")
         media_type = self._get_param("MediaType")
         self.kinesisvideo_backend.update_stream(
-            stream_name=stream_name, stream_arn=stream_arn,
-            current_version=current_version, device_name=device_name, media_type=media_type,
+            stream_name=stream_name,
+            stream_arn=stream_arn,
+            current_version=current_version,
+            device_name=device_name,
+            media_type=media_type,
         )
         return EmptyResult()
 
@@ -68,8 +75,10 @@ class KinesisVideoResponse(BaseResponse):
         single_master_configuration = self._get_param("SingleMasterConfiguration")
         tags = self._get_param("Tags")
         channel_arn = self.kinesisvideo_backend.create_signaling_channel(
-            channel_name=channel_name, channel_type=channel_type,
-            single_master_configuration=single_master_configuration, tags=tags,
+            channel_name=channel_name,
+            channel_type=channel_type,
+            single_master_configuration=single_master_configuration,
+            tags=tags,
         )
         return ActionResult({"ChannelARN": channel_arn})
 
@@ -86,7 +95,8 @@ class KinesisVideoResponse(BaseResponse):
         current_version = self._get_param("CurrentVersion")
         single_master_configuration = self._get_param("SingleMasterConfiguration")
         self.kinesisvideo_backend.update_signaling_channel(
-            channel_arn=channel_arn, current_version=current_version,
+            channel_arn=channel_arn,
+            current_version=current_version,
             single_master_configuration=single_master_configuration,
         )
         return EmptyResult()
@@ -138,12 +148,16 @@ class KinesisVideoResponse(BaseResponse):
     def untag_resource(self) -> ActionResult:
         resource_arn = self._get_param("ResourceARN")
         tag_key_list = self._get_param("TagKeyList")
-        self.kinesisvideo_backend.untag_resource(resource_arn=resource_arn, tag_key_list=tag_key_list)
+        self.kinesisvideo_backend.untag_resource(
+            resource_arn=resource_arn, tag_key_list=tag_key_list
+        )
         return EmptyResult()
 
     def list_tags_for_resource(self) -> ActionResult:
         resource_arn = self._get_param("ResourceARN")
-        tags = self.kinesisvideo_backend.list_tags_for_resource(resource_arn=resource_arn)
+        tags = self.kinesisvideo_backend.list_tags_for_resource(
+            resource_arn=resource_arn
+        )
         return ActionResult({"Tags": tags})
 
     def get_signaling_channel_endpoint(self) -> ActionResult:
@@ -235,7 +249,14 @@ class KinesisVideoResponse(BaseResponse):
         return ActionResult({})
 
     def start_edge_configuration_update(self) -> ActionResult:
-        return ActionResult({"EdgeConfig": {}, "CreationTime": "2023-01-01T00:00:00Z", "LastUpdatedTime": "2023-01-01T00:00:00Z", "SyncStatus": "ACKNOWLEDGED"})
+        return ActionResult(
+            {
+                "EdgeConfig": {},
+                "CreationTime": "2023-01-01T00:00:00Z",
+                "LastUpdatedTime": "2023-01-01T00:00:00Z",
+                "SyncStatus": "ACKNOWLEDGED",
+            }
+        )
 
     def update_media_storage_configuration(self) -> ActionResult:
         return ActionResult({})
@@ -244,7 +265,14 @@ class KinesisVideoResponse(BaseResponse):
         return ActionResult({})
 
     def describe_edge_configuration(self) -> ActionResult:
-        return ActionResult({"EdgeConfig": {}, "CreationTime": "2023-01-01T00:00:00Z", "LastUpdatedTime": "2023-01-01T00:00:00Z", "SyncStatus": "ACKNOWLEDGED"})
+        return ActionResult(
+            {
+                "EdgeConfig": {},
+                "CreationTime": "2023-01-01T00:00:00Z",
+                "LastUpdatedTime": "2023-01-01T00:00:00Z",
+                "SyncStatus": "ACKNOWLEDGED",
+            }
+        )
 
     def list_edge_agent_configurations(self) -> ActionResult:
         return ActionResult({"EdgeConfigs": []})

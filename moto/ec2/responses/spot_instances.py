@@ -111,7 +111,6 @@ class SpotInstances(EC2BaseResponse):
         return ActionResult({"SpotInstanceRequests": requests})
 
 
-
 REQUEST_SPOT_INSTANCES_TEMPLATE = """<RequestSpotInstancesResponse xmlns="http://ec2.amazonaws.com/doc/2013-10-15/">
   <requestId>59dbff89-35bd-4eac-99ed-be587EXAMPLE</requestId>
   <spotInstanceRequestSet>

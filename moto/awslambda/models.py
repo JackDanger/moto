@@ -743,6 +743,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
     @property
     def architectures(self) -> list[str]:
         return self._architectures
+
     @architectures.setter
     def architectures(self, architectures: list[str]) -> None:
         if (
@@ -761,6 +762,7 @@ class LambdaFunction(CloudFormationModel, DockerModel):
     @property
     def ephemeral_storage(self) -> int:
         return self._ephemeral_storage
+
     @ephemeral_storage.setter
     def ephemeral_storage(self, ephemeral_storage: int) -> None:
         if ephemeral_storage > 10240:
@@ -1390,6 +1392,7 @@ class EventSourceMapping(CloudFormationModel):
     @property
     def event_source_arn(self) -> str:
         return self._event_source_arn
+
     @event_source_arn.setter
     def event_source_arn(self, event_source_arn: str) -> None:
         service = self._get_service_source_from_arn(event_source_arn)
@@ -1402,6 +1405,7 @@ class EventSourceMapping(CloudFormationModel):
     @property
     def batch_size(self) -> int:
         return self._batch_size
+
     @batch_size.setter
     def batch_size(self, new_batch_size: int | None) -> None:
         batch_size_service_map = {

@@ -452,7 +452,9 @@ class CertBundle(BaseModel):
 
         if self.status == "REVOKED" and self.revoked_at is not None:
             result["Certificate"]["RevokedAt"] = datetime_to_epoch(self.revoked_at)
-            result["Certificate"]["RevocationReason"] = self.revocation_reason or "UNSPECIFIED"
+            result["Certificate"]["RevocationReason"] = (
+                self.revocation_reason or "UNSPECIFIED"
+            )
 
         return result
 
@@ -625,7 +627,11 @@ class AWSCertificateManagerBackend(BaseBackend, TaggableResourcesMixin):
         """
         if idempotency_token is not None:
             arn = self._get_arn_from_idempotency_token(idempotency_token)
-            if arn and arn in self._certificates and self._certificates[arn].tags.equals(tags):
+            if (
+                arn
+                and arn in self._certificates
+                and self._certificates[arn].tags.equals(tags)
+            ):
                 return arn
 
         cert = CertBundle.generate_cert(
@@ -716,15 +722,18 @@ class AWSCertificateManagerBackend(BaseBackend, TaggableResourcesMixin):
     def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
         self.remove_tags_from_certificate(arn, [{"Key": k} for k in tag_keys])  # type: ignore[list-item]
 
-
     def renew_certificate(self, arn: str) -> None:
         if arn not in self._certificates:
             raise CertificateNotFound(arn=arn, account_id=self.account_id)
         cert_bundle = self._certificates[arn]
         if cert_bundle.type not in ("AMAZON_ISSUED", "PRIVATE"):
-            raise InvalidStateException(message="Certificate is not eligible for renewal.")
+            raise InvalidStateException(
+                message="Certificate is not eligible for renewal."
+            )
         if cert_bundle.status != "ISSUED":
-            raise InvalidStateException(message="Certificate is not eligible for renewal.")
+            raise InvalidStateException(
+                message="Certificate is not eligible for renewal."
+            )
         cert_bundle.status = "ISSUED"
 
     def revoke_certificate(self, arn: str, reason: str) -> None:
@@ -732,7 +741,9 @@ class AWSCertificateManagerBackend(BaseBackend, TaggableResourcesMixin):
             raise CertificateNotFound(arn=arn, account_id=self.account_id)
         cert_bundle = self._certificates[arn]
         if cert_bundle.type != "PRIVATE" or cert_bundle.cert_authority_arn is None:
-            raise InvalidArnException(message="The certificate ARN is not valid. Revocation is only supported for certificates issued by a private CA.")
+            raise InvalidArnException(
+                message="The certificate ARN is not valid. Revocation is only supported for certificates issued by a private CA."
+            )
         if cert_bundle.status == "REVOKED":
             raise InvalidStateException(message="Certificate is already revoked.")
         cert_bundle.status = "REVOKED"
@@ -747,15 +758,13 @@ class AWSCertificateManagerBackend(BaseBackend, TaggableResourcesMixin):
         if logging_pref is not None:
             if logging_pref not in ("ENABLED", "DISABLED"):
                 raise AWSValidationException(
-                    f"1 validation error detected: Value \'{logging_pref}\' at "
-                    f"\'options.certificateTransparencyLoggingPreference\' failed to satisfy "
+                    f"1 validation error detected: Value '{logging_pref}' at "
+                    f"'options.certificateTransparencyLoggingPreference' failed to satisfy "
                     f"constraint: Member must satisfy enum value set: [ENABLED, DISABLED]"
                 )
-            cert_bundle.cert_options["CertificateTransparencyLoggingPreference"] = logging_pref
-
-
-
-
+            cert_bundle.cert_options["CertificateTransparencyLoggingPreference"] = (
+                logging_pref
+            )
 
 
 acm_backends = BackendDict(AWSCertificateManagerBackend, "acm")

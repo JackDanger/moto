@@ -762,7 +762,8 @@ class CloudFormationResponse(BaseResponse):
         type_name = self._get_param("TypeName", "AWS::CloudFormation::Stack")
         type_arn = self._get_param("Arn", "")
         result = {
-            "Arn": type_arn or f"arn:{self.partition}:cloudformation:{self.region}:{self.current_account}:type/resource/{type_name.replace('::', '-')}/00000001",
+            "Arn": type_arn
+            or f"arn:{self.partition}:cloudformation:{self.region}:{self.current_account}:type/resource/{type_name.replace('::', '-')}/00000001",
             "Type": "RESOURCE",
             "TypeName": type_name,
             "Description": f"Schema for {type_name}",
@@ -868,14 +869,18 @@ class CloudFormationResponse(BaseResponse):
 
     def describe_type_registration(self) -> ActionResult:
         registration_token = self._get_param("RegistrationToken")
-        result = self.cloudformation_backend.describe_type_registration(registration_token)
+        result = self.cloudformation_backend.describe_type_registration(
+            registration_token
+        )
         return ActionResult(result)
 
     def register_type(self) -> ActionResult:
         type_name = self._get_param("TypeName")
         type_ = self._get_param("Type", "RESOURCE")
         schema_handler_package = self._get_param("SchemaHandlerPackage")
-        result = self.cloudformation_backend.register_type(type_name, type_, schema_handler_package)
+        result = self.cloudformation_backend.register_type(
+            type_name, type_, schema_handler_package
+        )
         return ActionResult(result)
 
     def set_type_configuration(self) -> ActionResult:
@@ -953,7 +958,8 @@ class CloudFormationResponse(BaseResponse):
     def describe_generated_template(self) -> ActionResult:
         generated_template_id = self._get_param("GeneratedTemplateIdentifier")
         result = {
-            "GeneratedTemplateId": generated_template_id or f"arn:{self.partition}:cloudformation:{self.region}:{self.current_account}:generatedtemplate/{mock_random.uuid4()}",
+            "GeneratedTemplateId": generated_template_id
+            or f"arn:{self.partition}:cloudformation:{self.region}:{self.current_account}:generatedtemplate/{mock_random.uuid4()}",
             "GeneratedTemplateName": "mock-template",
             "Status": "COMPLETE",
             "TemplateBody": "{}",
@@ -973,7 +979,8 @@ class CloudFormationResponse(BaseResponse):
     def update_generated_template(self) -> ActionResult:
         generated_template_id = self._get_param("GeneratedTemplateIdentifier")
         result = {
-            "GeneratedTemplateId": generated_template_id or f"arn:{self.partition}:cloudformation:{self.region}:{self.current_account}:generatedtemplate/{mock_random.uuid4()}",
+            "GeneratedTemplateId": generated_template_id
+            or f"arn:{self.partition}:cloudformation:{self.region}:{self.current_account}:generatedtemplate/{mock_random.uuid4()}",
         }
         return ActionResult(result)
 

@@ -540,7 +540,9 @@ class CidrCollection(BaseModel):
         self.caller_reference = caller_reference
         self.version = 1
         self.arn = ""  # set by backend after account_id is available
-        self.locations: dict[str, list[str]] = {}  # location_name -> list of CIDR blocks
+        self.locations: dict[
+            str, list[str]
+        ] = {}  # location_name -> list of CIDR blocks
 
     def to_xml(self) -> str:
         template = Template(
@@ -563,7 +565,9 @@ class Route53Backend(BaseBackend):
         self.query_logging_configs: dict[str, QueryLoggingConfig] = {}
         self.delegation_sets: dict[str, DelegationSet] = {}
         self.cidr_collections: dict[str, CidrCollection] = {}
-        self.vpc_association_authorizations: dict[str, list[dict[str, str]]] = defaultdict(list)
+        self.vpc_association_authorizations: dict[str, list[dict[str, str]]] = (
+            defaultdict(list)
+        )
 
     def _has_prev_conflicting_domain(
         self, name: str, delegation_set_id: str | None
@@ -1060,9 +1064,7 @@ class Route53Backend(BaseBackend):
         }
         return limits.get(limit_type, 100)
 
-    def get_health_check_last_failure_reason(
-        self, health_check_id: str
-    ) -> list[Any]:
+    def get_health_check_last_failure_reason(self, health_check_id: str) -> list[Any]:
         """Return empty list of failure reasons (mock always healthy)."""
         self.get_health_check(health_check_id)
         return []
@@ -1144,9 +1146,7 @@ class Route53Backend(BaseBackend):
                     blocks.append({"CidrBlock": cidr, "LocationName": loc_name})
         return blocks
 
-    def list_cidr_locations(
-        self, collection_id: str
-    ) -> list[dict[str, str]]:
+    def list_cidr_locations(self, collection_id: str) -> list[dict[str, str]]:
         """List CIDR locations in a collection."""
         if collection_id not in self.cidr_collections:
             raise NoSuchCidrCollectionException(collection_id)
@@ -1173,9 +1173,7 @@ class Route53Backend(BaseBackend):
             if not (a["VPCId"] == vpc_id and a["VPCRegion"] == vpc_region)
         ]
 
-    def list_vpc_association_authorizations(
-        self, zone_id: str
-    ) -> list[dict[str, str]]:
+    def list_vpc_association_authorizations(self, zone_id: str) -> list[dict[str, str]]:
         """List VPC association authorizations for a hosted zone."""
         self.get_hosted_zone(zone_id)
         return self.vpc_association_authorizations.get(zone_id, [])

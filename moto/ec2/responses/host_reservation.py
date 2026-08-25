@@ -44,8 +44,7 @@ class HostReservationResponse(EC2BaseResponse):
                 "Start": r.start,
                 "HostIdSet": r.host_id_set,
                 "TagSet": [
-                    {"Key": tag.key, "Value": tag.value}
-                    for tag in r.get_tags()
+                    {"Key": tag.key, "Value": tag.value} for tag in r.get_tags()
                 ],
             }
             for r in reservations

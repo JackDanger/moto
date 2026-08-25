@@ -125,13 +125,11 @@ class SageMakerRuntimeResponse(BaseResponse):
             "X-Amzn-SageMaker-Content-Type": content_type,
         }
         if invoked_production_variant:
-            response_headers[
-                "x-Amzn-Invoked-Production-Variant"
-            ] = invoked_production_variant
+            response_headers["x-Amzn-Invoked-Production-Variant"] = (
+                invoked_production_variant
+            )
         if custom_attributes:
-            response_headers[
-                "X-Amzn-SageMaker-Custom-Attributes"
-            ] = custom_attributes
+            response_headers["X-Amzn-SageMaker-Custom-Attributes"] = custom_attributes
         return 200, response_headers, event_frame
 
     def invoke_endpoint_async(self) -> TYPE_RESPONSE:

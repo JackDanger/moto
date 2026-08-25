@@ -76,7 +76,9 @@ class TransitGatewayRelations:
         self.ec2_backend = backend
         self.transit_gateway_attachment_id = transit_gateway_attachment_id
         self.transit_gateway_route_table_id = transit_gateway_route_table_id
-        attachment = backend.transit_gateway_attachments.get(transit_gateway_attachment_id)
+        attachment = backend.transit_gateway_attachments.get(
+            transit_gateway_attachment_id
+        )
         if not attachment:
             raise InvalidTransitGatewayAttachmentIdError(transit_gateway_attachment_id)
         self.resource_id = attachment.resource_id
@@ -429,5 +431,6 @@ class TransitGatewayRouteTableBackend:
             filters=filters or {},
         )
         import json
+
         _ = json.dumps(routes)  # validate routes are serializable
         return f"s3://{s3_bucket}/{transit_gateway_route_table_id}/routes.json"

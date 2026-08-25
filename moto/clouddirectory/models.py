@@ -1,4 +1,5 @@
 """CloudDirectoryBackend class with methods for supported APIs."""
+
 from __future__ import annotations
 
 import datetime
@@ -408,9 +409,7 @@ class CloudDirectoryBackend(BaseBackend, TaggableResourcesMixin):
             raise ResourceNotFoundException(name)
         del schema_info.typed_link_facets[name]
 
-    def get_typed_link_facet_information(
-        self, schema_arn: str, name: str
-    ) -> list[str]:
+    def get_typed_link_facet_information(self, schema_arn: str, name: str) -> list[str]:
         self._find_schema_arn(schema_arn)
         schema_info = self._get_schema_info(schema_arn)
         if name not in schema_info.typed_link_facets:
@@ -584,8 +583,7 @@ class CloudDirectoryBackend(BaseBackend, TaggableResourcesMixin):
             sf
             for sf in obj.schema_facets
             if not (
-                sf.get("FacetName") == facet_name
-                and sf.get("SchemaArn") == schema_arn
+                sf.get("FacetName") == facet_name and sf.get("SchemaArn") == schema_arn
             )
         ]
 
@@ -715,19 +713,19 @@ class CloudDirectoryBackend(BaseBackend, TaggableResourcesMixin):
         policy_id = directory.resolve_object_reference(policy_reference)
         return directory.policy_attachments.get(policy_id, [])
 
-    def lookup_policy(
-        self, directory_arn: str, object_reference: dict
-    ) -> list[dict]:
+    def lookup_policy(self, directory_arn: str, object_reference: dict) -> list[dict]:
         directory = self._get_directory(directory_arn)
         obj_id = directory.resolve_object_reference(object_reference)
         policies = directory.object_policies.get(obj_id, [])
         result = []
         for policy_id in policies:
-            result.append({
-                "PolicyId": policy_id,
-                "PolicyType": "POLICY",
-                "ObjectIdentifier": obj_id,
-            })
+            result.append(
+                {
+                    "PolicyId": policy_id,
+                    "PolicyType": "POLICY",
+                    "ObjectIdentifier": obj_id,
+                }
+            )
         return result
 
     def create_index(
@@ -788,9 +786,7 @@ class CloudDirectoryBackend(BaseBackend, TaggableResourcesMixin):
         return target_id
 
     @paginate(pagination_model=PAGINATION_MODEL)
-    def list_index(
-        self, directory_arn: str, index_reference: dict
-    ) -> list[dict]:
+    def list_index(self, directory_arn: str, index_reference: dict) -> list[dict]:
         directory = self._get_directory(directory_arn)
         index_id = directory.resolve_object_reference(index_reference)
         if index_id not in directory.indices:
@@ -798,10 +794,12 @@ class CloudDirectoryBackend(BaseBackend, TaggableResourcesMixin):
         idx = directory.indices[index_id]
         result = []
         for obj_id in idx.attached_objects:
-            result.append({
-                "IndexedAttributes": idx.ordered_indexed_attribute_list,
-                "ObjectIdentifier": obj_id,
-            })
+            result.append(
+                {
+                    "IndexedAttributes": idx.ordered_indexed_attribute_list,
+                    "ObjectIdentifier": obj_id,
+                }
+            )
         return result
 
     @paginate(pagination_model=PAGINATION_MODEL)
@@ -815,10 +813,12 @@ class CloudDirectoryBackend(BaseBackend, TaggableResourcesMixin):
         for index_id in index_ids:
             if index_id in directory.indices:
                 idx = directory.indices[index_id]
-                result.append({
-                    "IndexedAttributes": idx.ordered_indexed_attribute_list,
-                    "ObjectIdentifier": index_id,
-                })
+                result.append(
+                    {
+                        "IndexedAttributes": idx.ordered_indexed_attribute_list,
+                        "ObjectIdentifier": index_id,
+                    }
+                )
         return result
 
     def attach_typed_link(
@@ -841,9 +841,7 @@ class CloudDirectoryBackend(BaseBackend, TaggableResourcesMixin):
         directory.typed_links.append(instance)
         return instance.to_specifier(directory)
 
-    def detach_typed_link(
-        self, directory_arn: str, typed_link_specifier: dict
-    ) -> None:
+    def detach_typed_link(self, directory_arn: str, typed_link_specifier: dict) -> None:
         directory = self._get_directory(directory_arn)
         source_ref = typed_link_specifier.get("SourceObjectReference", {})
         target_ref = typed_link_specifier.get("TargetObjectReference", {})
@@ -911,9 +909,7 @@ class CloudDirectoryBackend(BaseBackend, TaggableResourcesMixin):
                 for update in attribute_updates:
                     action = update.get("AttributeAction", {})
                     attr_key = update.get("AttributeKey", {})
-                    action_type = action.get(
-                        "AttributeActionType", "CREATE_OR_UPDATE"
-                    )
+                    action_type = action.get("AttributeActionType", "CREATE_OR_UPDATE")
                     attr_name = attr_key.get("Name")
                     if action_type == "DELETE" and attr_name:
                         tl.attributes = [
@@ -927,10 +923,12 @@ class CloudDirectoryBackend(BaseBackend, TaggableResourcesMixin):
                             for a in tl.attributes
                             if a.get("AttributeName") != attr_name
                         ]
-                        tl.attributes.append({
-                            "AttributeName": attr_name,
-                            "Value": action.get("AttributeUpdateValue", {}),
-                        })
+                        tl.attributes.append(
+                            {
+                                "AttributeName": attr_name,
+                                "Value": action.get("AttributeUpdateValue", {}),
+                            }
+                        )
                 break
 
     @paginate(pagination_model=PAGINATION_MODEL)
@@ -1054,9 +1052,7 @@ class CloudDirectoryBackend(BaseBackend, TaggableResourcesMixin):
     def list_managed_schema_arns(self) -> list[str]:
         return []
 
-    def batch_read(
-        self, directory_arn: str, operations: list[dict]
-    ) -> list[dict]:
+    def batch_read(self, directory_arn: str, operations: list[dict]) -> list[dict]:
         responses = []
         for op in operations:
             resp = self._execute_batch_read_op(directory_arn, op)
@@ -1068,9 +1064,7 @@ class CloudDirectoryBackend(BaseBackend, TaggableResourcesMixin):
             if "ListObjectAttributes" in op:
                 params = op["ListObjectAttributes"]
                 directory = self._get_directory(directory_arn)
-                obj_id = directory.resolve_object_reference(
-                    params["ObjectReference"]
-                )
+                obj_id = directory.resolve_object_reference(params["ObjectReference"])
                 attrs = directory.objects[obj_id].attributes
                 return {
                     "SuccessfulResponse": {
@@ -1080,14 +1074,10 @@ class CloudDirectoryBackend(BaseBackend, TaggableResourcesMixin):
             if "ListObjectChildren" in op:
                 params = op["ListObjectChildren"]
                 directory = self._get_directory(directory_arn)
-                obj_id = directory.resolve_object_reference(
-                    params["ObjectReference"]
-                )
+                obj_id = directory.resolve_object_reference(params["ObjectReference"])
                 children = directory.children.get(obj_id, {})
                 return {
-                    "SuccessfulResponse": {
-                        "ListObjectChildren": {"Children": children}
-                    }
+                    "SuccessfulResponse": {"ListObjectChildren": {"Children": children}}
                 }
             if "GetObjectInformation" in op:
                 params = op["GetObjectInformation"]
@@ -1111,16 +1101,12 @@ class CloudDirectoryBackend(BaseBackend, TaggableResourcesMixin):
                     params.get("AttributeNames", []),
                 )
                 return {
-                    "SuccessfulResponse": {
-                        "GetObjectAttributes": {"Attributes": attrs}
-                    }
+                    "SuccessfulResponse": {"GetObjectAttributes": {"Attributes": attrs}}
                 }
             if "ListObjectParents" in op:
                 params = op["ListObjectParents"]
                 directory = self._get_directory(directory_arn)
-                obj_id = directory.resolve_object_reference(
-                    params["ObjectReference"]
-                )
+                obj_id = directory.resolve_object_reference(params["ObjectReference"])
                 parents = directory.parents.get(obj_id, {})
                 return {
                     "SuccessfulResponse": {
@@ -1130,9 +1116,7 @@ class CloudDirectoryBackend(BaseBackend, TaggableResourcesMixin):
             if "ListObjectPolicies" in op:
                 params = op["ListObjectPolicies"]
                 directory = self._get_directory(directory_arn)
-                obj_id = directory.resolve_object_reference(
-                    params["ObjectReference"]
-                )
+                obj_id = directory.resolve_object_reference(params["ObjectReference"])
                 policies = directory.object_policies.get(obj_id, [])
                 return {
                     "SuccessfulResponse": {
@@ -1142,9 +1126,7 @@ class CloudDirectoryBackend(BaseBackend, TaggableResourcesMixin):
             if "ListIncomingTypedLinks" in op:
                 params = op["ListIncomingTypedLinks"]
                 directory = self._get_directory(directory_arn)
-                obj_id = directory.resolve_object_reference(
-                    params["ObjectReference"]
-                )
+                obj_id = directory.resolve_object_reference(params["ObjectReference"])
                 links = [
                     tl.to_specifier(directory)
                     for tl in directory.typed_links
@@ -1158,9 +1140,7 @@ class CloudDirectoryBackend(BaseBackend, TaggableResourcesMixin):
             if "ListOutgoingTypedLinks" in op:
                 params = op["ListOutgoingTypedLinks"]
                 directory = self._get_directory(directory_arn)
-                obj_id = directory.resolve_object_reference(
-                    params["ObjectReference"]
-                )
+                obj_id = directory.resolve_object_reference(params["ObjectReference"])
                 links = [
                     tl.to_specifier(directory)
                     for tl in directory.typed_links
@@ -1174,9 +1154,7 @@ class CloudDirectoryBackend(BaseBackend, TaggableResourcesMixin):
             if "ListIndex" in op:
                 params = op["ListIndex"]
                 directory = self._get_directory(directory_arn)
-                index_id = directory.resolve_object_reference(
-                    params["IndexReference"]
-                )
+                index_id = directory.resolve_object_reference(params["IndexReference"])
                 if index_id in directory.indices:
                     idx = directory.indices[index_id]
                     attachments = [
@@ -1207,27 +1185,19 @@ class CloudDirectoryBackend(BaseBackend, TaggableResourcesMixin):
                 }
             if "LookupPolicy" in op:
                 params = op["LookupPolicy"]
-                result = self.lookup_policy(
-                    directory_arn, params["ObjectReference"]
-                )
+                result = self.lookup_policy(directory_arn, params["ObjectReference"])
                 return {
-                    "SuccessfulResponse": {
-                        "LookupPolicy": {"PolicyToPathList": result}
-                    }
+                    "SuccessfulResponse": {"LookupPolicy": {"PolicyToPathList": result}}
                 }
             if "ListObjectParentPaths" in op:
                 params = op["ListObjectParentPaths"]
                 directory = self._get_directory(directory_arn)
-                obj_id = directory.resolve_object_reference(
-                    params["ObjectReference"]
-                )
+                obj_id = directory.resolve_object_reference(params["ObjectReference"])
                 paths: list[dict] = []
                 self._collect_paths(directory, obj_id, [], paths)
                 return {
                     "SuccessfulResponse": {
-                        "ListObjectParentPaths": {
-                            "PathToObjectIdentifiersList": paths
-                        }
+                        "ListObjectParentPaths": {"PathToObjectIdentifiersList": paths}
                     }
                 }
             if "GetLinkAttributes" in op:
@@ -1238,9 +1208,7 @@ class CloudDirectoryBackend(BaseBackend, TaggableResourcesMixin):
                     params.get("AttributeNames", []),
                 )
                 return {
-                    "SuccessfulResponse": {
-                        "GetLinkAttributes": {"Attributes": attrs}
-                    }
+                    "SuccessfulResponse": {"GetLinkAttributes": {"Attributes": attrs}}
                 }
             if "ListAttachedIndices" in op:
                 params = op["ListAttachedIndices"]
@@ -1253,10 +1221,12 @@ class CloudDirectoryBackend(BaseBackend, TaggableResourcesMixin):
                 for idx_id in index_ids:
                     if idx_id in directory.indices:
                         idx = directory.indices[idx_id]
-                        attachments.append({
-                            "IndexedAttributes": idx.ordered_indexed_attribute_list,
-                            "ObjectIdentifier": idx_id,
-                        })
+                        attachments.append(
+                            {
+                                "IndexedAttributes": idx.ordered_indexed_attribute_list,
+                                "ObjectIdentifier": idx_id,
+                            }
+                        )
                 return {
                     "SuccessfulResponse": {
                         "ListAttachedIndices": {"IndexAttachments": attachments}
@@ -1276,9 +1246,7 @@ class CloudDirectoryBackend(BaseBackend, TaggableResourcesMixin):
             }
         }
 
-    def batch_write(
-        self, directory_arn: str, operations: list[dict]
-    ) -> list[dict]:
+    def batch_write(self, directory_arn: str, operations: list[dict]) -> list[dict]:
         responses = []
         for op in operations:
             resp = self._execute_batch_write_op(directory_arn, op)
@@ -1297,9 +1265,7 @@ class CloudDirectoryBackend(BaseBackend, TaggableResourcesMixin):
                     params.get("LinkName"),
                 )
                 return {
-                    "SuccessfulResponse": {
-                        "CreateObject": {"ObjectIdentifier": obj_id}
-                    }
+                    "SuccessfulResponse": {"CreateObject": {"ObjectIdentifier": obj_id}}
                 }
             if "AttachObject" in op:
                 params = op["AttachObject"]
@@ -1385,9 +1351,7 @@ class CloudDirectoryBackend(BaseBackend, TaggableResourcesMixin):
                     params.get("LinkName"),
                 )
                 return {
-                    "SuccessfulResponse": {
-                        "CreateIndex": {"ObjectIdentifier": obj_id}
-                    }
+                    "SuccessfulResponse": {"CreateIndex": {"ObjectIdentifier": obj_id}}
                 }
             if "AttachToIndex" in op:
                 params = op["AttachToIndex"]
@@ -1429,9 +1393,7 @@ class CloudDirectoryBackend(BaseBackend, TaggableResourcesMixin):
                 }
             if "DetachTypedLink" in op:
                 params = op["DetachTypedLink"]
-                self.detach_typed_link(
-                    directory_arn, params["TypedLinkSpecifier"]
-                )
+                self.detach_typed_link(directory_arn, params["TypedLinkSpecifier"])
                 return {"SuccessfulResponse": {"DetachTypedLink": {}}}
             if "UpdateLinkAttributes" in op:
                 params = op["UpdateLinkAttributes"]
@@ -1454,8 +1416,6 @@ class CloudDirectoryBackend(BaseBackend, TaggableResourcesMixin):
                 "Message": "Batch write operation not supported",
             }
         }
-
-
 
 
 class DirectoryObject(BaseModel):
@@ -1547,4 +1507,6 @@ class SchemaInfo(BaseModel):
         self.typed_link_facets: dict[str, TypedLinkFacet] = {}
         self.document: str = "{}"
         self.name: str = schema_arn.split("/")[-1] if "/" in schema_arn else ""
+
+
 clouddirectory_backends = BackendDict(CloudDirectoryBackend, "clouddirectory")

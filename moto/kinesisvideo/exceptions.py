@@ -6,7 +6,9 @@ class KinesisvideoClientError(ServiceException):
 
 
 class ResourceNotFoundException(KinesisvideoClientError):
-    def __init__(self, message: str = "The requested stream is not found or not active.") -> None:
+    def __init__(
+        self, message: str = "The requested stream is not found or not active."
+    ) -> None:
         self.code = 404
         super().__init__(
             "ResourceNotFoundException",

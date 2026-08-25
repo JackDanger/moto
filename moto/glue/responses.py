@@ -874,10 +874,6 @@ class GlueResponse(BaseResponse):
         self.glue_backend.delete_dev_endpoint(endpoint_name)
         return EmptyResult()
 
-
-
-
-
     def create_connection(self) -> ActionResult:
         catalog_id = self._get_param("CatalogId")
         connection_input = self._get_param("ConnectionInput")
@@ -2512,7 +2508,9 @@ class GlueResponse(BaseResponse):
             catalog_id=self.parameters.get("CatalogId", ""),
             database_name=self.parameters.get("DatabaseName", ""),
             table_name=self.parameters.get("Name", ""),
-            supported_permission_types=self.parameters.get("SupportedPermissionTypes", []),
+            supported_permission_types=self.parameters.get(
+                "SupportedPermissionTypes", []
+            ),
         )
         return json.dumps(result)
 
@@ -2521,7 +2519,9 @@ class GlueResponse(BaseResponse):
             catalog_id=self.parameters.get("CatalogId", ""),
             database_name=self.parameters.get("DatabaseName", ""),
             table_name=self.parameters.get("TableName", ""),
-            supported_permission_types=self.parameters.get("SupportedPermissionTypes", []),
+            supported_permission_types=self.parameters.get(
+                "SupportedPermissionTypes", []
+            ),
         )
         return json.dumps(result)
 
@@ -2531,7 +2531,9 @@ class GlueResponse(BaseResponse):
             database_name=self.parameters.get("DatabaseName", ""),
             table_name=self.parameters.get("TableName", ""),
             partition_values=self.parameters.get("PartitionValues", []),
-            supported_permission_types=self.parameters.get("SupportedPermissionTypes", []),
+            supported_permission_types=self.parameters.get(
+                "SupportedPermissionTypes", []
+            ),
         )
         return json.dumps(result)
 

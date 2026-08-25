@@ -483,9 +483,7 @@ class BudgetsBackend(BaseBackend):
         ]
         self.tagger.tag_resource(resource_arn, tag_list)
 
-    def untag_resource(
-        self, resource_arn: str, resource_tag_keys: list[str]
-    ) -> None:
+    def untag_resource(self, resource_arn: str, resource_tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, resource_tag_keys)
 
 

@@ -79,9 +79,7 @@ class LocalGateway(TaggedEC2Resource):
 class LocalGatewayBackend:
     def __init__(self) -> None:
         self.local_gateways: dict[str, LocalGateway] = {}
-        self.local_gateway_route_tables: dict[
-            str, LocalGatewayRouteTable
-        ] = {}
+        self.local_gateway_route_tables: dict[str, LocalGatewayRouteTable] = {}
 
     def create_local_gateway_route_table(
         self,
@@ -104,30 +102,20 @@ class LocalGatewayBackend:
     ) -> list[LocalGatewayRouteTable]:
         tables = list(self.local_gateway_route_tables.values())
         if local_gateway_route_table_ids:
-            tables = [
-                t
-                for t in tables
-                if t.id in local_gateway_route_table_ids
-            ]
+            tables = [t for t in tables if t.id in local_gateway_route_table_ids]
         return tables
 
     def delete_local_gateway_route_table(
         self,
         local_gateway_route_table_id: str,
     ) -> LocalGatewayRouteTable:
-        table = self.local_gateway_route_tables.get(
-            local_gateway_route_table_id
-        )
+        table = self.local_gateway_route_tables.get(local_gateway_route_table_id)
         if not table:
             from ..exceptions import InvalidLocalGatewayRouteTableIdError
 
-            raise InvalidLocalGatewayRouteTableIdError(
-                local_gateway_route_table_id
-            )
+            raise InvalidLocalGatewayRouteTableIdError(local_gateway_route_table_id)
         table.state = "deleted"
-        return self.local_gateway_route_tables.pop(
-            local_gateway_route_table_id
-        )
+        return self.local_gateway_route_tables.pop(local_gateway_route_table_id)
 
     def create_local_gateway_route(
         self,
@@ -136,15 +124,11 @@ class LocalGatewayBackend:
         local_gateway_virtual_interface_group_id: Optional[str] = None,
         network_interface_id: Optional[str] = None,
     ) -> LocalGatewayRoute:
-        table = self.local_gateway_route_tables.get(
-            local_gateway_route_table_id
-        )
+        table = self.local_gateway_route_tables.get(local_gateway_route_table_id)
         if not table:
             from ..exceptions import InvalidLocalGatewayRouteTableIdError
 
-            raise InvalidLocalGatewayRouteTableIdError(
-                local_gateway_route_table_id
-            )
+            raise InvalidLocalGatewayRouteTableIdError(local_gateway_route_table_id)
         route = LocalGatewayRoute(
             destination_cidr_block=destination_cidr_block,
             local_gateway_route_table_id=local_gateway_route_table_id,
@@ -160,9 +144,7 @@ class LocalGatewayBackend:
         self,
         local_gateway_route_table_id: str,
     ) -> list[LocalGatewayRoute]:
-        table = self.local_gateway_route_tables.get(
-            local_gateway_route_table_id
-        )
+        table = self.local_gateway_route_tables.get(local_gateway_route_table_id)
         if not table:
             return []
         return list(table.routes.values())

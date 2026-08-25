@@ -195,7 +195,12 @@ class ConnectCampaignServiceResponse(BaseResponse):
         campaign_id = self._get_param("id")
         outbound_call_config = self._get_param("outboundCallConfig") or {}
         # Accept individual fields too
-        for field in ["connectContactFlowId", "connectSourcePhoneNumber", "connectQueueId", "answerMachineDetectionConfig"]:
+        for field in [
+            "connectContactFlowId",
+            "connectSourcePhoneNumber",
+            "connectQueueId",
+            "answerMachineDetectionConfig",
+        ]:
             val = self._get_param(field)
             if val is not None:
                 outbound_call_config[field] = val
@@ -206,7 +211,9 @@ class ConnectCampaignServiceResponse(BaseResponse):
 
     def get_campaign_state_batch(self) -> str:
         campaign_ids = self._get_param("campaignIds") or []
-        result = self.connectcampaigns_backend.get_campaign_state_batch(campaign_ids=campaign_ids)
+        result = self.connectcampaigns_backend.get_campaign_state_batch(
+            campaign_ids=campaign_ids
+        )
         return json.dumps({"successfulRequests": result, "failedRequests": []})
 
     def delete_connect_instance_config(self) -> str:
@@ -217,12 +224,14 @@ class ConnectCampaignServiceResponse(BaseResponse):
 
     def get_instance_onboarding_job_status(self) -> str:
         connect_instance_id = self.path.split("/")[-2]
-        return json.dumps({
-            "connectInstanceOnboardingJobStatus": {
-                "connectInstanceId": connect_instance_id,
-                "status": "SUCCEEDED",
+        return json.dumps(
+            {
+                "connectInstanceOnboardingJobStatus": {
+                    "connectInstanceId": connect_instance_id,
+                    "status": "SUCCEEDED",
+                }
             }
-        })
+        )
 
     def put_dial_request_batch(self) -> str:
         return json.dumps({"successfulRequests": [], "failedRequests": []})

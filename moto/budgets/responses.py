@@ -99,9 +99,7 @@ class BudgetsResponse(BaseResponse):
         result = self.backend.describe_budget_notifications_for_account(
             account_id=account_id
         )
-        return json.dumps(
-            {"BudgetNotificationsForAccount": result, "NextToken": None}
-        )
+        return json.dumps({"BudgetNotificationsForAccount": result, "NextToken": None})
 
     # --- Subscribers ---
 

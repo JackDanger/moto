@@ -1,7 +1,7 @@
 import re
 import uuid
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.utils import iso_8601_datetime_without_milliseconds
@@ -309,7 +309,9 @@ class ForecastBackend(BaseBackend):
 
     # ---- Predictor Backtest Export Job ----
 
-    def create_predictor_backtest_export_job(self, name: str, data: dict[str, Any]) -> str:
+    def create_predictor_backtest_export_job(
+        self, name: str, data: dict[str, Any]
+    ) -> str:
         job_id = str(uuid.uuid4())
         arn = self._make_arn("predictor-backtest-export-job", f"{name}/{job_id}")
         self.predictor_backtest_export_jobs[arn] = ForecastResource(
@@ -349,7 +351,9 @@ class ForecastBackend(BaseBackend):
     def create_explainability_export(self, name: str, data: dict[str, Any]) -> str:
         job_id = str(uuid.uuid4())
         arn = self._make_arn("explainability-export", f"{name}/{job_id}")
-        self.explainability_exports[arn] = ForecastResource(arn=arn, name=name, data=data)
+        self.explainability_exports[arn] = ForecastResource(
+            arn=arn, name=name, data=data
+        )
         return arn
 
     def describe_explainability_export(self, arn: str) -> ForecastResource:

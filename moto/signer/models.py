@@ -299,7 +299,9 @@ class SignerBackend(BaseBackend):
 
     def get_signing_profile(self, profile_name: str) -> SigningProfile:
         if profile_name not in self.signing_profiles:
-            raise ResourceNotFoundException(f"A profile with name [{profile_name}] does not exist.")
+            raise ResourceNotFoundException(
+                f"A profile with name [{profile_name}] does not exist."
+            )
         return self.signing_profiles[profile_name]
 
     def put_signing_profile(
@@ -334,7 +336,9 @@ class SignerBackend(BaseBackend):
         for platform in SignerBackend.platforms:
             if platform["platformId"] == platform_id:
                 return platform
-        raise ResourceNotFoundException(f"A platform with platformId [{platform_id}] does not exist.")
+        raise ResourceNotFoundException(
+            f"A platform with platformId [{platform_id}] does not exist."
+        )
 
     def list_signing_profiles(
         self,
@@ -383,7 +387,9 @@ class SignerBackend(BaseBackend):
 
     def describe_signing_job(self, job_id: str) -> SigningJob:
         if job_id not in self.signing_jobs:
-            raise ResourceNotFoundException(f"A signing job with ID [{job_id}] does not exist.")
+            raise ResourceNotFoundException(
+                f"A signing job with ID [{job_id}] does not exist."
+            )
         return self.signing_jobs[job_id]
 
     def list_signing_jobs(
@@ -404,9 +410,13 @@ class SignerBackend(BaseBackend):
             jobs = [j for j in jobs if (j.revocation_record is not None) == is_revoked]
         return jobs
 
-    def revoke_signature(self, job_id: str, reason: str, job_owner: Optional[str] = None) -> None:
+    def revoke_signature(
+        self, job_id: str, reason: str, job_owner: Optional[str] = None
+    ) -> None:
         if job_id not in self.signing_jobs:
-            raise ResourceNotFoundException(f"A signing job with ID [{job_id}] does not exist.")
+            raise ResourceNotFoundException(
+                f"A signing job with ID [{job_id}] does not exist."
+            )
         job = self.signing_jobs[job_id]
         job.status = "Revoked"
         job.revocation_record = {

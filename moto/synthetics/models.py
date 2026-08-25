@@ -1,4 +1,5 @@
 """SyntheticsBackend class with methods for supported APIs."""
+
 from typing import Optional
 
 import uuid
@@ -127,7 +128,9 @@ class Canary(BaseModel):
         self.artifact_config = artifact_config
         self.state = "READY"
         partition = get_partition(region)
-        self.arn = f"arn:{partition}:synthetics:{region}:{account_id}:canary:{self.name}"
+        self.arn = (
+            f"arn:{partition}:synthetics:{region}:{account_id}:canary:{self.name}"
+        )
         self.runs: list[CanaryRun] = []
         self.last_run: Optional[CanaryRun] = None
 

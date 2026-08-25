@@ -284,7 +284,9 @@ class Access(BaseModel):
     external_id: str
     home_directory: Optional[str] = None
     home_directory_type: Optional[str] = None
-    home_directory_mappings: list[dict[str, Optional[str]]] = field(default_factory=list)
+    home_directory_mappings: list[dict[str, Optional[str]]] = field(
+        default_factory=list
+    )
     policy: Optional[str] = None
     posix_profile: Optional[dict[str, Any]] = None
     role: str = ""
@@ -454,7 +456,6 @@ class Connector(BaseModel):
     arn: str = field(default="", init=False)
     connector_id: str = field(default="", init=False)
     service_managed_egress_ip_addresses: list[str] = field(default_factory=list)
-
 
     def __post_init__(self) -> None:
         if self.connector_id == "":
@@ -653,7 +654,9 @@ class WebApp(BaseModel):
         if self.arn == "":
             self.arn = f"arn:aws:transfer:{self.region_name}:{self.account_id}:webapp/{self.web_app_id}"
         if self.web_app_endpoint == "":
-            self.web_app_endpoint = f"https://{self.web_app_id}.transfer.{self.region_name}.amazonaws.com"
+            self.web_app_endpoint = (
+                f"https://{self.web_app_id}.transfer.{self.region_name}.amazonaws.com"
+            )
 
     def to_dict(self) -> dict[str, Any]:
         result: dict[str, Any] = {
@@ -976,4 +979,3 @@ SECURITY_POLICIES: dict[str, dict[str, Any]] = {
         "Protocols": ["SFTP"],
     },
 }
-

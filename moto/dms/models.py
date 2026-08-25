@@ -45,9 +45,7 @@ class DatabaseMigrationServiceBackend(BaseBackend, TaggableResourcesMixin):
     ) -> None:
         self.tagger.tag_resource(resource_arn, tags)
 
-    def remove_tags_from_resource(
-        self, resource_arn: str, tag_keys: list[str]
-    ) -> None:
+    def remove_tags_from_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
     def list_tags_for_resource(
@@ -792,6 +790,7 @@ class DatabaseMigrationServiceBackend(BaseBackend, TaggableResourcesMixin):
 
     def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
         self.tagger.untag_resource_using_names(arn, tag_keys)
+
     def delete_connection(
         self, endpoint_arn: str, replication_instance_arn: str
     ) -> "FakeConnection":
@@ -925,12 +924,8 @@ class DatabaseMigrationServiceBackend(BaseBackend, TaggableResourcesMixin):
                     certs = [c for c in certs if c.arn in vals]
         return certs
 
-    def delete_certificate(
-        self, certificate_arn: str
-    ) -> "FakeCertificate":
-        matching = [
-            c for c in self.certificates.values() if c.arn == certificate_arn
-        ]
+    def delete_certificate(self, certificate_arn: str) -> "FakeCertificate":
+        matching = [c for c in self.certificates.values() if c.arn == certificate_arn]
         if not matching:
             raise ResourceNotFoundFault("Certificate could not be found.")
         cert = matching[0]
@@ -990,15 +985,11 @@ class DatabaseMigrationServiceBackend(BaseBackend, TaggableResourcesMixin):
                     configs = [c for c in configs if c.arn in vals]
                 elif name == "replication-config-id":
                     configs = [
-                        c
-                        for c in configs
-                        if c.replication_config_identifier in vals
+                        c for c in configs if c.replication_config_identifier in vals
                     ]
         return configs
 
-    def delete_replication_config(
-        self, replication_config_arn: str
-    ) -> None:
+    def delete_replication_config(self, replication_config_arn: str) -> None:
         matching = [
             c
             for c in self.replication_configs.values()
@@ -1070,9 +1061,7 @@ class DatabaseMigrationServiceBackend(BaseBackend, TaggableResourcesMixin):
         config.status = "running"
         return config
 
-    def stop_replication(
-        self, replication_config_arn: str
-    ) -> "FakeReplicationConfig":
+    def stop_replication(self, replication_config_arn: str) -> "FakeReplicationConfig":
         matching = [
             c
             for c in self.replication_configs.values()
@@ -1099,16 +1088,18 @@ class DatabaseMigrationServiceBackend(BaseBackend, TaggableResourcesMixin):
                     configs = [c for c in configs if c.arn in vals]
         result = []
         for c in configs:
-            result.append({
-                "ReplicationConfigIdentifier": c.replication_config_identifier,
-                "ReplicationConfigArn": c.arn,
-                "SourceEndpointArn": c.source_endpoint_arn,
-                "TargetEndpointArn": c.target_endpoint_arn,
-                "ReplicationType": c.replication_type,
-                "Status": c.status,
-                "StopReason": "",
-                "ReplicationStats": {},
-            })
+            result.append(
+                {
+                    "ReplicationConfigIdentifier": c.replication_config_identifier,
+                    "ReplicationConfigArn": c.arn,
+                    "SourceEndpointArn": c.source_endpoint_arn,
+                    "TargetEndpointArn": c.target_endpoint_arn,
+                    "ReplicationType": c.replication_type,
+                    "Status": c.status,
+                    "StopReason": "",
+                    "ReplicationStats": {},
+                }
+            )
         return result
 
     # ── Data Providers ───────────────────────────────────────────────
@@ -1151,7 +1142,11 @@ class DatabaseMigrationServiceBackend(BaseBackend, TaggableResourcesMixin):
                 name = f.get("Name", "")
                 vals = f.get("Values", [])
                 if name == "data-provider-identifier":
-                    providers = [p for p in providers if p.data_provider_name in vals or p.arn in vals]
+                    providers = [
+                        p
+                        for p in providers
+                        if p.data_provider_name in vals or p.arn in vals
+                    ]
         return providers
 
     def modify_data_provider(
@@ -1166,7 +1161,11 @@ class DatabaseMigrationServiceBackend(BaseBackend, TaggableResourcesMixin):
         dp = self.data_providers.get(data_provider_identifier)
         if not dp:
             # Try by ARN
-            matching = [p for p in self.data_providers.values() if p.arn == data_provider_identifier]
+            matching = [
+                p
+                for p in self.data_providers.values()
+                if p.arn == data_provider_identifier
+            ]
             if not matching:
                 raise ResourceNotFoundFault("Data provider could not be found.")
             dp = matching[0]
@@ -1186,12 +1185,14 @@ class DatabaseMigrationServiceBackend(BaseBackend, TaggableResourcesMixin):
             self.data_providers[data_provider_name] = dp
         return dp
 
-    def delete_data_provider(
-        self, data_provider_identifier: str
-    ) -> "FakeDataProvider":
+    def delete_data_provider(self, data_provider_identifier: str) -> "FakeDataProvider":
         dp = self.data_providers.get(data_provider_identifier)
         if not dp:
-            matching = [p for p in self.data_providers.values() if p.arn == data_provider_identifier]
+            matching = [
+                p
+                for p in self.data_providers.values()
+                if p.arn == data_provider_identifier
+            ]
             if not matching:
                 raise ResourceNotFoundFault("Data provider could not be found.")
             dp = matching[0]
@@ -1221,7 +1222,9 @@ class DatabaseMigrationServiceBackend(BaseBackend, TaggableResourcesMixin):
             instance_profile_name=instance_profile_name,
             availability_zone=availability_zone,
             kms_key_arn=kms_key_arn,
-            publicly_accessible=publicly_accessible if publicly_accessible is not None else False,
+            publicly_accessible=publicly_accessible
+            if publicly_accessible is not None
+            else False,
             network_type=network_type,
             description=description,
             subnet_group_identifier=subnet_group_identifier,
@@ -1580,8 +1583,7 @@ class DatabaseMigrationServiceBackend(BaseBackend, TaggableResourcesMixin):
                 {
                     "AccountQuotaName": "AllocatedStorage",
                     "Used": sum(
-                        i.allocated_storage
-                        for i in self.replication_instances.values()
+                        i.allocated_storage for i in self.replication_instances.values()
                     ),
                     "Max": 100000,
                 },
@@ -1644,21 +1646,25 @@ class DatabaseMigrationServiceBackend(BaseBackend, TaggableResourcesMixin):
         result = []
         for ename, edisplay, supports_source, supports_target in engine_types:
             if supports_source:
-                result.append({
-                    "EngineName": ename,
-                    "EngineDisplayName": edisplay,
-                    "SupportsCDC": True,
-                    "EndpointType": "source",
-                    "ReplicationInstanceEngineMinimumVersion": "3.4.7",
-                })
+                result.append(
+                    {
+                        "EngineName": ename,
+                        "EngineDisplayName": edisplay,
+                        "SupportsCDC": True,
+                        "EndpointType": "source",
+                        "ReplicationInstanceEngineMinimumVersion": "3.4.7",
+                    }
+                )
             if supports_target:
-                result.append({
-                    "EngineName": ename,
-                    "EngineDisplayName": edisplay,
-                    "SupportsCDC": True,
-                    "EndpointType": "target",
-                    "ReplicationInstanceEngineMinimumVersion": "3.4.7",
-                })
+                result.append(
+                    {
+                        "EngineName": ename,
+                        "EngineDisplayName": edisplay,
+                        "SupportsCDC": True,
+                        "EndpointType": "target",
+                        "ReplicationInstanceEngineMinimumVersion": "3.4.7",
+                    }
+                )
         return result
 
     def describe_endpoint_settings(
@@ -1691,21 +1697,23 @@ class DatabaseMigrationServiceBackend(BaseBackend, TaggableResourcesMixin):
         ]
         result = []
         for ic in instance_classes:
-            result.append({
-                "EngineVersion": "3.5.2",
-                "ReplicationInstanceClass": ic,
-                "StorageType": "gp2",
-                "MinAllocatedStorage": 5,
-                "MaxAllocatedStorage": 6144,
-                "DefaultAllocatedStorage": 50,
-                "IncludedAllocatedStorage": 50,
-                "AvailabilityZones": [
-                    f"{self.region_name}a",
-                    f"{self.region_name}b",
-                    f"{self.region_name}c",
-                ],
-                "ReleaseStatus": "GA",
-            })
+            result.append(
+                {
+                    "EngineVersion": "3.5.2",
+                    "ReplicationInstanceClass": ic,
+                    "StorageType": "gp2",
+                    "MinAllocatedStorage": 5,
+                    "MaxAllocatedStorage": 6144,
+                    "DefaultAllocatedStorage": 50,
+                    "IncludedAllocatedStorage": 50,
+                    "AvailabilityZones": [
+                        f"{self.region_name}a",
+                        f"{self.region_name}b",
+                        f"{self.region_name}c",
+                    ],
+                    "ReleaseStatus": "GA",
+                }
+            )
         return result
 
     def describe_event_categories(
@@ -1802,9 +1810,7 @@ class DatabaseMigrationServiceBackend(BaseBackend, TaggableResourcesMixin):
             }
         }
 
-    def describe_refresh_schemas_status(
-        self, endpoint_arn: str
-    ) -> dict[str, Any]:
+    def describe_refresh_schemas_status(self, endpoint_arn: str) -> dict[str, Any]:
         return {
             "RefreshSchemasStatus": {
                 "EndpointArn": endpoint_arn,
@@ -1891,7 +1897,10 @@ class DatabaseMigrationServiceBackend(BaseBackend, TaggableResourcesMixin):
                 "ReplicationTaskArn": replication_task_arn,
                 "Status": "starting",
                 "ReplicationTaskAssessmentRunCreationDate": utcnow().isoformat(),
-                "AssessmentProgress": {"IndividualAssessmentCount": 0, "IndividualAssessmentCompletedCount": 0},
+                "AssessmentProgress": {
+                    "IndividualAssessmentCount": 0,
+                    "IndividualAssessmentCompletedCount": 0,
+                },
                 "AssessmentRunName": assessment_run_name,
                 "ServiceAccessRoleArn": service_access_role_arn,
                 "ResultLocationBucket": result_location_bucket,
@@ -2013,9 +2022,7 @@ class DatabaseMigrationServiceBackend(BaseBackend, TaggableResourcesMixin):
     def delete_fleet_advisor_collector(self, collector_referenced_id: str) -> None:
         pass
 
-    def delete_fleet_advisor_databases(
-        self, database_ids: list[str]
-    ) -> list[str]:
+    def delete_fleet_advisor_databases(self, database_ids: list[str]) -> list[str]:
         return database_ids
 
     def describe_fleet_advisor_collectors(
@@ -2066,9 +2073,7 @@ class DatabaseMigrationServiceBackend(BaseBackend, TaggableResourcesMixin):
 
     # ── Recommendations stubs ────────────────────────────────────────
 
-    def start_recommendations(
-        self, database_id: str, settings: dict[str, Any]
-    ) -> None:
+    def start_recommendations(self, database_id: str, settings: dict[str, Any]) -> None:
         pass
 
     def batch_start_recommendations(

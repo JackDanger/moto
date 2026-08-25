@@ -114,7 +114,6 @@ class SESV2Response(BaseResponse):
         self.sesv2_backend.delete_contact_list(name)
         return json.dumps({})
 
-
     def create_contact(self) -> str:
         contact_list_name = self._get_param("ContactListName")
         params = json.loads(self.body)
@@ -144,7 +143,6 @@ class SESV2Response(BaseResponse):
         contact_list_name = self._get_param("ContactListName")
         self.sesv2_backend.delete_contact(email, contact_list_name)
         return json.dumps({})
-
 
     def create_email_identity(self) -> str:
         email_identity_name = self._get_param("EmailIdentity")
@@ -329,10 +327,12 @@ class SESV2Response(BaseResponse):
     def get_email_template(self) -> str:
         template_name = self._get_param("TemplateName")
         template = self.sesv2_backend.get_email_template(template_name=template_name)
-        return json.dumps({
-            "TemplateName": template.template_name,
-            "TemplateContent": template.template_content,
-        })
+        return json.dumps(
+            {
+                "TemplateName": template.template_name,
+                "TemplateContent": template.template_content,
+            }
+        )
 
     def update_email_template(self) -> str:
         template_name = self._get_param("TemplateName")
@@ -354,10 +354,12 @@ class SESV2Response(BaseResponse):
         templates, next_token = self.sesv2_backend.list_email_templates(
             next_token=next_token, page_size=page_size
         )
-        return json.dumps({
-            "TemplatesMetadata": [t.to_metadata_dict() for t in templates],
-            "NextToken": next_token,
-        })
+        return json.dumps(
+            {
+                "TemplatesMetadata": [t.to_metadata_dict() for t in templates],
+                "NextToken": next_token,
+            }
+        )
 
     def test_render_email_template(self) -> str:
         template_name = self._get_param("TemplateName")
@@ -426,14 +428,16 @@ class SESV2Response(BaseResponse):
         tmpl = self.sesv2_backend.get_custom_verification_email_template(
             template_name=template_name
         )
-        return json.dumps({
-            "TemplateName": tmpl.template_name,
-            "FromEmailAddress": tmpl.from_email_address,
-            "TemplateSubject": tmpl.template_subject,
-            "TemplateContent": tmpl.template_content,
-            "SuccessRedirectionURL": tmpl.success_redirection_url,
-            "FailureRedirectionURL": tmpl.failure_redirection_url,
-        })
+        return json.dumps(
+            {
+                "TemplateName": tmpl.template_name,
+                "FromEmailAddress": tmpl.from_email_address,
+                "TemplateSubject": tmpl.template_subject,
+                "TemplateContent": tmpl.template_content,
+                "SuccessRedirectionURL": tmpl.success_redirection_url,
+                "FailureRedirectionURL": tmpl.failure_redirection_url,
+            }
+        )
 
     def update_custom_verification_email_template(self) -> str:
         template_name = self._get_param("TemplateName")
@@ -458,22 +462,26 @@ class SESV2Response(BaseResponse):
     def list_custom_verification_email_templates(self) -> str:
         next_token = self._get_param("NextToken")
         page_size = self._get_param("PageSize")
-        templates, next_token = self.sesv2_backend.list_custom_verification_email_templates(
-            next_token=next_token, page_size=page_size
+        templates, next_token = (
+            self.sesv2_backend.list_custom_verification_email_templates(
+                next_token=next_token, page_size=page_size
+            )
         )
-        return json.dumps({
-            "CustomVerificationEmailTemplates": [
-                {
-                    "TemplateName": t.template_name,
-                    "FromEmailAddress": t.from_email_address,
-                    "TemplateSubject": t.template_subject,
-                    "SuccessRedirectionURL": t.success_redirection_url,
-                    "FailureRedirectionURL": t.failure_redirection_url,
-                }
-                for t in templates
-            ],
-            "NextToken": next_token,
-        })
+        return json.dumps(
+            {
+                "CustomVerificationEmailTemplates": [
+                    {
+                        "TemplateName": t.template_name,
+                        "FromEmailAddress": t.from_email_address,
+                        "TemplateSubject": t.template_subject,
+                        "SuccessRedirectionURL": t.success_redirection_url,
+                        "FailureRedirectionURL": t.failure_redirection_url,
+                    }
+                    for t in templates
+                ],
+                "NextToken": next_token,
+            }
+        )
 
     # ===== Account handlers =====
 
@@ -484,7 +492,9 @@ class SESV2Response(BaseResponse):
             website_url=params["WebsiteURL"],
             contact_language=params.get("ContactLanguage"),
             use_case_description=params.get("UseCaseDescription"),
-            additional_contact_email_addresses=params.get("AdditionalContactEmailAddresses"),
+            additional_contact_email_addresses=params.get(
+                "AdditionalContactEmailAddresses"
+            ),
             production_access_enabled=params.get("ProductionAccessEnabled"),
         )
         return json.dumps({})

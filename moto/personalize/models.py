@@ -160,7 +160,9 @@ class PersonalizeBackend(BaseBackend):
     def create_dataset_import_job(self, name: str, data: dict[str, Any]) -> str:
         job_id = str(uuid.uuid4())
         arn = self._make_arn("dataset-import-job", f"{name}/{job_id}")
-        self.dataset_import_jobs[arn] = PersonalizeResource(arn=arn, name=name, data=data)
+        self.dataset_import_jobs[arn] = PersonalizeResource(
+            arn=arn, name=name, data=data
+        )
         return arn
 
     def describe_dataset_import_job(self, arn: str) -> PersonalizeResource:
@@ -173,7 +175,9 @@ class PersonalizeBackend(BaseBackend):
     def create_dataset_export_job(self, name: str, data: dict[str, Any]) -> str:
         job_id = str(uuid.uuid4())
         arn = self._make_arn("dataset-export-job", f"{name}/{job_id}")
-        self.dataset_export_jobs[arn] = PersonalizeResource(arn=arn, name=name, data=data)
+        self.dataset_export_jobs[arn] = PersonalizeResource(
+            arn=arn, name=name, data=data
+        )
         return arn
 
     def describe_dataset_export_job(self, arn: str) -> PersonalizeResource:
@@ -186,7 +190,9 @@ class PersonalizeBackend(BaseBackend):
     def create_batch_inference_job(self, name: str, data: dict[str, Any]) -> str:
         job_id = str(uuid.uuid4())
         arn = self._make_arn("batch-inference-job", f"{name}/{job_id}")
-        self.batch_inference_jobs[arn] = PersonalizeResource(arn=arn, name=name, data=data)
+        self.batch_inference_jobs[arn] = PersonalizeResource(
+            arn=arn, name=name, data=data
+        )
         return arn
 
     def describe_batch_inference_job(self, arn: str) -> PersonalizeResource:
@@ -199,7 +205,9 @@ class PersonalizeBackend(BaseBackend):
     def create_batch_segment_job(self, name: str, data: dict[str, Any]) -> str:
         job_id = str(uuid.uuid4())
         arn = self._make_arn("batch-segment-job", f"{name}/{job_id}")
-        self.batch_segment_jobs[arn] = PersonalizeResource(arn=arn, name=name, data=data)
+        self.batch_segment_jobs[arn] = PersonalizeResource(
+            arn=arn, name=name, data=data
+        )
         return arn
 
     def describe_batch_segment_job(self, arn: str) -> PersonalizeResource:
@@ -236,7 +244,9 @@ class PersonalizeBackend(BaseBackend):
     def create_data_deletion_job(self, name: str, data: dict[str, Any]) -> str:
         job_id = str(uuid.uuid4())
         arn = self._make_arn("data-deletion-job", f"{name}/{job_id}")
-        self.data_deletion_jobs[arn] = PersonalizeResource(arn=arn, name=name, data=data)
+        self.data_deletion_jobs[arn] = PersonalizeResource(
+            arn=arn, name=name, data=data
+        )
         return arn
 
     def describe_data_deletion_job(self, arn: str) -> PersonalizeResource:
@@ -285,7 +295,9 @@ class PersonalizeBackend(BaseBackend):
 
     def create_metric_attribution(self, name: str, data: dict[str, Any]) -> str:
         arn = self._make_arn("metric-attribution", name)
-        self.metric_attributions[arn] = PersonalizeResource(arn=arn, name=name, data=data)
+        self.metric_attributions[arn] = PersonalizeResource(
+            arn=arn, name=name, data=data
+        )
         return arn
 
     def describe_metric_attribution(self, arn: str) -> PersonalizeResource:

@@ -18,40 +18,9 @@ class TransitGatewayConnectResponse(EC2BaseResponse):
             options=options,
             tags=tags,
         )
-        return ActionResult({
-            "TransitGatewayConnect": {
-                "TransitGatewayAttachmentId": connect.id,
-                "TransportTransitGatewayAttachmentId": connect.transport_transit_gateway_attachment_id,
-                "TransitGatewayId": connect.transit_gateway_id,
-                "State": connect.state,
-                "CreationTime": connect.creation_time,
-                "Options": {
-                    "Protocol": connect.options.get("Protocol", "gre"),
-                },
-                "Tags": [{"Key": tag.key, "Value": tag.value} for tag in connect.get_tags()],
-            }
-        })
-
-    def delete_transit_gateway_connect(self) -> ActionResult:
-        tgw_attachment_id = self._get_param("TransitGatewayAttachmentId")
-        connect = self.ec2_backend.delete_transit_gateway_connect(tgw_attachment_id)
-        return ActionResult({
-            "TransitGatewayConnect": {
-                "TransitGatewayAttachmentId": connect.id,
-                "State": connect.state,
-            }
-        })
-
-    def describe_transit_gateway_connects(self) -> ActionResult:
-        tgw_attachment_ids = self._get_param("TransitGatewayAttachmentIds", [])
-        filters = self._filters_from_querystring()
-        connects = self.ec2_backend.describe_transit_gateway_connects(
-            transit_gateway_attachment_ids=tgw_attachment_ids or None,
-            filters=filters,
-        )
-        return ActionResult({
-            "TransitGatewayConnectSet": [
-                {
+        return ActionResult(
+            {
+                "TransitGatewayConnect": {
                     "TransitGatewayAttachmentId": connect.id,
                     "TransportTransitGatewayAttachmentId": connect.transport_transit_gateway_attachment_id,
                     "TransitGatewayId": connect.transit_gateway_id,
@@ -60,11 +29,54 @@ class TransitGatewayConnectResponse(EC2BaseResponse):
                     "Options": {
                         "Protocol": connect.options.get("Protocol", "gre"),
                     },
-                    "Tags": [{"Key": tag.key, "Value": tag.value} for tag in connect.get_tags()],
+                    "Tags": [
+                        {"Key": tag.key, "Value": tag.value}
+                        for tag in connect.get_tags()
+                    ],
                 }
-                for connect in connects
-            ]
-        })
+            }
+        )
+
+    def delete_transit_gateway_connect(self) -> ActionResult:
+        tgw_attachment_id = self._get_param("TransitGatewayAttachmentId")
+        connect = self.ec2_backend.delete_transit_gateway_connect(tgw_attachment_id)
+        return ActionResult(
+            {
+                "TransitGatewayConnect": {
+                    "TransitGatewayAttachmentId": connect.id,
+                    "State": connect.state,
+                }
+            }
+        )
+
+    def describe_transit_gateway_connects(self) -> ActionResult:
+        tgw_attachment_ids = self._get_param("TransitGatewayAttachmentIds", [])
+        filters = self._filters_from_querystring()
+        connects = self.ec2_backend.describe_transit_gateway_connects(
+            transit_gateway_attachment_ids=tgw_attachment_ids or None,
+            filters=filters,
+        )
+        return ActionResult(
+            {
+                "TransitGatewayConnectSet": [
+                    {
+                        "TransitGatewayAttachmentId": connect.id,
+                        "TransportTransitGatewayAttachmentId": connect.transport_transit_gateway_attachment_id,
+                        "TransitGatewayId": connect.transit_gateway_id,
+                        "State": connect.state,
+                        "CreationTime": connect.creation_time,
+                        "Options": {
+                            "Protocol": connect.options.get("Protocol", "gre"),
+                        },
+                        "Tags": [
+                            {"Key": tag.key, "Value": tag.value}
+                            for tag in connect.get_tags()
+                        ],
+                    }
+                    for connect in connects
+                ]
+            }
+        )
 
     def create_transit_gateway_connect_peer(self) -> ActionResult:
         tgw_attachment_id = self._get_param("TransitGatewayAttachmentId")
@@ -82,50 +94,9 @@ class TransitGatewayConnectResponse(EC2BaseResponse):
             inside_cidr_blocks=inside_cidr_blocks,
             tags=tags,
         )
-        return ActionResult({
-            "TransitGatewayConnectPeer": {
-                "TransitGatewayConnectPeerId": peer.id,
-                "TransitGatewayAttachmentId": peer.transit_gateway_attachment_id,
-                "State": peer.state,
-                "CreationTime": peer.creation_time,
-                "ConnectPeerConfiguration": {
-                    "TransitGatewayAddress": peer.transit_gateway_address,
-                    "PeerAddress": peer.peer_address,
-                    "InsideCidrBlocks": peer.inside_cidr_blocks,
-                    "Protocol": "gre",
-                    "BgpConfigurations": [
-                        {
-                            "TransitGatewayAddress": peer.transit_gateway_address,
-                            "PeerAddress": peer.peer_address,
-                            "PeerAsn": peer.bgp_options.get("PeerAsn", "65000"),
-                            "BgpStatus": "up",
-                        }
-                    ],
-                },
-                "Tags": [{"Key": tag.key, "Value": tag.value} for tag in peer.get_tags()],
-            }
-        })
-
-    def delete_transit_gateway_connect_peer(self) -> ActionResult:
-        peer_id = self._get_param("TransitGatewayConnectPeerId")
-        peer = self.ec2_backend.delete_transit_gateway_connect_peer(peer_id)
-        return ActionResult({
-            "TransitGatewayConnectPeer": {
-                "TransitGatewayConnectPeerId": peer.id,
-                "State": peer.state,
-            }
-        })
-
-    def describe_transit_gateway_connect_peers(self) -> ActionResult:
-        peer_ids = self._get_param("TransitGatewayConnectPeerIds", [])
-        filters = self._filters_from_querystring()
-        peers = self.ec2_backend.describe_transit_gateway_connect_peers(
-            transit_gateway_connect_peer_ids=peer_ids or None,
-            filters=filters,
-        )
-        return ActionResult({
-            "TransitGatewayConnectPeerSet": [
-                {
+        return ActionResult(
+            {
+                "TransitGatewayConnectPeer": {
                     "TransitGatewayConnectPeerId": peer.id,
                     "TransitGatewayAttachmentId": peer.transit_gateway_attachment_id,
                     "State": peer.state,
@@ -135,12 +106,64 @@ class TransitGatewayConnectResponse(EC2BaseResponse):
                         "PeerAddress": peer.peer_address,
                         "InsideCidrBlocks": peer.inside_cidr_blocks,
                         "Protocol": "gre",
+                        "BgpConfigurations": [
+                            {
+                                "TransitGatewayAddress": peer.transit_gateway_address,
+                                "PeerAddress": peer.peer_address,
+                                "PeerAsn": peer.bgp_options.get("PeerAsn", "65000"),
+                                "BgpStatus": "up",
+                            }
+                        ],
                     },
-                    "Tags": [{"Key": tag.key, "Value": tag.value} for tag in peer.get_tags()],
+                    "Tags": [
+                        {"Key": tag.key, "Value": tag.value} for tag in peer.get_tags()
+                    ],
                 }
-                for peer in peers
-            ]
-        })
+            }
+        )
+
+    def delete_transit_gateway_connect_peer(self) -> ActionResult:
+        peer_id = self._get_param("TransitGatewayConnectPeerId")
+        peer = self.ec2_backend.delete_transit_gateway_connect_peer(peer_id)
+        return ActionResult(
+            {
+                "TransitGatewayConnectPeer": {
+                    "TransitGatewayConnectPeerId": peer.id,
+                    "State": peer.state,
+                }
+            }
+        )
+
+    def describe_transit_gateway_connect_peers(self) -> ActionResult:
+        peer_ids = self._get_param("TransitGatewayConnectPeerIds", [])
+        filters = self._filters_from_querystring()
+        peers = self.ec2_backend.describe_transit_gateway_connect_peers(
+            transit_gateway_connect_peer_ids=peer_ids or None,
+            filters=filters,
+        )
+        return ActionResult(
+            {
+                "TransitGatewayConnectPeerSet": [
+                    {
+                        "TransitGatewayConnectPeerId": peer.id,
+                        "TransitGatewayAttachmentId": peer.transit_gateway_attachment_id,
+                        "State": peer.state,
+                        "CreationTime": peer.creation_time,
+                        "ConnectPeerConfiguration": {
+                            "TransitGatewayAddress": peer.transit_gateway_address,
+                            "PeerAddress": peer.peer_address,
+                            "InsideCidrBlocks": peer.inside_cidr_blocks,
+                            "Protocol": "gre",
+                        },
+                        "Tags": [
+                            {"Key": tag.key, "Value": tag.value}
+                            for tag in peer.get_tags()
+                        ],
+                    }
+                    for peer in peers
+                ]
+            }
+        )
 
     def create_transit_gateway_prefix_list_reference(self) -> ActionResult:
         tgw_rt_id = self._get_param("TransitGatewayRouteTableId")
@@ -164,7 +187,9 @@ class TransitGatewayConnectResponse(EC2BaseResponse):
         }
         if ref.get("transitGatewayAttachment"):
             result["TransitGatewayPrefixListReference"]["TransitGatewayAttachment"] = {
-                "TransitGatewayAttachmentId": ref["transitGatewayAttachment"]["transitGatewayAttachmentId"],
+                "TransitGatewayAttachmentId": ref["transitGatewayAttachment"][
+                    "transitGatewayAttachmentId"
+                ],
                 "ResourceType": ref["transitGatewayAttachment"]["resourceType"],
                 "ResourceId": ref["transitGatewayAttachment"]["resourceId"],
             }
@@ -178,12 +203,14 @@ class TransitGatewayConnectResponse(EC2BaseResponse):
             transit_gateway_route_table_id=tgw_rt_id,
             prefix_list_id=prefix_list_id,
         )
-        return ActionResult({
-            "TransitGatewayPrefixListReference": {
-                "PrefixListId": ref.get("prefixListId", ""),
-                "State": ref.get("state", "deleted"),
+        return ActionResult(
+            {
+                "TransitGatewayPrefixListReference": {
+                    "PrefixListId": ref.get("prefixListId", ""),
+                    "State": ref.get("state", "deleted"),
+                }
             }
-        })
+        )
 
     def get_transit_gateway_prefix_list_references(self) -> ActionResult:
         tgw_rt_id = self._get_param("TransitGatewayRouteTableId")
@@ -203,14 +230,14 @@ class TransitGatewayConnectResponse(EC2BaseResponse):
             }
             if ref.get("transitGatewayAttachment"):
                 ref_dict["TransitGatewayAttachment"] = {
-                    "TransitGatewayAttachmentId": ref["transitGatewayAttachment"]["transitGatewayAttachmentId"],
+                    "TransitGatewayAttachmentId": ref["transitGatewayAttachment"][
+                        "transitGatewayAttachmentId"
+                    ],
                     "ResourceType": ref["transitGatewayAttachment"]["resourceType"],
                     "ResourceId": ref["transitGatewayAttachment"]["resourceId"],
                 }
             result_refs.append(ref_dict)
-        return ActionResult({
-            "TransitGatewayPrefixListReferenceSet": result_refs
-        })
+        return ActionResult({"TransitGatewayPrefixListReferenceSet": result_refs})
 
 
 CREATE_TRANSIT_GATEWAY_CONNECT = """<CreateTransitGatewayConnectResponse xmlns="http://ec2.amazonaws.com/doc/2016-11-15/">

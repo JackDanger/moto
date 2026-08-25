@@ -20,7 +20,6 @@ from typing import (
     Optional,
     Protocol,
     TYPE_CHECKING,
-    overload,
 )
 
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -93,7 +92,18 @@ from .utils import (
     valid_preferred_maintenance_window,
     validate_filters,
 )
-from .exceptions import (CustomDBEngineVersionAlreadyExistsFault, CustomDBEngineVersionNotFoundFault, GlobalClusterNotFoundError, IntegrationAlreadyExistsFault, IntegrationNotFoundFault, ReservedDBInstanceAlreadyExistsFault, ReservedDBInstanceNotFoundFault, ReservedDBInstancesOfferingNotFoundFault, TenantDatabaseAlreadyExistsFault, TenantDatabaseNotFoundFault)
+from .exceptions import (
+    CustomDBEngineVersionAlreadyExistsFault,
+    CustomDBEngineVersionNotFoundFault,
+    GlobalClusterNotFoundError,
+    IntegrationAlreadyExistsFault,
+    IntegrationNotFoundFault,
+    ReservedDBInstanceAlreadyExistsFault,
+    ReservedDBInstanceNotFoundFault,
+    ReservedDBInstancesOfferingNotFoundFault,
+    TenantDatabaseAlreadyExistsFault,
+    TenantDatabaseNotFoundFault,
+)
 
 if TYPE_CHECKING:
     from moto.ec2.models.subnets import Subnet
@@ -2429,9 +2439,6 @@ class RDSBackend(BaseBackend, TaggableResourcesMixin):
         validated_key = kms_key.arn
         return validated_key
 
-
-
-
     def get_backend(
         self,
         service: Literal["kms"] | Literal["rds"] | Literal["secretsmanager"],
@@ -2444,8 +2451,6 @@ class RDSBackend(BaseBackend, TaggableResourcesMixin):
             account_id = self.account_id
 
         return get_moto_backend(service)[account_id][region]
-
-
 
     def get_snapshot(
         self,
@@ -4399,10 +4404,23 @@ class RDSBackend(BaseBackend, TaggableResourcesMixin):
     def describe_source_regions(self) -> list[dict[str, Any]]:
         # Return a minimal stub list of source regions
         return [
-            {"RegionName": r, "Endpoint": f"rds.{r}.amazonaws.com", "Status": "available"}
-            for r in ["us-east-1", "us-east-2", "us-west-1", "us-west-2",
-                      "eu-west-1", "eu-west-2", "eu-central-1", "ap-northeast-1",
-                      "ap-southeast-1", "ap-southeast-2"]
+            {
+                "RegionName": r,
+                "Endpoint": f"rds.{r}.amazonaws.com",
+                "Status": "available",
+            }
+            for r in [
+                "us-east-1",
+                "us-east-2",
+                "us-west-1",
+                "us-west-2",
+                "eu-west-1",
+                "eu-west-2",
+                "eu-central-1",
+                "ap-northeast-1",
+                "ap-southeast-1",
+                "ap-southeast-2",
+            ]
             if r != self.region_name
         ]
 
@@ -4685,9 +4703,7 @@ class RDSBackend(BaseBackend, TaggableResourcesMixin):
         if new_db_proxy_name and new_db_proxy_name != db_proxy_name:
             self.db_proxies.pop(db_proxy_name)
             proxy.db_proxy_name = new_db_proxy_name
-            proxy.endpoint = proxy.endpoint.replace(
-                db_proxy_name, new_db_proxy_name, 1
-            )
+            proxy.endpoint = proxy.endpoint.replace(db_proxy_name, new_db_proxy_name, 1)
             self.db_proxies[new_db_proxy_name] = proxy
         proxy.updated_date = utcnow()
         return proxy
@@ -6091,8 +6107,6 @@ class BlueGreenDeploymentTask:
         FAILED = 4
 
 
-
-
 class DBClusterEndpoint(RDSBaseModel):
     resource_type = "cluster-endpoint"
 
@@ -6364,4 +6378,6 @@ class ReservedDBInstance(RDSBaseModel):
             f":ri:{self.reserved_db_instance_id}"
         )
         self.tags = tags or []
+
+
 rds_backends = BackendDict(RDSBackend, "rds")

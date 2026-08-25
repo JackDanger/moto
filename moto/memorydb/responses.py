@@ -312,12 +312,16 @@ class MemoryDBResponse(BaseResponse):
 
     def describe_parameter_groups(self) -> ActionResult:
         params = json.loads(self.body)
-        pgs = self.memorydb_backend.describe_parameter_groups(name=params.get("ParameterGroupName"))
+        pgs = self.memorydb_backend.describe_parameter_groups(
+            name=params.get("ParameterGroupName")
+        )
         return ActionResult({"ParameterGroups": [pg.to_dict() for pg in pgs]})
 
     def delete_parameter_group(self) -> ActionResult:
         params = json.loads(self.body)
-        pg = self.memorydb_backend.delete_parameter_group(name=params.get("ParameterGroupName"))
+        pg = self.memorydb_backend.delete_parameter_group(
+            name=params.get("ParameterGroupName")
+        )
         return ActionResult({"ParameterGroup": pg.to_dict()})
 
     def update_parameter_group(self) -> ActionResult:
@@ -396,7 +400,9 @@ class MemoryDBResponse(BaseResponse):
             cluster_names=params.get("ClusterNames", []),
             service_update=params.get("ServiceUpdate"),
         )
-        return ActionResult({"ProcessedClusters": processed, "UnprocessedClusters": unprocessed})
+        return ActionResult(
+            {"ProcessedClusters": processed, "UnprocessedClusters": unprocessed}
+        )
 
     def purchase_reserved_nodes_offering(self) -> ActionResult:
         params = json.loads(self.body)

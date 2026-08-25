@@ -2,7 +2,7 @@ import datetime
 import hashlib
 from typing import Any
 import uuid
-from typing import Any, Optional, Union
+from typing import Optional
 
 from moto.core.base_backend import BackendDict, BaseBackend
 from moto.core.common_models import BaseModel
@@ -305,9 +305,7 @@ class GlacierBackend(BaseBackend):
 
     # --- Vault Notifications ---
 
-    def set_vault_notifications(
-        self, vault_name: str, config: dict[str, Any]
-    ) -> None:
+    def set_vault_notifications(self, vault_name: str, config: dict[str, Any]) -> None:
         vault = self.describe_vault(vault_name)
         vault.notification_configuration = config
 
@@ -345,18 +343,14 @@ class GlacierBackend(BaseBackend):
 
     # --- Vault Lock ---
 
-    def initiate_vault_lock(
-        self, vault_name: str, policy: dict[str, Any]
-    ) -> str:
+    def initiate_vault_lock(self, vault_name: str, policy: dict[str, Any]) -> str:
         vault = self.describe_vault(vault_name)
         lock_id = str(uuid.uuid4())
         vault.vault_lock = {
             "Policy": policy.get("Policy", ""),
             "State": "InProgress",
             "LockId": lock_id,
-            "CreationDate": datetime.datetime.now().strftime(
-                "%Y-%m-%dT%H:%M:%S.000Z"
-            ),
+            "CreationDate": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
             "ExpirationDate": (
                 datetime.datetime.now() + datetime.timedelta(hours=24)
             ).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
@@ -397,9 +391,7 @@ class GlacierBackend(BaseBackend):
         self.provisioned_capacity.append(
             {
                 "CapacityId": cap_id,
-                "StartDate": datetime.datetime.now().strftime(
-                    "%Y-%m-%dT%H:%M:%S.000Z"
-                ),
+                "StartDate": datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.000Z"),
                 "ExpirationDate": (
                     datetime.datetime.now() + datetime.timedelta(days=30)
                 ).strftime("%Y-%m-%dT%H:%M:%S.000Z"),

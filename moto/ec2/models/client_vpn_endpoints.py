@@ -59,7 +59,9 @@ class ClientVpnEndpoint(TaggedEC2Resource):
 
     @property
     def dns_name(self) -> str:
-        return f"*.{self.id}.prod.clientvpn.{self.ec2_backend.region_name}.amazonaws.com"
+        return (
+            f"*.{self.id}.prod.clientvpn.{self.ec2_backend.region_name}.amazonaws.com"
+        )
 
 
 class ClientVpnEndpointBackend:

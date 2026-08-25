@@ -94,12 +94,14 @@ class KinesisVideoArchivedMediaResponse(BaseResponse):
         max_results = self._get_param("MaxResults")
         next_token = self._get_param("NextToken")
         fragment_selector = self._get_param("FragmentSelector")
-        fragments, new_next_token = self.kinesisvideoarchivedmedia_backend.list_fragments(
-            stream_name=stream_name,
-            stream_arn=stream_arn,
-            max_results=max_results,
-            next_token=next_token,
-            fragment_selector=fragment_selector,
+        fragments, new_next_token = (
+            self.kinesisvideoarchivedmedia_backend.list_fragments(
+                stream_name=stream_name,
+                stream_arn=stream_arn,
+                max_results=max_results,
+                next_token=next_token,
+                fragment_selector=fragment_selector,
+            )
         )
         result: dict = {"Fragments": fragments}
         if new_next_token is not None:

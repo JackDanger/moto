@@ -25,7 +25,9 @@ class NetworkFirewallResponse(BaseResponse):
         subnet_mappings = self._get_param("SubnetMappings")
         delete_protection = self._get_param("DeleteProtection")
         subnet_change_protection = self._get_param("SubnetChangeProtection")
-        firewall_policy_change_protection = self._get_param("FirewallPolicyChangeProtection")
+        firewall_policy_change_protection = self._get_param(
+            "FirewallPolicyChangeProtection"
+        )
         description = self._get_param("Description")
         tags = self._get_param("Tags")
         encryption_configuration = self._get_param("EncryptionConfiguration")
@@ -165,12 +167,16 @@ class NetworkFirewallResponse(BaseResponse):
         update_token = self._get_param("UpdateToken")
         firewall_arn = self._get_param("FirewallArn")
         firewall_name = self._get_param("FirewallName")
-        firewall_policy_change_protection = self._get_param("FirewallPolicyChangeProtection")
-        firewall = self.networkfirewall_backend.update_firewall_policy_change_protection(
-            update_token=update_token,
-            firewall_arn=firewall_arn,
-            firewall_name=firewall_name,
-            firewall_policy_change_protection=firewall_policy_change_protection,
+        firewall_policy_change_protection = self._get_param(
+            "FirewallPolicyChangeProtection"
+        )
+        firewall = (
+            self.networkfirewall_backend.update_firewall_policy_change_protection(
+                update_token=update_token,
+                firewall_arn=firewall_arn,
+                firewall_name=firewall_name,
+                firewall_policy_change_protection=firewall_policy_change_protection,
+            )
         )
         return json.dumps(
             {
@@ -206,11 +212,13 @@ class NetworkFirewallResponse(BaseResponse):
         firewall_arn = self._get_param("FirewallArn")
         firewall_name = self._get_param("FirewallName")
         encryption_configuration = self._get_param("EncryptionConfiguration")
-        firewall = self.networkfirewall_backend.update_firewall_encryption_configuration(
-            update_token=update_token,
-            firewall_arn=firewall_arn,
-            firewall_name=firewall_name,
-            encryption_configuration=encryption_configuration,
+        firewall = (
+            self.networkfirewall_backend.update_firewall_encryption_configuration(
+                update_token=update_token,
+                firewall_arn=firewall_arn,
+                firewall_name=firewall_name,
+                encryption_configuration=encryption_configuration,
+            )
         )
         return json.dumps(
             {
@@ -529,7 +537,9 @@ class NetworkFirewallResponse(BaseResponse):
         return json.dumps({"NextToken": next_token, "RuleGroups": group_list})
 
     def create_tls_inspection_configuration(self) -> str:
-        tls_inspection_configuration_name = self._get_param("TLSInspectionConfigurationName")
+        tls_inspection_configuration_name = self._get_param(
+            "TLSInspectionConfigurationName"
+        )
         tls_inspection_configuration = self._get_param("TLSInspectionConfiguration")
         description = self._get_param("Description")
         tags = self._get_param("Tags")
@@ -549,17 +559,27 @@ class NetworkFirewallResponse(BaseResponse):
         )
 
     def delete_tls_inspection_configuration(self) -> str:
-        tls_inspection_configuration_arn = self._get_param("TLSInspectionConfigurationArn")
-        tls_inspection_configuration_name = self._get_param("TLSInspectionConfigurationName")
+        tls_inspection_configuration_arn = self._get_param(
+            "TLSInspectionConfigurationArn"
+        )
+        tls_inspection_configuration_name = self._get_param(
+            "TLSInspectionConfigurationName"
+        )
         tls = self.networkfirewall_backend.delete_tls_inspection_configuration(
             tls_inspection_configuration_arn=tls_inspection_configuration_arn,
             tls_inspection_configuration_name=tls_inspection_configuration_name,
         )
-        return json.dumps({"TLSInspectionConfigurationResponse": tls.to_metadata_dict()})
+        return json.dumps(
+            {"TLSInspectionConfigurationResponse": tls.to_metadata_dict()}
+        )
 
     def describe_tls_inspection_configuration(self) -> str:
-        tls_inspection_configuration_arn = self._get_param("TLSInspectionConfigurationArn")
-        tls_inspection_configuration_name = self._get_param("TLSInspectionConfigurationName")
+        tls_inspection_configuration_arn = self._get_param(
+            "TLSInspectionConfigurationArn"
+        )
+        tls_inspection_configuration_name = self._get_param(
+            "TLSInspectionConfigurationName"
+        )
         tls = self.networkfirewall_backend.describe_tls_inspection_configuration(
             tls_inspection_configuration_arn=tls_inspection_configuration_arn,
             tls_inspection_configuration_name=tls_inspection_configuration_name,
@@ -574,8 +594,12 @@ class NetworkFirewallResponse(BaseResponse):
 
     def update_tls_inspection_configuration(self) -> str:
         update_token = self._get_param("UpdateToken")
-        tls_inspection_configuration_arn = self._get_param("TLSInspectionConfigurationArn")
-        tls_inspection_configuration_name = self._get_param("TLSInspectionConfigurationName")
+        tls_inspection_configuration_arn = self._get_param(
+            "TLSInspectionConfigurationArn"
+        )
+        tls_inspection_configuration_name = self._get_param(
+            "TLSInspectionConfigurationName"
+        )
         tls_inspection_configuration = self._get_param("TLSInspectionConfiguration")
         description = self._get_param("Description")
         encryption_configuration = self._get_param("EncryptionConfiguration")
@@ -597,13 +621,14 @@ class NetworkFirewallResponse(BaseResponse):
     def list_tls_inspection_configurations(self) -> str:
         next_token = self._get_param("NextToken")
         max_results = self._get_param("MaxResults")
-        configs, next_token = self.networkfirewall_backend.list_tls_inspection_configurations(
-            next_token=next_token,
-            max_results=max_results,
+        configs, next_token = (
+            self.networkfirewall_backend.list_tls_inspection_configurations(
+                next_token=next_token,
+                max_results=max_results,
+            )
         )
         config_list = [
-            {"Name": c.tls_inspection_configuration_name, "Arn": c.arn}
-            for c in configs
+            {"Name": c.tls_inspection_configuration_name, "Arn": c.arn} for c in configs
         ]
         return json.dumps(
             {"NextToken": next_token, "TLSInspectionConfigurations": config_list}

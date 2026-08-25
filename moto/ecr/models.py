@@ -1202,7 +1202,6 @@ class ECRBackend(BaseBackend):
             "policyText": self.registry_policy,
         }
 
-
     def delete_registry_policy(self) -> dict[str, Any]:
         policy = self.registry_policy
         if not policy:
@@ -1671,6 +1670,7 @@ class ECRBackend(BaseBackend):
         self, repository_name: str, registry_id: Optional[str]
     ) -> dict[str, Any]:
         import uuid as _uuid
+
         upload_id = str(_uuid.uuid4())
         return {"uploadId": upload_id, "partSize": 10 * 1024 * 1024}
 
@@ -1698,7 +1698,10 @@ class ECRBackend(BaseBackend):
         registry_id: Optional[str],
     ) -> dict[str, Any]:
         import uuid as _uuid
-        layer_digest = layer_digests[0] if layer_digests else f"sha256:{_uuid.uuid4().hex}"
+
+        layer_digest = (
+            layer_digests[0] if layer_digests else f"sha256:{_uuid.uuid4().hex}"
+        )
         return {
             "registryId": registry_id or self.account_id,
             "repositoryName": repository_name,
@@ -1758,6 +1761,7 @@ class ECRBackend(BaseBackend):
         self, ecr_repository_prefix: str, repository_filter: str, title: str
     ) -> dict[str, Any]:
         import uuid as _uuid
+
         exclusion_id = str(_uuid.uuid4())
         record = {
             "exclusionId": exclusion_id,
@@ -1769,7 +1773,9 @@ class ECRBackend(BaseBackend):
         self._pull_time_exclusions[exclusion_id] = record
         return record
 
-    def deregister_pull_time_update_exclusion(self, exclusion_id: str) -> dict[str, Any]:
+    def deregister_pull_time_update_exclusion(
+        self, exclusion_id: str
+    ) -> dict[str, Any]:
         return self._pull_time_exclusions.pop(exclusion_id, {})
 
     def list_pull_time_update_exclusions(self) -> dict[str, Any]:

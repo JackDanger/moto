@@ -213,10 +213,14 @@ class OpenSearchIngestionResponse(BaseResponse):
         return json.dumps({"PipelineEndpointConnections": connections})
 
     def create_pipeline_endpoint(self) -> str:
-        return json.dumps({"Status": "ACTIVE", "EndpointId": "vpce-stub", "VpcId": "vpc-stub"})
+        return json.dumps(
+            {"Status": "ACTIVE", "EndpointId": "vpce-stub", "VpcId": "vpc-stub"}
+        )
 
     def delete_pipeline_endpoint(self) -> str:
         return json.dumps({})
 
     def revoke_pipeline_endpoint_connections(self) -> str:
-        return json.dumps({"PipelineArn": "arn:aws:osis:us-east-1:123456789012:pipeline/stub"})
+        return json.dumps(
+            {"PipelineArn": "arn:aws:osis:us-east-1:123456789012:pipeline/stub"}
+        )

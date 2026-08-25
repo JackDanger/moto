@@ -26,9 +26,7 @@ class FastLaunchImage:
 
     @property
     def state_transition_time(self) -> str:
-        return iso_8601_datetime_with_milliseconds(
-            self._state_transition_time
-        )
+        return iso_8601_datetime_with_milliseconds(self._state_transition_time)
 
     @property
     def owner_id(self) -> str:

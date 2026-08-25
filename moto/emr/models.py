@@ -22,8 +22,12 @@ from .utils import (
     random_instance_group_id,
     random_step_id,
 )
-from moto.emr.exceptions import InvalidStep
-from .utils import (random_instance_fleet_id, random_notebook_execution_id, random_persistent_app_ui_id, random_studio_id)
+from .utils import (
+    random_instance_fleet_id,
+    random_notebook_execution_id,
+    random_persistent_app_ui_id,
+    random_studio_id,
+)
 
 if TYPE_CHECKING:
     from moto.ec2.models import EC2Backend
@@ -1516,12 +1520,14 @@ class ElasticMapReduceBackend(BaseBackend):
                 continue
             if identity_type and m.identity_type != identity_type:
                 continue
-            mappings.append({
-                "StudioId": m.studio_id,
-                "IdentityId": m.identity_id,
-                "IdentityType": m.identity_type,
-                "SessionPolicyArn": m.session_policy_arn,
-            })
+            mappings.append(
+                {
+                    "StudioId": m.studio_id,
+                    "IdentityId": m.identity_id,
+                    "IdentityType": m.identity_type,
+                    "SessionPolicyArn": m.session_policy_arn,
+                }
+            )
         return mappings
 
     def set_keep_job_flow_alive_when_no_steps(
@@ -1586,8 +1592,6 @@ class ElasticMapReduceBackend(BaseBackend):
             "PresignedURLForAthena": "",
             "PresignedURLForIDP": f"https://emr.example.com/cluster/{cluster_id}/ui/{on_cluster_app_ui_type}",
         }
-
-
 
 
 class InstanceFleet(BaseModel):
@@ -1746,4 +1750,6 @@ class NotebookExecution(BaseModel):
     @property
     def tags(self) -> list[dict[str, str]]:
         return [{"Key": k, "Value": v} for k, v in self._tags.items()]
+
+
 emr_backends = BackendDict(ElasticMapReduceBackend, "emr")

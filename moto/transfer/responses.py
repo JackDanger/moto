@@ -148,10 +148,12 @@ class TransferResponse(BaseResponse):
         server_id, users = self.transfer_backend.list_users(
             server_id=params["ServerId"],
         )
-        return json.dumps({
-            "ServerId": server_id,
-            "Users": [u.to_short_dict() for u in users],
-        })
+        return json.dumps(
+            {
+                "ServerId": server_id,
+                "Users": [u.to_short_dict() for u in users],
+            }
+        )
 
     # ======== SSH Public Key operations ========
 
@@ -232,10 +234,12 @@ class TransferResponse(BaseResponse):
         server_id, accesses = self.transfer_backend.list_accesses(
             server_id=params["ServerId"],
         )
-        return json.dumps({
-            "ServerId": server_id,
-            "Accesses": [a.to_short_dict() for a in accesses],
-        })
+        return json.dumps(
+            {
+                "ServerId": server_id,
+                "Accesses": [a.to_short_dict() for a in accesses],
+            }
+        )
 
     # ======== Agreement operations ========
 
@@ -294,9 +298,11 @@ class TransferResponse(BaseResponse):
         agreements = self.transfer_backend.list_agreements(
             server_id=params["ServerId"],
         )
-        return json.dumps({
-            "Agreements": [a.to_short_dict() for a in agreements],
-        })
+        return json.dumps(
+            {
+                "Agreements": [a.to_short_dict() for a in agreements],
+            }
+        )
 
     # ======== Certificate operations ========
 
@@ -340,9 +346,11 @@ class TransferResponse(BaseResponse):
 
     def list_certificates(self) -> str:
         certs = self.transfer_backend.list_certificates()
-        return json.dumps({
-            "Certificates": [c.to_short_dict() for c in certs],
-        })
+        return json.dumps(
+            {
+                "Certificates": [c.to_short_dict() for c in certs],
+            }
+        )
 
     # ======== Connector operations ========
 
@@ -390,20 +398,24 @@ class TransferResponse(BaseResponse):
 
     def list_connectors(self) -> str:
         connectors = self.transfer_backend.list_connectors()
-        return json.dumps({
-            "Connectors": [c.to_short_dict() for c in connectors],
-        })
+        return json.dumps(
+            {
+                "Connectors": [c.to_short_dict() for c in connectors],
+            }
+        )
 
     def test_connection(self) -> str:
         params = json.loads(self.body)
         connector_id, status, status_message = self.transfer_backend.test_connection(
             connector_id=params["ConnectorId"],
         )
-        return json.dumps({
-            "ConnectorId": connector_id,
-            "Status": status,
-            "StatusMessage": status_message,
-        })
+        return json.dumps(
+            {
+                "ConnectorId": connector_id,
+                "Status": status,
+                "StatusMessage": status_message,
+            }
+        )
 
     # ======== Profile operations ========
 
@@ -444,9 +456,11 @@ class TransferResponse(BaseResponse):
         profiles = self.transfer_backend.list_profiles(
             profile_type=params.get("ProfileType"),
         )
-        return json.dumps({
-            "Profiles": [p.to_short_dict() for p in profiles],
-        })
+        return json.dumps(
+            {
+                "Profiles": [p.to_short_dict() for p in profiles],
+            }
+        )
 
     # ======== Workflow operations ========
 
@@ -476,9 +490,11 @@ class TransferResponse(BaseResponse):
 
     def list_workflows(self) -> str:
         workflows = self.transfer_backend.list_workflows()
-        return json.dumps({
-            "Workflows": [w.to_short_dict() for w in workflows],
-        })
+        return json.dumps(
+            {
+                "Workflows": [w.to_short_dict() for w in workflows],
+            }
+        )
 
     def send_workflow_step_state(self) -> str:
         params = json.loads(self.body)
@@ -496,20 +512,24 @@ class TransferResponse(BaseResponse):
             workflow_id=params["WorkflowId"],
             execution_id=params["ExecutionId"],
         )
-        return json.dumps({
-            "WorkflowId": workflow_id,
-            "Execution": execution,
-        })
+        return json.dumps(
+            {
+                "WorkflowId": workflow_id,
+                "Execution": execution,
+            }
+        )
 
     def list_executions(self) -> str:
         params = json.loads(self.body)
         workflow_id, executions = self.transfer_backend.list_executions(
             workflow_id=params["WorkflowId"],
         )
-        return json.dumps({
-            "WorkflowId": workflow_id,
-            "Executions": executions,
-        })
+        return json.dumps(
+            {
+                "WorkflowId": workflow_id,
+                "Executions": executions,
+            }
+        )
 
     # ======== HostKey operations ========
 
@@ -553,10 +573,12 @@ class TransferResponse(BaseResponse):
         server_id, host_keys = self.transfer_backend.list_host_keys(
             server_id=params["ServerId"],
         )
-        return json.dumps({
-            "ServerId": server_id,
-            "HostKeys": [hk.to_short_dict() for hk in host_keys],
-        })
+        return json.dumps(
+            {
+                "ServerId": server_id,
+                "HostKeys": [hk.to_short_dict() for hk in host_keys],
+            }
+        )
 
     # ======== WebApp operations ========
 
@@ -599,9 +621,11 @@ class TransferResponse(BaseResponse):
 
     def list_web_apps(self) -> str:
         web_apps = self.transfer_backend.list_web_apps()
-        return json.dumps({
-            "WebApps": [wa.to_short_dict() for wa in web_apps],
-        })
+        return json.dumps(
+            {
+                "WebApps": [wa.to_short_dict() for wa in web_apps],
+            }
+        )
 
     # ======== WebApp Customization operations ========
 
@@ -709,10 +733,12 @@ class TransferResponse(BaseResponse):
             max_items=params.get("MaxItems"),
             output_directory_path=params["OutputDirectoryPath"],
         )
-        return json.dumps({
-            "ListingId": listing_id,
-            "OutputFileName": output_file_name,
-        })
+        return json.dumps(
+            {
+                "ListingId": listing_id,
+                "OutputFileName": output_file_name,
+            }
+        )
 
     def start_remote_delete(self) -> str:
         params = json.loads(self.body)

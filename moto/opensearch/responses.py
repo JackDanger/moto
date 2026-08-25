@@ -986,17 +986,45 @@ class OpenSearchServiceResponse(BaseResponse):
     def get_upgrade_status(self) -> str:
         parts = self.path.rstrip("/").split("/")
         domain_name = parts[-2]
-        return json.dumps({"UpgradeName": "", "StepStatus": "SUCCEEDED", "UpgradeStep": "SNAPSHOT"})
+        return json.dumps(
+            {"UpgradeName": "", "StepStatus": "SUCCEEDED", "UpgradeStep": "SNAPSHOT"}
+        )
 
     def cancel_service_software_update(self) -> str:
         body = json.loads(self.body)
         domain_name = body.get("DomainName", "")
-        return json.dumps({"ServiceSoftwareOptions": {"CurrentVersion": "", "NewVersion": "", "UpdateAvailable": False, "Cancellable": False, "UpdateStatus": "COMPLETED", "Description": "", "AutomatedUpdateDate": "1970-01-01T00:00:00Z", "OptionalDeployment": False}})
+        return json.dumps(
+            {
+                "ServiceSoftwareOptions": {
+                    "CurrentVersion": "",
+                    "NewVersion": "",
+                    "UpdateAvailable": False,
+                    "Cancellable": False,
+                    "UpdateStatus": "COMPLETED",
+                    "Description": "",
+                    "AutomatedUpdateDate": "1970-01-01T00:00:00Z",
+                    "OptionalDeployment": False,
+                }
+            }
+        )
 
     def start_service_software_update(self) -> str:
         body = json.loads(self.body)
         domain_name = body.get("DomainName", "")
-        return json.dumps({"ServiceSoftwareOptions": {"CurrentVersion": "", "NewVersion": "", "UpdateAvailable": False, "Cancellable": True, "UpdateStatus": "PENDING_UPDATE", "Description": "Update pending", "AutomatedUpdateDate": "1970-01-01T00:00:00Z", "OptionalDeployment": False}})
+        return json.dumps(
+            {
+                "ServiceSoftwareOptions": {
+                    "CurrentVersion": "",
+                    "NewVersion": "",
+                    "UpdateAvailable": False,
+                    "Cancellable": True,
+                    "UpdateStatus": "PENDING_UPDATE",
+                    "Description": "Update pending",
+                    "AutomatedUpdateDate": "1970-01-01T00:00:00Z",
+                    "OptionalDeployment": False,
+                }
+            }
+        )
 
     def list_vpc_endpoint_access(self) -> str:
         return json.dumps({"AuthorizedPrincipalList": [], "NextToken": None})
@@ -1004,7 +1032,15 @@ class OpenSearchServiceResponse(BaseResponse):
     def upgrade_domain(self) -> str:
         body = json.loads(self.body)
         domain_name = body.get("DomainName", "")
-        return json.dumps({"DomainName": domain_name, "TargetVersion": body.get("TargetVersion", ""), "PerformCheckOnly": body.get("PerformCheckOnly", False), "AdvancedOptions": {}, "ChangeProgressDetails": {}})
+        return json.dumps(
+            {
+                "DomainName": domain_name,
+                "TargetVersion": body.get("TargetVersion", ""),
+                "PerformCheckOnly": body.get("PerformCheckOnly", False),
+                "AdvancedOptions": {},
+                "ChangeProgressDetails": {},
+            }
+        )
 
     def list_direct_query_data_sources(self) -> str:
         sources = self.opensearch_backend.list_direct_query_data_sources()
@@ -1029,23 +1065,27 @@ class OpenSearchServiceResponse(BaseResponse):
         # ConnectionId is in the URL path: /2021-01-01/opensearch/cc/inboundConnection/{ConnectionId}/reject
         path_parts = self.path.split("/")
         connection_id = path_parts[-2] if len(path_parts) >= 2 else ""
-        return json.dumps({
-            "Connection": {
-                "ConnectionId": connection_id,
-                "ConnectionStatus": {"StatusCode": "REJECTED"},
+        return json.dumps(
+            {
+                "Connection": {
+                    "ConnectionId": connection_id,
+                    "ConnectionStatus": {"StatusCode": "REJECTED"},
+                }
             }
-        })
+        )
 
     def cancel_domain_config_change(self) -> str:
         # DomainName is in the URL path: /2021-01-01/opensearch/domain/{DomainName}/config/cancel
         path_parts = self.path.split("/")
         domain_name = path_parts[-3] if len(path_parts) >= 3 else ""
         body = json.loads(self.body) if self.body else {}
-        return json.dumps({
-            "DryRun": body.get("DryRun", False),
-            "CancelledChangeIds": [],
-            "CancelledChangeProperties": [],
-        })
+        return json.dumps(
+            {
+                "DryRun": body.get("DryRun", False),
+                "CancelledChangeIds": [],
+                "CancelledChangeProperties": [],
+            }
+        )
 
     def associate_packages(self) -> str:
         return json.dumps({"DomainPackageDetailsList": []})

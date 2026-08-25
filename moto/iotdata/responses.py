@@ -59,7 +59,9 @@ class IoTDataPlaneResponse(BaseResponse):
             qos = 0
         retain_str = self.querystring.get("retain", ["false"])[0]
         retain = retain_str.lower() == "true"
-        self.iotdata_backend.publish(topic=topic, payload=self.body, qos=qos, retain=retain)
+        self.iotdata_backend.publish(
+            topic=topic, payload=self.body, qos=qos, retain=retain
+        )
         return json.dumps({})
 
     def list_named_shadows_for_thing(self) -> str:

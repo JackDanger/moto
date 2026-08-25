@@ -61,7 +61,9 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
         self.vpc_connections: dict[str, QuicksightVPCConnection] = {}
         self.ingestions: dict[str, QuicksightIngestion] = {}
         self.refresh_schedules: dict[str, dict[str, QuicksightRefreshSchedule]] = {}
-        self.iam_policy_assignments: dict[str, dict[str, QuicksightIAMPolicyAssignment]] = {}
+        self.iam_policy_assignments: dict[
+            str, dict[str, QuicksightIAMPolicyAssignment]
+        ] = {}
         self.account_customization: Optional[QuicksightAccountCustomization] = None
         self.ip_restriction: dict[str, Any] = {}
         self.tagger = TaggingService()
@@ -103,9 +105,7 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
     def list_data_sets(self) -> list[dict[str, Any]]:
         return [ds.to_json() for ds in self.data_sets.values()]
 
-    def update_data_set(
-        self, data_set_id: str, name: str
-    ) -> QuicksightDataSet:
+    def update_data_set(self, data_set_id: str, name: str) -> QuicksightDataSet:
         ds = self.data_sets.get(data_set_id)
         if not ds:
             raise ResourceNotFoundException(f"DataSet {data_set_id} not found")
@@ -113,12 +113,15 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
             ds.name = name
         return ds
 
-    def describe_data_set_permissions(self, data_set_id: str) -> tuple[str, str, list[dict[str, Any]]]:
+    def describe_data_set_permissions(
+        self, data_set_id: str
+    ) -> tuple[str, str, list[dict[str, Any]]]:
         ds = self.describe_data_set(data_set_id)
         return ds.arn, data_set_id, []
 
     def update_data_set_permissions(
-        self, data_set_id: str,
+        self,
+        data_set_id: str,
         grant_permissions: Optional[list[dict[str, Any]]] = None,
         revoke_permissions: Optional[list[dict[str, Any]]] = None,
     ) -> tuple[str, str]:
@@ -301,7 +304,10 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
         return [group for _id, group in group_list.items() if _id.startswith(id_for_ns)]
 
     def update_user_custom_permission(
-        self, aws_account_id: str, namespace: str, user_name: str,
+        self,
+        aws_account_id: str,
+        namespace: str,
+        user_name: str,
         custom_permissions_name: str,
     ) -> QuicksightUser:
         user = self.describe_user(aws_account_id, namespace, user_name)
@@ -348,8 +354,7 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
 
     def list_ingestions(self, data_set_id: str) -> list[QuicksightIngestion]:
         return [
-            ing for ing in self.ingestions.values()
-            if ing.data_set_id == data_set_id
+            ing for ing in self.ingestions.values() if ing.data_set_id == data_set_id
         ]
 
     # --- Dashboard ---
@@ -452,29 +457,33 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
     def list_dashboards(self, aws_account_id: str) -> list[dict[str, Any]]:
         dashboard_list: list[dict[str, Any]] = []
         for dashboard in self.dashboards.values():
-            dashboard_list.append({
-                "Arn": dashboard.arn,
-                "DashboardId": dashboard.dashboard_id,
-                "Name": dashboard.name,
-                "CreatedTime": str(dashboard.created_time),
-                "LastUpdatedTime": str(dashboard.last_updated_time),
-                "PublishedVersionNumber": dashboard.version_number,
-                "LastPublishedTime": str(dashboard.last_published_time),
-            })
+            dashboard_list.append(
+                {
+                    "Arn": dashboard.arn,
+                    "DashboardId": dashboard.dashboard_id,
+                    "Name": dashboard.name,
+                    "CreatedTime": str(dashboard.created_time),
+                    "LastUpdatedTime": str(dashboard.last_updated_time),
+                    "PublishedVersionNumber": dashboard.version_number,
+                    "LastPublishedTime": str(dashboard.last_published_time),
+                }
+            )
         return dashboard_list
 
     def list_dashboard_versions(self, dashboard_id: str) -> list[dict[str, Any]]:
         dashboard = self.dashboards.get(dashboard_id)
         if not dashboard:
             raise ResourceNotFoundException(f"Dashboard {dashboard_id} not found")
-        return [{
-            "Arn": dashboard.arn,
-            "VersionNumber": dashboard.version_number,
-            "Status": dashboard.status,
-            "CreatedTime": str(dashboard.created_time),
-            "Description": dashboard.version_description,
-            "SourceEntityArn": dashboard.source_entity,
-        }]
+        return [
+            {
+                "Arn": dashboard.arn,
+                "VersionNumber": dashboard.version_number,
+                "Status": dashboard.status,
+                "CreatedTime": str(dashboard.created_time),
+                "Description": dashboard.version_description,
+                "SourceEntityArn": dashboard.source_entity,
+            }
+        ]
 
     def describe_dashboard_permissions(self, dashboard_id: str) -> QuicksightDashboard:
         dashboard = self.dashboards.get(dashboard_id)
@@ -496,7 +505,8 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
         if revoke_permissions:
             principals_to_revoke = {p.get("Principal") for p in revoke_permissions}
             dashboard.permissions = [
-                p for p in dashboard.permissions
+                p
+                for p in dashboard.permissions
                 if p.get("Principal") not in principals_to_revoke
             ]
         return dashboard
@@ -555,7 +565,9 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
     # --- Account Customization ---
 
     def create_account_customization(
-        self, account_customization: dict[str, Any], namespace: Optional[str] = None,
+        self,
+        account_customization: dict[str, Any],
+        namespace: Optional[str] = None,
         tags: Optional[list[dict[str, str]]] = None,
     ) -> QuicksightAccountCustomization:
         self.account_customization = QuicksightAccountCustomization(
@@ -570,19 +582,24 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
         return self.account_customization
 
     def describe_account_customization(
-        self, namespace: Optional[str] = None,
+        self,
+        namespace: Optional[str] = None,
     ) -> QuicksightAccountCustomization:
         if not self.account_customization:
             raise ResourceNotFoundException("Account customization not found")
         return self.account_customization
 
     def update_account_customization(
-        self, account_customization: dict[str, Any], namespace: Optional[str] = None,
+        self,
+        account_customization: dict[str, Any],
+        namespace: Optional[str] = None,
     ) -> QuicksightAccountCustomization:
         if not self.account_customization:
             raise ResourceNotFoundException("Account customization not found")
         if "DefaultTheme" in account_customization:
-            self.account_customization.default_theme = account_customization["DefaultTheme"]
+            self.account_customization.default_theme = account_customization[
+                "DefaultTheme"
+            ]
         if "DefaultEmailCustomizationTemplate" in account_customization:
             self.account_customization.default_email_customization_template = (
                 account_customization["DefaultEmailCustomizationTemplate"]
@@ -670,7 +687,9 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
         return data_source
 
     def update_data_source_permissions(
-        self, aws_account_id: str, data_source_id: str,
+        self,
+        aws_account_id: str,
+        data_source_id: str,
         grant_permissions: Optional[list[dict[str, Any]]] = None,
         revoke_permissions: Optional[list[dict[str, Any]]] = None,
     ) -> QuickSightDataSource:
@@ -682,7 +701,8 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
         if revoke_permissions:
             principals_to_revoke = {p.get("Principal") for p in revoke_permissions}
             data_source.permissions = [
-                p for p in data_source.permissions
+                p
+                for p in data_source.permissions
                 if p.get("Principal") not in principals_to_revoke
             ]
         return data_source
@@ -769,7 +789,8 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
         if revoke_permissions:
             principals_to_revoke = {p.get("Principal") for p in revoke_permissions}
             analysis.permissions = [
-                p for p in analysis.permissions
+                p
+                for p in analysis.permissions
                 if p.get("Principal") not in principals_to_revoke
             ]
         return analysis
@@ -791,9 +812,7 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
         return analysis
 
     def list_analyses(self) -> list[dict[str, Any]]:
-        return [
-            a.to_summary() for a in self.analyses.values() if not a.deleted
-        ]
+        return [a.to_summary() for a in self.analyses.values() if not a.deleted]
 
     # --- Template ---
 
@@ -871,7 +890,8 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
         if revoke_permissions:
             principals_to_revoke = {p.get("Principal") for p in revoke_permissions}
             template.permissions = [
-                p for p in template.permissions
+                p
+                for p in template.permissions
                 if p.get("Principal") not in principals_to_revoke
             ]
         return template
@@ -887,13 +907,15 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
 
     def list_template_versions(self, template_id: str) -> list[dict[str, Any]]:
         template = self.describe_template(template_id)
-        return [{
-            "Arn": template.arn,
-            "VersionNumber": template.version_number,
-            "Status": template.status,
-            "CreatedTime": str(template.created_time),
-            "Description": template.version_description,
-        }]
+        return [
+            {
+                "Arn": template.arn,
+                "VersionNumber": template.version_number,
+                "Status": template.status,
+                "CreatedTime": str(template.created_time),
+                "Description": template.version_description,
+            }
+        ]
 
     # --- Template Alias ---
 
@@ -1011,7 +1033,8 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
         if revoke_permissions:
             principals_to_revoke = {p.get("Principal") for p in revoke_permissions}
             theme.permissions = [
-                p for p in theme.permissions
+                p
+                for p in theme.permissions
                 if p.get("Principal") not in principals_to_revoke
             ]
         return theme
@@ -1027,13 +1050,15 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
 
     def list_theme_versions(self, theme_id: str) -> list[dict[str, Any]]:
         theme = self.describe_theme(theme_id)
-        return [{
-            "Arn": theme.arn,
-            "VersionNumber": theme.version_number,
-            "Status": theme.status,
-            "CreatedTime": str(theme.created_time),
-            "Description": theme.version_description,
-        }]
+        return [
+            {
+                "Arn": theme.arn,
+                "VersionNumber": theme.version_number,
+                "Status": theme.status,
+                "CreatedTime": str(theme.created_time),
+                "Description": theme.version_description,
+            }
+        ]
 
     # --- Theme Alias ---
 
@@ -1140,7 +1165,8 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
         if revoke_permissions:
             principals_to_revoke = {p.get("Principal") for p in revoke_permissions}
             folder.permissions = [
-                p for p in folder.permissions
+                p
+                for p in folder.permissions
                 if p.get("Principal") not in principals_to_revoke
             ]
         return folder
@@ -1277,7 +1303,8 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
         if revoke_permissions:
             principals_to_revoke = {p.get("Principal") for p in revoke_permissions}
             topic.permissions = [
-                p for p in topic.permissions
+                p
+                for p in topic.permissions
                 if p.get("Principal") not in principals_to_revoke
             ]
         return topic
@@ -1306,12 +1333,17 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
         topic = self.describe_topic(topic_id)
         schedule = topic.refresh_schedules.get(dataset_id)
         if not schedule:
-            raise ResourceNotFoundException(f"TopicRefreshSchedule for {dataset_id} not found")
-        return {"TopicId": topic_id, "TopicArn": topic.arn, "DatasetArn": dataset_id, "RefreshSchedule": schedule}
+            raise ResourceNotFoundException(
+                f"TopicRefreshSchedule for {dataset_id} not found"
+            )
+        return {
+            "TopicId": topic_id,
+            "TopicArn": topic.arn,
+            "DatasetArn": dataset_id,
+            "RefreshSchedule": schedule,
+        }
 
-    def delete_topic_refresh_schedule(
-        self, topic_id: str, dataset_id: str
-    ) -> None:
+    def delete_topic_refresh_schedule(self, topic_id: str, dataset_id: str) -> None:
         topic = self.describe_topic(topic_id)
         topic.refresh_schedules.pop(dataset_id, None)
 
@@ -1321,7 +1353,11 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
             {"DatasetId": did, "DatasetArn": did, "RefreshSchedule": sched}
             for did, sched in topic.refresh_schedules.items()
         ]
-        return {"TopicId": topic_id, "TopicArn": topic.arn, "RefreshSchedules": schedules}
+        return {
+            "TopicId": topic_id,
+            "TopicArn": topic.arn,
+            "RefreshSchedules": schedules,
+        }
 
     # --- Topic Reviewed Answers ---
 
@@ -1330,7 +1366,12 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
     ) -> dict[str, Any]:
         topic = self.describe_topic(topic_id)
         topic.reviewed_answers.extend(answers)
-        return {"TopicId": topic_id, "TopicArn": topic.arn, "SucceededAnswers": answers, "InvalidAnswers": []}
+        return {
+            "TopicId": topic_id,
+            "TopicArn": topic.arn,
+            "SucceededAnswers": answers,
+            "InvalidAnswers": [],
+        }
 
     def batch_delete_topic_reviewed_answer(
         self, topic_id: str, answer_ids: list[str]
@@ -1338,14 +1379,22 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
         topic = self.describe_topic(topic_id)
         answer_id_set = set(answer_ids)
         topic.reviewed_answers = [
-            a for a in topic.reviewed_answers
-            if a.get("AnswerId") not in answer_id_set
+            a for a in topic.reviewed_answers if a.get("AnswerId") not in answer_id_set
         ]
-        return {"TopicId": topic_id, "TopicArn": topic.arn, "SucceededAnswers": [{"AnswerId": aid} for aid in answer_ids], "InvalidAnswers": []}
+        return {
+            "TopicId": topic_id,
+            "TopicArn": topic.arn,
+            "SucceededAnswers": [{"AnswerId": aid} for aid in answer_ids],
+            "InvalidAnswers": [],
+        }
 
     def list_topic_reviewed_answers(self, topic_id: str) -> dict[str, Any]:
         topic = self.describe_topic(topic_id)
-        return {"TopicId": topic_id, "TopicArn": topic.arn, "Answers": topic.reviewed_answers}
+        return {
+            "TopicId": topic_id,
+            "TopicArn": topic.arn,
+            "Answers": topic.reviewed_answers,
+        }
 
     # --- VPCConnection ---
 
@@ -1375,10 +1424,14 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
         self.vpc_connections[vpc_connection_id] = vpc
         return vpc
 
-    def describe_vpc_connection(self, vpc_connection_id: str) -> QuicksightVPCConnection:
+    def describe_vpc_connection(
+        self, vpc_connection_id: str
+    ) -> QuicksightVPCConnection:
         vpc = self.vpc_connections.get(vpc_connection_id)
         if not vpc:
-            raise ResourceNotFoundException(f"VPCConnection {vpc_connection_id} not found")
+            raise ResourceNotFoundException(
+                f"VPCConnection {vpc_connection_id} not found"
+            )
         return vpc
 
     def update_vpc_connection(
@@ -1408,7 +1461,9 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
     def delete_vpc_connection(self, vpc_connection_id: str) -> QuicksightVPCConnection:
         vpc = self.vpc_connections.pop(vpc_connection_id, None)
         if not vpc:
-            raise ResourceNotFoundException(f"VPCConnection {vpc_connection_id} not found")
+            raise ResourceNotFoundException(
+                f"VPCConnection {vpc_connection_id} not found"
+            )
         vpc.status = "DELETED"
         vpc.availability_status = "PARTIALLY_AVAILABLE"
         return vpc
@@ -1452,9 +1507,7 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
         rs.schedule = schedule
         return rs
 
-    def delete_refresh_schedule(
-        self, data_set_id: str, schedule_id: str
-    ) -> None:
+    def delete_refresh_schedule(self, data_set_id: str, schedule_id: str) -> None:
         schedules = self.refresh_schedules.get(data_set_id, {})
         schedules.pop(schedule_id, None)
 
@@ -1492,7 +1545,9 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
         assignments = self.iam_policy_assignments.get(namespace, {})
         assignment = assignments.get(assignment_name)
         if not assignment:
-            raise ResourceNotFoundException(f"IAMPolicyAssignment {assignment_name} not found")
+            raise ResourceNotFoundException(
+                f"IAMPolicyAssignment {assignment_name} not found"
+            )
         return assignment
 
     def update_iam_policy_assignment(
@@ -1517,12 +1572,12 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
     ) -> None:
         assignments = self.iam_policy_assignments.get(namespace, {})
         if assignment_name not in assignments:
-            raise ResourceNotFoundException(f"IAMPolicyAssignment {assignment_name} not found")
+            raise ResourceNotFoundException(
+                f"IAMPolicyAssignment {assignment_name} not found"
+            )
         assignments.pop(assignment_name)
 
-    def list_iam_policy_assignments(
-        self, namespace: str
-    ) -> list[dict[str, Any]]:
+    def list_iam_policy_assignments(self, namespace: str) -> list[dict[str, Any]]:
         assignments = self.iam_policy_assignments.get(namespace, {})
         return [
             {
@@ -1540,10 +1595,12 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
         for a in assignments.values():
             users = a.identities.get("User", []) + a.identities.get("user", [])
             if user_name in users:
-                result.append({
-                    "AssignmentName": a.assignment_name,
-                    "AssignmentStatus": a.assignment_status,
-                })
+                result.append(
+                    {
+                        "AssignmentName": a.assignment_name,
+                        "AssignmentStatus": a.assignment_status,
+                    }
+                )
         return result
 
     # --- IP Restriction ---
@@ -1552,7 +1609,8 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
         return self.ip_restriction
 
     def update_ip_restriction(
-        self, ip_restriction_rule_map: dict[str, str] | None = None,
+        self,
+        ip_restriction_rule_map: dict[str, str] | None = None,
         vpc_id_restriction_rule_map: dict[str, str] | None = None,
         vpc_endpoint_id_restriction_rule_map: dict[str, str] | None = None,
         enabled: bool | None = None,
@@ -1562,7 +1620,9 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
         if vpc_id_restriction_rule_map is not None:
             self.ip_restriction["VpcIdRestrictionRuleMap"] = vpc_id_restriction_rule_map
         if vpc_endpoint_id_restriction_rule_map is not None:
-            self.ip_restriction["VpcEndpointIdRestrictionRuleMap"] = vpc_endpoint_id_restriction_rule_map
+            self.ip_restriction["VpcEndpointIdRestrictionRuleMap"] = (
+                vpc_endpoint_id_restriction_rule_map
+            )
         if enabled is not None:
             self.ip_restriction["Enabled"] = enabled
 
@@ -1592,7 +1652,9 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
     def search_data_sets(self, filters: list[dict[str, Any]]) -> list[dict[str, Any]]:
         return self.list_data_sets()
 
-    def search_data_sources(self, filters: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def search_data_sources(
+        self, filters: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         return self.list_data_sources(self.account_id)
 
     def search_folders(self, filters: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -1618,14 +1680,10 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
         members = self.role_memberships.get(role, {}).get(namespace, set())
         members.discard(member_name)
 
-    def list_role_memberships(
-        self, namespace: str, role: str
-    ) -> list[str]:
+    def list_role_memberships(self, namespace: str, role: str) -> list[str]:
         return sorted(self.role_memberships.get(role, {}).get(namespace, set()))
 
-    def describe_role_custom_permission(
-        self, namespace: str, role: str
-    ) -> str | None:
+    def describe_role_custom_permission(self, namespace: str, role: str) -> str | None:
         return self.role_custom_permissions.get(role, {}).get(namespace)
 
     def update_role_custom_permission(
@@ -1635,9 +1693,7 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
             self.role_custom_permissions[role] = {}
         self.role_custom_permissions[role][namespace] = custom_permissions_name
 
-    def delete_role_custom_permission(
-        self, namespace: str, role: str
-    ) -> None:
+    def delete_role_custom_permission(self, namespace: str, role: str) -> None:
         if role in self.role_custom_permissions:
             self.role_custom_permissions[role].pop(namespace, None)
 
@@ -1679,8 +1735,6 @@ class QuickSightBackend(BaseBackend, TaggableResourcesMixin):
                 tags=self.tagger.get_tag_dict_for_resource(user.arn),
                 resource_type="quicksight:users",
             )
-
-
 
 
 quicksight_backends = BackendDict(QuickSightBackend, "quicksight")

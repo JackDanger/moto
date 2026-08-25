@@ -10,7 +10,9 @@ class InstanceMetadataDefaultsResponse(EC2BaseResponse):
         if defaults.http_tokens:
             account_level["HttpTokens"] = defaults.http_tokens
         if defaults.http_put_response_hop_limit:
-            account_level["HttpPutResponseHopLimit"] = defaults.http_put_response_hop_limit
+            account_level["HttpPutResponseHopLimit"] = (
+                defaults.http_put_response_hop_limit
+            )
         if defaults.http_endpoint:
             account_level["HttpEndpoint"] = defaults.http_endpoint
         if defaults.instance_metadata_tags:

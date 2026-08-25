@@ -1,4 +1,5 @@
 """SESV2Backend class with methods for supported APIs."""
+
 from __future__ import annotations
 
 from collections.abc import Iterator
@@ -24,7 +25,6 @@ from ..ses.utils import get_arn
 import uuid
 from typing import Optional
 from moto.core.common_models import BaseModel
-from ..ses.models import CustomVerificationEmailTemplate
 from .exceptions import AlreadyExistsException, SESV2NotFoundException
 
 PAGINATION_MODEL = {
@@ -358,14 +358,18 @@ class SESV2Backend(BaseBackend, TaggableResourcesMixin):
         results = []
         for _entry in bulk_email_entries:
             msg_id = str(uuid.uuid4())
-            results.append({
-                "Status": "SUCCESS",
-                "MessageId": msg_id,
-            })
+            results.append(
+                {
+                    "Status": "SUCCESS",
+                    "MessageId": msg_id,
+                }
+            )
         return results
 
     def send_custom_verification_email(
-        self, email_address: str, template_name: str,
+        self,
+        email_address: str,
+        template_name: str,
         configuration_set_name: Optional[str] = None,
     ) -> str:
         self.core_backend.get_custom_verification_email_template(template_name)
@@ -373,92 +377,137 @@ class SESV2Backend(BaseBackend, TaggableResourcesMixin):
 
     def create_email_template(self, template_name, template_content):
         if template_name in self.email_templates:
-            raise AlreadyExistsException(f"Template already exists with name: {template_name}")
+            raise AlreadyExistsException(
+                f"Template already exists with name: {template_name}"
+            )
         self.email_templates[template_name] = EmailTemplate(
             template_name=template_name, template_content=template_content
         )
 
     def get_email_template(self, template_name):
         if template_name not in self.email_templates:
-            raise SESV2NotFoundException(f"Template not found with name: {template_name}")
+            raise SESV2NotFoundException(
+                f"Template not found with name: {template_name}"
+            )
         return self.email_templates[template_name]
 
     def update_email_template(self, template_name, template_content):
         if template_name not in self.email_templates:
-            raise SESV2NotFoundException(f"Template not found with name: {template_name}")
+            raise SESV2NotFoundException(
+                f"Template not found with name: {template_name}"
+            )
         self.email_templates[template_name].template_content = template_content
 
     def delete_email_template(self, template_name):
         if template_name not in self.email_templates:
-            raise SESV2NotFoundException(f"Template not found with name: {template_name}")
+            raise SESV2NotFoundException(
+                f"Template not found with name: {template_name}"
+            )
         del self.email_templates[template_name]
 
     @paginate(pagination_model=PAGINATION_MODEL)
     def list_email_templates(self):
         return list(self.email_templates.values())
 
-    def test_render_email_template(
-        self, template_name: str, template_data: str
-    ) -> str:
+    def test_render_email_template(self, template_name: str, template_data: str) -> str:
         template = self.get_email_template(template_name)
         content = template.template_content
-        html = content.get("Html", {}).get("Data", "") if isinstance(content.get("Html"), dict) else ""
-        text = content.get("Text", {}).get("Data", "") if isinstance(content.get("Text"), dict) else ""
+        html = (
+            content.get("Html", {}).get("Data", "")
+            if isinstance(content.get("Html"), dict)
+            else ""
+        )
+        text = (
+            content.get("Text", {}).get("Data", "")
+            if isinstance(content.get("Text"), dict)
+            else ""
+        )
         subject_val = content.get("Subject")
-        subject = subject_val.get("Data", "") if isinstance(subject_val, dict) else (subject_val or "")
+        subject = (
+            subject_val.get("Data", "")
+            if isinstance(subject_val, dict)
+            else (subject_val or "")
+        )
         rendered = html or text or subject or ""
         return rendered
 
     def create_configuration_set_event_destination(
         self, configuration_set_name, event_destination_name, event_destination
     ):
-        self.core_backend.describe_configuration_set(configuration_set_name=configuration_set_name)
+        self.core_backend.describe_configuration_set(
+            configuration_set_name=configuration_set_name
+        )
         if configuration_set_name not in self.config_set_event_destinations:
             self.config_set_event_destinations[configuration_set_name] = {}
         dests = self.config_set_event_destinations[configuration_set_name]
         if event_destination_name in dests:
-            raise AlreadyExistsException(f"Event destination already exists: {event_destination_name}")
+            raise AlreadyExistsException(
+                f"Event destination already exists: {event_destination_name}"
+            )
         dests[event_destination_name] = EventDestination(
             name=event_destination_name,
             enabled=event_destination.get("Enabled", False),
             matching_event_types=event_destination.get("MatchingEventTypes", []),
-            kinesis_firehose_destination=event_destination.get("KinesisFirehoseDestination"),
+            kinesis_firehose_destination=event_destination.get(
+                "KinesisFirehoseDestination"
+            ),
             cloud_watch_destination=event_destination.get("CloudWatchDestination"),
             sns_destination=event_destination.get("SnsDestination"),
             pinpoint_destination=event_destination.get("PinpointDestination"),
         )
 
     def get_configuration_set_event_destinations(self, configuration_set_name):
-        self.core_backend.describe_configuration_set(configuration_set_name=configuration_set_name)
-        return list(self.config_set_event_destinations.get(configuration_set_name, {}).values())
+        self.core_backend.describe_configuration_set(
+            configuration_set_name=configuration_set_name
+        )
+        return list(
+            self.config_set_event_destinations.get(configuration_set_name, {}).values()
+        )
 
     def update_configuration_set_event_destination(
         self, configuration_set_name, event_destination_name, event_destination
     ):
-        self.core_backend.describe_configuration_set(configuration_set_name=configuration_set_name)
+        self.core_backend.describe_configuration_set(
+            configuration_set_name=configuration_set_name
+        )
         dests = self.config_set_event_destinations.get(configuration_set_name, {})
         if event_destination_name not in dests:
-            raise SESV2NotFoundException(f"Event destination not found: {event_destination_name}")
+            raise SESV2NotFoundException(
+                f"Event destination not found: {event_destination_name}"
+            )
         dests[event_destination_name] = EventDestination(
             name=event_destination_name,
             enabled=event_destination.get("Enabled", False),
             matching_event_types=event_destination.get("MatchingEventTypes", []),
-            kinesis_firehose_destination=event_destination.get("KinesisFirehoseDestination"),
+            kinesis_firehose_destination=event_destination.get(
+                "KinesisFirehoseDestination"
+            ),
             cloud_watch_destination=event_destination.get("CloudWatchDestination"),
             sns_destination=event_destination.get("SnsDestination"),
             pinpoint_destination=event_destination.get("PinpointDestination"),
         )
 
-    def delete_configuration_set_event_destination(self, configuration_set_name, event_destination_name):
-        self.core_backend.describe_configuration_set(configuration_set_name=configuration_set_name)
+    def delete_configuration_set_event_destination(
+        self, configuration_set_name, event_destination_name
+    ):
+        self.core_backend.describe_configuration_set(
+            configuration_set_name=configuration_set_name
+        )
         dests = self.config_set_event_destinations.get(configuration_set_name, {})
         if event_destination_name not in dests:
-            raise SESV2NotFoundException(f"Event destination not found: {event_destination_name}")
+            raise SESV2NotFoundException(
+                f"Event destination not found: {event_destination_name}"
+            )
         del dests[event_destination_name]
 
     def create_custom_verification_email_template(
-        self, template_name, from_email_address, template_subject,
-        template_content, success_redirection_url, failure_redirection_url
+        self,
+        template_name,
+        from_email_address,
+        template_subject,
+        template_content,
+        success_redirection_url,
+        failure_redirection_url,
     ):
         self.core_backend.create_custom_verification_email_template(
             template_name=template_name,
@@ -473,8 +522,13 @@ class SESV2Backend(BaseBackend, TaggableResourcesMixin):
         return self.core_backend.get_custom_verification_email_template(template_name)
 
     def update_custom_verification_email_template(
-        self, template_name, from_email_address, template_subject,
-        template_content, success_redirection_url, failure_redirection_url
+        self,
+        template_name,
+        from_email_address,
+        template_subject,
+        template_content,
+        success_redirection_url,
+        failure_redirection_url,
     ):
         self.core_backend.update_custom_verification_email_template(
             template_name=template_name,
@@ -493,8 +547,13 @@ class SESV2Backend(BaseBackend, TaggableResourcesMixin):
         return self.core_backend.list_custom_verification_email_templates()
 
     def put_account_details(
-        self, mail_type, website_url, contact_language,
-        use_case_description, additional_contact_email_addresses, production_access_enabled
+        self,
+        mail_type,
+        website_url,
+        contact_language,
+        use_case_description,
+        additional_contact_email_addresses,
+        production_access_enabled,
     ):
         self.account_details = {"MailType": mail_type, "WebsiteURL": website_url}
         if contact_language is not None:
@@ -502,7 +561,9 @@ class SESV2Backend(BaseBackend, TaggableResourcesMixin):
         if use_case_description is not None:
             self.account_details["UseCaseDescription"] = use_case_description
         if additional_contact_email_addresses is not None:
-            self.account_details["AdditionalContactEmailAddresses"] = additional_contact_email_addresses
+            self.account_details["AdditionalContactEmailAddresses"] = (
+                additional_contact_email_addresses
+            )
         if production_access_enabled is not None:
             self.account_details["ProductionAccessEnabled"] = production_access_enabled
 
@@ -510,8 +571,14 @@ class SESV2Backend(BaseBackend, TaggableResourcesMixin):
         result = {
             "DedicatedIpAutoWarmupEnabled": self.account_dedicated_ip_warmup_enabled,
             "EnforcementStatus": "HEALTHY",
-            "ProductionAccessEnabled": self.account_details.get("ProductionAccessEnabled", False),
-            "SendQuota": {"Max24HourSend": 200.0, "MaxSendRate": 1.0, "SentLast24Hours": 0.0},
+            "ProductionAccessEnabled": self.account_details.get(
+                "ProductionAccessEnabled", False
+            ),
+            "SendQuota": {
+                "Max24HourSend": 200.0,
+                "MaxSendRate": 1.0,
+                "SentLast24Hours": 0.0,
+            },
             "SendingEnabled": self.account_sending_enabled,
             "SuppressionAttributes": self.account_suppression_attributes,
         }
@@ -527,26 +594,36 @@ class SESV2Backend(BaseBackend, TaggableResourcesMixin):
     def put_account_suppression_attributes(self, suppressed_reasons):
         self.account_suppression_attributes = {"SuppressedReasons": suppressed_reasons}
 
-    def put_account_dedicated_ip_warmup_attributes(self, auto_warmup_enabled: bool = False) -> None:
+    def put_account_dedicated_ip_warmup_attributes(
+        self, auto_warmup_enabled: bool = False
+    ) -> None:
         self.account_dedicated_ip_warmup_enabled = auto_warmup_enabled
 
     def put_account_vdm_attributes(self, vdm_attributes: dict[str, Any]) -> None:
         self.account_vdm_attributes = vdm_attributes
 
-    def put_configuration_set_sending_options(self, configuration_set_name, sending_enabled):
+    def put_configuration_set_sending_options(
+        self, configuration_set_name, sending_enabled
+    ):
         config_set = self.core_backend.describe_configuration_set(
             configuration_set_name=configuration_set_name
         )
         config_set.enabled = sending_enabled
 
-    def put_configuration_set_reputation_options(self, configuration_set_name, reputation_metrics_enabled):
+    def put_configuration_set_reputation_options(
+        self, configuration_set_name, reputation_metrics_enabled
+    ):
         config_set = self.core_backend.describe_configuration_set(
             configuration_set_name=configuration_set_name
         )
-        config_set.reputation_options = {"ReputationMetricsEnabled": reputation_metrics_enabled}
+        config_set.reputation_options = {
+            "ReputationMetricsEnabled": reputation_metrics_enabled
+        }
 
     def put_configuration_set_delivery_options(
-        self, configuration_set_name: str, tls_policy: Optional[str] = None,
+        self,
+        configuration_set_name: str,
+        tls_policy: Optional[str] = None,
         sending_pool_name: Optional[str] = None,
     ) -> None:
         config_set = self.core_backend.describe_configuration_set(
@@ -558,7 +635,9 @@ class SESV2Backend(BaseBackend, TaggableResourcesMixin):
         }
 
     def put_configuration_set_suppression_options(
-        self, configuration_set_name: str, suppressed_reasons: Optional[list[str]] = None
+        self,
+        configuration_set_name: str,
+        suppressed_reasons: Optional[list[str]] = None,
     ) -> None:
         config_set = self.core_backend.describe_configuration_set(
             configuration_set_name=configuration_set_name
@@ -571,7 +650,9 @@ class SESV2Backend(BaseBackend, TaggableResourcesMixin):
         config_set = self.core_backend.describe_configuration_set(
             configuration_set_name=configuration_set_name
         )
-        config_set.tracking_options = {"CustomRedirectDomain": custom_redirect_domain or ""}
+        config_set.tracking_options = {
+            "CustomRedirectDomain": custom_redirect_domain or ""
+        }
 
     def put_configuration_set_archiving_options(
         self, configuration_set_name: str, archive_arn: Optional[str] = None
@@ -603,26 +684,32 @@ class SESV2Backend(BaseBackend, TaggableResourcesMixin):
             )
         del self.suppressed_destinations[email_address]
 
-    def get_dedicated_ips(self, pool_name: Optional[str] = None) -> list[dict[str, Any]]:
+    def get_dedicated_ips(
+        self, pool_name: Optional[str] = None
+    ) -> list[dict[str, Any]]:
         pools = self.core_backend.dedicated_ip_pools
         ips: list[dict[str, Any]] = []
         if pool_name:
             if pool_name not in pools:
                 raise NotFoundException(pool_name)
-            ips.append({
-                "Ip": "192.0.2.1",
-                "WarmupStatus": "DONE",
-                "WarmupPercentage": 100,
-                "PoolName": pool_name,
-            })
-        else:
-            for name in pools:
-                ips.append({
+            ips.append(
+                {
                     "Ip": "192.0.2.1",
                     "WarmupStatus": "DONE",
                     "WarmupPercentage": 100,
-                    "PoolName": name,
-                })
+                    "PoolName": pool_name,
+                }
+            )
+        else:
+            for name in pools:
+                ips.append(
+                    {
+                        "Ip": "192.0.2.1",
+                        "WarmupStatus": "DONE",
+                        "WarmupPercentage": 100,
+                        "PoolName": name,
+                    }
+                )
         return ips
 
     def get_dedicated_ip(self, ip: str) -> dict[str, Any]:
@@ -655,12 +742,17 @@ class SESV2Backend(BaseBackend, TaggableResourcesMixin):
             "AccountStatus": "DISABLED",
         }
 
-    def put_deliverability_dashboard_option(self, dashboard_enabled: bool = False) -> None:
+    def put_deliverability_dashboard_option(
+        self, dashboard_enabled: bool = False
+    ) -> None:
         pass
 
     def create_deliverability_test_report(
-        self, from_email_address: str, content: dict[str, Any],
-        report_name: Optional[str] = None, tags: Optional[list[dict[str, str]]] = None,
+        self,
+        from_email_address: str,
+        content: dict[str, Any],
+        report_name: Optional[str] = None,
+        tags: Optional[list[dict[str, str]]] = None,
     ) -> dict[str, Any]:
         report_id = str(uuid.uuid4())
         return {
@@ -694,7 +786,9 @@ class SESV2Backend(BaseBackend, TaggableResourcesMixin):
         return []
 
     def get_domain_statistics_report(
-        self, domain: str, start_date: Optional[str] = None,
+        self,
+        domain: str,
+        start_date: Optional[str] = None,
         end_date: Optional[str] = None,
     ) -> dict[str, Any]:
         return {
@@ -730,7 +824,9 @@ class SESV2Backend(BaseBackend, TaggableResourcesMixin):
         }
 
     def list_domain_deliverability_campaigns(
-        self, subscribed_domain: str, start_date: Optional[str] = None,
+        self,
+        subscribed_domain: str,
+        start_date: Optional[str] = None,
         end_date: Optional[str] = None,
     ) -> list[dict[str, Any]]:
         return []
@@ -795,7 +891,9 @@ class SESV2Backend(BaseBackend, TaggableResourcesMixin):
         email_id.feedback_forwarding_status = email_forwarding_enabled
 
     def put_email_identity_mail_from_attributes(
-        self, email_identity: str, mail_from_domain: Optional[str] = None,
+        self,
+        email_identity: str,
+        mail_from_domain: Optional[str] = None,
         behavior_on_mx_failure: Optional[str] = None,
     ) -> None:
         if email_identity not in self.core_backend.email_identities:
@@ -811,7 +909,9 @@ class SESV2Backend(BaseBackend, TaggableResourcesMixin):
         return self.multi_region_endpoints
 
     def create_multi_region_endpoint(
-        self, endpoint_name: str, details: dict[str, Any],
+        self,
+        endpoint_name: str,
+        details: dict[str, Any],
         tags: Optional[list[dict[str, str]]] = None,
     ) -> dict[str, Any]:
         endpoint_id = str(uuid.uuid4())
@@ -907,11 +1007,13 @@ class SESV2Backend(BaseBackend, TaggableResourcesMixin):
     ) -> list[dict[str, Any]]:
         results = []
         for query in queries:
-            results.append({
-                "Id": query.get("Id", ""),
-                "Timestamps": [],
-                "Values": [],
-            })
+            results.append(
+                {
+                    "Id": query.get("Id", ""),
+                    "Timestamps": [],
+                    "Values": [],
+                }
+            )
         return results
 
     def create_tenant(self, params: dict[str, Any]) -> dict[str, Any]:
@@ -977,8 +1079,6 @@ class SESV2Backend(BaseBackend, TaggableResourcesMixin):
         config_set.vdm_options = vdm_options
 
 
-
-
 class SuppressedDestination(BaseModel):
     def __init__(self, email_address: str, reason: str) -> None:
         self.email_address = email_address
@@ -1006,7 +1106,9 @@ class SuppressedDestination(BaseModel):
 
 
 class DedicatedIp(BaseModel):
-    def __init__(self, ip: str, warmup_status: str, warmup_percentage: int, pool_name: str) -> None:
+    def __init__(
+        self, ip: str, warmup_status: str, warmup_percentage: int, pool_name: str
+    ) -> None:
         self.ip = ip
         self.warmup_status = warmup_status
         self.warmup_percentage = warmup_percentage
@@ -1028,11 +1130,23 @@ class EmailTemplate(BaseModel):
         self.created_timestamp = iso_8601_datetime_with_milliseconds()
 
     def to_metadata_dict(self):
-        return {"TemplateName": self.template_name, "CreatedTimestamp": self.created_timestamp}
+        return {
+            "TemplateName": self.template_name,
+            "CreatedTimestamp": self.created_timestamp,
+        }
 
 
 class EventDestination(BaseModel):
-    def __init__(self, name, enabled, matching_event_types, kinesis_firehose_destination=None, cloud_watch_destination=None, sns_destination=None, pinpoint_destination=None):
+    def __init__(
+        self,
+        name,
+        enabled,
+        matching_event_types,
+        kinesis_firehose_destination=None,
+        cloud_watch_destination=None,
+        sns_destination=None,
+        pinpoint_destination=None,
+    ):
         self.name = name
         self.enabled = enabled
         self.matching_event_types = matching_event_types
@@ -1042,7 +1156,11 @@ class EventDestination(BaseModel):
         self.pinpoint_destination = pinpoint_destination
 
     def to_dict(self):
-        r = {"Name": self.name, "Enabled": self.enabled, "MatchingEventTypes": self.matching_event_types}
+        r = {
+            "Name": self.name,
+            "Enabled": self.enabled,
+            "MatchingEventTypes": self.matching_event_types,
+        }
         if self.kinesis_firehose_destination:
             r["KinesisFirehoseDestination"] = self.kinesis_firehose_destination
         if self.cloud_watch_destination:
@@ -1124,4 +1242,6 @@ class ExportJob(BaseModel):
                 "ExportedRecordsCount": 0,
             },
         }
+
+
 sesv2_backends = BackendDict(SESV2Backend, "sesv2")

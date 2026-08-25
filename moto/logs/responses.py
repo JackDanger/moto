@@ -3,7 +3,7 @@ import re
 from collections.abc import Callable
 from typing import Any
 
-from moto.core.responses import ActionResult, BaseResponse
+from moto.core.responses import BaseResponse
 
 from .exceptions import InvalidParameterException
 from .models import LogsBackend, logs_backends
@@ -334,7 +334,6 @@ class LogsResponse(BaseResponse):
                 "searchedLogStreams": searched_streams,
             }
         )
-
 
     def put_retention_policy(self) -> str:
         log_group_name = self._get_param("logGroupName")

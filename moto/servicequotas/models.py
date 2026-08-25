@@ -21,7 +21,10 @@ KNOWN_SERVICES = [
     {"ServiceCode": "dynamodb", "ServiceName": "Amazon DynamoDB"},
     {"ServiceCode": "kinesis", "ServiceName": "Amazon Kinesis"},
     {"ServiceCode": "sqs", "ServiceName": "Amazon Simple Queue Service (Amazon SQS)"},
-    {"ServiceCode": "sns", "ServiceName": "Amazon Simple Notification Service (Amazon SNS)"},
+    {
+        "ServiceCode": "sns",
+        "ServiceName": "Amazon Simple Notification Service (Amazon SNS)",
+    },
 ]
 
 
@@ -94,7 +97,11 @@ class ServiceQuotasBackend(BaseBackend):
             "CaseId": f"case-{request_id[:8]}",
             "ServiceCode": service_code,
             "ServiceName": next(
-                (s["ServiceName"] for s in KNOWN_SERVICES if s["ServiceCode"] == service_code),
+                (
+                    s["ServiceName"]
+                    for s in KNOWN_SERVICES
+                    if s["ServiceCode"] == service_code
+                ),
                 service_code,
             ),
             "QuotaCode": quota_code,
@@ -137,7 +144,8 @@ class ServiceQuotasBackend(BaseBackend):
     ) -> list[dict[str, Any]]:
         requests = list(self._quota_change_requests.values())
         requests = [
-            r for r in requests
+            r
+            for r in requests
             if r["ServiceCode"] == service_code and r["QuotaCode"] == quota_code
         ]
         if status:
@@ -152,7 +160,9 @@ class ServiceQuotasBackend(BaseBackend):
 
     def get_association_for_service_quota_template(self) -> dict[str, Any]:
         return {
-            "ServiceQuotaTemplateAssociationStatus": "ASSOCIATED" if self._template_associated else "DISASSOCIATED"
+            "ServiceQuotaTemplateAssociationStatus": "ASSOCIATED"
+            if self._template_associated
+            else "DISASSOCIATED"
         }
 
     def put_service_quota_increase_request_into_template(
@@ -166,7 +176,11 @@ class ServiceQuotasBackend(BaseBackend):
         item = {
             "ServiceCode": service_code,
             "ServiceName": next(
-                (s["ServiceName"] for s in KNOWN_SERVICES if s["ServiceCode"] == service_code),
+                (
+                    s["ServiceName"]
+                    for s in KNOWN_SERVICES
+                    if s["ServiceCode"] == service_code
+                ),
                 service_code,
             ),
             "QuotaCode": quota_code,

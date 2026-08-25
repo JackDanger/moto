@@ -141,9 +141,7 @@ class PinpointResponse(BaseResponse):
     def get_campaigns(self) -> str:
         # /v1/apps/{app-id}/campaigns
         application_id = self.path.split("/")[-2]
-        campaigns = self.pinpoint_backend.get_campaigns(
-            application_id=application_id
-        )
+        campaigns = self.pinpoint_backend.get_campaigns(application_id=application_id)
         return json.dumps({"Item": [c.to_json() for c in campaigns]})
 
     def update_campaign(self) -> str:
@@ -233,9 +231,7 @@ class PinpointResponse(BaseResponse):
 
     def get_segments(self) -> str:
         application_id = self.path.split("/")[-2]
-        segments = self.pinpoint_backend.get_segments(
-            application_id=application_id
-        )
+        segments = self.pinpoint_backend.get_segments(application_id=application_id)
         return json.dumps({"Item": [s.to_json() for s in segments]})
 
     def update_segment(self) -> str:
@@ -317,9 +313,7 @@ class PinpointResponse(BaseResponse):
 
     def list_journeys(self) -> str:
         application_id = self.path.split("/")[-2]
-        journeys = self.pinpoint_backend.list_journeys(
-            application_id=application_id
-        )
+        journeys = self.pinpoint_backend.list_journeys(application_id=application_id)
         return json.dumps({"Item": [j.to_json() for j in journeys]})
 
     def update_journey(self) -> str:
@@ -447,7 +441,13 @@ class PinpointResponse(BaseResponse):
         template = self.pinpoint_backend.create_template(
             template_name=template_name, template_type="EMAIL", params=params
         )
-        resp = {"CreateTemplateMessageBody": {"Arn": "", "Message": "Created", "RequestID": template.template_name}}
+        resp = {
+            "CreateTemplateMessageBody": {
+                "Arn": "",
+                "Message": "Created",
+                "RequestID": template.template_name,
+            }
+        }
         return 201, {"status": 201}, json.dumps(resp)
 
     def get_email_template(self) -> str:
@@ -465,7 +465,9 @@ class PinpointResponse(BaseResponse):
         self.pinpoint_backend.update_template(
             template_name=template_name, template_type="EMAIL", params=params
         )
-        return json.dumps({"MessageBody": {"Message": "Accepted", "RequestID": template_name}})
+        return json.dumps(
+            {"MessageBody": {"Message": "Accepted", "RequestID": template_name}}
+        )
 
     def delete_email_template(self) -> str:
         parts = self.path.split("/")
@@ -473,7 +475,9 @@ class PinpointResponse(BaseResponse):
         self.pinpoint_backend.delete_template(
             template_name=template_name, template_type="EMAIL"
         )
-        return json.dumps({"MessageBody": {"Message": "Accepted", "RequestID": template_name}})
+        return json.dumps(
+            {"MessageBody": {"Message": "Accepted", "RequestID": template_name}}
+        )
 
     def create_sms_template(self) -> TYPE_RESPONSE:
         parts = self.path.split("/")
@@ -482,7 +486,13 @@ class PinpointResponse(BaseResponse):
         template = self.pinpoint_backend.create_template(
             template_name=template_name, template_type="SMS", params=params
         )
-        resp = {"CreateTemplateMessageBody": {"Arn": "", "Message": "Created", "RequestID": template.template_name}}
+        resp = {
+            "CreateTemplateMessageBody": {
+                "Arn": "",
+                "Message": "Created",
+                "RequestID": template.template_name,
+            }
+        }
         return 201, {"status": 201}, json.dumps(resp)
 
     def get_sms_template(self) -> str:
@@ -500,7 +510,9 @@ class PinpointResponse(BaseResponse):
         self.pinpoint_backend.update_template(
             template_name=template_name, template_type="SMS", params=params
         )
-        return json.dumps({"MessageBody": {"Message": "Accepted", "RequestID": template_name}})
+        return json.dumps(
+            {"MessageBody": {"Message": "Accepted", "RequestID": template_name}}
+        )
 
     def delete_sms_template(self) -> str:
         parts = self.path.split("/")
@@ -508,7 +520,9 @@ class PinpointResponse(BaseResponse):
         self.pinpoint_backend.delete_template(
             template_name=template_name, template_type="SMS"
         )
-        return json.dumps({"MessageBody": {"Message": "Accepted", "RequestID": template_name}})
+        return json.dumps(
+            {"MessageBody": {"Message": "Accepted", "RequestID": template_name}}
+        )
 
     def create_push_template(self) -> TYPE_RESPONSE:
         parts = self.path.split("/")
@@ -517,7 +531,13 @@ class PinpointResponse(BaseResponse):
         template = self.pinpoint_backend.create_template(
             template_name=template_name, template_type="PUSH", params=params
         )
-        resp = {"CreateTemplateMessageBody": {"Arn": "", "Message": "Created", "RequestID": template.template_name}}
+        resp = {
+            "CreateTemplateMessageBody": {
+                "Arn": "",
+                "Message": "Created",
+                "RequestID": template.template_name,
+            }
+        }
         return 201, {"status": 201}, json.dumps(resp)
 
     def get_push_template(self) -> str:
@@ -535,7 +555,9 @@ class PinpointResponse(BaseResponse):
         self.pinpoint_backend.update_template(
             template_name=template_name, template_type="PUSH", params=params
         )
-        return json.dumps({"MessageBody": {"Message": "Accepted", "RequestID": template_name}})
+        return json.dumps(
+            {"MessageBody": {"Message": "Accepted", "RequestID": template_name}}
+        )
 
     def delete_push_template(self) -> str:
         parts = self.path.split("/")
@@ -543,7 +565,9 @@ class PinpointResponse(BaseResponse):
         self.pinpoint_backend.delete_template(
             template_name=template_name, template_type="PUSH"
         )
-        return json.dumps({"MessageBody": {"Message": "Accepted", "RequestID": template_name}})
+        return json.dumps(
+            {"MessageBody": {"Message": "Accepted", "RequestID": template_name}}
+        )
 
     def create_voice_template(self) -> TYPE_RESPONSE:
         parts = self.path.split("/")
@@ -552,7 +576,13 @@ class PinpointResponse(BaseResponse):
         template = self.pinpoint_backend.create_template(
             template_name=template_name, template_type="VOICE", params=params
         )
-        resp = {"CreateTemplateMessageBody": {"Arn": "", "Message": "Created", "RequestID": template.template_name}}
+        resp = {
+            "CreateTemplateMessageBody": {
+                "Arn": "",
+                "Message": "Created",
+                "RequestID": template.template_name,
+            }
+        }
         return 201, {"status": 201}, json.dumps(resp)
 
     def get_voice_template(self) -> str:
@@ -570,7 +600,9 @@ class PinpointResponse(BaseResponse):
         self.pinpoint_backend.update_template(
             template_name=template_name, template_type="VOICE", params=params
         )
-        return json.dumps({"MessageBody": {"Message": "Accepted", "RequestID": template_name}})
+        return json.dumps(
+            {"MessageBody": {"Message": "Accepted", "RequestID": template_name}}
+        )
 
     def delete_voice_template(self) -> str:
         parts = self.path.split("/")
@@ -578,7 +610,9 @@ class PinpointResponse(BaseResponse):
         self.pinpoint_backend.delete_template(
             template_name=template_name, template_type="VOICE"
         )
-        return json.dumps({"MessageBody": {"Message": "Accepted", "RequestID": template_name}})
+        return json.dumps(
+            {"MessageBody": {"Message": "Accepted", "RequestID": template_name}}
+        )
 
     def create_in_app_template(self) -> TYPE_RESPONSE:
         parts = self.path.split("/")
@@ -587,7 +621,13 @@ class PinpointResponse(BaseResponse):
         template = self.pinpoint_backend.create_template(
             template_name=template_name, template_type="INAPP", params=params
         )
-        resp = {"CreateTemplateMessageBody": {"Arn": "", "Message": "Created", "RequestID": template.template_name}}
+        resp = {
+            "CreateTemplateMessageBody": {
+                "Arn": "",
+                "Message": "Created",
+                "RequestID": template.template_name,
+            }
+        }
         return 201, {"status": 201}, json.dumps(resp)
 
     def get_in_app_template(self) -> str:
@@ -605,7 +645,9 @@ class PinpointResponse(BaseResponse):
         self.pinpoint_backend.update_template(
             template_name=template_name, template_type="INAPP", params=params
         )
-        return json.dumps({"MessageBody": {"Message": "Accepted", "RequestID": template_name}})
+        return json.dumps(
+            {"MessageBody": {"Message": "Accepted", "RequestID": template_name}}
+        )
 
     def delete_in_app_template(self) -> str:
         parts = self.path.split("/")
@@ -613,7 +655,9 @@ class PinpointResponse(BaseResponse):
         self.pinpoint_backend.delete_template(
             template_name=template_name, template_type="INAPP"
         )
-        return json.dumps({"MessageBody": {"Message": "Accepted", "RequestID": template_name}})
+        return json.dumps(
+            {"MessageBody": {"Message": "Accepted", "RequestID": template_name}}
+        )
 
     def list_templates(self) -> str:
         templates = self.pinpoint_backend.list_templates()
@@ -641,7 +685,9 @@ class PinpointResponse(BaseResponse):
             template_type=template_type,
             version=version,
         )
-        return json.dumps({"MessageBody": {"Message": "Accepted", "RequestID": template_name}})
+        return json.dumps(
+            {"MessageBody": {"Message": "Accepted", "RequestID": template_name}}
+        )
 
     # --- Channels ---
 
@@ -773,9 +819,7 @@ class PinpointResponse(BaseResponse):
     def get_channels(self) -> str:
         # /v1/apps/{app-id}/channels
         application_id = self.path.split("/")[-2]
-        result = self.pinpoint_backend.get_channels(
-            application_id=application_id
-        )
+        result = self.pinpoint_backend.get_channels(application_id=application_id)
         return json.dumps(result)
 
     # --- Endpoint ---
@@ -791,7 +835,9 @@ class PinpointResponse(BaseResponse):
             endpoint_id=endpoint_id,
             params=params,
         )
-        return json.dumps({"MessageBody": {"Message": "Accepted", "RequestID": endpoint_id}})
+        return json.dumps(
+            {"MessageBody": {"Message": "Accepted", "RequestID": endpoint_id}}
+        )
 
     def update_endpoints_batch(self) -> str:
         # PUT /v1/apps/{app-id}/endpoints
@@ -866,9 +912,7 @@ class PinpointResponse(BaseResponse):
     def get_export_jobs(self) -> str:
         # GET /v1/apps/{app-id}/jobs/export
         application_id = self.path.split("/")[-3]
-        jobs = self.pinpoint_backend.get_export_jobs(
-            application_id=application_id
-        )
+        jobs = self.pinpoint_backend.get_export_jobs(application_id=application_id)
         return json.dumps({"Item": [j.to_json() for j in jobs]})
 
     def create_import_job(self) -> TYPE_RESPONSE:
@@ -890,9 +934,7 @@ class PinpointResponse(BaseResponse):
 
     def get_import_jobs(self) -> str:
         application_id = self.path.split("/")[-3]
-        jobs = self.pinpoint_backend.get_import_jobs(
-            application_id=application_id
-        )
+        jobs = self.pinpoint_backend.get_import_jobs(application_id=application_id)
         return json.dumps({"Item": [j.to_json() for j in jobs]})
 
     # --- Recommender ---

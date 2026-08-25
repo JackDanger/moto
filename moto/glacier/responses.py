@@ -97,7 +97,9 @@ class GlacierResponse(BaseResponse):
     def initiate_job(self) -> TYPE_RESPONSE:
         account_id = self.uri.split("/")[1]
         vault_name = self.parsed_url.path.split("/")[-2]
-        body_bytes = self.body if isinstance(self.body, bytes) else self.body.encode("utf-8")
+        body_bytes = (
+            self.body if isinstance(self.body, bytes) else self.body.encode("utf-8")
+        )
         json_body = json.loads(body_bytes)
         job_type = json_body.get("Type", "inventory-retrieval")
         archive_id = json_body.get("ArchiveId")
@@ -140,7 +142,9 @@ class GlacierResponse(BaseResponse):
         return 200, headers, json.dumps(result)
 
     def set_data_retrieval_policy(self) -> TYPE_RESPONSE:
-        body_bytes = self.body if isinstance(self.body, bytes) else self.body.encode("utf-8")
+        body_bytes = (
+            self.body if isinstance(self.body, bytes) else self.body.encode("utf-8")
+        )
         json_body = json.loads(body_bytes)
         policy = json_body.get("Policy", {})
         self.glacier_backend.set_data_retrieval_policy(policy)
@@ -150,7 +154,9 @@ class GlacierResponse(BaseResponse):
 
     def add_tags_to_vault(self) -> TYPE_RESPONSE:
         vault_name = self._vault_name_from_path()
-        body_bytes = self.body if isinstance(self.body, bytes) else self.body.encode("utf-8")
+        body_bytes = (
+            self.body if isinstance(self.body, bytes) else self.body.encode("utf-8")
+        )
         json_body = json.loads(body_bytes)
         tags = json_body.get("Tags", {})
         self.glacier_backend.add_tags_to_vault(vault_name, tags)
@@ -158,7 +164,9 @@ class GlacierResponse(BaseResponse):
 
     def remove_tags_from_vault(self) -> TYPE_RESPONSE:
         vault_name = self._vault_name_from_path()
-        body_bytes = self.body if isinstance(self.body, bytes) else self.body.encode("utf-8")
+        body_bytes = (
+            self.body if isinstance(self.body, bytes) else self.body.encode("utf-8")
+        )
         json_body = json.loads(body_bytes)
         tag_keys = json_body.get("TagKeys", [])
         self.glacier_backend.remove_tags_from_vault(vault_name, tag_keys)
@@ -174,7 +182,9 @@ class GlacierResponse(BaseResponse):
 
     def set_vault_notifications(self) -> TYPE_RESPONSE:
         vault_name = self._vault_name_from_path()
-        body_bytes = self.body if isinstance(self.body, bytes) else self.body.encode("utf-8")
+        body_bytes = (
+            self.body if isinstance(self.body, bytes) else self.body.encode("utf-8")
+        )
         json_body = json.loads(body_bytes)
         # The body IS the vaultNotificationConfig payload directly
         config = json_body
@@ -197,7 +207,9 @@ class GlacierResponse(BaseResponse):
 
     def set_vault_access_policy(self) -> TYPE_RESPONSE:
         vault_name = self._vault_name_from_path()
-        body_bytes = self.body if isinstance(self.body, bytes) else self.body.encode("utf-8")
+        body_bytes = (
+            self.body if isinstance(self.body, bytes) else self.body.encode("utf-8")
+        )
         json_body = json.loads(body_bytes)
         # Body is the VaultAccessPolicy struct directly: {"Policy": "..."}
         policy_str = json_body.get("Policy", "")
@@ -220,7 +232,9 @@ class GlacierResponse(BaseResponse):
 
     def initiate_vault_lock(self) -> TYPE_RESPONSE:
         vault_name = self._vault_name_from_path()
-        body_bytes = self.body if isinstance(self.body, bytes) else self.body.encode("utf-8")
+        body_bytes = (
+            self.body if isinstance(self.body, bytes) else self.body.encode("utf-8")
+        )
         json_body = json.loads(body_bytes)
         # Body is VaultLockPolicy payload directly: {"Policy": "..."}
         lock_id = self.glacier_backend.initiate_vault_lock(vault_name, json_body)
@@ -325,9 +339,7 @@ class GlacierResponse(BaseResponse):
         vault_name = self._vault_name_from_path()
         uploads = self.glacier_backend.list_multipart_uploads(vault_name)
         headers = {"content-type": "application/json"}
-        return 200, headers, json.dumps(
-            {"Marker": None, "UploadsList": uploads}
-        )
+        return 200, headers, json.dumps({"Marker": None, "UploadsList": uploads})
 
     def list_parts(self) -> TYPE_RESPONSE:
         vault_name = self._vault_name_from_path()

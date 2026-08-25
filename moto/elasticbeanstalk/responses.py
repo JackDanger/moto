@@ -341,7 +341,10 @@ class EBResponse(BaseResponse):
         return ActionResult(result)
 
     def describe_configuration_options(self) -> ActionResult:
-        result = {"Options": [], "SolutionStackName": self._get_param("SolutionStackName", "")}
+        result = {
+            "Options": [],
+            "SolutionStackName": self._get_param("SolutionStackName", ""),
+        }
         return ActionResult(result)
 
     def describe_configuration_settings(self) -> ActionResult:

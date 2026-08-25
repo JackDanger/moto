@@ -1,4 +1,5 @@
 """MemoryDBBackend class with methods for supported APIs."""
+
 from __future__ import annotations
 
 import copy
@@ -25,7 +26,12 @@ from .exceptions import (
     UserAlreadyExistsFault,
     UserNotFoundFault,
 )
-from .exceptions import (ACLAlreadyExistsFault, ACLNotFoundFault, ParameterGroupAlreadyExistsFault, ParameterGroupNotFoundFault)
+from .exceptions import (
+    ACLAlreadyExistsFault,
+    ACLNotFoundFault,
+    ParameterGroupAlreadyExistsFault,
+    ParameterGroupNotFoundFault,
+)
 
 
 class MemoryDBCluster(BaseModel):
@@ -422,7 +428,13 @@ class MemoryDBBackend(BaseBackend):
             "open-access": MemoryDBACL(region_name, account_id, "open-access", []),
         }
         self.parameter_groups: dict[str, MemoryDBParameterGroup] = {
-            "default.memorydb-redis7": MemoryDBParameterGroup(region_name, account_id, "default.memorydb-redis7", "memorydb_redis7", "Default parameter group for memorydb-redis7"),
+            "default.memorydb-redis7": MemoryDBParameterGroup(
+                region_name,
+                account_id,
+                "default.memorydb-redis7",
+                "memorydb_redis7",
+                "Default parameter group for memorydb-redis7",
+            ),
         }
 
     def _default_user(self) -> "MemoryDBUser":
@@ -834,7 +846,9 @@ class MemoryDBBackend(BaseBackend):
         user.status = "deleting"
         return self.users.pop(user_name)
 
-    def create_acl(self, acl_name: str, user_names: list[str], tags: list[dict[str, str]]) -> MemoryDBACL:
+    def create_acl(
+        self, acl_name: str, user_names: list[str], tags: list[dict[str, str]]
+    ) -> MemoryDBACL:
         if acl_name in self.acls:
             raise ACLAlreadyExistsFault(msg=f"ACL {acl_name} already exists.")
         acl = MemoryDBACL(self.region_name, self.account_id, acl_name, user_names)
@@ -857,29 +871,46 @@ class MemoryDBBackend(BaseBackend):
         acl.status = "deleting"
         return acl
 
-    def update_acl(self, acl_name: str, user_names_to_add: Optional[list[str]] = None, user_names_to_remove: Optional[list[str]] = None) -> MemoryDBACL:
+    def update_acl(
+        self,
+        acl_name: str,
+        user_names_to_add: Optional[list[str]] = None,
+        user_names_to_remove: Optional[list[str]] = None,
+    ) -> MemoryDBACL:
         if acl_name not in self.acls:
             raise ACLNotFoundFault(msg=f"ACL {acl_name} not found.")
         acl = self.acls[acl_name]
         if user_names_to_add:
             acl.user_names.extend(user_names_to_add)
         if user_names_to_remove:
-            acl.user_names = [u for u in acl.user_names if u not in user_names_to_remove]
+            acl.user_names = [
+                u for u in acl.user_names if u not in user_names_to_remove
+            ]
         return acl
 
-    def create_parameter_group(self, name: str, family: str, description: str, tags: list[dict[str, str]]) -> MemoryDBParameterGroup:
+    def create_parameter_group(
+        self, name: str, family: str, description: str, tags: list[dict[str, str]]
+    ) -> MemoryDBParameterGroup:
         if name in self.parameter_groups:
-            raise ParameterGroupAlreadyExistsFault(msg=f"Parameter group {name} already exists.")
-        pg = MemoryDBParameterGroup(self.region_name, self.account_id, name, family, description)
+            raise ParameterGroupAlreadyExistsFault(
+                msg=f"Parameter group {name} already exists."
+            )
+        pg = MemoryDBParameterGroup(
+            self.region_name, self.account_id, name, family, description
+        )
         self.parameter_groups[name] = pg
         if tags:
             self.tagger.tag_resource(pg.arn, tags)
         return pg
 
-    def describe_parameter_groups(self, name: Optional[str] = None) -> list[MemoryDBParameterGroup]:
+    def describe_parameter_groups(
+        self, name: Optional[str] = None
+    ) -> list[MemoryDBParameterGroup]:
         if name:
             if name not in self.parameter_groups:
-                raise ParameterGroupNotFoundFault(msg=f"Parameter group {name} not found.")
+                raise ParameterGroupNotFoundFault(
+                    msg=f"Parameter group {name} not found."
+                )
             return [self.parameter_groups[name]]
         return list(self.parameter_groups.values())
 
@@ -888,7 +919,9 @@ class MemoryDBBackend(BaseBackend):
             raise ParameterGroupNotFoundFault(msg=f"Parameter group {name} not found.")
         return self.parameter_groups.pop(name)
 
-    def update_parameter_group(self, name: str, parameter_name_values: list[dict[str, str]]) -> MemoryDBParameterGroup:
+    def update_parameter_group(
+        self, name: str, parameter_name_values: list[dict[str, str]]
+    ) -> MemoryDBParameterGroup:
         if name not in self.parameter_groups:
             raise ParameterGroupNotFoundFault(msg=f"Parameter group {name} not found.")
         return self.parameter_groups[name]
@@ -949,18 +982,14 @@ class MemoryDBBackend(BaseBackend):
             )
         return self.parameter_groups[parameter_group_name]
 
-    def describe_parameters(
-        self, parameter_group_name: str
-    ) -> list[dict[str, Any]]:
+    def describe_parameters(self, parameter_group_name: str) -> list[dict[str, Any]]:
         if parameter_group_name not in self.parameter_groups:
             raise ParameterGroupNotFoundFault(
                 msg=f"Parameter group {parameter_group_name} not found."
             )
         return []
 
-    def list_allowed_node_type_updates(
-        self, cluster_name: str
-    ) -> dict[str, list[str]]:
+    def list_allowed_node_type_updates(self, cluster_name: str) -> dict[str, list[str]]:
         if cluster_name not in self.clusters:
             raise ClusterNotFoundFault(msg=f"Cluster {cluster_name} not found")
         return {"ScaleUpNodeTypes": [], "ScaleDownNodeTypes": []}
@@ -976,7 +1005,9 @@ class MemoryDBBackend(BaseBackend):
             if name in self.clusters:
                 processed.append({"Cluster": self.clusters[name].to_dict()})
             else:
-                unprocessed.append({"ClusterName": name, "ErrorType": "ClusterNotFound"})
+                unprocessed.append(
+                    {"ClusterName": name, "ErrorType": "ClusterNotFound"}
+                )
         return processed, unprocessed
 
     def purchase_reserved_nodes_offering(
@@ -987,6 +1018,7 @@ class MemoryDBBackend(BaseBackend):
         tags: Optional[list[dict[str, str]]] = None,
     ) -> dict[str, Any]:
         import uuid
+
         return {
             "ReservationId": reservation_id or str(uuid.uuid4()),
             "ReservedNodesOfferingId": reserved_nodes_offering_id,
@@ -996,8 +1028,16 @@ class MemoryDBBackend(BaseBackend):
 
     def describe_engine_versions(self) -> list[dict[str, Any]]:
         return [
-            {"EngineVersion": "7.0", "EnginePatchVersion": "7.0.7", "ParameterGroupFamily": "memorydb_redis7"},
-            {"EngineVersion": "6.2", "EnginePatchVersion": "6.2.6", "ParameterGroupFamily": "memorydb_redis6"},
+            {
+                "EngineVersion": "7.0",
+                "EnginePatchVersion": "7.0.7",
+                "ParameterGroupFamily": "memorydb_redis7",
+            },
+            {
+                "EngineVersion": "6.2",
+                "EnginePatchVersion": "6.2.6",
+                "ParameterGroupFamily": "memorydb_redis6",
+            },
         ]
 
     def describe_reserved_nodes(self) -> list[dict[str, Any]]:
@@ -1007,10 +1047,10 @@ class MemoryDBBackend(BaseBackend):
         return []
 
 
-
-
 class MemoryDBACL(BaseModel):
-    def __init__(self, region_name: str, account_id: str, acl_name: str, user_names: list[str]):
+    def __init__(
+        self, region_name: str, account_id: str, acl_name: str, user_names: list[str]
+    ):
         self.name = acl_name
         self.user_names = user_names or []
         self.status = "active"
@@ -1029,7 +1069,14 @@ class MemoryDBACL(BaseModel):
 
 
 class MemoryDBParameterGroup(BaseModel):
-    def __init__(self, region_name: str, account_id: str, name: str, family: str, description: str):
+    def __init__(
+        self,
+        region_name: str,
+        account_id: str,
+        name: str,
+        family: str,
+        description: str,
+    ):
         self.name = name
         self.family = family
         self.description = description
@@ -1042,4 +1089,6 @@ class MemoryDBParameterGroup(BaseModel):
             "Description": self.description,
             "ARN": self.arn,
         }
+
+
 memorydb_backends = BackendDict(MemoryDBBackend, "memorydb")

@@ -376,10 +376,12 @@ class S3ControlResponse(BaseResponse):
             account_id=account_id,
             s3_prefix=s3_prefix,
         )
-        return ActionResult({
-            "AccessGrantsInstanceId": instance.instance_id,
-            "AccessGrantsInstanceArn": instance.instance_arn,
-        })
+        return ActionResult(
+            {
+                "AccessGrantsInstanceId": instance.instance_id,
+                "AccessGrantsInstanceArn": instance.instance_arn,
+            }
+        )
 
     def get_access_grants_instance_resource_policy(self) -> ActionResult:
         account_id = self.headers.get("x-amz-account-id")
@@ -425,24 +427,28 @@ class S3ControlResponse(BaseResponse):
             location_scope=location_scope,
             iam_role_arn=iam_role_arn,
         )
-        return ActionResult({
-            "AccessGrantsLocationId": location.location_id,
-            "AccessGrantsLocationArn": location.location_arn,
-            "LocationScope": location.location_scope,
-            "IAMRoleArn": location.iam_role_arn,
-            "CreatedAt": location.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-        })
+        return ActionResult(
+            {
+                "AccessGrantsLocationId": location.location_id,
+                "AccessGrantsLocationArn": location.location_arn,
+                "LocationScope": location.location_scope,
+                "IAMRoleArn": location.iam_role_arn,
+                "CreatedAt": location.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            }
+        )
 
     def get_access_grants_location(self) -> ActionResult:
         location_id = self.path.split("/")[-1]
         location = self.backend.get_access_grants_location(location_id=location_id)
-        return ActionResult({
-            "AccessGrantsLocationId": location.location_id,
-            "AccessGrantsLocationArn": location.location_arn,
-            "LocationScope": location.location_scope,
-            "IAMRoleArn": location.iam_role_arn,
-            "CreatedAt": location.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-        })
+        return ActionResult(
+            {
+                "AccessGrantsLocationId": location.location_id,
+                "AccessGrantsLocationArn": location.location_arn,
+                "LocationScope": location.location_scope,
+                "IAMRoleArn": location.iam_role_arn,
+                "CreatedAt": location.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            }
+        )
 
     def list_access_grants_locations(self) -> ActionResult:
         account_id = self.headers.get("x-amz-account-id")
@@ -558,21 +564,25 @@ class S3ControlResponse(BaseResponse):
         account_id = self.headers.get("x-amz-account-id")
         job_id = self.path.split("/")[-1]
         job = self.backend.describe_job(account_id=account_id, job_id=job_id)
-        return ActionResult({
-            "Job": {
-                "JobId": job.job_id,
-                "Status": job.status,
-                "Description": job.description,
-                "Priority": job.priority,
-                "RoleArn": job.role_arn,
-                "CreationTime": job.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-                "ProgressSummary": {
-                    "NumberOfTasksSucceeded": job.progress["NumberOfTasksSucceeded"],
-                    "NumberOfTasksFailed": job.progress["NumberOfTasksFailed"],
-                    "TotalNumberOfTasks": job.progress["TotalNumberOfTasks"],
-                },
+        return ActionResult(
+            {
+                "Job": {
+                    "JobId": job.job_id,
+                    "Status": job.status,
+                    "Description": job.description,
+                    "Priority": job.priority,
+                    "RoleArn": job.role_arn,
+                    "CreationTime": job.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                    "ProgressSummary": {
+                        "NumberOfTasksSucceeded": job.progress[
+                            "NumberOfTasksSucceeded"
+                        ],
+                        "NumberOfTasksFailed": job.progress["NumberOfTasksFailed"],
+                        "TotalNumberOfTasks": job.progress["TotalNumberOfTasks"],
+                    },
+                }
             }
-        })
+        )
 
     def list_jobs(self) -> ActionResult:
         account_id = self.headers.get("x-amz-account-id")
@@ -630,10 +640,12 @@ class S3ControlResponse(BaseResponse):
         job = self.backend.update_job_priority(
             account_id=account_id, job_id=job_id, priority=priority
         )
-        return ActionResult({
-            "JobId": job.job_id,
-            "Priority": job.priority,
-        })
+        return ActionResult(
+            {
+                "JobId": job.job_id,
+                "Priority": job.priority,
+            }
+        )
 
     def update_job_status(self) -> ActionResult:
         account_id = self.headers.get("x-amz-account-id")
@@ -647,10 +659,12 @@ class S3ControlResponse(BaseResponse):
             requested_job_status=requested_job_status,
             status_update_reason=status_update_reason,
         )
-        return ActionResult({
-            "JobId": job.job_id,
-            "Status": job.status,
-        })
+        return ActionResult(
+            {
+                "JobId": job.job_id,
+                "Status": job.status,
+            }
+        )
 
     def delete_storage_lens_configuration_tagging(self) -> TYPE_RESPONSE:
         account_id = self.headers.get("x-amz-account-id")
@@ -701,13 +715,15 @@ class S3ControlResponse(BaseResponse):
             iam_role_arn=iam_role_arn,
             location_scope=location_scope,
         )
-        return ActionResult({
-            "AccessGrantsLocationId": location.location_id,
-            "AccessGrantsLocationArn": location.location_arn,
-            "LocationScope": location.location_scope,
-            "IAMRoleArn": location.iam_role_arn,
-            "CreatedAt": location.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-        })
+        return ActionResult(
+            {
+                "AccessGrantsLocationId": location.location_id,
+                "AccessGrantsLocationArn": location.location_arn,
+                "LocationScope": location.location_scope,
+                "IAMRoleArn": location.iam_role_arn,
+                "CreatedAt": location.created_at.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+            }
+        )
 
     def delete_access_grant(self) -> TYPE_RESPONSE:
         grant_id = self.path.split("/")[-1]
@@ -720,17 +736,19 @@ class S3ControlResponse(BaseResponse):
         routes = self.backend.get_multi_region_access_point_routes(
             account_id=account_id, mrap=mrap_name
         )
-        return ActionResult({
-            "Mrap": mrap_name,
-            "Routes": [
-                {
-                    "Bucket": route.get("Bucket"),
-                    "Region": route.get("Region"),
-                    "TrafficDialPercentage": route.get("TrafficDialPercentage"),
-                }
-                for route in routes
-            ],
-        })
+        return ActionResult(
+            {
+                "Mrap": mrap_name,
+                "Routes": [
+                    {
+                        "Bucket": route.get("Bucket"),
+                        "Region": route.get("Region"),
+                        "TrafficDialPercentage": route.get("TrafficDialPercentage"),
+                    }
+                    for route in routes
+                ],
+            }
+        )
 
     def submit_multi_region_access_point_routes(self) -> TYPE_RESPONSE:
         account_id = self.headers.get("x-amz-account-id")
@@ -775,22 +793,26 @@ class S3ControlResponse(BaseResponse):
             storage_lens_group=storage_lens_group,
             tags=tags_raw,
         )
-        return ActionResult({
-            "StorageLensGroup": {
-                "Name": group.name,
-                "StorageLensGroupArn": group.arn,
+        return ActionResult(
+            {
+                "StorageLensGroup": {
+                    "Name": group.name,
+                    "StorageLensGroupArn": group.arn,
+                }
             }
-        })
+        )
 
     def get_storage_lens_group(self) -> ActionResult:
         name = self.path.split("/")[-1]
         group = self.backend.get_storage_lens_group(name=name)
-        return ActionResult({
-            "StorageLensGroup": {
-                "Name": group.name,
-                "StorageLensGroupArn": group.arn,
+        return ActionResult(
+            {
+                "StorageLensGroup": {
+                    "Name": group.name,
+                    "StorageLensGroupArn": group.arn,
+                }
             }
-        })
+        )
 
     def delete_storage_lens_group(self) -> TYPE_RESPONSE:
         name = self.path.split("/")[-1]
@@ -840,13 +862,15 @@ class S3ControlResponse(BaseResponse):
             name=name,
             configuration=configuration,
         )
-        return ActionResult({
-            "ObjectLambdaAccessPointArn": access_point.arn,
-            "Alias": {
-                "Status": "READY",
-                "Value": access_point.alias,
-            },
-        })
+        return ActionResult(
+            {
+                "ObjectLambdaAccessPointArn": access_point.arn,
+                "Alias": {
+                    "Status": "READY",
+                    "Value": access_point.alias,
+                },
+            }
+        )
 
     def get_access_point_for_object_lambda(self) -> ActionResult:
         account_id = self.headers.get("x-amz-account-id")
@@ -854,15 +878,17 @@ class S3ControlResponse(BaseResponse):
         access_point = self.backend.get_access_point_for_object_lambda(
             account_id=account_id, name=name
         )
-        return ActionResult({
-            "Name": access_point.name,
-            "ObjectLambdaAccessPointArn": access_point.arn,
-            "CreationDate": access_point.created,
-            "Alias": {
-                "Status": "READY",
-                "Value": access_point.alias,
-            },
-        })
+        return ActionResult(
+            {
+                "Name": access_point.name,
+                "ObjectLambdaAccessPointArn": access_point.arn,
+                "CreationDate": access_point.created,
+                "Alias": {
+                    "Status": "READY",
+                    "Value": access_point.alias,
+                },
+            }
+        )
 
     def delete_access_point_for_object_lambda(self) -> TYPE_RESPONSE:
         account_id = self.headers.get("x-amz-account-id")
@@ -875,7 +901,9 @@ class S3ControlResponse(BaseResponse):
     def put_access_point_policy_for_object_lambda(self) -> EmptyResult:
         account_id = self.headers.get("x-amz-account-id")
         name = self.path.split("/")[-2]
-        params = xmltodict.parse(self.body)["PutAccessPointPolicyForObjectLambdaRequest"]
+        params = xmltodict.parse(self.body)[
+            "PutAccessPointPolicyForObjectLambdaRequest"
+        ]
         policy = params.get("Policy", "")
         self.backend.put_access_point_policy_for_object_lambda(
             account_id=account_id, name=name, policy=policy
@@ -895,9 +923,7 @@ class S3ControlResponse(BaseResponse):
     def get_access_point_scope(self) -> ActionResult:
         account_id = self.headers.get("x-amz-account-id")
         name = self.path.split("/")[-2]
-        scope = self.backend.get_access_point_scope(
-            account_id=account_id, name=name
-        )
+        scope = self.backend.get_access_point_scope(account_id=account_id, name=name)
         result: dict[str, Any] = {}
         if scope:
             result["Scope"] = scope
@@ -916,9 +942,7 @@ class S3ControlResponse(BaseResponse):
     def delete_access_point_scope(self) -> TYPE_RESPONSE:
         account_id = self.headers.get("x-amz-account-id")
         name = self.path.split("/")[-2]
-        self.backend.delete_access_point_scope(
-            account_id=account_id, name=name
-        )
+        self.backend.delete_access_point_scope(account_id=account_id, name=name)
         return 204, {"status": 204}, ""
 
     # Job Tagging operations
@@ -927,15 +951,17 @@ class S3ControlResponse(BaseResponse):
         account_id = self.headers.get("x-amz-account-id")
         job_id = self.path.split("/")[-2]
         tags = self.backend.get_job_tagging(account_id=account_id, job_id=job_id)
-        return ActionResult({
-            "Tags": [
-                {
-                    "Key": tag.get("Key"),
-                    "Value": tag.get("Value"),
-                }
-                for tag in tags
-            ]
-        })
+        return ActionResult(
+            {
+                "Tags": [
+                    {
+                        "Key": tag.get("Key"),
+                        "Value": tag.get("Value"),
+                    }
+                    for tag in tags
+                ]
+            }
+        )
 
     def put_job_tagging(self) -> EmptyResult:
         account_id = self.headers.get("x-amz-account-id")
@@ -965,17 +991,23 @@ class S3ControlResponse(BaseResponse):
             outpost_id=outpost_id,
         )
         location = f"/v20180820/bucket/{bucket}"
-        return 200, {"Location": location}, CREATE_BUCKET_TEMPLATE % {"bucket_arn": ob.arn}
+        return (
+            200,
+            {"Location": location},
+            CREATE_BUCKET_TEMPLATE % {"bucket_arn": ob.arn},
+        )
 
     def get_bucket(self) -> ActionResult:
         account_id = self.headers.get("x-amz-account-id")
         bucket = self.path.split("/")[-1]
         ob = self.backend.get_bucket(account_id=account_id, bucket=bucket)
-        return ActionResult({
-            "Bucket": ob.bucket,
-            "PublicAccessBlockEnabled": True,
-            "CreationDate": ob.creation_date.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        })
+        return ActionResult(
+            {
+                "Bucket": ob.bucket,
+                "PublicAccessBlockEnabled": True,
+                "CreationDate": ob.creation_date.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            }
+        )
 
     def delete_bucket(self) -> TYPE_RESPONSE:
         account_id = self.headers.get("x-amz-account-id")
@@ -1039,9 +1071,7 @@ class S3ControlResponse(BaseResponse):
         bucket = self.path.split("/")[-2]
         params = xmltodict.parse(self.body, force_list={"Rule": True})
         rules = (
-            params.get("LifecycleConfiguration", {})
-            .get("Rules", {})
-            .get("Rule", [])
+            params.get("LifecycleConfiguration", {}).get("Rules", {}).get("Rule", [])
         )
         self.backend.put_bucket_lifecycle(
             account_id=account_id, bucket=bucket, rules=rules
@@ -1077,7 +1107,7 @@ class S3ControlResponse(BaseResponse):
             account_id=account_id, bucket=bucket
         )
         result_rules = []
-        for rule in (rules or []):
+        for rule in rules or []:
             rule_dict: dict[str, Any] = {}
             if rule.id:
                 rule_dict["ID"] = rule.id
@@ -1144,15 +1174,17 @@ class S3ControlResponse(BaseResponse):
         bucket = self.path.split("/")[-2]
         tag_dict = self.backend.get_bucket_tagging(account_id=account_id, bucket=bucket)
         tag_list = tag_dict.get("Tags", []) if isinstance(tag_dict, dict) else []
-        return ActionResult({
-            "TagSet": [
-                {
-                    "Key": tag.get("Key"),
-                    "Value": tag.get("Value"),
-                }
-                for tag in tag_list
-            ]
-        })
+        return ActionResult(
+            {
+                "TagSet": [
+                    {
+                        "Key": tag.get("Key"),
+                        "Value": tag.get("Value"),
+                    }
+                    for tag in tag_list
+                ]
+            }
+        )
 
     def get_bucket_versioning(self) -> ActionResult:
         account_id = self.headers.get("x-amz-account-id")

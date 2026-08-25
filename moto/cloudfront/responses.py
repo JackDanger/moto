@@ -1,5 +1,4 @@
 from typing import Any
-from urllib.parse import unquote
 
 import xmltodict
 
@@ -9,7 +8,6 @@ from moto.core.responses import (
     BaseResponse,
     EmptyResult,
 )
-from moto.core.utils import iso_8601_datetime_with_milliseconds
 
 from .models import CloudFrontBackend, cloudfront_backends, random_id
 
@@ -143,6 +141,7 @@ class CloudFrontResponse(BaseResponse):
         tags = {tag["Key"]: tag.get("Value") for tag in tags}
         self.backend.tag_resource(resource, tags)
         return EmptyResult()
+
     def untag_resource(self) -> ActionResult:
         resource = self._get_param("Resource")
         tag_keys_data = self._get_param("TagKeys.Items", []) or []
@@ -294,19 +293,23 @@ class CloudFrontResponse(BaseResponse):
             function_code=function_code,
             function_config=function_config,
         )
-        return ActionResult({
-            "FunctionSummary": func,
-            "ETag": func.etag,
-            "Location": f"https://cloudfront.amazonaws.com/2020-05-31/function/{func.name}",
-        })
+        return ActionResult(
+            {
+                "FunctionSummary": func,
+                "ETag": func.etag,
+                "Location": f"https://cloudfront.amazonaws.com/2020-05-31/function/{func.name}",
+            }
+        )
 
     def describe_function(self) -> ActionResult:
         name = self.path.split("/")[-2]
         func = self.backend.describe_function(name)
-        return ActionResult({
-            "FunctionSummary": func,
-            "ETag": func.etag,
-        })
+        return ActionResult(
+            {
+                "FunctionSummary": func,
+                "ETag": func.etag,
+            }
+        )
 
     def get_function(self) -> TYPE_RESPONSE:
         name = self.path.split("/")[-1]
@@ -327,10 +330,12 @@ class CloudFrontResponse(BaseResponse):
             function_config=function_config,
             if_match=if_match,
         )
-        return ActionResult({
-            "FunctionSummary": func,
-            "ETag": func.etag,
-        })
+        return ActionResult(
+            {
+                "FunctionSummary": func,
+                "ETag": func.etag,
+            }
+        )
 
     def delete_function(self) -> TYPE_RESPONSE:
         name = self.path.split("/")[-1]
@@ -342,44 +347,58 @@ class CloudFrontResponse(BaseResponse):
         name = self.path.split("/")[-2]
         if_match = self.headers.get("If-Match", "")
         func = self.backend.publish_function(name=name, if_match=if_match)
-        return ActionResult({
-            "FunctionSummary": func,
-        })
+        return ActionResult(
+            {
+                "FunctionSummary": func,
+            }
+        )
 
     def list_functions(self) -> ActionResult:
         functions = self.backend.list_functions()
-        return ActionResult({
-            "FunctionList": {"Items": functions, "Quantity": len(functions), "MaxItems": 100},
-        })
+        return ActionResult(
+            {
+                "FunctionList": {
+                    "Items": functions,
+                    "Quantity": len(functions),
+                    "MaxItems": 100,
+                },
+            }
+        )
 
     # Cache Policies
     def create_cache_policy(self) -> ActionResult:
         config = self._get_xml_body().get("CachePolicyConfig", {})
         config.pop("@xmlns", None)
         policy = self.backend.create_cache_policy(config)
-        return ActionResult({
-            "CachePolicy": policy,
-            "ETag": policy.etag,
-            "Location": f"https://cloudfront.amazonaws.com/2020-05-31/cache-policy/{policy.id}",
-        })
+        return ActionResult(
+            {
+                "CachePolicy": policy,
+                "ETag": policy.etag,
+                "Location": f"https://cloudfront.amazonaws.com/2020-05-31/cache-policy/{policy.id}",
+            }
+        )
 
     def get_cache_policy(self) -> ActionResult:
         policy_id = self.path.split("/")[-1]
         policy = self.backend.get_cache_policy(policy_id)
-        return ActionResult({
-            "CachePolicy": policy,
-            "ETag": policy.etag,
-        })
+        return ActionResult(
+            {
+                "CachePolicy": policy,
+                "ETag": policy.etag,
+            }
+        )
 
     def update_cache_policy(self) -> ActionResult:
         policy_id = self.path.split("/")[-1]
         config = self._get_xml_body().get("CachePolicyConfig", {})
         config.pop("@xmlns", None)
         policy = self.backend.update_cache_policy(policy_id, config)
-        return ActionResult({
-            "CachePolicy": policy,
-            "ETag": policy.etag,
-        })
+        return ActionResult(
+            {
+                "CachePolicy": policy,
+                "ETag": policy.etag,
+            }
+        )
 
     def delete_cache_policy(self) -> TYPE_RESPONSE:
         policy_id = self.path.split("/")[-1]
@@ -388,38 +407,50 @@ class CloudFrontResponse(BaseResponse):
 
     def list_cache_policies(self) -> ActionResult:
         policies = self.backend.list_cache_policies()
-        return ActionResult({
-            "CachePolicyList": {"Items": policies, "Quantity": len(policies), "MaxItems": 100},
-        })
+        return ActionResult(
+            {
+                "CachePolicyList": {
+                    "Items": policies,
+                    "Quantity": len(policies),
+                    "MaxItems": 100,
+                },
+            }
+        )
 
     # Response Headers Policies
     def create_response_headers_policy(self) -> ActionResult:
         config = self._get_xml_body().get("ResponseHeadersPolicyConfig", {})
         config.pop("@xmlns", None)
         policy = self.backend.create_response_headers_policy(config)
-        return ActionResult({
-            "ResponseHeadersPolicy": policy,
-            "ETag": policy.etag,
-            "Location": "https://cloudfront.amazonaws.com/2020-05-31",
-        })
+        return ActionResult(
+            {
+                "ResponseHeadersPolicy": policy,
+                "ETag": policy.etag,
+                "Location": "https://cloudfront.amazonaws.com/2020-05-31",
+            }
+        )
 
     def get_response_headers_policy(self) -> ActionResult:
         policy_id = self.path.split("/")[-1]
         policy = self.backend.get_response_headers_policy(policy_id)
-        return ActionResult({
-            "ResponseHeadersPolicy": policy,
-            "ETag": policy.etag,
-        })
+        return ActionResult(
+            {
+                "ResponseHeadersPolicy": policy,
+                "ETag": policy.etag,
+            }
+        )
 
     def update_response_headers_policy(self) -> ActionResult:
         policy_id = self.path.split("/")[-1]
         config = self._get_xml_body().get("ResponseHeadersPolicyConfig", {})
         config.pop("@xmlns", None)
         policy = self.backend.update_response_headers_policy(policy_id, config)
-        return ActionResult({
-            "ResponseHeadersPolicy": policy,
-            "ETag": policy.etag,
-        })
+        return ActionResult(
+            {
+                "ResponseHeadersPolicy": policy,
+                "ETag": policy.etag,
+            }
+        )
 
     def delete_response_headers_policy(self) -> TYPE_RESPONSE:
         policy_id = self.path.split("/")[-1]
@@ -428,9 +459,15 @@ class CloudFrontResponse(BaseResponse):
 
     def list_response_headers_policies(self) -> ActionResult:
         policies = self.backend.list_response_headers_policies()
-        return ActionResult({
-            "ResponseHeadersPolicyList": {"Items": policies, "Quantity": len(policies), "MaxItems": 100},
-        })
+        return ActionResult(
+            {
+                "ResponseHeadersPolicyList": {
+                    "Items": policies,
+                    "Quantity": len(policies),
+                    "MaxItems": 100,
+                },
+            }
+        )
 
     # Origin Access Identities
     def create_cloud_front_origin_access_identity(self) -> ActionResult:
@@ -442,27 +479,33 @@ class CloudFrontResponse(BaseResponse):
         oai = self.backend.create_cloud_front_origin_access_identity(
             caller_reference=caller_reference, comment=comment
         )
-        return ActionResult({
-            "CloudFrontOriginAccessIdentity": oai,
-            "ETag": oai.etag,
-            "Location": f"https://cloudfront.amazonaws.com/2020-05-31/origin-access-identity/cloudfront/{oai.id}",
-        })
+        return ActionResult(
+            {
+                "CloudFrontOriginAccessIdentity": oai,
+                "ETag": oai.etag,
+                "Location": f"https://cloudfront.amazonaws.com/2020-05-31/origin-access-identity/cloudfront/{oai.id}",
+            }
+        )
 
     def get_cloud_front_origin_access_identity(self) -> ActionResult:
         identity_id = self.path.split("/")[-1]
         oai = self.backend.get_cloud_front_origin_access_identity(identity_id)
-        return ActionResult({
-            "CloudFrontOriginAccessIdentity": oai,
-            "ETag": oai.etag,
-        })
+        return ActionResult(
+            {
+                "CloudFrontOriginAccessIdentity": oai,
+                "ETag": oai.etag,
+            }
+        )
 
     def get_cloud_front_origin_access_identity_config(self) -> ActionResult:
         identity_id = self.path.split("/")[-2]
         oai = self.backend.get_cloud_front_origin_access_identity_config(identity_id)
-        return ActionResult({
-            "CloudFrontOriginAccessIdentityConfig": oai,
-            "ETag": oai.etag,
-        })
+        return ActionResult(
+            {
+                "CloudFrontOriginAccessIdentityConfig": oai,
+                "ETag": oai.etag,
+            }
+        )
 
     def update_cloud_front_origin_access_identity(self) -> ActionResult:
         identity_id = self.path.split("/")[-2]
@@ -472,10 +515,12 @@ class CloudFrontResponse(BaseResponse):
         oai = self.backend.update_cloud_front_origin_access_identity(
             identity_id, config.get("CallerReference", ""), config.get("Comment", "")
         )
-        return ActionResult({
-            "CloudFrontOriginAccessIdentity": oai,
-            "ETag": oai.etag,
-        })
+        return ActionResult(
+            {
+                "CloudFrontOriginAccessIdentity": oai,
+                "ETag": oai.etag,
+            }
+        )
 
     def delete_cloud_front_origin_access_identity(self) -> TYPE_RESPONSE:
         identity_id = self.path.split("/")[-1]
@@ -484,9 +529,15 @@ class CloudFrontResponse(BaseResponse):
 
     def list_cloud_front_origin_access_identities(self) -> ActionResult:
         oais = self.backend.list_cloud_front_origin_access_identities()
-        return ActionResult({
-            "CloudFrontOriginAccessIdentityList": {"Items": oais, "Quantity": len(oais), "MaxItems": 100},
-        })
+        return ActionResult(
+            {
+                "CloudFrontOriginAccessIdentityList": {
+                    "Items": oais,
+                    "Quantity": len(oais),
+                    "MaxItems": 100,
+                },
+            }
+        )
 
     # Streaming Distributions
     def create_streaming_distribution(self) -> ActionResult:
@@ -504,10 +555,12 @@ class CloudFrontResponse(BaseResponse):
             tags = []
         config.pop("@xmlns", None)
         dist = self.backend.create_streaming_distribution(config, tags)
-        return ActionResult({
-            "StreamingDistribution": dist,
-            "ETag": dist.etag,
-        })
+        return ActionResult(
+            {
+                "StreamingDistribution": dist,
+                "ETag": dist.etag,
+            }
+        )
 
     def create_streaming_distribution_with_tags(self) -> TYPE_RESPONSE:
         return self.create_streaming_distribution()
@@ -515,18 +568,22 @@ class CloudFrontResponse(BaseResponse):
     def get_streaming_distribution(self) -> ActionResult:
         dist_id = self.path.split("/")[-1]
         dist = self.backend.get_streaming_distribution(dist_id)
-        return ActionResult({
-            "StreamingDistribution": dist,
-            "ETag": dist.etag,
-        })
+        return ActionResult(
+            {
+                "StreamingDistribution": dist,
+                "ETag": dist.etag,
+            }
+        )
 
     def get_streaming_distribution_config(self) -> ActionResult:
         dist_id = self.path.split("/")[-2]
         dist = self.backend.get_streaming_distribution_config(dist_id)
-        return ActionResult({
-            "StreamingDistributionConfig": dist,
-            "ETag": dist.etag,
-        })
+        return ActionResult(
+            {
+                "StreamingDistributionConfig": dist,
+                "ETag": dist.etag,
+            }
+        )
 
     def update_streaming_distribution(self) -> ActionResult:
         dist_id = self.path.split("/")[-2]
@@ -534,10 +591,12 @@ class CloudFrontResponse(BaseResponse):
         config = params.get("StreamingDistributionConfig", {})
         config.pop("@xmlns", None)
         dist = self.backend.update_streaming_distribution(dist_id, config)
-        return ActionResult({
-            "StreamingDistribution": dist,
-            "ETag": dist.etag,
-        })
+        return ActionResult(
+            {
+                "StreamingDistribution": dist,
+                "ETag": dist.etag,
+            }
+        )
 
     def delete_streaming_distribution(self) -> TYPE_RESPONSE:
         dist_id = self.path.split("/")[-1]
@@ -546,46 +605,60 @@ class CloudFrontResponse(BaseResponse):
 
     def list_streaming_distributions(self) -> ActionResult:
         dists = self.backend.list_streaming_distributions()
-        return ActionResult({
-            "StreamingDistributionList": {"Items": dists, "Quantity": len(dists), "MaxItems": 100},
-        })
+        return ActionResult(
+            {
+                "StreamingDistributionList": {
+                    "Items": dists,
+                    "Quantity": len(dists),
+                    "MaxItems": 100,
+                },
+            }
+        )
 
     # Origin Request Policies
     def create_origin_request_policy(self) -> ActionResult:
         config = self._get_xml_body().get("OriginRequestPolicyConfig", {})
         config.pop("@xmlns", None)
         policy = self.backend.create_origin_request_policy(config)
-        return ActionResult({
-            "OriginRequestPolicy": policy,
-            "ETag": policy.etag,
-            "Location": f"https://cloudfront.amazonaws.com/2020-05-31/origin-request-policy/{policy.id}",
-        })
+        return ActionResult(
+            {
+                "OriginRequestPolicy": policy,
+                "ETag": policy.etag,
+                "Location": f"https://cloudfront.amazonaws.com/2020-05-31/origin-request-policy/{policy.id}",
+            }
+        )
 
     def get_origin_request_policy(self) -> ActionResult:
         policy_id = self.path.split("/")[-1]
         policy = self.backend.get_origin_request_policy(policy_id)
-        return ActionResult({
-            "OriginRequestPolicy": policy,
-            "ETag": policy.etag,
-        })
+        return ActionResult(
+            {
+                "OriginRequestPolicy": policy,
+                "ETag": policy.etag,
+            }
+        )
 
     def get_origin_request_policy_config(self) -> ActionResult:
         policy_id = self.path.split("/")[-2]
         policy = self.backend.get_origin_request_policy_config(policy_id)
-        return ActionResult({
-            "OriginRequestPolicyConfig": policy,
-            "ETag": policy.etag,
-        })
+        return ActionResult(
+            {
+                "OriginRequestPolicyConfig": policy,
+                "ETag": policy.etag,
+            }
+        )
 
     def update_origin_request_policy(self) -> ActionResult:
         policy_id = self.path.split("/")[-1]
         config = self._get_xml_body().get("OriginRequestPolicyConfig", {})
         config.pop("@xmlns", None)
         policy = self.backend.update_origin_request_policy(policy_id, config)
-        return ActionResult({
-            "OriginRequestPolicy": policy,
-            "ETag": policy.etag,
-        })
+        return ActionResult(
+            {
+                "OriginRequestPolicy": policy,
+                "ETag": policy.etag,
+            }
+        )
 
     def delete_origin_request_policy(self) -> TYPE_RESPONSE:
         policy_id = self.path.split("/")[-1]
@@ -594,46 +667,60 @@ class CloudFrontResponse(BaseResponse):
 
     def list_origin_request_policies(self) -> ActionResult:
         policies = self.backend.list_origin_request_policies()
-        return ActionResult({
-            "OriginRequestPolicyList": {"Items": policies, "Quantity": len(policies), "MaxItems": 100},
-        })
+        return ActionResult(
+            {
+                "OriginRequestPolicyList": {
+                    "Items": policies,
+                    "Quantity": len(policies),
+                    "MaxItems": 100,
+                },
+            }
+        )
 
     # Field Level Encryption
     def create_field_level_encryption_config(self) -> ActionResult:
         config = self._get_xml_body().get("FieldLevelEncryptionConfig", {})
         config.pop("@xmlns", None)
         fle = self.backend.create_field_level_encryption_config(config)
-        return ActionResult({
-            "FieldLevelEncryption": fle,
-            "ETag": fle.etag,
-            "Location": f"https://cloudfront.amazonaws.com/2020-05-31/field-level-encryption/{fle.id}",
-        })
+        return ActionResult(
+            {
+                "FieldLevelEncryption": fle,
+                "ETag": fle.etag,
+                "Location": f"https://cloudfront.amazonaws.com/2020-05-31/field-level-encryption/{fle.id}",
+            }
+        )
 
     def get_field_level_encryption(self) -> ActionResult:
         config_id = self.path.split("/")[-1]
         fle = self.backend.get_field_level_encryption(config_id)
-        return ActionResult({
-            "FieldLevelEncryption": fle,
-            "ETag": fle.etag,
-        })
+        return ActionResult(
+            {
+                "FieldLevelEncryption": fle,
+                "ETag": fle.etag,
+            }
+        )
 
     def get_field_level_encryption_config(self) -> ActionResult:
         config_id = self.path.split("/")[-2]
         fle = self.backend.get_field_level_encryption_config(config_id)
-        return ActionResult({
-            "FieldLevelEncryptionConfig": fle,
-            "ETag": fle.etag,
-        })
+        return ActionResult(
+            {
+                "FieldLevelEncryptionConfig": fle,
+                "ETag": fle.etag,
+            }
+        )
 
     def update_field_level_encryption_config(self) -> ActionResult:
         config_id = self.path.split("/")[-2]
         config = self._get_xml_body().get("FieldLevelEncryptionConfig", {})
         config.pop("@xmlns", None)
         fle = self.backend.update_field_level_encryption_config(config_id, config)
-        return ActionResult({
-            "FieldLevelEncryption": fle,
-            "ETag": fle.etag,
-        })
+        return ActionResult(
+            {
+                "FieldLevelEncryption": fle,
+                "ETag": fle.etag,
+            }
+        )
 
     def delete_field_level_encryption_config(self) -> TYPE_RESPONSE:
         config_id = self.path.split("/")[-1]
@@ -642,46 +729,60 @@ class CloudFrontResponse(BaseResponse):
 
     def list_field_level_encryption_configs(self) -> ActionResult:
         configs = self.backend.list_field_level_encryption_configs()
-        return ActionResult({
-            "FieldLevelEncryptionList": {"Items": configs, "Quantity": len(configs), "MaxItems": 100},
-        })
+        return ActionResult(
+            {
+                "FieldLevelEncryptionList": {
+                    "Items": configs,
+                    "Quantity": len(configs),
+                    "MaxItems": 100,
+                },
+            }
+        )
 
     # Field Level Encryption Profiles
     def create_field_level_encryption_profile(self) -> ActionResult:
         config = self._get_xml_body().get("FieldLevelEncryptionProfileConfig", {})
         config.pop("@xmlns", None)
         profile = self.backend.create_field_level_encryption_profile(config)
-        return ActionResult({
-            "FieldLevelEncryptionProfile": profile,
-            "ETag": profile.etag,
-            "Location": f"https://cloudfront.amazonaws.com/2020-05-31/field-level-encryption-profile/{profile.id}",
-        })
+        return ActionResult(
+            {
+                "FieldLevelEncryptionProfile": profile,
+                "ETag": profile.etag,
+                "Location": f"https://cloudfront.amazonaws.com/2020-05-31/field-level-encryption-profile/{profile.id}",
+            }
+        )
 
     def get_field_level_encryption_profile(self) -> ActionResult:
         profile_id = self.path.split("/")[-1]
         profile = self.backend.get_field_level_encryption_profile(profile_id)
-        return ActionResult({
-            "FieldLevelEncryptionProfile": profile,
-            "ETag": profile.etag,
-        })
+        return ActionResult(
+            {
+                "FieldLevelEncryptionProfile": profile,
+                "ETag": profile.etag,
+            }
+        )
 
     def get_field_level_encryption_profile_config(self) -> ActionResult:
         profile_id = self.path.split("/")[-2]
         profile = self.backend.get_field_level_encryption_profile_config(profile_id)
-        return ActionResult({
-            "FieldLevelEncryptionProfileConfig": profile,
-            "ETag": profile.etag,
-        })
+        return ActionResult(
+            {
+                "FieldLevelEncryptionProfileConfig": profile,
+                "ETag": profile.etag,
+            }
+        )
 
     def update_field_level_encryption_profile(self) -> ActionResult:
         profile_id = self.path.split("/")[-2]
         config = self._get_xml_body().get("FieldLevelEncryptionProfileConfig", {})
         config.pop("@xmlns", None)
         profile = self.backend.update_field_level_encryption_profile(profile_id, config)
-        return ActionResult({
-            "FieldLevelEncryptionProfile": profile,
-            "ETag": profile.etag,
-        })
+        return ActionResult(
+            {
+                "FieldLevelEncryptionProfile": profile,
+                "ETag": profile.etag,
+            }
+        )
 
     def delete_field_level_encryption_profile(self) -> TYPE_RESPONSE:
         profile_id = self.path.split("/")[-1]
@@ -690,46 +791,60 @@ class CloudFrontResponse(BaseResponse):
 
     def list_field_level_encryption_profiles(self) -> ActionResult:
         profiles = self.backend.list_field_level_encryption_profiles()
-        return ActionResult({
-            "FieldLevelEncryptionProfileList": {"Items": profiles, "Quantity": len(profiles), "MaxItems": 100},
-        })
+        return ActionResult(
+            {
+                "FieldLevelEncryptionProfileList": {
+                    "Items": profiles,
+                    "Quantity": len(profiles),
+                    "MaxItems": 100,
+                },
+            }
+        )
 
     # Continuous Deployment Policies
     def create_continuous_deployment_policy(self) -> ActionResult:
         config = self._get_xml_body().get("ContinuousDeploymentPolicyConfig", {})
         config.pop("@xmlns", None)
         policy = self.backend.create_continuous_deployment_policy(config)
-        return ActionResult({
-            "ContinuousDeploymentPolicy": policy,
-            "ETag": policy.etag,
-            "Location": f"https://cloudfront.amazonaws.com/2020-05-31/continuous-deployment-policy/{policy.id}",
-        })
+        return ActionResult(
+            {
+                "ContinuousDeploymentPolicy": policy,
+                "ETag": policy.etag,
+                "Location": f"https://cloudfront.amazonaws.com/2020-05-31/continuous-deployment-policy/{policy.id}",
+            }
+        )
 
     def get_continuous_deployment_policy(self) -> ActionResult:
         policy_id = self.path.split("/")[-1]
         policy = self.backend.get_continuous_deployment_policy(policy_id)
-        return ActionResult({
-            "ContinuousDeploymentPolicy": policy,
-            "ETag": policy.etag,
-        })
+        return ActionResult(
+            {
+                "ContinuousDeploymentPolicy": policy,
+                "ETag": policy.etag,
+            }
+        )
 
     def get_continuous_deployment_policy_config(self) -> ActionResult:
         policy_id = self.path.split("/")[-2]
         policy = self.backend.get_continuous_deployment_policy_config(policy_id)
-        return ActionResult({
-            "ContinuousDeploymentPolicyConfig": policy,
-            "ETag": policy.etag,
-        })
+        return ActionResult(
+            {
+                "ContinuousDeploymentPolicyConfig": policy,
+                "ETag": policy.etag,
+            }
+        )
 
     def update_continuous_deployment_policy(self) -> ActionResult:
         policy_id = self.path.split("/")[-2]
         config = self._get_xml_body().get("ContinuousDeploymentPolicyConfig", {})
         config.pop("@xmlns", None)
         policy = self.backend.update_continuous_deployment_policy(policy_id, config)
-        return ActionResult({
-            "ContinuousDeploymentPolicy": policy,
-            "ETag": policy.etag,
-        })
+        return ActionResult(
+            {
+                "ContinuousDeploymentPolicy": policy,
+                "ETag": policy.etag,
+            }
+        )
 
     def delete_continuous_deployment_policy(self) -> TYPE_RESPONSE:
         policy_id = self.path.split("/")[-1]
@@ -738,9 +853,15 @@ class CloudFrontResponse(BaseResponse):
 
     def list_continuous_deployment_policies(self) -> ActionResult:
         policies = self.backend.list_continuous_deployment_policies()
-        return ActionResult({
-            "ContinuousDeploymentPolicyList": {"Items": policies, "Quantity": len(policies), "MaxItems": 100},
-        })
+        return ActionResult(
+            {
+                "ContinuousDeploymentPolicyList": {
+                    "Items": policies,
+                    "Quantity": len(policies),
+                    "MaxItems": 100,
+                },
+            }
+        )
 
     # Monitoring Subscriptions
     def create_monitoring_subscription(self) -> ActionResult:
@@ -750,16 +871,20 @@ class CloudFrontResponse(BaseResponse):
         ms_config.pop("@xmlns", None)
         realtime_config = ms_config.get("RealtimeMetricsSubscriptionConfig", {})
         sub = self.backend.create_monitoring_subscription(dist_id, realtime_config)
-        return ActionResult({
-            "MonitoringSubscription": sub,
-        })
+        return ActionResult(
+            {
+                "MonitoringSubscription": sub,
+            }
+        )
 
     def get_monitoring_subscription(self) -> ActionResult:
         dist_id = self.path.split("/")[-2]
         sub = self.backend.get_monitoring_subscription(dist_id)
-        return ActionResult({
-            "MonitoringSubscription": sub,
-        })
+        return ActionResult(
+            {
+                "MonitoringSubscription": sub,
+            }
+        )
 
     def delete_monitoring_subscription(self) -> TYPE_RESPONSE:
         dist_id = self.path.split("/")[-2]
@@ -821,18 +946,22 @@ class CloudFrontResponse(BaseResponse):
             end_points=end_points,
             fields=fields,
         )
-        return ActionResult({
-            "RealtimeLogConfig": config,
-        })
+        return ActionResult(
+            {
+                "RealtimeLogConfig": config,
+            }
+        )
 
     def get_realtime_log_config(self) -> ActionResult:
         body = self._parse_realtime_body() if self.body else {}
         config = self.backend.get_realtime_log_config(
             name=body.get("Name"), arn=body.get("ARN")
         )
-        return ActionResult({
-            "RealtimeLogConfig": config,
-        })
+        return ActionResult(
+            {
+                "RealtimeLogConfig": config,
+            }
+        )
 
     def update_realtime_log_config(self) -> ActionResult:
         body = self._parse_realtime_body() if self.body else {}
@@ -846,9 +975,11 @@ class CloudFrontResponse(BaseResponse):
             end_points=end_points,
             fields=fields,
         )
-        return ActionResult({
-            "RealtimeLogConfig": config,
-        })
+        return ActionResult(
+            {
+                "RealtimeLogConfig": config,
+            }
+        )
 
     def delete_realtime_log_config(self) -> TYPE_RESPONSE:
         body = self._parse_realtime_body() if self.body else {}
@@ -859,9 +990,11 @@ class CloudFrontResponse(BaseResponse):
 
     def list_realtime_log_configs(self) -> ActionResult:
         configs = self.backend.list_realtime_log_configs()
-        return ActionResult({
-            "RealtimeLogConfigs": configs,
-        })
+        return ActionResult(
+            {
+                "RealtimeLogConfigs": configs,
+            }
+        )
 
     # Distribution query operations
     def list_distributions_by_web_acl_id(self) -> TYPE_RESPONSE:
@@ -876,92 +1009,134 @@ class CloudFrontResponse(BaseResponse):
     def list_distributions_by_cache_policy_id(self) -> ActionResult:
         policy_id = self.path.split("/")[-1]
         dist_ids = self.backend.list_distributions_by_cache_policy_id(policy_id)
-        return ActionResult({
-            "DistributionIdList": {"Items": dist_ids, "Quantity": len(dist_ids), "MaxItems": 100},
-        })
+        return ActionResult(
+            {
+                "DistributionIdList": {
+                    "Items": dist_ids,
+                    "Quantity": len(dist_ids),
+                    "MaxItems": 100,
+                },
+            }
+        )
 
     def list_distributions_by_origin_request_policy_id(self) -> ActionResult:
         policy_id = self.path.split("/")[-1]
         dist_ids = self.backend.list_distributions_by_origin_request_policy_id(
             policy_id
         )
-        return ActionResult({
-            "DistributionIdList": {"Items": dist_ids, "Quantity": len(dist_ids), "MaxItems": 100},
-        })
+        return ActionResult(
+            {
+                "DistributionIdList": {
+                    "Items": dist_ids,
+                    "Quantity": len(dist_ids),
+                    "MaxItems": 100,
+                },
+            }
+        )
 
     def list_distributions_by_response_headers_policy_id(self) -> ActionResult:
         policy_id = self.path.split("/")[-1]
         dist_ids = self.backend.list_distributions_by_response_headers_policy_id(
             policy_id
         )
-        return ActionResult({
-            "DistributionIdList": {"Items": dist_ids, "Quantity": len(dist_ids), "MaxItems": 100},
-        })
+        return ActionResult(
+            {
+                "DistributionIdList": {
+                    "Items": dist_ids,
+                    "Quantity": len(dist_ids),
+                    "MaxItems": 100,
+                },
+            }
+        )
 
     def list_distributions_by_key_group(self) -> ActionResult:
         key_group_id = self.path.split("/")[-1]
         dist_ids = self.backend.list_distributions_by_key_group(key_group_id)
-        return ActionResult({
-            "DistributionIdList": {"Items": dist_ids, "Quantity": len(dist_ids), "MaxItems": 100},
-        })
+        return ActionResult(
+            {
+                "DistributionIdList": {
+                    "Items": dist_ids,
+                    "Quantity": len(dist_ids),
+                    "MaxItems": 100,
+                },
+            }
+        )
 
     def list_distributions_by_realtime_log_config(self) -> ActionResult:
         body = self._parse_realtime_body() if self.body else {}
         distributions = self.backend.list_distributions_by_realtime_log_config(
             body.get("RealtimeLogConfigArn", "")
         )
-        return ActionResult({
-            "DistributionList": {"Items": distributions, "Quantity": len(distributions), "MaxItems": 100},
-        })
+        return ActionResult(
+            {
+                "DistributionList": {
+                    "Items": distributions,
+                    "Quantity": len(distributions),
+                    "MaxItems": 100,
+                },
+            }
+        )
 
     # Config-only getters
     def get_cache_policy_config(self) -> ActionResult:
         policy_id = self.path.split("/")[-2]
         policy = self.backend.get_cache_policy_config(policy_id)
-        return ActionResult({
-            "CachePolicyConfig": policy,
-            "ETag": policy.etag,
-        })
+        return ActionResult(
+            {
+                "CachePolicyConfig": policy,
+                "ETag": policy.etag,
+            }
+        )
 
     def get_key_group_config(self) -> ActionResult:
         group_id = self.path.split("/")[-2]
         group = self.backend.get_key_group_config(group_id)
-        return ActionResult({
-            "KeyGroupConfig": group,
-            "ETag": group.etag,
-        })
+        return ActionResult(
+            {
+                "KeyGroupConfig": group,
+                "ETag": group.etag,
+            }
+        )
 
     def get_origin_access_control_config(self) -> ActionResult:
         control_id = self.path.split("/")[-2]
         control = self.backend.get_origin_access_control_config(control_id)
-        return ActionResult({
-            "OriginAccessControlConfig": control,
-            "ETag": control.etag,
-        })
+        return ActionResult(
+            {
+                "OriginAccessControlConfig": control,
+                "ETag": control.etag,
+            }
+        )
 
     def get_public_key_config(self) -> ActionResult:
         key_id = self.path.split("/")[-2]
         key = self.backend.get_public_key_config(key_id)
-        return ActionResult({
-            "PublicKeyConfig": key,
-            "ETag": key.etag,
-        })
+        return ActionResult(
+            {
+                "PublicKeyConfig": key,
+                "ETag": key.etag,
+            }
+        )
 
     def get_response_headers_policy_config(self) -> ActionResult:
         policy_id = self.path.split("/")[-2]
         policy = self.backend.get_response_headers_policy_config(policy_id)
-        return ActionResult({
-            "ResponseHeadersPolicyConfig": policy,
-            "ETag": policy.etag,
-        })
+        return ActionResult(
+            {
+                "ResponseHeadersPolicyConfig": policy,
+                "ETag": policy.etag,
+            }
+        )
 
     def update_public_key(self) -> ActionResult:
         key_id = self.path.split("/")[-2]
         key = self.backend.update_public_key(key_id)
-        return ActionResult({
-            "PublicKey": key,
-            "ETag": key.etag,
-        })
+        return ActionResult(
+            {
+                "PublicKey": key,
+                "ETag": key.etag,
+            }
+        )
 
     # Alias operations
     def associate_alias(self) -> TYPE_RESPONSE:
@@ -973,17 +1148,25 @@ class CloudFrontResponse(BaseResponse):
     def test_function(self) -> ActionResult:
         name = self.path.split("/")[-2]
         result = self.backend.test_function(name, event_object="")
-        return ActionResult({
-            "TestResult": result,
-        })
+        return ActionResult(
+            {
+                "TestResult": result,
+            }
+        )
 
     def list_conflicting_aliases(self) -> ActionResult:
         dist_id = self._get_param("DistributionId")
         alias = self._get_param("Alias")
         items = self.backend.list_conflicting_aliases(dist_id, alias)
-        return ActionResult({
-            "ConflictingAliasesList": {"Items": items, "Quantity": len(items), "MaxItems": 100},
-        })
+        return ActionResult(
+            {
+                "ConflictingAliasesList": {
+                    "Items": items,
+                    "Quantity": len(items),
+                    "MaxItems": 100,
+                },
+            }
+        )
 
     def create_distribution_with_tags(self) -> ActionResult:
         distribution_config = self._get_param(
@@ -1031,17 +1214,21 @@ class CloudFrontResponse(BaseResponse):
         name = req.get("Name", "")
         comment = req.get("Comment", "")
         kvs = self.backend.create_key_value_store(name=name, comment=comment)
-        return ActionResult({
-            "KeyValueStore": kvs,
-            "Location": f"https://cloudfront.amazonaws.com/2020-05-31/key-value-store/{name}",
-        })
+        return ActionResult(
+            {
+                "KeyValueStore": kvs,
+                "Location": f"https://cloudfront.amazonaws.com/2020-05-31/key-value-store/{name}",
+            }
+        )
 
     def describe_key_value_store(self) -> ActionResult:
         name = self.path.split("/")[-1]
         kvs = self.backend.describe_key_value_store(name)
-        return ActionResult({
-            "KeyValueStore": kvs,
-        })
+        return ActionResult(
+            {
+                "KeyValueStore": kvs,
+            }
+        )
 
     def delete_key_value_store(self) -> TYPE_RESPONSE:
         name = self.path.split("/")[-1]
@@ -1058,15 +1245,23 @@ class CloudFrontResponse(BaseResponse):
             req = {}
         comment = req.get("Comment", "")
         kvs = self.backend.update_key_value_store(name=name, comment=comment)
-        return ActionResult({
-            "KeyValueStore": kvs,
-        })
+        return ActionResult(
+            {
+                "KeyValueStore": kvs,
+            }
+        )
 
     def list_key_value_stores(self) -> ActionResult:
         stores = self.backend.list_key_value_stores()
-        return ActionResult({
-            "KeyValueStoreList": {"Items": stores, "Quantity": len(stores), "MaxItems": 100},
-        })
+        return ActionResult(
+            {
+                "KeyValueStoreList": {
+                    "Items": stores,
+                    "Quantity": len(stores),
+                    "MaxItems": 100,
+                },
+            }
+        )
 
     # VPC Origins
     def create_vpc_origin(self) -> ActionResult:
@@ -1075,18 +1270,22 @@ class CloudFrontResponse(BaseResponse):
         config = root.get("VpcOriginEndpointConfig", {})
         config.pop("@xmlns", None)
         vo = self.backend.create_vpc_origin(config)
-        return ActionResult({
-            "VpcOrigin": vo,
-            "ETag": vo.etag,
-        })
+        return ActionResult(
+            {
+                "VpcOrigin": vo,
+                "ETag": vo.etag,
+            }
+        )
 
     def get_vpc_origin(self) -> ActionResult:
         vpc_id = self.path.split("/")[-1]
         vo = self.backend.get_vpc_origin(vpc_id)
-        return ActionResult({
-            "VpcOrigin": vo,
-            "ETag": vo.etag,
-        })
+        return ActionResult(
+            {
+                "VpcOrigin": vo,
+                "ETag": vo.etag,
+            }
+        )
 
     def delete_vpc_origin(self) -> TYPE_RESPONSE:
         vpc_id = self.path.split("/")[-1]
@@ -1100,16 +1299,24 @@ class CloudFrontResponse(BaseResponse):
         config = root.get("VpcOriginEndpointConfig", {})
         config.pop("@xmlns", None)
         vo = self.backend.update_vpc_origin(vpc_id, config)
-        return ActionResult({
-            "VpcOrigin": vo,
-            "ETag": vo.etag,
-        })
+        return ActionResult(
+            {
+                "VpcOrigin": vo,
+                "ETag": vo.etag,
+            }
+        )
 
     def list_vpc_origins(self) -> ActionResult:
         origins = self.backend.list_vpc_origins()
-        return ActionResult({
-            "VpcOriginList": {"Items": origins, "Quantity": len(origins), "MaxItems": 100},
-        })
+        return ActionResult(
+            {
+                "VpcOriginList": {
+                    "Items": origins,
+                    "Quantity": len(origins),
+                    "MaxItems": 100,
+                },
+            }
+        )
 
     # Trust Stores
     def create_trust_store(self) -> ActionResult:
@@ -1118,18 +1325,22 @@ class CloudFrontResponse(BaseResponse):
         root.pop("@xmlns", None)
         name = root.get("Name", "")
         ts = self.backend.create_trust_store(name)
-        return ActionResult({
-            "TrustStore": ts,
-            "ETag": ts.etag,
-        })
+        return ActionResult(
+            {
+                "TrustStore": ts,
+                "ETag": ts.etag,
+            }
+        )
 
     def get_trust_store(self) -> ActionResult:
         store_id = self.path.split("/")[-1]
         ts = self.backend.get_trust_store(store_id)
-        return ActionResult({
-            "TrustStore": ts,
-            "ETag": ts.etag,
-        })
+        return ActionResult(
+            {
+                "TrustStore": ts,
+                "ETag": ts.etag,
+            }
+        )
 
     def delete_trust_store(self) -> TYPE_RESPONSE:
         store_id = self.path.split("/")[-1]
@@ -1139,16 +1350,20 @@ class CloudFrontResponse(BaseResponse):
     def update_trust_store(self) -> ActionResult:
         store_id = self.path.split("/")[-1]
         ts = self.backend.update_trust_store(store_id)
-        return ActionResult({
-            "TrustStore": ts,
-            "ETag": ts.etag,
-        })
+        return ActionResult(
+            {
+                "TrustStore": ts,
+                "ETag": ts.etag,
+            }
+        )
 
     def list_trust_stores(self) -> ActionResult:
         stores = self.backend.list_trust_stores()
-        return ActionResult({
-            "TrustStoreList": stores,
-        })
+        return ActionResult(
+            {
+                "TrustStoreList": stores,
+            }
+        )
 
     # Resource Policy
     def get_resource_policy(self) -> TYPE_RESPONSE:
@@ -1156,9 +1371,11 @@ class CloudFrontResponse(BaseResponse):
         return 200, {"ETag": random_id(length=14)}, template.render(xmlns=XMLNS)
 
     def put_resource_policy(self) -> ActionResult:
-        return ActionResult({
-            "ResourceArn": "",
-        })
+        return ActionResult(
+            {
+                "ResourceArn": "",
+            }
+        )
 
     def delete_resource_policy(self) -> TYPE_RESPONSE:
         return 204, {"status": 204}, ""
@@ -1170,18 +1387,22 @@ class CloudFrontResponse(BaseResponse):
         root.pop("@xmlns", None)
         name = root.get("Name", "")
         aip = self.backend.create_anycast_ip_list(name)
-        return ActionResult({
-            "AnycastIpList": {"Items": aip, "Quantity": len(aip), "MaxItems": 100},
-            "ETag": aip.etag,
-        })
+        return ActionResult(
+            {
+                "AnycastIpList": {"Items": aip, "Quantity": len(aip), "MaxItems": 100},
+                "ETag": aip.etag,
+            }
+        )
 
     def get_anycast_ip_list(self) -> ActionResult:
         list_id = self.path.split("/")[-1]
         aip = self.backend.get_anycast_ip_list(list_id)
-        return ActionResult({
-            "AnycastIpList": {"Items": aip, "Quantity": len(aip), "MaxItems": 100},
-            "ETag": aip.etag,
-        })
+        return ActionResult(
+            {
+                "AnycastIpList": {"Items": aip, "Quantity": len(aip), "MaxItems": 100},
+                "ETag": aip.etag,
+            }
+        )
 
     def delete_anycast_ip_list(self) -> TYPE_RESPONSE:
         list_id = self.path.split("/")[-1]
@@ -1193,9 +1414,11 @@ class CloudFrontResponse(BaseResponse):
 
     def list_anycast_ip_lists(self) -> ActionResult:
         lists = self.backend.list_anycast_ip_lists()
-        return ActionResult({
-            "AnycastIpLists": lists,
-        })
+        return ActionResult(
+            {
+                "AnycastIpLists": lists,
+            }
+        )
 
     # Connection Groups
     def create_connection_group(self) -> ActionResult:
@@ -1204,18 +1427,22 @@ class CloudFrontResponse(BaseResponse):
         root.pop("@xmlns", None)
         name = root.get("Name", "")
         cg = self.backend.create_connection_group(name)
-        return ActionResult({
-            "ConnectionGroup": cg,
-            "ETag": cg.etag,
-        })
+        return ActionResult(
+            {
+                "ConnectionGroup": cg,
+                "ETag": cg.etag,
+            }
+        )
 
     def get_connection_group(self) -> ActionResult:
         cg_id = self.path.split("/")[-1]
         cg = self.backend.get_connection_group(cg_id)
-        return ActionResult({
-            "ConnectionGroup": cg,
-            "ETag": cg.etag,
-        })
+        return ActionResult(
+            {
+                "ConnectionGroup": cg,
+                "ETag": cg.etag,
+            }
+        )
 
     def delete_connection_group(self) -> TYPE_RESPONSE:
         cg_id = self.path.split("/")[-1]
@@ -1226,21 +1453,27 @@ class CloudFrontResponse(BaseResponse):
         cg_id = self.path.split("/")[-1]
         cg = self.backend.get_connection_group(cg_id)
         cg.etag = random_id(length=14)
-        return ActionResult({
-            "ConnectionGroup": cg,
-            "ETag": cg.etag,
-        })
+        return ActionResult(
+            {
+                "ConnectionGroup": cg,
+                "ETag": cg.etag,
+            }
+        )
 
     def list_connection_groups(self) -> ActionResult:
         groups = self.backend.list_connection_groups()
-        return ActionResult({
-            "ConnectionGroups": groups,
-        })
+        return ActionResult(
+            {
+                "ConnectionGroups": groups,
+            }
+        )
 
     def get_connection_group_by_routing_endpoint(self) -> ActionResult:
-        return ActionResult({
-            "ConnectionGroup": {},
-        })
+        return ActionResult(
+            {
+                "ConnectionGroup": {},
+            }
+        )
 
     # Distribution Tenants
     def create_distribution_tenant(self) -> ActionResult:
@@ -1250,18 +1483,22 @@ class CloudFrontResponse(BaseResponse):
         name = root.get("Name", "")
         dist_id = root.get("DistributionId", "")
         dt = self.backend.create_distribution_tenant(name, dist_id)
-        return ActionResult({
-            "DistributionTenant": dt,
-            "ETag": dt.etag,
-        })
+        return ActionResult(
+            {
+                "DistributionTenant": dt,
+                "ETag": dt.etag,
+            }
+        )
 
     def get_distribution_tenant(self) -> ActionResult:
         dt_id = self.path.split("/")[-1]
         dt = self.backend.get_distribution_tenant(dt_id)
-        return ActionResult({
-            "DistributionTenant": dt,
-            "ETag": dt.etag,
-        })
+        return ActionResult(
+            {
+                "DistributionTenant": dt,
+                "ETag": dt.etag,
+            }
+        )
 
     def delete_distribution_tenant(self) -> TYPE_RESPONSE:
         dt_id = self.path.split("/")[-1]
@@ -1272,44 +1509,58 @@ class CloudFrontResponse(BaseResponse):
         dt_id = self.path.split("/")[-1]
         dt = self.backend.get_distribution_tenant(dt_id)
         dt.etag = random_id(length=14)
-        return ActionResult({
-            "DistributionTenant": dt,
-            "ETag": dt.etag,
-        })
+        return ActionResult(
+            {
+                "DistributionTenant": dt,
+                "ETag": dt.etag,
+            }
+        )
 
     def list_distribution_tenants(self) -> ActionResult:
         tenants = self.backend.list_distribution_tenants()
-        return ActionResult({
-            "DistributionTenantList": tenants,
-        })
+        return ActionResult(
+            {
+                "DistributionTenantList": tenants,
+            }
+        )
 
     def get_distribution_tenant_by_domain(self) -> ActionResult:
-        return ActionResult({
-            "DistributionTenant": {},
-        })
+        return ActionResult(
+            {
+                "DistributionTenant": {},
+            }
+        )
 
     def list_distribution_tenants_by_customization(self) -> ActionResult:
-        return ActionResult({
-            "NextMarker": "",
-            "DistributionTenantList": [],
-        })
+        return ActionResult(
+            {
+                "NextMarker": "",
+                "DistributionTenantList": [],
+            }
+        )
 
     def create_invalidation_for_distribution_tenant(self) -> ActionResult:
         inv_id = random_id()
-        return ActionResult({
-            "Invalidation": inv_id,
-        })
+        return ActionResult(
+            {
+                "Invalidation": inv_id,
+            }
+        )
 
     def get_invalidation_for_distribution_tenant(self) -> ActionResult:
         inv_id = self.path.split("/")[-1]
-        return ActionResult({
-            "Invalidation": inv_id,
-        })
+        return ActionResult(
+            {
+                "Invalidation": inv_id,
+            }
+        )
 
     def list_invalidations_for_distribution_tenant(self) -> ActionResult:
-        return ActionResult({
-            "InvalidationList": {"Items": [], "Quantity": 0, "MaxItems": 100},
-        })
+        return ActionResult(
+            {
+                "InvalidationList": {"Items": [], "Quantity": 0, "MaxItems": 100},
+            }
+        )
 
     # Connection Functions
     def create_connection_function(self) -> ActionResult:
@@ -1318,10 +1569,12 @@ class CloudFrontResponse(BaseResponse):
         root.pop("@xmlns", None)
         name = root.get("Name", "")
         cf = self.backend.create_connection_function(name)
-        return ActionResult({
-            "ConnectionFunctionSummary": cf,
-            "ETag": cf.etag,
-        })
+        return ActionResult(
+            {
+                "ConnectionFunctionSummary": cf,
+                "ETag": cf.etag,
+            }
+        )
 
     def get_connection_function(self) -> TYPE_RESPONSE:
         name = self.path.split("/")[-1]
@@ -1332,10 +1585,12 @@ class CloudFrontResponse(BaseResponse):
     def describe_connection_function(self) -> ActionResult:
         name = self.path.split("/")[-2]
         cf = self.backend.get_connection_function(name)
-        return ActionResult({
-            "ConnectionFunctionSummary": cf,
-            "ETag": cf.etag,
-        })
+        return ActionResult(
+            {
+                "ConnectionFunctionSummary": cf,
+                "ETag": cf.etag,
+            }
+        )
 
     def delete_connection_function(self) -> TYPE_RESPONSE:
         name = self.path.split("/")[-1]
@@ -1346,30 +1601,38 @@ class CloudFrontResponse(BaseResponse):
         name = self.path.split("/")[-1]
         cf = self.backend.get_connection_function(name)
         cf.etag = random_id(length=14)
-        return ActionResult({
-            "ConnectionFunctionSummary": cf,
-            "ETag": cf.etag,
-        })
+        return ActionResult(
+            {
+                "ConnectionFunctionSummary": cf,
+                "ETag": cf.etag,
+            }
+        )
 
     def publish_connection_function(self) -> ActionResult:
         name = self.path.split("/")[-2]
         cf = self.backend.get_connection_function(name)
         cf.stage = "LIVE"
         cf.etag = random_id(length=14)
-        return ActionResult({
-            "ConnectionFunctionSummary": cf,
-        })
+        return ActionResult(
+            {
+                "ConnectionFunctionSummary": cf,
+            }
+        )
 
     def test_connection_function(self) -> ActionResult:
-        return ActionResult({
-            "ConnectionFunctionTestResult": {},
-        })
+        return ActionResult(
+            {
+                "ConnectionFunctionTestResult": {},
+            }
+        )
 
     def list_connection_functions(self) -> ActionResult:
         funcs = self.backend.list_connection_functions()
-        return ActionResult({
-            "ConnectionFunctions": funcs,
-        })
+        return ActionResult(
+            {
+                "ConnectionFunctions": funcs,
+            }
+        )
 
     def copy_distribution(self) -> TYPE_RESPONSE:
         return self.get_distribution()
@@ -1399,30 +1662,39 @@ class CloudFrontResponse(BaseResponse):
         return 200, {}, template.render(dist_ids=[])
 
     def list_domain_conflicts(self) -> ActionResult:
-        return ActionResult({
-            "DomainConflicts": [],
-            "NextMarker": "",
-        })
+        return ActionResult(
+            {
+                "DomainConflicts": [],
+                "NextMarker": "",
+            }
+        )
 
     def update_distribution_with_staging_config(self) -> ActionResult:
         dist_id = self.path.split("/")[-2]
         dist, etag = self.backend.get_distribution(dist_id)
-        return ActionResult({
-            "Distribution": dist,
-        })
+        return ActionResult(
+            {
+                "Distribution": dist,
+            }
+        )
 
     def update_domain_association(self) -> TYPE_RESPONSE:
         return 200, {}, ""
 
     def get_managed_certificate_details(self) -> ActionResult:
-        return ActionResult({
-            "ManagedCertificateDetails": {},
-        })
+        return ActionResult(
+            {
+                "ManagedCertificateDetails": {},
+            }
+        )
 
     def verify_dns_configuration(self) -> ActionResult:
-        return ActionResult({
-            "DnsConfigurationList": [],
-        })
+        return ActionResult(
+            {
+                "DnsConfigurationList": [],
+            }
+        )
+
 
 DIST_META_TEMPLATE = """
     <Id>{{ distribution.distribution_id }}</Id>

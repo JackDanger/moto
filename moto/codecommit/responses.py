@@ -707,9 +707,11 @@ class CodeCommitResponse(BaseResponse):
         return json.dumps({})
 
     def batch_associate_approval_rule_template_with_repositories(self) -> str:
-        associated, errors = self.codecommit_backend.batch_associate_approval_rule_template_with_repositories(
-            self._get_param("approvalRuleTemplateName"),
-            self._get_param("repositoryNames", []),
+        associated, errors = (
+            self.codecommit_backend.batch_associate_approval_rule_template_with_repositories(
+                self._get_param("approvalRuleTemplateName"),
+                self._get_param("repositoryNames", []),
+            )
         )
         return json.dumps(
             {
@@ -719,9 +721,11 @@ class CodeCommitResponse(BaseResponse):
         )
 
     def batch_disassociate_approval_rule_template_from_repositories(self) -> str:
-        disassociated, errors = self.codecommit_backend.batch_disassociate_approval_rule_template_from_repositories(
-            self._get_param("approvalRuleTemplateName"),
-            self._get_param("repositoryNames", []),
+        disassociated, errors = (
+            self.codecommit_backend.batch_disassociate_approval_rule_template_from_repositories(
+                self._get_param("approvalRuleTemplateName"),
+                self._get_param("repositoryNames", []),
+            )
         )
         return json.dumps(
             {
@@ -731,10 +735,12 @@ class CodeCommitResponse(BaseResponse):
         )
 
     def list_associated_approval_rule_templates_for_repository(self) -> str:
-        names, next_token = self.codecommit_backend.list_associated_approval_rule_templates_for_repository(
-            self._get_param("repositoryName"),
-            self._get_param("nextToken"),
-            self._get_param("maxResults"),
+        names, next_token = (
+            self.codecommit_backend.list_associated_approval_rule_templates_for_repository(
+                self._get_param("repositoryName"),
+                self._get_param("nextToken"),
+                self._get_param("maxResults"),
+            )
         )
         result: dict = {"approvalRuleTemplateNames": names}
         if next_token:
@@ -742,10 +748,12 @@ class CodeCommitResponse(BaseResponse):
         return json.dumps(result)
 
     def list_repositories_for_approval_rule_template(self) -> str:
-        names, next_token = self.codecommit_backend.list_repositories_for_approval_rule_template(
-            self._get_param("approvalRuleTemplateName"),
-            self._get_param("nextToken"),
-            self._get_param("maxResults"),
+        names, next_token = (
+            self.codecommit_backend.list_repositories_for_approval_rule_template(
+                self._get_param("approvalRuleTemplateName"),
+                self._get_param("nextToken"),
+                self._get_param("maxResults"),
+            )
         )
         result: dict = {"repositoryNames": names}
         if next_token:
