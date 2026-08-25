@@ -409,6 +409,8 @@ class LogGroup(CloudFormationModel):
         # https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateLogGroup.html
         self.kms_key_id = kwargs.get("kmsKeyId")
         self.deletion_protection: bool = False
+        self.data_protection_policy: dict[str, Any] | None = None
+        self.transformer: dict[str, Any] | None = None
 
     @staticmethod
     def cloudformation_name_type() -> str:
