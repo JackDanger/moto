@@ -897,7 +897,30 @@ class StepFunctionBackend(BaseBackend, TaggableResourcesMixin):
         pass
 
     def describe_map_run(self, map_run_arn: str) -> dict[str, Any]:
-        return {}
+        # Map runs are not modelled, but every member below is required by the
+        # DescribeMapRun output shape, so an empty dict serialises to a response
+        # botocore rejects. Report an empty, succeeded run.
+        counts = {
+            "pending": 0,
+            "running": 0,
+            "succeeded": 0,
+            "failed": 0,
+            "timedOut": 0,
+            "aborted": 0,
+            "total": 0,
+            "resultsWritten": 0,
+        }
+        return {
+            "mapRunArn": map_run_arn,
+            "executionArn": "",
+            "status": "SUCCEEDED",
+            "startDate": utcnow(),
+            "maxConcurrency": 0,
+            "toleratedFailurePercentage": 0.0,
+            "toleratedFailureCount": 0,
+            "itemCounts": dict(counts),
+            "executionCounts": dict(counts),
+        }
 
     def list_map_runs(self, execution_arn: str) -> Any:
         return []
