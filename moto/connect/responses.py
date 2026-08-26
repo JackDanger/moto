@@ -2573,10 +2573,12 @@ class ConnectResponse(BaseResponse):
         instance_id = self._get_instance_id()
         user_id = self._get_param_from_path("UserId")
         params = json.loads(self.body) if self.body else {}
+        # NotificationId is a URI parameter, not a body member --
+        # POST /users/{InstanceId}/{UserId}/notifications/{NotificationId}
         self.connect_backend.update_user_notification_status(
             instance_id=instance_id,
             user_id=user_id,
-            notification_id=str(params["NotificationId"]),
+            notification_id=self._get_param_from_path("NotificationId"),
             status=str(params.get("Status", "")),
         )
         return "{}"
@@ -2902,8 +2904,12 @@ class ConnectResponse(BaseResponse):
         result = self.connect_backend.create_workspace_page(
             instance_id=instance_id,
             workspace_id=workspace_id,
-            name=str(params["Name"]),
-            content=params.get("Content"),
+            # The API's body members are ResourceArn/Page/Slug/InputData; there is
+            # no Name or Content member, so reading them raised a KeyError.
+            resource_arn=str(params.get("ResourceArn", "")),
+            page=str(params.get("Page", "")),
+            slug=params.get("Slug"),
+            input_data=params.get("InputData"),
         )
         return json.dumps(result)
 

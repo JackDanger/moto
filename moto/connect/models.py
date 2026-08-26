@@ -4035,8 +4035,10 @@ class ConnectBackend(BaseBackend):
         self,
         instance_id: str,
         workspace_id: str,
-        name: str,
-        content: Optional[dict[str, Any]] = None,
+        resource_arn: str,
+        page: str,
+        slug: Optional[str] = None,
+        input_data: Optional[str] = None,
     ) -> dict[str, str]:
         self._get_instance_or_raise(instance_id)
         return {"PageId": str(uuid.uuid4())}
