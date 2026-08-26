@@ -2293,10 +2293,13 @@ class LogsBackend(BaseBackend, TaggableResourcesMixin):
 
     def put_log_group_deletion_protection(
         self,
-        log_group_name: str,
+        log_group_identifier: str,
         deletion_protection_enabled: bool,
     ) -> None:
-        log_group = self._find_log_group(log_group_name=log_group_name)
+        if log_group_identifier in self.groups:
+            log_group = self._find_log_group(log_group_name=log_group_identifier)
+        else:
+            log_group = self._find_log_group(log_group_id=log_group_identifier)
         log_group.deletion_protection = deletion_protection_enabled
 
     def update_anomaly(

@@ -713,12 +713,9 @@ class SESV2Backend(BaseBackend, TaggableResourcesMixin):
         return ips
 
     def get_dedicated_ip(self, ip: str) -> dict[str, Any]:
-        return {
-            "Ip": ip,
-            "WarmupStatus": "DONE",
-            "WarmupPercentage": 100,
-            "PoolName": "default",
-        }
+        # Dedicated IPs are never provisioned here, and AWS raises rather than
+        # inventing one, so reporting a warmed IP for any address was wrong.
+        raise NotFoundException(f"Dedicated IP {ip} not found")
 
     def put_dedicated_ip_warmup_attributes(
         self, ip: str, warmup_percentage: int
