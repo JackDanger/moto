@@ -345,6 +345,9 @@ class NetworkManagerBackend(BaseBackend):
             str, list[CoreNetworkPrefixListAssociation]
         ] = {}
         self.routing_policy_labels: dict[str, dict[str, str]] = {}
+        # Set by StartOrganizationServiceAccessUpdate; read back by
+        # ListOrganizationServiceAccessStatus, which 500s if it was never assigned.
+        self.organization_service_access: str | None = None
 
     def _get_resource_from_arn(self, arn: str) -> Any:
         resources_types: dict[str, dict[str, Any]] = {
@@ -386,10 +389,19 @@ class NetworkManagerBackend(BaseBackend):
         )
         gnw_id = global_network.global_network_id
         self.global_networks[gnw_id] = global_network
-        # Create empty dict for resources
+        # Seed the per-global-network collections. Readers use .get(id, {}), but
+        # the create/associate paths index directly and raise KeyError -> 500
+        # when the entry is missing.
         self.sites[gnw_id] = {}
         self.links[gnw_id] = {}
         self.devices[gnw_id] = {}
+        self.connections[gnw_id] = {}
+        self.connect_peer_associations[gnw_id] = {}
+        self.customer_gateway_associations[gnw_id] = {}
+        self.link_associations[gnw_id] = []
+        self.transit_gateway_connect_peer_associations[gnw_id] = {}
+        self.transit_gateway_registrations[gnw_id] = {}
+        self.route_analyses[gnw_id] = {}
         return global_network
 
     def create_core_network(

@@ -392,7 +392,9 @@ class KinesisAnalyticsV2Backend(BaseBackend, TaggableResourcesMixin):
         self,
         application_name: str,
     ) -> dict[str, Any]:
-        app = self.applications[application_name]
+        # Go through _get_app so an unknown name raises ResourceNotFoundException
+        # rather than KeyError -> 500.
+        app = self._get_app(application_name)
         return {
             "ApplicationARN": app.application_arn,
             "ApplicationDescription": app.application_description,
@@ -443,8 +445,8 @@ class KinesisAnalyticsV2Backend(BaseBackend, TaggableResourcesMixin):
     def tag_resource(self, arn: str, tags: dict[str, str]) -> None:
         self.tagger.tag_resource(arn, self.tagger.convert_dict_to_tags_input(tags))
 
-    def untag_resource(self, arn: str, tag_keys: list[str]) -> None:
-        self.tagger.untag_resource_using_names(arn, tag_keys)
+    def untag_resource(self, resource_arn: str, tag_keys: list[str]) -> None:
+        self.tagger.untag_resource_using_names(resource_arn, tag_keys)
 
     def _get_app(self, application_name: str) -> Application:
         if application_name not in self.applications:

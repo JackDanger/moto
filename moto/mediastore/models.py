@@ -48,7 +48,7 @@ class MediaStoreBackend(BaseBackend):
         self._containers: dict[str, Container] = OrderedDict()
 
     def create_container(self, name: str, tags: dict[str, str]) -> Container:
-        arn = f"arn:{get_partition(self.region_name)}:mediastore:container:{name}"
+        arn = f"arn:{get_partition(self.region_name)}:mediastore:{self.region_name}:{self.account_id}:container/{name}"
         container = Container(
             arn=arn,
             name=name,
@@ -78,20 +78,19 @@ class MediaStoreBackend(BaseBackend):
         """
         return [c.to_dict() for c in self._containers.values()]
 
-    def list_tags_for_resource(self, name: str) -> dict[str, str] | None:
-        if name not in self._containers:
-            raise ContainerNotFoundException()
-        tags = self._containers[name].tags
-        return tags
+    def list_tags_for_resource(self, name: str) -> list[dict[str, str]] | None:
+        # The Resource parameter is an ARN, so resolve it the same way the
+        # tag/untag paths do rather than treating it as a container name.
+        return self._resolve_resource(name).tags
 
     def _resolve_resource(self, resource: str) -> Container:
         """Resolve a container by name or ARN."""
         if resource in self._containers:
             return self._containers[resource]
-        # Look up by ARN
         for container in self._containers.values():
             if container.arn == resource:
                 return container
+        raise ContainerNotFoundException()
 
     def put_lifecycle_policy(self, container_name: str, lifecycle_policy: str) -> None:
         if container_name not in self._containers:

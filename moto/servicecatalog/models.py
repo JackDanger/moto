@@ -451,6 +451,24 @@ class ServiceCatalogBackend(BaseBackend, TaggableResourcesMixin):
         self.products[product.id] = product
         self.idempotency_tokens[token] = product.id
 
+        # CreateProduct takes ProvisioningArtifactParameters and AWS materialises
+        # the first artifact from them -- without this, every product is created
+        # with no artifacts and ListProvisioningArtifacts comes back empty.
+        if provisioning_artifact_parameters:
+            pa = ProvisioningArtifact(
+                product_id=product.id,
+                name=provisioning_artifact_parameters.get("Name"),
+                description=provisioning_artifact_parameters.get("Description"),
+                artifact_type=provisioning_artifact_parameters.get("Type"),
+                info=provisioning_artifact_parameters.get("Info"),
+                disable_template_validation=provisioning_artifact_parameters.get(
+                    "DisableTemplateValidation", False
+                ),
+                region_name=self.region_name,
+                account_id=self.account_id,
+            )
+            self.provisioning_artifacts[pa.id] = pa
+
         return product
 
     def describe_product(

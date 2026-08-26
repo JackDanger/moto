@@ -335,10 +335,13 @@ class Agreement(BaseModel):
     local_profile_id: str
     partner_profile_id: str
     access_role: str
-    logging_role: str | None
-    as2_config: dict[str, Any] | None
-    sftp_config: dict[str, Any] | None
-    security_policy_name: str | None
+    # These four are members of DescribedAgreement, not of CreateAgreement's
+    # input, so the backend never supplies them -- they need defaults or every
+    # create_agreement() call raises TypeError.
+    logging_role: str | None = None
+    as2_config: dict[str, Any] | None = None
+    sftp_config: dict[str, Any] | None = None
+    security_policy_name: str | None = None
     description: str | None = None
     base_directory: str | None = None
     status: str = "ACTIVE"
