@@ -372,6 +372,9 @@ class GlueBackend(BaseBackend, TaggableResourcesMixin):
         self.column_statistics_task_settings: dict[str, dict[str, Any]] = OrderedDict()
         self.table_optimizers: dict[tuple[str, str, str, str], FakeTableOptimizer] = {}
         self.connection_types: dict[str, FakeConnectionType] = {}
+        self.glue_identity_center_config: FakeGlueIdentityCenterConfiguration | None = (
+            None
+        )
         self.materialized_view_refresh_task_runs: dict[
             str, FakeMaterializedViewRefreshTaskRun
         ] = {}

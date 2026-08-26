@@ -3,6 +3,7 @@ import pytest
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 region = "eu-west-1"
 
@@ -16,7 +17,10 @@ def test_create_container_succeeds():
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     container = response["Container"]
-    assert container["ARN"] == f"arn:aws:mediastore:container:{container['Name']}"
+    assert (
+        container["ARN"]
+        == f"arn:aws:mediastore:{region}:{ACCOUNT_ID}:container/{container['Name']}"
+    )
     assert container["Name"] == "Awesome container!"
     assert container["Status"] == "CREATING"
 
@@ -31,7 +35,9 @@ def test_describe_container_succeeds():
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
     container = response["Container"]
-    assert container["ARN"] == f"arn:aws:mediastore:container:{name}"
+    assert (
+        container["ARN"] == f"arn:aws:mediastore:{region}:{ACCOUNT_ID}:container/{name}"
+    )
     assert container["Name"] == name
     assert container["Status"] == "ACTIVE"
 
