@@ -254,6 +254,25 @@ class DistributionConfig:
         # HACK: this attribute is referenced in backend methods.
         self.caller_reference = config["CallerReference"]
 
+    # The config is stored under its wire (PascalCase) keys, but the backend's
+    # lookup methods read it by attribute. These bridge the two and normalise the
+    # optional list members, which are absent whenever Quantity is 0.
+    @property
+    def aliases(self) -> list[str]:
+        return self.__dict__.get("Aliases", {}).get("Items") or []
+
+    @property
+    def cache_behaviors(self) -> list["CacheBehaviour"]:
+        return self.__dict__.get("CacheBehaviors", {}).get("Items") or []
+
+    @property
+    def default_cache_behavior(self) -> "DefaultCacheBehaviour":
+        return self.__dict__["DefaultCacheBehavior"]
+
+    @property
+    def web_acl_id(self) -> str:
+        return self.__dict__.get("WebACLId") or ""
+
 
 DISTRIBUTION_CONFIG_FIELDS = [
     "Aliases",
@@ -384,6 +403,11 @@ class KeyGroup(BaseModel):
         self.location = (
             f"https://cloudfront.amazonaws.com/2020-05-31/key-group/{self.id}"
         )
+
+    def update(self, name: str, items: list[str]) -> None:
+        self.name = name
+        self.items = items
+        self.etag = random_id(length=14)
 
     @property
     def key_group_config(self) -> dict[str, Any]:
@@ -561,6 +585,17 @@ class CachePolicy(BaseModel):
         self.last_modified_time = iso_8601_datetime_with_milliseconds()
         self.etag = random_id(length=14)
 
+    @property
+    def cache_policy_config(self) -> dict[str, Any]:
+        return {
+            "Comment": self.comment,
+            "Name": self.name,
+            "DefaultTTL": self.default_ttl,
+            "MaxTTL": self.max_ttl,
+            "MinTTL": self.min_ttl,
+            "ParametersInCacheKeyAndForwardedToOrigin": self.parameters_in_cache_key,
+        }
+
 
 class ResponseHeadersPolicy(BaseModel):
     def __init__(self, config: dict[str, Any]):
@@ -574,6 +609,18 @@ class ResponseHeadersPolicy(BaseModel):
         self.remove_headers_config = config.get("RemoveHeadersConfig")
         self.last_modified_time = iso_8601_datetime_with_milliseconds()
         self.etag = random_id(length=14)
+
+    @property
+    def response_headers_policy_config(self) -> dict[str, Any]:
+        return {
+            "Comment": self.comment,
+            "Name": self.name,
+            "CorsConfig": self.cors_config,
+            "SecurityHeadersConfig": self.security_headers_config,
+            "ServerTimingHeadersConfig": self.server_timing_headers_config,
+            "CustomHeadersConfig": self.custom_headers_config,
+            "RemoveHeadersConfig": self.remove_headers_config,
+        }
 
     def update(self, config: dict[str, Any]) -> None:
         self.name = config.get("Name", self.name)
@@ -677,6 +724,16 @@ class OriginRequestPolicy(BaseModel):
         self.last_modified_time = iso_8601_datetime_with_milliseconds()
         self.etag = random_id(length=14)
 
+    @property
+    def origin_request_policy_config(self) -> dict[str, Any]:
+        return {
+            "Comment": self.comment,
+            "Name": self.name,
+            "HeadersConfig": self.headers_config,
+            "CookiesConfig": self.cookies_config,
+            "QueryStringsConfig": self.query_strings_config,
+        }
+
 
 class FieldLevelEncryptionConfig(BaseModel):
     def __init__(self, config: dict[str, Any]):
@@ -691,6 +748,17 @@ class FieldLevelEncryptionConfig(BaseModel):
         self.comment = config.get("Comment", self.comment)
         self.last_modified_time = iso_8601_datetime_with_milliseconds()
         self.etag = random_id(length=14)
+
+    @property
+    def field_level_encryption_config(self) -> dict[str, Any]:
+        return {
+            "CallerReference": self.caller_reference,
+            "Comment": self.comment,
+            "QueryArgProfileConfig": {"ForwardWhenQueryArgProfileIsUnknown": True},
+            "ContentTypeProfileConfig": {
+                "ForwardWhenContentTypeIsUnknown": True,
+            },
+        }
 
 
 class FieldLevelEncryptionProfile(BaseModel):
@@ -708,6 +776,15 @@ class FieldLevelEncryptionProfile(BaseModel):
         self.comment = config.get("Comment", self.comment)
         self.last_modified_time = iso_8601_datetime_with_milliseconds()
         self.etag = random_id(length=14)
+
+    @property
+    def field_level_encryption_profile_config(self) -> dict[str, Any]:
+        return {
+            "Name": self.name,
+            "CallerReference": self.caller_reference,
+            "Comment": self.comment,
+            "EncryptionEntities": {"Quantity": 0, "Items": None},
+        }
 
 
 class ContinuousDeploymentPolicy(BaseModel):
@@ -730,6 +807,12 @@ class MonitoringSubscription(BaseModel):
         self.realtime_metrics_subscription_status = realtime_metrics_config.get(
             "RealtimeMetricsSubscriptionStatus", "Disabled"
         )
+
+    @property
+    def realtime_metrics_subscription_config(self) -> dict[str, Any]:
+        return {
+            "RealtimeMetricsSubscriptionStatus": self.realtime_metrics_subscription_status
+        }
 
 
 class RealtimeLogConfig(BaseModel):
@@ -1482,12 +1565,12 @@ class CloudFrontBackend(BaseBackend, TaggableResourcesMixin):
         for d in self.distributions.values():
             if (
                 key_group_id
-                in d.distribution_config.default_cache_behavior.trusted_key_groups.group_ids
+                in d.distribution_config.default_cache_behavior.trusted_key_groups.items
             ):
                 r.append(d.distribution_id)
                 continue
             for cb in d.distribution_config.cache_behaviors:
-                if key_group_id in cb.trusted_key_groups.group_ids:
+                if key_group_id in cb.trusted_key_groups.items:
                     r.append(d.distribution_id)
                     break
         return r
@@ -1539,8 +1622,12 @@ class CloudFrontBackend(BaseBackend, TaggableResourcesMixin):
 
     def associate_alias(self, distribution_id: str, alias: str) -> None:
         d, _ = self.get_distribution(distribution_id)
-        if alias not in d.distribution_config.aliases:
-            d.distribution_config.aliases.append(alias)
+        config = d.distribution_config
+        if alias not in config.aliases:
+            # Write through the wire-shaped config -- `aliases` is a read-only view.
+            aliases = config.__dict__.setdefault("Aliases", {"Quantity": 0})
+            aliases.setdefault("Items", []).append(alias)
+            aliases["Quantity"] = len(aliases["Items"])
 
     def test_function(
         self, name: str, event_object: str, stage: str | None = None

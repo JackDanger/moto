@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import copy
 import datetime
+import json
+import uuid
 from collections.abc import Iterator
 
 from moto.core.base_backend import BackendDict, BaseBackend
@@ -16,9 +19,6 @@ from .exceptions import (
     ResourceNotFoundException,
     SchemaAlreadyPublishedException,
 )
-import copy
-import json
-import uuid
 
 PAGINATION_MODEL = {
     "list_directories": {
@@ -151,7 +151,16 @@ class Directory(BaseModel):
         self.creation_date_time = datetime.datetime.now()
         self.object_identifier = f"directory-{name}"
         self.applied_schemas: list[str] = []
+        # Objects in this directory: object_identifier -> DirectoryObject
         self.objects: dict[str, "DirectoryObject"] = {}
+        # Every directory has a root object; path selectors ("/", "/a/b") are
+        # resolved by walking children from it, so it must exist from the start.
+        root_id = str(uuid.uuid4()).replace("-", "")
+        self.root_object_id = root_id
+        self.objects[root_id] = DirectoryObject(
+            object_identifier=root_id, schema_facets=[]
+        )
+        # Parent->child relationships: parent_id -> {link_name: child_id}
         self.children: dict[str, dict[str, str]] = {}
         self.parents: dict[str, dict[str, str]] = {}
         self.policy_attachments: dict[str, list[str]] = {}

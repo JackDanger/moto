@@ -997,11 +997,20 @@ class CloudFrontResponse(BaseResponse):
         )
 
     # Distribution query operations
-    def list_distributions_by_web_acl_id(self) -> TYPE_RESPONSE:
+    def list_distributions_by_web_acl_id(self) -> ActionResult:
         web_acl_id = self.path.split("/")[-1]
         distributions = self.backend.list_distributions_by_web_acl_id(web_acl_id)
-        template = self.response_template(LIST_TEMPLATE)
-        return 200, {}, template.render(distributions=distributions)
+        return ActionResult(
+            {
+                "DistributionList": {
+                    "Marker": "",
+                    "MaxItems": 100,
+                    "IsTruncated": False,
+                    "Quantity": len(distributions),
+                    "Items": distributions if distributions else None,
+                },
+            }
+        )
 
     def list_distributions_by_web_a_c_l_id(self) -> TYPE_RESPONSE:
         return self.list_distributions_by_web_acl_id()
@@ -1366,9 +1375,8 @@ class CloudFrontResponse(BaseResponse):
         )
 
     # Resource Policy
-    def get_resource_policy(self) -> TYPE_RESPONSE:
-        template = self.response_template(RESOURCE_POLICY_TEMPLATE)
-        return 200, {"ETag": random_id(length=14)}, template.render(xmlns=XMLNS)
+    def get_resource_policy(self) -> ActionResult:
+        return ActionResult({"ResourceArn": "", "PolicyDocument": ""})
 
     def put_resource_policy(self) -> ActionResult:
         return ActionResult(
@@ -1389,7 +1397,7 @@ class CloudFrontResponse(BaseResponse):
         aip = self.backend.create_anycast_ip_list(name)
         return ActionResult(
             {
-                "AnycastIpList": {"Items": aip, "Quantity": len(aip), "MaxItems": 100},
+                "AnycastIpList": aip,
                 "ETag": aip.etag,
             }
         )
@@ -1399,7 +1407,7 @@ class CloudFrontResponse(BaseResponse):
         aip = self.backend.get_anycast_ip_list(list_id)
         return ActionResult(
             {
-                "AnycastIpList": {"Items": aip, "Quantity": len(aip), "MaxItems": 100},
+                "AnycastIpList": aip,
                 "ETag": aip.etag,
             }
         )
@@ -1576,11 +1584,16 @@ class CloudFrontResponse(BaseResponse):
             }
         )
 
-    def get_connection_function(self) -> TYPE_RESPONSE:
+    def get_connection_function(self) -> ActionResult:
         name = self.path.split("/")[-1]
         cf = self.backend.get_connection_function(name)
-        template = self.response_template(CONNECTION_FUNCTION_TEMPLATE)
-        return 200, {"ETag": cf.etag}, template.render(cf=cf, xmlns=XMLNS)
+        return ActionResult(
+            {
+                "ConnectionFunctionCode": b"",
+                "ETag": cf.etag,
+                "ContentType": "application/octet-stream",
+            }
+        )
 
     def describe_connection_function(self) -> ActionResult:
         name = self.path.split("/")[-2]
@@ -1637,29 +1650,83 @@ class CloudFrontResponse(BaseResponse):
     def copy_distribution(self) -> TYPE_RESPONSE:
         return self.get_distribution()
 
-    def list_distributions_by_anycast_ip_list_id(self) -> TYPE_RESPONSE:
-        template = self.response_template(DISTRIBUTION_ID_LIST_TEMPLATE)
-        return 200, {}, template.render(dist_ids=[])
+    def list_distributions_by_anycast_ip_list_id(self) -> ActionResult:
+        return ActionResult(
+            {
+                "DistributionList": {
+                    "Marker": "",
+                    "MaxItems": 100,
+                    "IsTruncated": False,
+                    "Quantity": 0,
+                    "Items": None,
+                },
+            }
+        )
 
-    def list_distributions_by_connection_function(self) -> TYPE_RESPONSE:
-        template = self.response_template(DISTRIBUTION_ID_LIST_TEMPLATE)
-        return 200, {}, template.render(dist_ids=[])
+    def list_distributions_by_connection_function(self) -> ActionResult:
+        return ActionResult(
+            {
+                "DistributionList": {
+                    "Marker": "",
+                    "MaxItems": 100,
+                    "IsTruncated": False,
+                    "Quantity": 0,
+                    "Items": None,
+                },
+            }
+        )
 
-    def list_distributions_by_connection_mode(self) -> TYPE_RESPONSE:
-        template = self.response_template(LIST_TEMPLATE)
-        return 200, {}, template.render(distributions=[])
+    def list_distributions_by_connection_mode(self) -> ActionResult:
+        return ActionResult(
+            {
+                "DistributionList": {
+                    "Marker": "",
+                    "MaxItems": 100,
+                    "IsTruncated": False,
+                    "Quantity": 0,
+                    "Items": None,
+                },
+            }
+        )
 
-    def list_distributions_by_owned_resource(self) -> TYPE_RESPONSE:
-        template = self.response_template(DISTRIBUTION_ID_LIST_TEMPLATE)
-        return 200, {}, template.render(dist_ids=[])
+    def list_distributions_by_owned_resource(self) -> ActionResult:
+        return ActionResult(
+            {
+                "DistributionList": {
+                    "Marker": "",
+                    "MaxItems": 100,
+                    "IsTruncated": False,
+                    "Quantity": 0,
+                    "Items": None,
+                },
+            }
+        )
 
-    def list_distributions_by_trust_store(self) -> TYPE_RESPONSE:
-        template = self.response_template(DISTRIBUTION_ID_LIST_TEMPLATE)
-        return 200, {}, template.render(dist_ids=[])
+    def list_distributions_by_trust_store(self) -> ActionResult:
+        return ActionResult(
+            {
+                "DistributionList": {
+                    "Marker": "",
+                    "MaxItems": 100,
+                    "IsTruncated": False,
+                    "Quantity": 0,
+                    "Items": None,
+                },
+            }
+        )
 
-    def list_distributions_by_vpc_origin_id(self) -> TYPE_RESPONSE:
-        template = self.response_template(DISTRIBUTION_ID_LIST_TEMPLATE)
-        return 200, {}, template.render(dist_ids=[])
+    def list_distributions_by_vpc_origin_id(self) -> ActionResult:
+        return ActionResult(
+            {
+                "DistributionIdList": {
+                    "Marker": "",
+                    "MaxItems": 100,
+                    "IsTruncated": False,
+                    "Quantity": 0,
+                    "Items": None,
+                },
+            }
+        )
 
     def list_domain_conflicts(self) -> ActionResult:
         return ActionResult(
