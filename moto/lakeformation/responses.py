@@ -369,6 +369,18 @@ class LakeFormationResponse(BaseResponse):
         )
         return "{}"
 
+    def update_data_cells_filter(self) -> str:
+        table_data = self._get_param("TableData")
+        self.lakeformation_backend.update_data_cells_filter(table_data)
+        return "{}"
+
+    def start_query_planning(self) -> str:
+        result = self.lakeformation_backend.start_query_planning(
+            self._get_param("QueryPlanningContext") or {},
+            self._get_param("QueryString") or "",
+        )
+        return json.dumps(result)
+
     def search_databases_by_lf_tags(self) -> str:
         catalog_id = self._get_param("CatalogId") or self.current_account
         expression = self._get_param("Expression") or []
