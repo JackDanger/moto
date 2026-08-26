@@ -1,3 +1,5 @@
+from typing import Any
+
 from moto.core.responses import ActionResult
 
 from ._base_response import EC2BaseResponse
@@ -5,18 +7,18 @@ from ._base_response import EC2BaseResponse
 
 class InstanceMetadataDefaultsResponse(EC2BaseResponse):
     def get_instance_metadata_defaults(self) -> ActionResult:
+        # get_instance_metadata_defaults returns a plain dict keyed by snake_case
+        # names, not a model object.
         defaults = self.ec2_backend.get_instance_metadata_defaults()
-        account_level = {}
-        if defaults.http_tokens:
-            account_level["HttpTokens"] = defaults.http_tokens
-        if defaults.http_put_response_hop_limit:
-            account_level["HttpPutResponseHopLimit"] = (
-                defaults.http_put_response_hop_limit
-            )
-        if defaults.http_endpoint:
-            account_level["HttpEndpoint"] = defaults.http_endpoint
-        if defaults.instance_metadata_tags:
-            account_level["InstanceMetadataTags"] = defaults.instance_metadata_tags
+        account_level: dict[str, Any] = {}
+        for key, member in (
+            ("http_tokens", "HttpTokens"),
+            ("http_put_response_hop_limit", "HttpPutResponseHopLimit"),
+            ("http_endpoint", "HttpEndpoint"),
+            ("instance_metadata_tags", "InstanceMetadataTags"),
+        ):
+            if defaults.get(key):
+                account_level[member] = defaults[key]
         return ActionResult({"AccountLevel": account_level})
 
     def modify_instance_metadata_defaults(self) -> ActionResult:

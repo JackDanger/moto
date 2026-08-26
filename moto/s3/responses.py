@@ -1641,6 +1641,21 @@ class S3Response(BaseResponse):
         self.data["Action"] = "PutObject"
         self._authenticate_and_authorize_s3_action(bucket_name=bucket_name)
 
+        # S3 Metadata Tables (Nov 2024) -- stub handlers. These are bucket
+        # subresource POSTs, not browser-based form uploads, so they must be
+        # answered before the `key` form field is read.
+        if "metadataConfiguration" in self.querystring:
+            return 200, {}, "<MetadataConfiguration/>"
+        if "metadataTable" in self.querystring:
+            return 200, {}, "<MetadataTableConfiguration/>"
+
+        if "key" not in self.querystring:
+            # Not a form upload and not a subresource we model: say so instead of
+            # raising KeyError, which surfaces to the caller as a bare 500.
+            raise NotImplementedError(
+                f"POST to bucket {bucket_name} with query {list(self.querystring)}"
+            )
+
         key = self.querystring["key"][0]
         f = self.body
 
