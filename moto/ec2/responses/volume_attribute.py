@@ -1,3 +1,5 @@
+from typing import Any
+
 from moto.core.responses import ActionResult
 
 from ._base_response import EC2BaseResponse
@@ -12,12 +14,13 @@ class VolumeAttributeResponse(EC2BaseResponse):
             attribute=attribute,
         )
 
-        response = {"VolumeId": result.volume_id}
+        # describe_volume_attribute returns a plain dict, not a model object.
+        response: dict[str, Any] = {"VolumeId": result["volume_id"]}
 
         if attribute == "autoEnableIO":
-            response["AutoEnableIO"] = {"Value": result.auto_enable_io}
+            response["AutoEnableIO"] = {"Value": result["auto_enable_io"]}
         elif attribute == "productCodes":
-            response["ProductCodes"] = {}
+            response["ProductCodes"] = []
 
         return ActionResult(response)
 

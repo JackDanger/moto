@@ -50,8 +50,10 @@ class CapacityReservations(EC2BaseResponse):
                     "EndDateType": cr.end_date_type,
                     "InstanceMatchCriteria": cr.instance_match_criteria,
                     "CreateDate": cr.creation_date,
+                    # get_tags() returns describe_tags() dicts, not Tag objects.
                     "Tags": [
-                        {"Key": tag.key, "Value": tag.value} for tag in cr.get_tags()
+                        {"Key": tag["key"], "Value": tag["value"]}
+                        for tag in cr.get_tags()
                     ],
                 }
             }
@@ -82,7 +84,7 @@ class CapacityReservations(EC2BaseResponse):
                         "InstanceMatchCriteria": cr.instance_match_criteria,
                         "CreateDate": cr.creation_date,
                         "Tags": [
-                            {"Key": tag.key, "Value": tag.value}
+                            {"Key": tag["key"], "Value": tag["value"]}
                             for tag in cr.get_tags()
                         ],
                     }

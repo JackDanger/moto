@@ -303,6 +303,8 @@ class TransitGatewayAttachmentBackend:
         options: dict[str, str] | None = None,
         remove_subnet_ids: list[str] | None = None,
     ) -> TransitGatewayAttachment:
+        if transit_gateway_attachment_id not in self.transit_gateway_attachments:
+            raise InvalidTransitGatewayAttachmentIdError(transit_gateway_attachment_id)
         tgw_attachment = self.transit_gateway_attachments[transit_gateway_attachment_id]
         if remove_subnet_ids:
             tgw_attachment.subnet_ids = [  # type: ignore[attr-defined]

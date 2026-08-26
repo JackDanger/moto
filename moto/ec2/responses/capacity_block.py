@@ -37,12 +37,13 @@ class CapacityBlockResponse(EC2BaseResponse):
             capacity_block_offering_id=offering_id,
             instance_platform=instance_platform,
         )
+        # purchase_capacity_block returns a plain dict keyed by snake_case names.
         capacity_reservation = {
-            "CapacityReservationId": result.capacity_reservation_id,
-            "InstanceType": result.instance_type,
-            "InstancePlatform": result.instance_platform,
-            "AvailabilityZone": result.availability_zone,
-            "InstanceCount": result.instance_count,
-            "State": result.state,
+            "CapacityReservationId": result["capacity_reservation_id"],
+            "InstanceType": result["instance_type"],
+            "InstancePlatform": result["instance_platform"],
+            "AvailabilityZone": result["availability_zone"],
+            "InstanceCount": result["instance_count"],
+            "State": result["state"],
         }
         return ActionResult({"CapacityReservation": capacity_reservation})
