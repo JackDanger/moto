@@ -22,8 +22,10 @@ class SecurityGroupVpcAssociationResponse(EC2BaseResponse):
             group_ids=group_ids,
             vpc_ids=vpc_ids,
         )
+        # ActionResult keys are the shape's member names; the serializer maps
+        # them to their wire names (securityGroupVpcAssociationSet) itself.
         result = {
-            "SecurityGroupVpcAssociationSet": [
+            "SecurityGroupVpcAssociations": [
                 {
                     "GroupId": assoc.group_id,
                     "VpcId": assoc.vpc_id,

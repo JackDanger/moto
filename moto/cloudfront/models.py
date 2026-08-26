@@ -440,6 +440,15 @@ class VpcOrigin:
         self.vpc_origin_endpoint_config = config
         self.etag = random_id(length=14)
 
+    # VpcOriginSummary members that live inside the endpoint config on the model.
+    @property
+    def name(self) -> str:
+        return self.vpc_origin_endpoint_config.get("Name", "")
+
+    @property
+    def origin_endpoint_arn(self) -> str:
+        return self.vpc_origin_endpoint_config.get("Arn", "")
+
     def update(self, config: dict[str, Any]) -> None:
         self.vpc_origin_endpoint_config = config
         self.last_modified_time = iso_8601_datetime_with_milliseconds()
@@ -546,6 +555,16 @@ class CloudFrontFunction(BaseModel):
             f"arn:{partition}:cloudfront::{account_id}:function/{self.name}"
         )
 
+    @property
+    def function_metadata(self) -> dict[str, Any]:
+        # Required member of the FunctionSummary shape.
+        return {
+            "FunctionARN": self.function_arn,
+            "Stage": self.stage,
+            "CreatedTime": self.created_time,
+            "LastModifiedTime": self.last_modified_time,
+        }
+
     def update(self, function_code: str, function_config: dict[str, Any]) -> None:
         self.function_code = function_code
         self.function_config = function_config
@@ -650,6 +669,10 @@ class OriginAccessIdentity(BaseModel):
         self.comment = comment
         self.etag = random_id()
 
+    @property
+    def cloud_front_origin_access_identity_config(self) -> dict[str, Any]:
+        return {"CallerReference": self.caller_reference, "Comment": self.comment}
+
     def update(self, caller_reference: str, comment: str) -> None:
         self.caller_reference = caller_reference
         self.comment = comment
@@ -690,11 +713,16 @@ class StreamingDistribution(BaseModel, ManagedState):
             transitions=[("InProgress", "Deployed")],
         )
         self.streaming_distribution_id = random_id()
+        # The serializer plucks StreamingDistribution.Id as `id`, the same way
+        # Distribution does.
+        self.id = self.streaming_distribution_id
         self.arn = f"arn:{get_partition(region_name)}:cloudfront:{account_id}:streaming-distribution/{self.streaming_distribution_id}"
         self.streaming_distribution_config = StreamingDistributionConfig(config)
         self.domain_name = f"{random_id(uppercase=False)}.cloudfront.net"
         self.last_modified_time = iso_8601_datetime_with_milliseconds()
         self.etag = random_id()
+        # ActiveTrustedSigners is a required member of the StreamingDistribution shape.
+        self.active_trusted_signers = ActiveTrustedSigners()
 
     @property
     def location(self) -> str:

@@ -53,6 +53,8 @@ class LocalGatewayRoute:
         )
         self.network_interface_id = network_interface_id
         self.route_type = route_type
+        # The shape member is Type; `route_type` is not a name the serializer tries.
+        self.type = route_type
         self.state = "active"
         if network_interface_id:
             self.target_type = "network-interface"
