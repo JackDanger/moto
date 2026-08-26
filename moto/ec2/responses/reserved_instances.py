@@ -21,10 +21,11 @@ class ReservedInstances(EC2BaseResponse):
         )
 
     def describe_reserved_instances(self) -> ActionResult:
-        return ActionResult({})
+        # Reserved instances are not modelled, but the member must be present.
+        return ActionResult({"ReservedInstances": []})
 
     def describe_reserved_instances_listings(self) -> ActionResult:
-        return ActionResult({})
+        return ActionResult({"ReservedInstancesListings": []})
 
     def describe_reserved_instances_offerings(self) -> ActionResult:
         self.error_on_dryrun()

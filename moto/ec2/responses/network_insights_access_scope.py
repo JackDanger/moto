@@ -127,7 +127,7 @@ class NetworkInsightsAccessScopeResponse(EC2BaseResponse):
         if analysis:
             result["NetworkInsightsAccessScopeAnalysisId"] = analysis.id
             result["AnalysisStatus"] = analysis.status
-        result["AnalysisFindingSet"] = []
+        result["AnalysisFindings"] = []
         return ActionResult(result)
 
     def get_network_insights_access_scope_content(self) -> ActionResult:

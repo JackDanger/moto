@@ -15,6 +15,8 @@ class CoipPool(TaggedEC2Resource):
     ):
         self.ec2_backend = ec2_backend
         self.id = random_id(prefix="ipv4pool-coip-")
+        # The shape calls this PoolId; the serializer looks for `pool_id`.
+        self.pool_id = self.id
         self.local_gateway_route_table_id = local_gateway_route_table_id
         self.pool_cidrs: list[str] = []
         self._created_at = utcnow()

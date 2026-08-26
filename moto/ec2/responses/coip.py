@@ -1,3 +1,5 @@
+from typing import Any
+
 from moto.core.responses import ActionResult
 from moto.ec2.utils import add_tag_specification
 
@@ -18,7 +20,8 @@ class CoipResponse(EC2BaseResponse):
     def delete_coip_pool(self) -> ActionResult:
         pool_id = self._get_param("CoipPoolId")
         pool = self.ec2_backend.delete_coip_pool(coip_pool_id=pool_id)
-        result = {"PoolId": pool.id}
+        # DeleteCoipPool returns the pool, not a bare id.
+        result = {"CoipPool": pool}
         return ActionResult(result)
 
     def describe_coip_pools(self) -> ActionResult:
@@ -30,7 +33,11 @@ class CoipResponse(EC2BaseResponse):
     def get_coip_pool_usage(self) -> ActionResult:
         pool_id = self._get_param("PoolId")
         pool, cidrs = self.ec2_backend.get_coip_pool_usage(pool_id=pool_id)
-        result = {"PoolId": pool_id}
+        # The output member is CoipPoolId, and CoipAddressUsages is part of the shape.
+        result: dict[str, Any] = {
+            "CoipPoolId": pool_id,
+            "CoipAddressUsages": cidrs or [],
+        }
         if pool:
             result["LocalGatewayRouteTableId"] = pool.local_gateway_route_table_id
         return ActionResult(result)

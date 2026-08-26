@@ -8,6 +8,7 @@ from moto.core.responses import (
     BaseResponse,
     EmptyResult,
 )
+from moto.core.utils import iso_8601_datetime_with_milliseconds
 
 from .models import CloudFrontBackend, cloudfront_backends, random_id
 
@@ -992,7 +993,12 @@ class CloudFrontResponse(BaseResponse):
         configs = self.backend.list_realtime_log_configs()
         return ActionResult(
             {
-                "RealtimeLogConfigs": configs,
+                "RealtimeLogConfigs": {
+                    "Items": configs,
+                    "Marker": "",
+                    "MaxItems": 100,
+                    "IsTruncated": False,
+                },
             }
         )
 
@@ -1226,6 +1232,7 @@ class CloudFrontResponse(BaseResponse):
         return ActionResult(
             {
                 "KeyValueStore": kvs,
+                "ETag": kvs.etag,
                 "Location": f"https://cloudfront.amazonaws.com/2020-05-31/key-value-store/{name}",
             }
         )
@@ -1236,6 +1243,7 @@ class CloudFrontResponse(BaseResponse):
         return ActionResult(
             {
                 "KeyValueStore": kvs,
+                "ETag": kvs.etag,
             }
         )
 
@@ -1257,6 +1265,7 @@ class CloudFrontResponse(BaseResponse):
         return ActionResult(
             {
                 "KeyValueStore": kvs,
+                "ETag": kvs.etag,
             }
         )
 
@@ -1424,7 +1433,13 @@ class CloudFrontResponse(BaseResponse):
         lists = self.backend.list_anycast_ip_lists()
         return ActionResult(
             {
-                "AnycastIpLists": lists,
+                "AnycastIpLists": {
+                    "Items": lists,
+                    "Marker": "",
+                    "MaxItems": 100,
+                    "IsTruncated": False,
+                    "Quantity": len(lists),
+                },
             }
         )
 
@@ -1549,19 +1564,33 @@ class CloudFrontResponse(BaseResponse):
 
     def create_invalidation_for_distribution_tenant(self) -> ActionResult:
         inv_id = random_id()
+        # Invalidation is a structure, not a bare id.
         return ActionResult(
             {
-                "Invalidation": inv_id,
+                "Invalidation": self._tenant_invalidation(inv_id),
+                "Location": (
+                    "https://cloudfront.amazonaws.com/2020-05-31/distribution-tenant/"
+                    f"{self.path.split('/')[-2]}/invalidation/{inv_id}"
+                ),
             }
         )
 
     def get_invalidation_for_distribution_tenant(self) -> ActionResult:
         inv_id = self.path.split("/")[-1]
-        return ActionResult(
-            {
-                "Invalidation": inv_id,
-            }
-        )
+        return ActionResult({"Invalidation": self._tenant_invalidation(inv_id)})
+
+    @staticmethod
+    def _tenant_invalidation(inv_id: str) -> dict[str, Any]:
+        """Every member of the Invalidation shape is required."""
+        return {
+            "Id": inv_id,
+            "Status": "Completed",
+            "CreateTime": iso_8601_datetime_with_milliseconds(),
+            "InvalidationBatch": {
+                "Paths": {"Quantity": 0, "Items": None},
+                "CallerReference": inv_id,
+            },
+        }
 
     def list_invalidations_for_distribution_tenant(self) -> ActionResult:
         return ActionResult(
@@ -1633,9 +1662,19 @@ class CloudFrontResponse(BaseResponse):
         )
 
     def test_connection_function(self) -> ActionResult:
+        name = self.path.split("/")[-2]
         return ActionResult(
             {
-                "ConnectionFunctionTestResult": {},
+                "ConnectionFunctionTestResult": {
+                    "ConnectionFunctionSummary": {
+                        "Name": name,
+                        "Status": "UNASSOCIATED",
+                    },
+                    "ComputeUtilization": "12",
+                    "ConnectionFunctionExecutionLogs": [],
+                    "ConnectionFunctionErrorMessage": "",
+                    "ConnectionFunctionOutput": '{"response":{"statusCode":200}}',
+                },
             }
         )
 
@@ -1749,9 +1788,17 @@ class CloudFrontResponse(BaseResponse):
         return 200, {}, ""
 
     def get_managed_certificate_details(self) -> ActionResult:
+        identifier = self.path.split("/")[-1]
         return ActionResult(
             {
-                "ManagedCertificateDetails": {},
+                "ManagedCertificateDetails": {
+                    "CertificateArn": (
+                        f"arn:aws:acm:us-east-1:{self.current_account}:certificate/{identifier}"
+                    ),
+                    "CertificateStatus": "issued",
+                    "ValidationTokenHost": "cloudfront",
+                    "ValidationTokenDetails": [],
+                },
             }
         )
 

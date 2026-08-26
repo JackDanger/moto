@@ -19,6 +19,8 @@ class PublicIpv4Pool(TaggedEC2Resource):
     ):
         self.ec2_backend = ec2_backend
         self.id = random_id(prefix="ipv4pool-ec2-")
+        # The shape calls this PoolId; the serializer looks for `pool_id`.
+        self.pool_id = self.id
         self.description = ""
         self.pool_address_ranges: list[PublicIpv4PoolCidr] = []
         self.total_address_count = 0
