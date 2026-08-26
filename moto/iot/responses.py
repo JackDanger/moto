@@ -1907,7 +1907,7 @@ class IoTResponse(BaseResponse):
 
     def list_packages(self) -> ActionResult:
         packages = self.iot_backend.list_packages()
-        return ActionResult({"packagesSummary": [p.to_dict() for p in packages]})
+        return ActionResult({"packageSummaries": [p.to_dict() for p in packages]})
 
     def get_package_configuration(self) -> ActionResult:
         result = self.iot_backend.get_package_configuration()
@@ -2378,7 +2378,7 @@ class IoTResponse(BaseResponse):
     # --- Authorizer Testing ---
 
     def test_authorization(self) -> ActionResult:
-        return ActionResult({"authResults": [], "missing": []})
+        return ActionResult({"authResults": []})
 
     def test_invoke_authorizer(self) -> ActionResult:
         return ActionResult(

@@ -45,7 +45,7 @@ class ECRResponse(BaseResponse):
         repositories = self.ecr_backend.describe_repositories(
             repository_names=describe_repositories_name, registry_id=registry_id
         )
-        return ActionResult({"repositories": repositories, "failures": []})
+        return ActionResult({"repositories": repositories})
 
     def delete_repository(self) -> ActionResult:
         repository_str = self._get_param("repositoryName")

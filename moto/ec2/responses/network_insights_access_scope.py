@@ -48,7 +48,7 @@ class NetworkInsightsAccessScopeResponse(EC2BaseResponse):
         )
         return ActionResult(
             {
-                "NetworkInsightsAccessScopeSet": [
+                "NetworkInsightsAccessScopes": [
                     {
                         "NetworkInsightsAccessScopeId": scope.id,
                         "NetworkInsightsAccessScopeArn": scope.arn,
@@ -96,7 +96,7 @@ class NetworkInsightsAccessScopeResponse(EC2BaseResponse):
         )
         return ActionResult(
             {
-                "NetworkInsightsAccessScopeAnalysisSet": [
+                "NetworkInsightsAccessScopeAnalyses": [
                     {
                         "NetworkInsightsAccessScopeAnalysisId": analysis.id,
                         "NetworkInsightsAccessScopeAnalysisArn": analysis.arn,

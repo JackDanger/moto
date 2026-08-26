@@ -696,14 +696,7 @@ class EC2ContainerServiceResponse(BaseResponse):
 
     def stop_service_deployment(self) -> "ActionResult":
         service_deployment_arn = self._get_param("serviceDeploymentArn")
-        return ActionResult(
-            {
-                "serviceDeployment": {
-                    "serviceDeploymentArn": service_deployment_arn,
-                    "status": "STOPPED",
-                }
-            }
-        )
+        return ActionResult({"serviceDeploymentArn": service_deployment_arn})
 
     def submit_attachment_state_changes(self) -> "ActionResult":
         attachments = self._get_param("attachments", [])
@@ -714,7 +707,7 @@ class EC2ContainerServiceResponse(BaseResponse):
         name = self._get_param("name")
         return ActionResult(
             {
-                "expressGatewayService": {
+                "service": {
                     "clusterArn": cluster,
                     "expressGatewayServiceName": name,
                     "status": "ACTIVE",
@@ -724,10 +717,10 @@ class EC2ContainerServiceResponse(BaseResponse):
 
     def describe_express_gateway_service(self) -> "ActionResult":
         cluster = self._get_param("cluster")
-        name = self._get_param("expressGatewayService")
+        name = self._get_param("service")
         return ActionResult(
             {
-                "expressGatewayService": {
+                "service": {
                     "clusterArn": cluster,
                     "expressGatewayServiceName": name,
                     "status": "ACTIVE",
@@ -737,10 +730,10 @@ class EC2ContainerServiceResponse(BaseResponse):
 
     def update_express_gateway_service(self) -> "ActionResult":
         cluster = self._get_param("cluster")
-        name = self._get_param("expressGatewayService")
+        name = self._get_param("service")
         return ActionResult(
             {
-                "expressGatewayService": {
+                "service": {
                     "clusterArn": cluster,
                     "expressGatewayServiceName": name,
                     "status": "ACTIVE",
@@ -750,10 +743,10 @@ class EC2ContainerServiceResponse(BaseResponse):
 
     def delete_express_gateway_service(self) -> "ActionResult":
         cluster = self._get_param("cluster")
-        name = self._get_param("expressGatewayService")
+        name = self._get_param("service")
         return ActionResult(
             {
-                "expressGatewayService": {
+                "service": {
                     "clusterArn": cluster,
                     "expressGatewayServiceName": name,
                     "status": "DELETING",

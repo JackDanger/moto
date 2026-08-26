@@ -427,13 +427,13 @@ class MemoryDBResponse(BaseResponse):
         return ActionResult({"MultiRegionParameterGroups": [], "NextToken": None})
 
     def describe_multi_region_parameters(self) -> ActionResult:
-        return ActionResult({"Parameters": [], "NextToken": None})
+        return ActionResult({"MultiRegionParameters": [], "NextToken": None})
 
     def failover_shard(self) -> ActionResult:
         return ActionResult({"Cluster": {}})
 
     def list_allowed_multi_region_cluster_updates(self) -> ActionResult:
-        return ActionResult({"MultiRegionParameterGroupName": "", "Parameters": []})
+        return ActionResult({"ScaleUpNodeTypes": [], "ScaleDownNodeTypes": []})
 
     def update_multi_region_cluster(self) -> ActionResult:
         return ActionResult({"MultiRegionCluster": {}})

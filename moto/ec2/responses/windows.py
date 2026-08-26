@@ -12,7 +12,7 @@ class Windows(EC2BaseResponse):
         raise NotImplementedError("Windows.cancel_bundle_task is not yet implemented")
 
     def describe_bundle_tasks(self) -> ActionResult:
-        return ActionResult({"BundleInstanceTasks": []})
+        return ActionResult({"BundleTasks": []})
 
     def get_password_data(self) -> ActionResult:
         instance_id = self._get_param("InstanceId")

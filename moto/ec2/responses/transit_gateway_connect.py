@@ -58,7 +58,7 @@ class TransitGatewayConnectResponse(EC2BaseResponse):
         )
         return ActionResult(
             {
-                "TransitGatewayConnectSet": [
+                "TransitGatewayConnects": [
                     {
                         "TransitGatewayAttachmentId": connect.id,
                         "TransportTransitGatewayAttachmentId": connect.transport_transit_gateway_attachment_id,
@@ -143,7 +143,7 @@ class TransitGatewayConnectResponse(EC2BaseResponse):
         )
         return ActionResult(
             {
-                "TransitGatewayConnectPeerSet": [
+                "TransitGatewayConnectPeers": [
                     {
                         "TransitGatewayConnectPeerId": peer.id,
                         "TransitGatewayAttachmentId": peer.transit_gateway_attachment_id,

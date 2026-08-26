@@ -129,7 +129,7 @@ class EKSResponse(BaseResponse):
             remote_network_config=remote_network_config,
         )
 
-        return ActionResult({"cluster": cluster})
+        return ActionResult({"update": cluster})
 
     def describe_fargate_profile(self) -> ActionResult:
         cluster_name = self._get_param("name")

@@ -228,7 +228,7 @@ class ElasticBlockStore(EC2BaseResponse):
         return ActionResult(response)
 
     def describe_volume_status(self) -> ActionResult:
-        return ActionResult({"VolumeStatusSet": []})
+        return ActionResult({"VolumeStatuses": []})
 
     def detach_volume(self) -> ActionResult:
         volume_id = self._get_param("VolumeId")

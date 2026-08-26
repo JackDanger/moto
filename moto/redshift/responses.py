@@ -393,7 +393,7 @@ class RedshiftResponse(BaseResponse):
             **snapshot_copy_kwargs
         )
 
-        return ActionResult({"Clusters": [cluster]})
+        return ActionResult({"Cluster": [cluster]})
 
     def get_cluster_credentials(self) -> ActionResult:
         cluster_identifier = self._get_param("ClusterIdentifier")

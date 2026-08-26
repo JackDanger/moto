@@ -359,14 +359,9 @@ class KinesisResponse(BaseResponse):
         return ActionResult(limits)
 
     def describe_account_settings(self) -> ActionResult:
-        return ActionResult(
-            {
-                "AccountSettings": {
-                    "OpenShardCount": 0,
-                    "StreamCount": len(self.kinesis_backend.streams),
-                }
-            }
-        )
+        # DescribeAccountSettings models only MinimumThroughputBillingCommitment;
+        # moto does not track billing commitments, so there is nothing to report.
+        return ActionResult({})
 
     def list_tags_for_resource(self) -> ActionResult:
         resource_arn = self._get_param("ResourceARN")

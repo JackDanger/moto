@@ -1,0 +1,449 @@
+{
+  "apigateway": [
+    "create_rest_api",
+    "get_gateway_response",
+    "get_gateway_responses",
+    "get_rest_api",
+    "get_tags",
+    "put_gateway_response",
+    "put_rest_api",
+    "test_invoke_authorizer",
+    "test_invoke_method",
+    "update_gateway_response",
+    "update_rest_api"
+  ],
+  "apigatewayv2": [
+    "create_api",
+    "create_api_mapping",
+    "create_authorizer",
+    "create_domain_name",
+    "create_integration",
+    "create_integration_response",
+    "create_model",
+    "create_route",
+    "create_route_response",
+    "create_stage",
+    "create_vpc_link",
+    "get_api",
+    "get_api_mapping",
+    "get_api_mappings",
+    "get_apis",
+    "get_authorizer",
+    "get_domain_name",
+    "get_domain_names",
+    "get_integration",
+    "get_integration_response",
+    "get_integration_responses",
+    "get_integrations",
+    "get_model",
+    "get_route",
+    "get_route_response",
+    "get_routes",
+    "get_stage",
+    "get_stages",
+    "get_tags",
+    "get_vpc_link",
+    "get_vpc_links",
+    "reimport_api",
+    "update_api",
+    "update_authorizer",
+    "update_integration",
+    "update_integration_response",
+    "update_model",
+    "update_route",
+    "update_vpc_link"
+  ],
+  "athena": [
+    "delete_data_catalog"
+  ],
+  "awslambda": [
+    "checkpoint_durable_execution",
+    "create_capacity_provider",
+    "delete_capacity_provider",
+    "get_capacity_provider",
+    "get_durable_execution",
+    "get_durable_execution_history",
+    "get_durable_execution_state",
+    "get_function_concurrency",
+    "list_aliases",
+    "list_capacity_providers",
+    "list_code_signing_configs",
+    "list_function_versions_by_capacity_provider",
+    "put_function_concurrency",
+    "stop_durable_execution",
+    "update_capacity_provider",
+    "update_code_signing_config"
+  ],
+  "backup": [
+    "get_restore_testing_inferred_metadata"
+  ],
+  "cloudfront": [
+    "associate_distribution_tenant_web_acl",
+    "associate_distribution_web_acl",
+    "disassociate_distribution_tenant_web_acl",
+    "disassociate_distribution_web_acl",
+    "get_connection_group_by_routing_endpoint",
+    "get_distribution_tenant_by_domain",
+    "get_managed_certificate_details",
+    "list_distributions_by_anycast_ip_list_id",
+    "list_distributions_by_connection_function",
+    "list_distributions_by_connection_mode",
+    "list_distributions_by_owned_resource",
+    "list_distributions_by_trust_store",
+    "list_distributions_by_vpc_origin_id",
+    "list_distributions_by_web_acl_id",
+    "test_connection_function",
+    "update_domain_association"
+  ],
+  "cloudwatch": [
+    "put_anomaly_detector"
+  ],
+  "codecommit": [
+    "delete_repository"
+  ],
+  "config": [
+    "associate_resource_types",
+    "disassociate_resource_types"
+  ],
+  "dms": [
+    "delete_replication_config"
+  ],
+  "ds": [
+    "delete_ad_assessment",
+    "describe_hybrid_ad_update",
+    "update_hybrid_ad"
+  ],
+  "dynamodb": [
+    "delete_resource_policy"
+  ],
+  "ec2": [
+    "accept_address_transfer",
+    "accept_transit_gateway_multicast_domain_associations",
+    "accept_transit_gateway_vpc_attachment",
+    "advertise_byoip_cidr",
+    "associate_client_vpn_target_network",
+    "associate_ipam_byoasn",
+    "associate_ipam_resource_discovery",
+    "associate_transit_gateway_multicast_domain",
+    "associate_transit_gateway_policy_table",
+    "attach_verified_access_trust_provider",
+    "bundle_instance",
+    "cancel_bundle_task",
+    "create_capacity_reservation_by_splitting",
+    "create_client_vpn_route",
+    "create_instance_event_window",
+    "create_instance_export_task",
+    "create_ipam_external_resource_verification_token",
+    "create_ipam_resource_discovery",
+    "create_local_gateway_route_table_virtual_interface_group_association",
+    "create_local_gateway_route_table_vpc_association",
+    "create_network_insights_access_scope",
+    "create_network_interface_permission",
+    "create_transit_gateway_multicast_domain",
+    "create_transit_gateway_policy_table",
+    "create_verified_access_instance",
+    "deregister_transit_gateway_multicast_group_members",
+    "deregister_transit_gateway_multicast_group_sources",
+    "describe_fpga_image_attribute",
+    "describe_instance_event_notification_attributes",
+    "describe_reserved_instances",
+    "describe_reserved_instances_listings",
+    "describe_spot_fleet_request_history",
+    "describe_vpc_block_public_access_options",
+    "get_active_vpn_tunnel_status",
+    "get_capacity_reservation_usage",
+    "get_default_credit_specification",
+    "get_instance_metadata_defaults",
+    "get_reserved_instances_exchange_quote",
+    "get_vpn_tunnel_replacement_status",
+    "import_snapshot",
+    "modify_address_attribute",
+    "modify_default_credit_specification",
+    "modify_fpga_image_attribute",
+    "modify_instance_event_start_time",
+    "modify_ipam_resource_cidr",
+    "modify_ipam_resource_discovery",
+    "modify_ipam_scope",
+    "modify_local_gateway_route",
+    "modify_transit_gateway_prefix_list_reference",
+    "modify_vpn_connection",
+    "modify_vpn_connection_options",
+    "modify_vpn_tunnel_certificate",
+    "modify_vpn_tunnel_options",
+    "move_byoip_cidr_to_ipam",
+    "register_instance_event_notification_attributes",
+    "register_transit_gateway_multicast_group_members",
+    "register_transit_gateway_multicast_group_sources",
+    "reject_transit_gateway_multicast_domain_associations",
+    "reset_address_attribute",
+    "revoke_client_vpn_ingress",
+    "withdraw_byoip_cidr"
+  ],
+  "ecr": [
+    "delete_signing_configuration",
+    "deregister_pull_time_update_exclusion"
+  ],
+  "ecs": [
+    "delete_account_setting"
+  ],
+  "elasticache": [
+    "add_tags_to_resource",
+    "authorize_cache_security_group_ingress",
+    "decrease_node_groups_in_global_replication_group",
+    "increase_node_groups_in_global_replication_group",
+    "modify_replication_group_shard_configuration",
+    "remove_tags_from_resource",
+    "start_migration"
+  ],
+  "elasticbeanstalk": [
+    "delete_platform_version"
+  ],
+  "elbv2": [
+    "modify_ip_pools"
+  ],
+  "forecast": [
+    "create_auto_predictor",
+    "create_dataset",
+    "create_dataset_group",
+    "create_dataset_import_job",
+    "create_explainability",
+    "create_explainability_export",
+    "create_forecast",
+    "create_forecast_export_job",
+    "create_monitor",
+    "create_predictor",
+    "create_predictor_backtest_export_job",
+    "create_what_if_analysis",
+    "create_what_if_forecast",
+    "create_what_if_forecast_export",
+    "describe_auto_predictor",
+    "describe_dataset",
+    "describe_dataset_group",
+    "describe_dataset_import_job",
+    "describe_explainability",
+    "describe_explainability_export",
+    "describe_forecast",
+    "describe_forecast_export_job",
+    "describe_monitor",
+    "describe_predictor",
+    "describe_predictor_backtest_export_job",
+    "describe_what_if_analysis",
+    "describe_what_if_forecast",
+    "describe_what_if_forecast_export",
+    "get_accuracy_metrics",
+    "list_dataset_groups",
+    "list_dataset_import_jobs",
+    "list_datasets",
+    "list_explainabilities",
+    "list_explainability_exports",
+    "list_forecast_export_jobs",
+    "list_forecasts",
+    "list_monitor_evaluations",
+    "list_monitors",
+    "list_predictor_backtest_export_jobs",
+    "list_predictors",
+    "list_tags_for_resource",
+    "list_what_if_analyses",
+    "list_what_if_forecast_exports",
+    "list_what_if_forecasts"
+  ],
+  "fsx": [
+    "copy_backup",
+    "create_and_attach_s3_access_point",
+    "detach_and_delete_s3_access_point"
+  ],
+  "glue": [
+    "create_session",
+    "delete_blueprint",
+    "get_data_quality_model",
+    "get_data_quality_model_result",
+    "get_data_quality_result",
+    "get_ml_task_run",
+    "update_usage_profile"
+  ],
+  "greengrass": [
+    "create_group_certificate_authority",
+    "create_software_update_job",
+    "get_bulk_deployment_status",
+    "get_thing_runtime_configuration",
+    "start_bulk_deployment",
+    "update_connectivity_info"
+  ],
+  "iam": [
+    "enable_outbound_web_identity_federation",
+    "get_delegation_request",
+    "reset_service_specific_credential"
+  ],
+  "inspector2": [
+    "get_delegated_admin_account"
+  ],
+  "iot": [
+    "associate_sbom_with_package_version",
+    "delete_command",
+    "register_thing"
+  ],
+  "kafka": [
+    "update_cluster_configuration",
+    "update_connectivity",
+    "update_rebalancing"
+  ],
+  "kinesis": [
+    "describe_account_settings"
+  ],
+  "kinesisvideo": [
+    "describe_edge_configuration",
+    "start_edge_configuration_update"
+  ],
+  "macie2": [
+    "get_classification_export_configuration"
+  ],
+  "medialive": [
+    "delete_sdi_source",
+    "describe_input_device_thumbnail"
+  ],
+  "memorydb": [
+    "create_multi_region_cluster",
+    "delete_multi_region_cluster",
+    "failover_shard",
+    "update_multi_region_cluster"
+  ],
+  "opensearch": [
+    "add_direct_query_data_source",
+    "create_index",
+    "delete_index",
+    "get_default_application_setting",
+    "put_default_application_setting",
+    "update_direct_query_data_source",
+    "update_index",
+    "update_package_scope",
+    "upgrade_domain"
+  ],
+  "opensearchserverless": [
+    "create_collection_group",
+    "update_collection_group"
+  ],
+  "rds": [
+    "delete_db_cluster_automated_backup",
+    "modify_db_proxy_endpoint",
+    "modify_db_recommendation",
+    "restore_db_cluster_from_s3",
+    "restore_db_instance_from_s3",
+    "revoke_db_security_group_ingress",
+    "start_db_instance_automated_backups_replication",
+    "stop_db_instance_automated_backups_replication",
+    "switchover_read_replica"
+  ],
+  "redshift": [
+    "create_integration",
+    "create_redshift_idc_application",
+    "delete_integration",
+    "failover_primary_compute",
+    "modify_integration",
+    "modify_redshift_idc_application",
+    "purchase_reserved_node_offering"
+  ],
+  "rekognition": [
+    "get_media_analysis_job"
+  ],
+  "route53": [
+    "create_vpc_association_authorization"
+  ],
+  "s3": [
+    "abort_multipart_upload",
+    "get_bucket_policy",
+    "get_bucket_website"
+  ],
+  "s3control": [
+    "get_access_point_configuration_for_object_lambda",
+    "get_data_access"
+  ],
+  "s3tables": [
+    "get_table_record_expiration_configuration"
+  ],
+  "s3vectors": [
+    "create_index",
+    "create_vector_bucket"
+  ],
+  "sagemaker": [
+    "attach_cluster_node_volume",
+    "batch_add_cluster_nodes",
+    "batch_delete_cluster_nodes",
+    "batch_describe_model_package",
+    "batch_reboot_cluster_nodes",
+    "batch_replace_cluster_nodes",
+    "delete_action",
+    "delete_artifact",
+    "delete_context",
+    "delete_experiment",
+    "delete_inference_experiment",
+    "delete_mlflow_app",
+    "delete_mlflow_tracking_server",
+    "delete_partner_app",
+    "delete_trial",
+    "delete_trial_component",
+    "delete_workteam",
+    "describe_auto_ml_job",
+    "describe_inference_recommendations_job",
+    "describe_model_card_export_job",
+    "detach_cluster_node_volume",
+    "get_device_fleet_report",
+    "get_scaling_configuration_recommendation",
+    "update_inference_component_runtime_config"
+  ],
+  "securityhub": [
+    "delete_connector_v2",
+    "enable_organization_admin_account",
+    "update_connector_v2"
+  ],
+  "servicecatalog": [
+    "create_product",
+    "describe_provisioning_parameters"
+  ],
+  "servicediscovery": [
+    "list_namespaces",
+    "list_operations",
+    "list_tags_for_resource"
+  ],
+  "ssm": [
+    "delete_maintenance_window",
+    "delete_patch_baseline",
+    "deregister_target_from_maintenance_window",
+    "deregister_task_from_maintenance_window"
+  ],
+  "wafv2": [
+    "check_capacity",
+    "create_api_key",
+    "create_ip_set",
+    "create_rule_group",
+    "delete_firewall_manager_rule_groups",
+    "describe_all_managed_products",
+    "describe_managed_products_by_vendor",
+    "describe_managed_rule_group",
+    "generate_mobile_sdk_release_url",
+    "get_decrypted_api_key",
+    "get_ip_set",
+    "get_logging_configuration",
+    "get_managed_rule_set",
+    "get_mobile_sdk_release",
+    "get_permission_policy",
+    "get_rate_based_statement_managed_keys",
+    "get_rule_group",
+    "get_sampled_requests",
+    "get_top_path_statistics_by_traffic",
+    "list_api_keys",
+    "list_available_managed_rule_group_versions",
+    "list_available_managed_rule_groups",
+    "list_managed_rule_sets",
+    "list_mobile_sdk_releases",
+    "list_resources_for_web_acl",
+    "put_logging_configuration",
+    "put_managed_rule_set_versions",
+    "update_ip_set",
+    "update_managed_rule_set_version_expiry_date",
+    "update_rule_group",
+    "update_web_acl"
+  ],
+  "workspaces": [
+    "register_workspace_directory"
+  ]
+}

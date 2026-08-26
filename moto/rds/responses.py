@@ -1112,7 +1112,7 @@ class RDSResponse(BaseResponse):
                 "SupportedEngineModes": cev.supported_engine_modes,
                 "SupportsParallelQuery": cev.supports_parallel_query,
                 "SupportsGlobalDatabases": cev.supports_global_databases,
-                "Tags": cev.tags,
+                "TagList": cev.tags,
             }
         )
 
@@ -1130,7 +1130,7 @@ class RDSResponse(BaseResponse):
                 "Status": cev.status,
                 "CreateTime": cev.create_time.isoformat(),
                 "MajorEngineVersion": cev.major_engine_version,
-                "Tags": cev.tags,
+                "TagList": cev.tags,
             }
         )
 
@@ -1152,7 +1152,7 @@ class RDSResponse(BaseResponse):
                 "Status": cev.status,
                 "CreateTime": cev.create_time.isoformat(),
                 "MajorEngineVersion": cev.major_engine_version,
-                "Tags": cev.tags,
+                "TagList": cev.tags,
             }
         )
 

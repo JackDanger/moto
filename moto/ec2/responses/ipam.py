@@ -375,7 +375,7 @@ class IpamResponse(EC2BaseResponse):
         asn = self._get_param("Asn")
         cidr = self._get_param("Cidr")
         result = self.ec2_backend.disassociate_ipam_byoasn(asn=asn, cidr=cidr)
-        return ActionResult({"Ipv4IpamByoasn": result})
+        return ActionResult({"AsnAssociation": result})
 
     def disassociate_ipam_resource_discovery(self) -> ActionResult:
         assoc_id = self._get_param("IpamResourceDiscoveryAssociationId")

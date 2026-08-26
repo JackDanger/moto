@@ -2340,7 +2340,7 @@ class SageMakerResponse(BaseResponse):
 
     def list_mlflow_apps(self) -> ActionResult:
         results = self.sagemaker_backend.list_mlflow_apps()
-        return ActionResult({"MlflowApps": results})
+        return ActionResult({"MlflowAppSummaries": results})
 
     def update_mlflow_app(self) -> ActionResult:
         name = self._get_param("Name")
@@ -2520,7 +2520,7 @@ class SageMakerResponse(BaseResponse):
 
     def list_partner_apps(self) -> ActionResult:
         results = self.sagemaker_backend.list_partner_apps()
-        return ActionResult({"PartnerApps": results})
+        return ActionResult({"PartnerAppSummaries": results})
 
     def update_partner_app(self) -> ActionResult:
         name = self._get_param("Name")
@@ -2805,7 +2805,7 @@ class SageMakerResponse(BaseResponse):
     def delete_workteam(self) -> ActionResult:
         name = self._get_param("WorkteamName")
         self.sagemaker_backend.delete_workteam(name=name)
-        return ActionResult({})
+        return ActionResult({"Success": True})
 
     def add_association(self) -> ActionResult:
         self._get_param("SourceArn")
@@ -2892,14 +2892,14 @@ class SageMakerResponse(BaseResponse):
         self._get_param("HubContentName")
         self._get_param("HubContentType")
         self._get_param("HubContentVersion")
-        return ActionResult({"AuthorizedUrl": "https://example.com/presigned"})
+        return ActionResult({"AuthorizedUrlConfigs": "https://example.com/presigned"})
 
     def create_hub_content_reference(self) -> ActionResult:
         self._get_param("HubName")
         self._get_param("SageMakerPublicHubContentArn")
         self._get_param("HubContentName")
         self._get_param("MinVersion")
-        return ActionResult({"HubArn": "_arn", "HubContentReferenceArn": "_arn"})
+        return ActionResult({"HubArn": "_arn", "HubContentArn": "_arn"})
 
     def create_image_version(self) -> ActionResult:
         self._get_param("BaseImage")
@@ -2925,7 +2925,7 @@ class SageMakerResponse(BaseResponse):
         self._get_param("Arn")
         self._get_param("ExpiresInSeconds")
         self._get_param("SessionExpirationDurationInSeconds")
-        return ActionResult({"AuthorizedUrl": "https://example.com/presigned"})
+        return ActionResult({"Url": "https://example.com/presigned"})
 
     def create_presigned_domain_url(self) -> ActionResult:
         self._get_param("DomainId")
@@ -3045,7 +3045,12 @@ class SageMakerResponse(BaseResponse):
         self._get_param("ClusterName")
         self._get_param("EventId")
         return ActionResult(
-            {"Event": {"EventType": "UpdateCompleted", "Message": "Cluster updated"}}
+            {
+                "EventDetails": {
+                    "EventType": "UpdateCompleted",
+                    "Message": "Cluster updated",
+                }
+            }
         )
 
     def describe_cluster_scheduler_config(self) -> ActionResult:
@@ -3234,7 +3239,7 @@ class SageMakerResponse(BaseResponse):
 
     def list_cluster_events(self) -> ActionResult:
         self._get_param("ClusterName")
-        return ActionResult({"ClusterEvents": []})
+        return ActionResult({"ClusterEventSummaries": []})
 
     def list_cluster_scheduler_configs(self) -> ActionResult:
         return ActionResult({"ClusterSchedulerConfigSummaries": []})
@@ -3329,7 +3334,7 @@ class SageMakerResponse(BaseResponse):
     def list_ultra_servers_by_reserved_capacity(self) -> ActionResult:
         self._get_param("ClusterName")
         self._get_param("ReservedCapacityId")
-        return ActionResult({"UltraServerSummaries": []})
+        return ActionResult({"UltraServers": []})
 
     def put_model_package_group_policy(self) -> ActionResult:
         self._get_param("ModelPackageGroupName")
@@ -3461,12 +3466,12 @@ class SageMakerResponse(BaseResponse):
         return ActionResult({"ClusterArn": "_arn"})
 
     def update_cluster_scheduler_config(self) -> ActionResult:
-        self._get_param("ClusterSchedulerConfigId")
+        self._get_param("ClusterSchedulerConfigArn")
         self._get_param("SchedulerConfig")
         return ActionResult(
             {
                 "ClusterSchedulerConfigArn": "_arn",
-                "ClusterSchedulerConfigId": "csc-00000000",
+                "ClusterSchedulerConfigArn": "csc-00000000",
             }
         )
 
@@ -3475,10 +3480,10 @@ class SageMakerResponse(BaseResponse):
         return ActionResult({"ClusterArn": "_arn"})
 
     def update_compute_quota(self) -> ActionResult:
-        self._get_param("ComputeQuotaId")
+        self._get_param("ComputeQuotaArn")
         self._get_param("ComputeQuotaConfig")
         return ActionResult(
-            {"ComputeQuotaArn": "_arn", "ComputeQuotaId": "cq-00000000"}
+            {"ComputeQuotaArn": "_arn", "ComputeQuotaArn": "cq-00000000"}
         )
 
     def update_devices(self) -> ActionResult:
@@ -3539,7 +3544,7 @@ class SageMakerResponse(BaseResponse):
         self._get_param("HubContentName")
         self._get_param("HubContentType")
         self._get_param("MinVersion")
-        return ActionResult({"HubArn": "_arn", "HubContentReferenceArn": "_arn"})
+        return ActionResult({"HubArn": "_arn", "HubContentArn": "_arn"})
 
     def update_image_version(self) -> ActionResult:
         self._get_param("ImageName")

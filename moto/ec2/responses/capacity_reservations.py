@@ -180,7 +180,7 @@ class CapacityReservations(EC2BaseResponse):
         )
         return ActionResult(
             {
-                "SuccessfulFleetCancellationSet": [
+                "SuccessfulFleetCancellations": [
                     {
                         "CapacityReservationFleetId": r.capacity_reservation_fleet_id,
                         "CurrentFleetState": r.current_state,
@@ -189,7 +189,7 @@ class CapacityReservations(EC2BaseResponse):
                     for r in results
                     if "error" not in r
                 ],
-                "FailedFleetCancellationSet": [],
+                "FailedFleetCancellations": [],
             }
         )
 

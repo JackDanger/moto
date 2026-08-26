@@ -324,7 +324,7 @@ class AutoScalingResponse(BaseResponse):
                 "PredictiveScalingConfiguration", {}
             ),
         )
-        return ActionResult({"PolicyArn": policy.arn})
+        return ActionResult({"PolicyARN": policy.arn})
 
     def describe_policies(self) -> ActionResult:
         policies = self.autoscaling_backend.describe_policies(

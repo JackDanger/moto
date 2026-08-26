@@ -213,7 +213,7 @@ class KinesisVideoResponse(BaseResponse):
         config = self.kinesisvideo_backend.describe_stream_storage_configuration(
             stream_name=stream_name, stream_arn=stream_arn
         )
-        return ActionResult({"StreamStorageConfigurations": config})
+        return ActionResult({"StreamStorageConfiguration": config})
 
     def describe_mapped_resource_configuration(self) -> ActionResult:
         stream_name = self._get_param("StreamName")

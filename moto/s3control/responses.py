@@ -864,7 +864,6 @@ class S3ControlResponse(BaseResponse):
         )
         return ActionResult(
             {
-                "ObjectLambdaAccessPointArn": access_point.arn,
                 "Alias": {
                     "Status": "READY",
                     "Value": access_point.alias,
@@ -881,7 +880,6 @@ class S3ControlResponse(BaseResponse):
         return ActionResult(
             {
                 "Name": access_point.name,
-                "ObjectLambdaAccessPointArn": access_point.arn,
                 "CreationDate": access_point.created,
                 "Alias": {
                     "Status": "READY",
