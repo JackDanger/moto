@@ -14,6 +14,18 @@ class BackupResponse(BaseResponse):
     def __init__(self) -> None:
         super().__init__(service_name="backup")
 
+    def _get_action(self) -> str:
+        # Associate and Disassociate share PUT/POST on the same path; the
+        # botocore URI matcher ignores the `?delete` marker that distinguishes
+        # DisassociateBackupVaultMpaApprovalTeam, so resolve it here.
+        if (
+            self.method == "POST"
+            and self.path.endswith("/mpaApprovalTeam")
+            and "delete" in self.querystring
+        ):
+            return "DisassociateBackupVaultMpaApprovalTeam"
+        return super()._get_action()
+
     @property
     def backup_backend(self) -> BackupBackend:
         """Return backend instance specific for this region."""

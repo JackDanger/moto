@@ -24,6 +24,16 @@ class APIGatewayResponse(BaseResponse):
         headers["X-Amzn-Errortype"] = type_
         return (status, headers, json.dumps({"__type": type_, "message": message}))
 
+    def _get_action(self) -> str:
+        # CreateApiKey and ImportApiKeys share POST /apikeys; only the
+        # `?mode=import` marker separates them, and the botocore URI matcher
+        # ignores it, so every import was dispatched to CreateApiKey and died
+        # trying to json.loads() a CSV body.
+        if self.method == "POST" and self.path.rstrip("/").endswith("/apikeys"):
+            if self.querystring.get("mode") == ["import"]:
+                return "ImportApiKeys"
+        return super()._get_action()
+
     @property
     def backend(self) -> APIGatewayBackend:
         return apigateway_backends[self.current_account][self.region]
@@ -616,21 +626,8 @@ class APIGatewayResponse(BaseResponse):
         return json.dumps({"item": [d.to_json() for d in deployments]})
 
     def import_api_keys(self) -> TYPE_RESPONSE:
-        """Handle POST /apikeys.
-
-        Botocore maps POST /apikeys to ImportApiKeys, but both CreateApiKey
-        and ImportApiKeys share this endpoint.  If the body is valid JSON
-        (i.e. a CreateApiKey call), delegate to create_api_key.  Otherwise
-        it is a true ImportApiKeys call (CSV format) which is not yet
-        implemented.
-        """
-        try:
-            json.loads(self.body)
-        except (json.JSONDecodeError, TypeError, UnicodeDecodeError):
-            raise NotImplementedError(
-                "The import_api_keys action has not been implemented"
-            )
-        return self.create_api_key()
+        """ImportApiKeys takes a CSV body, which is not modelled."""
+        raise NotImplementedError("The import_api_keys action has not been implemented")
 
     def create_api_key(self) -> TYPE_RESPONSE:
         apikey_response = self.backend.create_api_key(json.loads(self.body))

@@ -929,10 +929,13 @@ class LogsResponse(BaseResponse):
         return json.dumps({"logGroupIdentifiers": log_group_names})
 
     def put_log_group_deletion_protection(self) -> str:
-        log_group_name = self._get_param("logGroupName")
+        # The input member is logGroupIdentifier -- reading logGroupName always
+        # produced None, and the lookup then rejected the call as malformed.
+        # An identifier is either a name or an ARN.
+        identifier = self._get_param("logGroupIdentifier")
         deletion_protection_enabled = self._get_param("deletionProtectionEnabled", True)
         self.logs_backend.put_log_group_deletion_protection(
-            log_group_name=log_group_name,
+            log_group_identifier=identifier,
             deletion_protection_enabled=deletion_protection_enabled,
         )
         return "{}"
