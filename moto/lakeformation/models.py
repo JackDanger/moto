@@ -855,6 +855,28 @@ class LakeFormationBackend(BaseBackend):
             raise EntityNotFound
         del self.data_cells_filters[key]
 
+    def update_data_cells_filter(self, table_data: dict[str, Any]) -> None:
+        key = (
+            table_data.get("TableCatalogId", self.account_id),
+            table_data["DatabaseName"],
+            table_data["TableName"],
+            table_data["Name"],
+        )
+        if key not in self.data_cells_filters:
+            raise EntityNotFound
+        dcf = self.data_cells_filters[key]
+        dcf.row_filter = table_data.get("RowFilter", dcf.row_filter)
+        dcf.column_names = table_data.get("ColumnNames", dcf.column_names)
+        dcf.column_wildcard = table_data.get("ColumnWildcard", dcf.column_wildcard)
+
+    def start_query_planning(
+        self,
+        query_planning_context: dict[str, Any],
+        query_string: str,
+    ) -> dict[str, Any]:
+        """Query plans are not modelled; hand back an opaque query id."""
+        return {"QueryId": str(uuid.uuid4())}
+
     def list_data_cells_filter(self) -> list[dict[str, Any]]:
         return [dcf.to_dict() for dcf in self.data_cells_filters.values()]
 

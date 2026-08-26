@@ -3174,10 +3174,9 @@ class RDSBackend(BaseBackend, TaggableResourcesMixin):
     ) -> list[OptionGroup]:
         option_group_list = []
         for option_group in self.option_groups.values():
-            if (
-                option_group_kwargs["option_group_name"]
-                and option_group.name != option_group_kwargs["option_group_name"]
-            ):
+            if option_group_kwargs.get(
+                "option_group_name"
+            ) and option_group.name != option_group_kwargs.get("option_group_name"):
                 continue
             elif option_group_kwargs.get(
                 "engine_name"
@@ -3191,7 +3190,9 @@ class RDSBackend(BaseBackend, TaggableResourcesMixin):
                 continue
             else:
                 option_group_list.append(option_group)
-        if not len(option_group_list):
+        # Only a name-filtered query that matches nothing is an error; an
+        # unfiltered DescribeOptionGroups legitimately returns an empty list.
+        if not option_group_list and option_group_kwargs.get("option_group_name"):
             raise OptionGroupNotFoundFaultError(
                 option_group_kwargs["option_group_name"]
             )
@@ -3499,6 +3500,8 @@ class RDSBackend(BaseBackend, TaggableResourcesMixin):
         return initial_state
 
     def promote_read_replica_db_cluster(self, db_cluster_identifier: str) -> DBCluster:
+        if db_cluster_identifier not in self.clusters:
+            raise DBClusterNotFoundError(db_cluster_identifier)
         cluster = self.clusters[db_cluster_identifier]
         source_cluster = find_cluster(cluster.replication_source_identifier)  # type: ignore
         source_cluster.read_replica_identifiers.remove(cluster.db_cluster_arn)
@@ -3954,6 +3957,8 @@ class RDSBackend(BaseBackend, TaggableResourcesMixin):
         return list(self.global_clusters.values())
 
     def delete_global_cluster(self, global_cluster_identifier: str) -> GlobalCluster:
+        if global_cluster_identifier not in self.global_clusters:
+            raise GlobalClusterNotFoundError(global_cluster_identifier)
         global_cluster = self.global_clusters[global_cluster_identifier]
         if global_cluster.members:
             raise InvalidGlobalClusterStateFault(global_cluster.global_cluster_arn)
@@ -4121,9 +4126,13 @@ class RDSBackend(BaseBackend, TaggableResourcesMixin):
         return new_targets
 
     def delete_db_proxy(self, proxy_name: str) -> DBProxy:
+        if proxy_name not in self.db_proxies:
+            raise DBProxyNotFoundFault(proxy_name)
         return self.db_proxies.pop(proxy_name)
 
     def describe_db_proxy_targets(self, proxy_name: str) -> list[DBProxyTarget]:
+        if proxy_name not in self.db_proxies:
+            raise DBProxyNotFoundFault(proxy_name)
         proxy = self.db_proxies[proxy_name]
         target_group = proxy.proxy_target_groups["default"]
         return target_group.targets
@@ -4131,6 +4140,8 @@ class RDSBackend(BaseBackend, TaggableResourcesMixin):
     def describe_db_proxy_target_groups(
         self, proxy_name: str
     ) -> list[DBProxyTargetGroup]:
+        if proxy_name not in self.db_proxies:
+            raise DBProxyNotFoundFault(proxy_name)
         proxy = self.db_proxies[proxy_name]
         return list(proxy.proxy_target_groups.values())
 
