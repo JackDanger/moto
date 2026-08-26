@@ -1984,6 +1984,8 @@ class S3Response(BaseResponse):
             return self.get_object_tagging()
         if "legal-hold" in query:
             return self.get_object_legal_hold()
+        if "retention" in query:
+            return self.get_object_retention()
         if "attributes" in query:
             return self.get_object_attributes()
 
@@ -3313,9 +3315,12 @@ class S3Response(BaseResponse):
             error_xml = '<?xml version="1.0" encoding="UTF-8"?>\n<Error>\n  <Code>NoSuchObjectLockConfiguration</Code>\n  <Message>The specified object does not have a ObjectLock configuration</Message>\n</Error>'
             return 404, response_headers, error_xml
         self.data["Action"] = "GetObjectRetention"
+        # The output shape wraps the retention in a Retention member.
         result = {
-            "Mode": mode,
-            "RetainUntilDate": until,
+            "Retention": {
+                "Mode": mode,
+                "RetainUntilDate": until,
+            }
         }
         status, headers, body = self.serialized(ActionResult(result))
         headers.update(response_headers)

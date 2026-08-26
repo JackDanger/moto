@@ -635,8 +635,8 @@ class S3ControlResponse(BaseResponse):
     def update_job_priority(self) -> ActionResult:
         account_id = self.headers.get("x-amz-account-id")
         job_id = self.path.split("/")[-2]
-        params = self._get_params()
-        priority = int(params.get("priority", 0))
+        # Priority is a querystring parameter, which _get_params() does not surface.
+        priority = int(self.querystring.get("priority", [0])[0])
         job = self.backend.update_job_priority(
             account_id=account_id, job_id=job_id, priority=priority
         )
@@ -650,9 +650,9 @@ class S3ControlResponse(BaseResponse):
     def update_job_status(self) -> ActionResult:
         account_id = self.headers.get("x-amz-account-id")
         job_id = self.path.split("/")[-2]
-        params = self._get_params()
-        requested_job_status = params.get("requestedJobStatus", "")
-        status_update_reason = params.get("statusUpdateReason", "")
+        # Both are querystring parameters, which _get_params() does not surface.
+        requested_job_status = self.querystring.get("requestedJobStatus", [""])[0]
+        status_update_reason = self.querystring.get("statusUpdateReason", [""])[0]
         job = self.backend.update_job_status(
             account_id=account_id,
             job_id=job_id,
@@ -864,6 +864,10 @@ class S3ControlResponse(BaseResponse):
         )
         return ActionResult(
             {
+                "ObjectLambdaAccessPointArn": (
+                    f"arn:aws:s3-object-lambda:{self.region}:{account_id}"
+                    f":accesspoint/{name}"
+                ),
                 "Alias": {
                     "Status": "READY",
                     "Value": access_point.alias,
