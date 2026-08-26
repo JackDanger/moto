@@ -86,7 +86,10 @@ class Route53(BaseResponse):
         )
         result = {
             "HostedZones": zone_page,
-            "Marker": marker,
+            # Marker is a required member of ListHostedZonesResponse, so omitting
+            # it on the first page produces a response botocore's own model
+            # rejects. Echo an empty string, as the fork's master lineage does.
+            "Marker": marker or "",
             "IsTruncated": True if next_marker else False,
             "NextMarker": next_marker,
             "MaxItems": max_items,

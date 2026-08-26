@@ -862,7 +862,7 @@ def test_list_hosted_zones_pagination():
         )
 
     page1 = conn.list_hosted_zones()
-    assert "Marker" not in page1
+    assert page1["Marker"] == ""
     assert page1["IsTruncated"] is True
     assert "NextMarker" in page1
     assert page1["MaxItems"] == "100"
@@ -876,7 +876,7 @@ def test_list_hosted_zones_pagination():
     assert len(page2["HostedZones"]) == 50
 
     small_page = conn.list_hosted_zones(MaxItems="75")
-    assert "Marker" not in small_page
+    assert small_page["Marker"] == ""
     assert small_page["IsTruncated"] is True
     assert "NextMarker" in small_page
     assert small_page["MaxItems"] == "75"
