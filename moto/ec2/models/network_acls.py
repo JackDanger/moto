@@ -3,7 +3,6 @@ from typing import Any, TypedDict
 from ..exceptions import (
     DependencyViolationError,
     InvalidNetworkAclIdError,
-    InvalidRouteTableIdError,
     NetworkAclEntryAlreadyExistsError,
 )
 from ..utils import (
@@ -217,7 +216,7 @@ class NetworkAclBackend:
                         {network_acl.id for network_acl in network_acls}
                     )
                 )[0]
-                raise InvalidRouteTableIdError(invalid_id)
+                raise InvalidNetworkAclIdError(invalid_id)
 
         return generic_filter(filters, network_acls)
 

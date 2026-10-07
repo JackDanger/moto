@@ -419,7 +419,7 @@ def test_describe_network_acls():
 
     assert (
         str(ex.value)
-        == "An error occurred (InvalidRouteTableID.NotFound) when calling the DescribeNetworkAcls operation: The routeTable ID '1' does not exist"
+        == "An error occurred (InvalidNetworkAclID.NotFound) when calling the DescribeNetworkAcls operation: The network acl ID '1' does not exist"
     )
 
 
@@ -555,3 +555,17 @@ def test_create_network_acl_with_tags():
     assert network_acl.get("NetworkAcl").get("Tags") == [
         {"Key": "test", "Value": "TestTags"}
     ]
+
+
+@mock_aws
+def test_describe_network_acls_with_unknown_id_raises_the_acl_error():
+    """AWS reports a missing network acl as InvalidNetworkAclID.NotFound — not as the
+    route-table error this call shape returned before — so Terraform refreshes can treat
+    a deleted acl as removed."""
+    conn = boto3.client("ec2", region_name="us-east-1")
+    conn.create_vpc(CidrBlock="10.0.0.0/17")
+    with pytest.raises(ClientError) as exc:
+        conn.describe_network_acls(NetworkAclIds=["acl-00000000000000000"])
+    err = exc.value.response["Error"]
+    assert err["Code"] == "InvalidNetworkAclID.NotFound"
+    assert "network acl ID 'acl-00000000000000000'" in err["Message"]
