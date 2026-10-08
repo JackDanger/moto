@@ -32,6 +32,7 @@ class RouteTables(EC2BaseResponse):
         pcx_id = self._get_param("VpcPeeringConnectionId")
         carrier_gateway_id = self._get_param("CarrierGatewayId")
         vpc_endpoint_id = self._get_param("VpcEndpointId")
+        core_network_arn = self._get_param("CoreNetworkArn")
 
         self.ec2_backend.create_route(
             route_table_id,
@@ -47,6 +48,7 @@ class RouteTables(EC2BaseResponse):
             vpc_peering_connection_id=pcx_id,
             carrier_gateway_id=carrier_gateway_id,
             vpc_endpoint_id=vpc_endpoint_id,
+            core_network_arn=core_network_arn,
         )
 
         return ActionResult({"Return": True})
@@ -112,6 +114,7 @@ class RouteTables(EC2BaseResponse):
         nat_gateway_id = self._get_param("NatGatewayId")
         egress_only_igw_id = self._get_param("EgressOnlyInternetGatewayId")
         transit_gateway_id = self._get_param("TransitGatewayId")
+        core_network_arn = self._get_param("CoreNetworkArn")
 
         self.ec2_backend.replace_route(
             route_table_id,
@@ -125,6 +128,7 @@ class RouteTables(EC2BaseResponse):
             instance_id=instance_id,
             interface_id=interface_id,
             vpc_peering_connection_id=pcx_id,
+            core_network_arn=core_network_arn,
         )
 
         return EmptyResult()

@@ -84,6 +84,48 @@ def test_route_tables_additional():
 
 
 @mock_aws
+def test_route_with_core_network_arn_round_trips():
+    """CreateRoute accepts CoreNetworkArn (Cloud WAN routing) and DescribeRouteTables
+    reports it back, so IaC tools that snapshot the attribute after a write keep a
+    stable value instead of seeing null on the next read."""
+    client = boto3.client("ec2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    vpc = ec2.create_vpc(CidrBlock="10.0.0.0/16")
+    route_table = vpc.create_route_table()
+
+    arn = "arn:aws:networkmanager:us-east-1:123456789012:core-network/core-network-0123456789abcdef0"
+    client.create_route(
+        RouteTableId=route_table.route_table_id,  # type: ignore[union-attr]
+        DestinationCidrBlock="10.1.0.0/16",
+        CoreNetworkArn=arn,
+    )
+    route = next(
+        r
+        for r in client.describe_route_tables(RouteTableIds=[route_table.route_table_id])[
+            "RouteTables"
+        ][0]["Routes"]
+        if r.get("DestinationCidrBlock") == "10.1.0.0/16"
+    )
+    assert route["CoreNetworkArn"] == arn
+
+    # ReplaceRoute can also set the attribute
+    other_arn = arn.replace("0123456789abcdef0", "fedcba9876543210f")
+    client.replace_route(
+        RouteTableId=route_table.route_table_id,
+        DestinationCidrBlock="10.1.0.0/16",
+        CoreNetworkArn=other_arn,
+    )
+    route = next(
+        r
+        for r in client.describe_route_tables(RouteTableIds=[route_table.route_table_id])[
+            "RouteTables"
+        ][0]["Routes"]
+        if r.get("DestinationCidrBlock") == "10.1.0.0/16"
+    )
+    assert route["CoreNetworkArn"] == other_arn
+
+
+@mock_aws
 def test_route_tables_filters_standard():
     client = boto3.client("ec2", region_name="us-east-1")
     ec2 = boto3.resource("ec2", region_name="us-east-1")

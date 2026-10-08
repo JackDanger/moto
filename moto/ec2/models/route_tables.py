@@ -190,6 +190,7 @@ class Route(CloudFormationModel):
         vpc_pcx: VPCPeeringConnection | None = None,
         carrier_gateway: CarrierGateway | None = None,
         vpc_endpoint_id: str | None = None,
+        core_network_arn: str | None = None,
     ):
         self.id = generate_route_id(
             route_table.id,
@@ -211,6 +212,7 @@ class Route(CloudFormationModel):
         self.vpc_pcx = vpc_pcx
         self.carrier_gateway = carrier_gateway
         self.vpc_endpoint_id = vpc_endpoint_id
+        self.core_network_arn = core_network_arn
 
     @property
     def gateway_id(self) -> str | None:
@@ -474,6 +476,7 @@ class RouteBackend:
         vpc_peering_connection_id: str | None = None,
         carrier_gateway_id: str | None = None,
         vpc_endpoint_id: str | None = None,
+        core_network_arn: str | None = None,
     ) -> Route:
         gateway = None
         nat_gateway = None
@@ -537,6 +540,7 @@ class RouteBackend:
             interface=interface,
             carrier_gateway=carrier_gateway,
             vpc_endpoint_id=vpc_endpoint_id,
+            core_network_arn=core_network_arn,
             vpc_pcx=self.get_vpc_peering_connection(vpc_peering_connection_id)  # type: ignore[attr-defined]
             if vpc_peering_connection_id
             else None,
@@ -557,6 +561,7 @@ class RouteBackend:
         instance_id: str | None = None,
         interface_id: str | None = None,
         vpc_peering_connection_id: str | None = None,
+        core_network_arn: str | None = None,
     ) -> Route:
         cidr = destination_cidr_block
         if destination_ipv6_cidr_block:
@@ -603,6 +608,8 @@ class RouteBackend:
             if vpc_peering_connection_id
             else None
         )
+        if core_network_arn:
+            route.core_network_arn = core_network_arn
 
         route_table._routes[route.id] = route
         return route
