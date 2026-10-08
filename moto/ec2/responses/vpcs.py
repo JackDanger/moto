@@ -195,6 +195,7 @@ class VPCs(EC2BaseResponse):
         security_group_ids = self._get_param("SecurityGroupIds", [])
         ip_address_type = self._get_param("IpAddressType")
         dns_options = self._get_param("DnsOptions")
+        service_region = self._get_param("ServiceRegion")
 
         tags = add_tag_specification(self._get_param("TagSpecifications", []))
         vpc_end_point = self.ec2_backend.create_vpc_endpoint(
@@ -210,6 +211,7 @@ class VPCs(EC2BaseResponse):
             private_dns_enabled=private_dns_enabled,
             ip_address_type=ip_address_type,
             dns_options=dns_options,
+            service_region=service_region,
         )
         result = {"VpcEndpoint": vpc_end_point}
         return ActionResult(result)

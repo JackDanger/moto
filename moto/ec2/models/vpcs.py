@@ -351,6 +351,7 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
         destination_prefix_list_id: str | None = None,
         ip_address_type: str | None = None,
         dns_options: dict[str, str] | None = None,
+        service_region: str | None = None,
     ):
         self.ec2_backend = ec2_backend
         self.id = endpoint_id
@@ -381,6 +382,9 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
                     self.ip_address_type
                 )
             }
+        # AWS echoes the region the service lives in (or the endpoint's own region when the
+        # caller did not restrict it), so read-backs stay stable for snapshot-driven IaC tools.
+        self.service_region = service_region or ec2_backend.region_name
 
         self.creation_timestamp = utcnow()
 
@@ -1032,6 +1036,7 @@ class VPCBackend:
         private_dns_enabled: bool | None = None,
         ip_address_type: str | None = None,
         dns_options: dict[str, str] | None = None,
+        service_region: str | None = None,
     ) -> VPCEndPoint:
         vpc_endpoint_id = random_vpc_ep_id()
 
@@ -1072,6 +1077,7 @@ class VPCBackend:
             destination_prefix_list_id=destination_prefix_list_id,
             ip_address_type=ip_address_type,
             dns_options=dns_options,
+            service_region=service_region,
         )
 
         self.vpc_end_points[vpc_endpoint_id] = vpc_end_point

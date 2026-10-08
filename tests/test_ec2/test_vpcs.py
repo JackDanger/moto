@@ -1174,9 +1174,19 @@ def test_create_vpc_endpoint__ip_address_type_and_dns_options():
         SecurityGroupIds=[sg_id],
         IpAddressType="dualstack",
         DnsOptions={"DnsRecordIpType": "dualstack"},
+        ServiceRegion="eu-central-1",
     )["VpcEndpoint"]
     assert dualstack["IpAddressType"] == "Dualstack"
     assert dualstack["DnsOptions"] == {"DnsRecordIpType": "dualstack"}
+    assert dualstack["ServiceRegion"] == "eu-central-1"
+
+    # ServiceRegion defaults to the endpoint's own region, so read-backs are stable
+    read = ec2.describe_vpc_endpoints(VpcEndpointIds=[dualstack["VpcEndpointId"]])[
+        "VpcEndpoints"
+    ][0]
+    assert read["ServiceRegion"] == "eu-central-1"
+    read2 = ec2.describe_vpc_endpoints(VpcEndpointIds=[default["VpcEndpointId"]])["VpcEndpoints"][0]
+    assert read2["ServiceRegion"] == "us-west-1"
 
     # Gateway endpoints carry no IP-address or DNS options; an omitted
     # VpcEndpointType defaults to Gateway.
