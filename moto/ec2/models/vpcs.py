@@ -349,6 +349,8 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
         tags: dict[str, str] | None = None,
         private_dns_enabled: bool | None = None,
         destination_prefix_list_id: str | None = None,
+        ip_address_type: str | None = None,
+        dns_options: dict[str, str] | None = None,
     ):
         self.ec2_backend = ec2_backend
         self.id = endpoint_id
@@ -366,16 +368,45 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
         self.dns_entries = dns_entries
         self.add_tags(tags or {})
         self.destination_prefix_list_id = destination_prefix_list_id
+        if not (endpoint_type or "").lower() == "interface":
+            # Gateway endpoints carry no IP-address or DNS options.
+            self.ip_address_type = None
+            self.dns_options = None
+        else:
+            self.ip_address_type = VPCEndPoint._normalize_ip_address_type(
+                ip_address_type
+            )
+            self.dns_options = dns_options or {
+                "DnsRecordIpType": VPCEndPoint._default_dns_record_ip_type(
+                    self.ip_address_type
+                )
+            }
 
         self.creation_timestamp = utcnow()
 
+    @staticmethod
+    def _normalize_ip_address_type(value: str | None) -> str:
+        """Accept the API's lowercase input enum, return AWS's response casing."""
+        return {"ipv4": "IPv4", "ipv6": "IPv6", "dualstack": "Dualstack"}.get(
+            (value or "ipv4").lower(), "IPv4"
+        )
+
+    @staticmethod
+    def _default_dns_record_ip_type(ip_address_type: str) -> str:
+        return {
+            "IPv4": "ipv4",
+            "IPv6": "ipv6",
+            "Dualstack": "dualstack",
+        }.get(ip_address_type, "ipv4")
+
     @property
     def groups(self) -> list[dict[str, str]]:
-        return [
-            {"GroupId": sg.id, "GroupName": sg.name}
-            for id in self.security_group_ids
-            for sg in [self.ec2_backend.get_security_group_from_id(id)]
-        ]
+        groups = []
+        for sg_id in self.security_group_ids:
+            sg = self.ec2_backend.get_security_group_from_id(sg_id)
+            if sg is not None:
+                groups.append({"GroupId": sg.id, "GroupName": sg.name})
+        return groups
 
     def modify(
         self,
@@ -386,9 +417,17 @@ class VPCEndPoint(TaggedEC2Resource, CloudFormationModel):
         remove_route_tables: list[str] | None,
         add_security_groups: list[str] | None,
         remove_security_groups: list[str] | None,
+        ip_address_type: str | None = None,
+        dns_options: dict[str, str] | None = None,
     ) -> None:
         if policy_doc:
             self.policy_document = policy_doc
+        if ip_address_type:
+            self.ip_address_type = VPCEndPoint._normalize_ip_address_type(
+                ip_address_type
+            )
+        if dns_options:
+            self.dns_options = dns_options  # type: ignore[assignment]
         if add_subnets:
             self.subnet_ids.extend([s for s in add_subnets if s not in self.subnet_ids])  # type: ignore[union-attr,operator]
         if remove_subnets:
@@ -991,6 +1030,8 @@ class VPCBackend:
         security_group_ids: list[str] | None = None,
         tags: dict[str, str] | None = None,
         private_dns_enabled: bool | None = None,
+        ip_address_type: str | None = None,
+        dns_options: dict[str, str] | None = None,
     ) -> VPCEndPoint:
         vpc_endpoint_id = random_vpc_ep_id()
 
@@ -1029,6 +1070,8 @@ class VPCBackend:
             tags=tags,
             private_dns_enabled=private_dns_enabled,
             destination_prefix_list_id=destination_prefix_list_id,
+            ip_address_type=ip_address_type,
+            dns_options=dns_options,
         )
 
         self.vpc_end_points[vpc_endpoint_id] = vpc_end_point
@@ -1054,6 +1097,8 @@ class VPCBackend:
         add_route_tables: list[str] | None,
         add_security_groups: list[str] | None,
         remove_security_groups: list[str] | None,
+        ip_address_type: str | None = None,
+        dns_options: dict[str, str] | None = None,
     ) -> None:
         endpoint = self.describe_vpc_endpoints(vpc_end_point_ids=[vpc_id])[0]
         endpoint.modify(
@@ -1064,6 +1109,8 @@ class VPCBackend:
             remove_route_tables,
             add_security_groups,
             remove_security_groups,
+            ip_address_type=ip_address_type,
+            dns_options=dns_options,
         )
 
     def delete_vpc_endpoints(self, vpce_ids: list[str] | None = None) -> None:

@@ -193,6 +193,8 @@ class VPCs(EC2BaseResponse):
         client_token = self._get_param("ClientToken")
         private_dns_enabled = self._get_bool_param("PrivateDnsEnabled", if_none=True)
         security_group_ids = self._get_param("SecurityGroupIds", [])
+        ip_address_type = self._get_param("IpAddressType")
+        dns_options = self._get_param("DnsOptions")
 
         tags = add_tag_specification(self._get_param("TagSpecifications", []))
         vpc_end_point = self.ec2_backend.create_vpc_endpoint(
@@ -206,6 +208,8 @@ class VPCs(EC2BaseResponse):
             security_group_ids=security_group_ids,
             tags=tags,
             private_dns_enabled=private_dns_enabled,
+            ip_address_type=ip_address_type,
+            dns_options=dns_options,
         )
         result = {"VpcEndpoint": vpc_end_point}
         return ActionResult(result)
@@ -219,6 +223,8 @@ class VPCs(EC2BaseResponse):
         policy_doc = self._get_param("PolicyDocument")
         add_security_groups = self._get_param("AddSecurityGroupIds", [])
         remove_security_groups = self._get_param("RemoveSecurityGroupIds", [])
+        ip_address_type = self._get_param("IpAddressType")
+        dns_options = self._get_param("DnsOptions")
         self.ec2_backend.modify_vpc_endpoint(
             vpc_id=vpc_id,
             policy_doc=policy_doc,
@@ -228,6 +234,8 @@ class VPCs(EC2BaseResponse):
             remove_route_tables=remove_route_tables,
             add_security_groups=add_security_groups,
             remove_security_groups=remove_security_groups,
+            ip_address_type=ip_address_type,
+            dns_options=dns_options,
         )
         return ActionResult({"Return": True})
 

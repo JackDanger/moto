@@ -1138,6 +1138,108 @@ def test_describe_vpc_interface_end_points():
     assert err["Code"] == "InvalidVpcEndpointId.NotFound"
 
 
+@mock_aws
+def test_create_vpc_endpoint__ip_address_type_and_dns_options():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    vpc_id = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
+    subnet_id = ec2.create_subnet(VpcId=vpc_id, CidrBlock="10.0.1.0/24")["Subnet"][
+        "SubnetId"
+    ]
+    sg_id = ec2.create_security_group(
+        GroupName="test_sg", Description="test security group", VpcId=vpc_id
+    )["GroupId"]
+
+    # Interface endpoint without explicit options: AWS defaults to IPv4
+    default = ec2.create_vpc_endpoint(
+        VpcId=vpc_id,
+        ServiceName="com.amazonaws.us-west-1.ssm",
+        VpcEndpointType="Interface",
+        SubnetIds=[subnet_id],
+        SecurityGroupIds=[sg_id],
+    )["VpcEndpoint"]
+    assert default["IpAddressType"] == "IPv4"
+    assert default["DnsOptions"] == {"DnsRecordIpType": "ipv4"}
+    read = ec2.describe_vpc_endpoints(VpcEndpointIds=[default["VpcEndpointId"]])[
+        "VpcEndpoints"
+    ][0]
+    assert read["IpAddressType"] == "IPv4"
+    assert read["DnsOptions"] == {"DnsRecordIpType": "ipv4"}
+
+    # Interface endpoint with explicit dualstack options
+    dualstack = ec2.create_vpc_endpoint(
+        VpcId=vpc_id,
+        ServiceName="com.amazonaws.us-west-1.ssm",
+        VpcEndpointType="Interface",
+        SubnetIds=[subnet_id],
+        SecurityGroupIds=[sg_id],
+        IpAddressType="dualstack",
+        DnsOptions={"DnsRecordIpType": "dualstack"},
+    )["VpcEndpoint"]
+    assert dualstack["IpAddressType"] == "Dualstack"
+    assert dualstack["DnsOptions"] == {"DnsRecordIpType": "dualstack"}
+
+    # Gateway endpoints carry no IP-address or DNS options
+    gateway = ec2.create_vpc_endpoint(
+        VpcId=vpc_id, ServiceName="com.amazonaws.us-west-1.s3"
+    )["VpcEndpoint"]
+    assert "IpAddressType" not in gateway
+    assert "DnsOptions" not in gateway
+
+
+@mock_aws
+def test_modify_vpc_endpoint_ip_address_type():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    vpc_id = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
+    subnet_id = ec2.create_subnet(VpcId=vpc_id, CidrBlock="10.0.1.0/24")["Subnet"][
+        "SubnetId"
+    ]
+    sg_id = ec2.create_security_group(
+        GroupName="test_sg", Description="test security group", VpcId=vpc_id
+    )["GroupId"]
+    endpoint_id = ec2.create_vpc_endpoint(
+        VpcId=vpc_id,
+        ServiceName="com.amazonaws.us-west-1.ssm",
+        VpcEndpointType="Interface",
+        SubnetIds=[subnet_id],
+        SecurityGroupIds=[sg_id],
+    )["VpcEndpoint"]["VpcEndpointId"]
+
+    ec2.modify_vpc_endpoint(
+        VpcEndpointId=endpoint_id,
+        IpAddressType="dualstack",
+        DnsOptions={"DnsRecordIpType": "dualstack"},
+    )
+    read = ec2.describe_vpc_endpoints(VpcEndpointIds=[endpoint_id])["VpcEndpoints"][0]
+    assert read["IpAddressType"] == "Dualstack"
+    assert read["DnsOptions"] == {"DnsRecordIpType": "dualstack"}
+
+
+@mock_aws
+def test_describe_vpc_endpoint_with_deleted_security_group():
+    ec2 = boto3.client("ec2", region_name="us-west-1")
+    vpc_id = ec2.create_vpc(CidrBlock="10.0.0.0/16")["Vpc"]["VpcId"]
+    subnet_id = ec2.create_subnet(VpcId=vpc_id, CidrBlock="10.0.1.0/24")["Subnet"][
+        "SubnetId"
+    ]
+    sg_id = ec2.create_security_group(
+        GroupName="test_sg", Description="test security group", VpcId=vpc_id
+    )["GroupId"]
+    endpoint_id = ec2.create_vpc_endpoint(
+        VpcId=vpc_id,
+        ServiceName="com.amazonaws.us-west-1.ssm",
+        VpcEndpointType="Interface",
+        SubnetIds=[subnet_id],
+        SecurityGroupIds=[sg_id],
+    )["VpcEndpoint"]["VpcEndpointId"]
+
+    ec2.delete_security_group(GroupId=sg_id)
+
+    # A deleted security group must not break the endpoint's read-back
+    read = ec2.describe_vpc_endpoints(VpcEndpointIds=[endpoint_id])["VpcEndpoints"][0]
+    assert read["VpcEndpointId"] == endpoint_id
+    assert read.get("Groups", []) == []
+
+
 def retrieve_all_endpoints(ec2):
     resp = ec2.describe_vpc_endpoints()
     all_endpoints = resp["VpcEndpoints"]
