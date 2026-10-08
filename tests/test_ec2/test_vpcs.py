@@ -1178,10 +1178,12 @@ def test_create_vpc_endpoint__ip_address_type_and_dns_options():
     assert dualstack["IpAddressType"] == "Dualstack"
     assert dualstack["DnsOptions"] == {"DnsRecordIpType": "dualstack"}
 
-    # Gateway endpoints carry no IP-address or DNS options
+    # Gateway endpoints carry no IP-address or DNS options; an omitted
+    # VpcEndpointType defaults to Gateway.
     gateway = ec2.create_vpc_endpoint(
         VpcId=vpc_id, ServiceName="com.amazonaws.us-west-1.s3"
     )["VpcEndpoint"]
+    assert gateway["VpcEndpointType"] == "Gateway"
     assert "IpAddressType" not in gateway
     assert "DnsOptions" not in gateway
 

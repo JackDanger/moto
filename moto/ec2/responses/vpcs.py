@@ -188,7 +188,7 @@ class VPCs(EC2BaseResponse):
         service_name = self._get_param("ServiceName")
         route_table_ids = self._get_param("RouteTableIds", [])
         subnet_ids = self._get_param("SubnetIds", [])
-        endpoint_type = self._get_param("VpcEndpointType")
+        endpoint_type = self._get_param("VpcEndpointType") or "Gateway"
         policy_document = self._get_param("PolicyDocument")
         client_token = self._get_param("ClientToken")
         private_dns_enabled = self._get_bool_param("PrivateDnsEnabled", if_none=True)
