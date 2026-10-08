@@ -1229,3 +1229,30 @@ def test_target_group_attributes_stickiness(
         elbv2.modify_target_group_attributes(
             TargetGroupArn=target_group_arn, Attributes=attributes
         )
+
+
+@mock_aws
+def test_modify_target_group_attributes_deregistration_delay_bounds():
+    conn = boto3.client("elbv2", region_name="us-east-1")
+    ec2 = boto3.resource("ec2", region_name="us-east-1")
+    vpc = ec2.create_vpc(CidrBlock="172.28.7.0/24", InstanceTenancy="default")
+    target_group_arn = conn.create_target_group(
+        Name="a-target", Protocol="HTTP", Port=8080, VpcId=vpc.id
+    )["TargetGroups"][0]["TargetGroupArn"]
+
+    # 0 and 3600 are both valid on AWS ("must be between '0-3600' inclusive").
+    for value in ("0", "3600"):
+        conn.modify_target_group_attributes(
+            TargetGroupArn=target_group_arn,
+            Attributes=[{"Key": "deregistration_delay.timeout_seconds", "Value": value}],
+        )
+        attrs = conn.describe_target_group_attributes(TargetGroupArn=target_group_arn)
+        attributes = {a["Key"]: a["Value"] for a in attrs["Attributes"]}
+        assert attributes["deregistration_delay.timeout_seconds"] == value
+
+    with pytest.raises(ClientError) as exc:
+        conn.modify_target_group_attributes(
+            TargetGroupArn=target_group_arn,
+            Attributes=[{"Key": "deregistration_delay.timeout_seconds", "Value": "3601"}],
+        )
+    assert exc.value.response["Error"]["Code"] == "ValidationError"

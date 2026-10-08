@@ -1303,7 +1303,8 @@ Member must satisfy regular expression pattern: {expression}"
             "deregistration_delay.timeout_seconds"
         )
         if deregistration_delay_timeout_seconds:
-            if int(deregistration_delay_timeout_seconds) not in range(0, 3600):
+            # AWS accepts 0-3600 inclusive (the error text below already says so).
+            if int(deregistration_delay_timeout_seconds) not in range(0, 3601):
                 raise ValidationError(
                     f"'deregistration_delay.timeout_seconds' value '{deregistration_delay_timeout_seconds}' must be between '0-3600' inclusive"
                 )
