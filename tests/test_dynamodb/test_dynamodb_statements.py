@@ -559,3 +559,12 @@ def test_delete_data__with_sort_key():
     client.execute_statement(Statement=f"DELETE FROM \"{table_name}\" WHERE pk='msg'")
 
     assert client.scan(TableName=table_name)["Items"] == []
+
+
+@mock_aws
+def test_execute_statement_with_syntax_error_is_validation_exception():
+    client = boto3.client("dynamodb", "us-east-1")
+    with pytest.raises(ClientError) as exc:
+        client.execute_statement(Statement="{{ not a statement")
+    err = exc.value.response["Error"]
+    assert err["Code"] == "ValidationException"

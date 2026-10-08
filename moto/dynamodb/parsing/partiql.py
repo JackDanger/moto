@@ -16,7 +16,13 @@ def query(
     from py_partiql_parser.exceptions import DocumentNotFoundException
 
     try:
-        return DynamoDBStatementParser(source_data).parse(statement, parameters)
+        # py_partiql_parser returns None for a statement it fails to parse; AWS answers
+        # ValidationException for a syntax error, and returning None would crash the
+        # caller with a TypeError instead.
+        parsed = DynamoDBStatementParser(source_data).parse(statement, parameters)
+        if parsed is None:
+            raise MockValidationException(message="Syntax error in statement")
+        return parsed
     except DocumentNotFoundException as dnfe:
         if "." in dnfe.name:
             table_name = dnfe.name.split(".")[0]
