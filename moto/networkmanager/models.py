@@ -121,7 +121,7 @@ class GlobalNetwork(BaseModel):
             mock_random.get_random_hex(18)
         )
         self.global_network_arn = f"arn:{partition}:networkmanager:{account_id}:global-network/{self.global_network_id}"
-        self.created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        self.created_at = _now()
         self.state = "PENDING"
 
     def to_dict(self) -> dict[str, Any]:
@@ -155,7 +155,7 @@ class CoreNetwork(BaseModel):
         self.core_network_id = "core-network-" + "".join(mock_random.get_random_hex(18))
         self.core_network_arn = f"arn:{partition}:networkmanager:{account_id}:core-network/{self.core_network_id}"
 
-        self.created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        self.created_at = _now()
         self.state = "PENDING"
 
     def to_dict(self) -> dict[str, Any]:
@@ -190,7 +190,7 @@ class Site(BaseModel):
         self.site_arn = (
             f"arn:{partition}:networkmanager:{account_id}:site/{self.site_id}"
         )
-        self.created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        self.created_at = _now()
         self.state = "PENDING"
 
     def to_dict(self) -> dict[str, Any]:
@@ -230,7 +230,7 @@ class Link(BaseModel):
         self.link_arn = (
             f"arn:{partition}:networkmanager:{account_id}:link/{self.link_id}"
         )
-        self.created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        self.created_at = _now()
         self.state = "PENDING"
 
     def to_dict(self) -> dict[str, Any]:
@@ -279,7 +279,7 @@ class Device(BaseModel):
         self.device_arn = (
             f"arn:{partition}:networkmanager:{account_id}:device/{self.device_id}"
         )
-        self.created_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        self.created_at = _now()
         self.state = "PENDING"
 
     def to_dict(self) -> dict[str, Any]:
@@ -1762,8 +1762,11 @@ class NetworkManagerBackend(BaseBackend):
         }
 
 
-def _now() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+def _now() -> int:
+    # AWS's NetworkManager API communicates timestamps as epoch second NUMBERS on the JSON
+    # wire; the aws SDK v2's rest-json DateTime deserializer rejects an ISO8601 string here
+    # ("expected DateTime to be a JSON Number, got string instead").
+    return int(datetime.now(timezone.utc).timestamp())
 
 
 class Connection(BaseModel):

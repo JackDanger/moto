@@ -2,6 +2,7 @@
 
 import boto3
 import pytest
+import json
 from botocore.exceptions import ClientError
 
 from moto import mock_aws
@@ -560,3 +561,27 @@ def test_link_exceptions():
         )
     err = exc.value.response["Error"]
     assert err["Code"] == "ValidationException"
+
+
+@mock_aws
+def test_core_network_created_at_is_epoch_seconds():
+    """The NetworkManager JSON wire expresses CreatedAt/UpdatedAt as epoch second numbers;
+    Terraform's aws SDK rejects an ISO8601 string here ("expected DateTime to be a JSON
+    Number, got string instead"). The wire format follows robotocore's integration probe;
+    at the moto layer assert the model carries an integer epoch so json.dumps emits a
+    JSON number, exactly like AWS's schemas."""
+    from moto.networkmanager.models import CoreNetwork
+
+    core = CoreNetwork(
+        account_id="555555555555",
+        partition="aws",
+        global_network_id="gn-1",
+        description=None,
+        tags=None,
+        policy_document=None,
+        client_token=None,
+    )
+    assert isinstance(core.created_at, (int, float)), type(core.created_at)
+    assert isinstance(json.dumps(core.to_dict()), str)
+    assert '"CreatedAt": ' in json.dumps(core.to_dict())
+
